@@ -195,20 +195,22 @@ func getAllPkJson(srvc *native.NativeService, encId []byte) ([]*publicKeyJson, e
 	}
 	r := make([]*publicKeyJson, 0)
 	for index, p := range publicKeys {
-		publicKey := new(publicKeyJson)
+		if !p.revoked {
+			publicKey := new(publicKeyJson)
 
-		ontId, err := decodeID(encId)
-		if err != nil {
-			return nil, err
+			ontId, err := decodeID(encId)
+			if err != nil {
+				return nil, err
+			}
+			publicKey.Id = fmt.Sprintf("%s#keys-%d", string(ontId), index+1)
+			publicKey.Controller = string(p.controller)
+			publicKey.Type, publicKey.PublicKeyHex, err = keyType(p.key)
+			if err != nil {
+				return nil, err
+			}
+			publicKey.Access = p.access
+			r = append(r, publicKey)
 		}
-		publicKey.Id = fmt.Sprintf("%s#keys-%d", string(ontId), index+1)
-		publicKey.Controller = string(p.controller)
-		publicKey.Type, publicKey.PublicKeyHex, err = keyType(p.key)
-		if err != nil {
-			return nil, err
-		}
-		publicKey.Access = p.access
-		r = append(r, publicKey)
 	}
 	return r, nil
 }
@@ -295,6 +297,9 @@ func changePkAuthentication(srvc *native.NativeService, encId []byte, index uint
 	}
 	if index < 1 || index > uint32(len(publicKeys)) {
 		return errors.New("invalid key index")
+	}
+	if publicKeys[index-1].revoked {
+		return errors.New("key already revoked")
 	}
 	publicKeys[index-1].authentication = authentication
 	err = putAllPk_Version1(srvc, key, publicKeys)
