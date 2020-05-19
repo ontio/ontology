@@ -580,6 +580,7 @@ func FsStoreFiles(native *native.NativeService) ([]byte, error) {
 			serverPdpGasFee := globalParam.FilePerServerPdpTimes * globalParam.ContractInvokeGasFee * fileInfo.CopyNumber
 			fileInfo.CurrFeeRate = globalParam.FilePerBlockFeeRate
 			fileInfo.PayAmount = calcTotalPayAmountWithFile(&fileInfo)
+			fileInfo.RestAmount = fileInfo.PayAmount
 			if err = checkUint64OverflowWithSum(fileInfo.PayAmount, serverPdpGasFee); err != nil {
 				return utils.BYTE_FALSE, fmt.Errorf("[APP SDK] FsStoreFiles error: %s", err.Error())
 			}
@@ -736,6 +737,11 @@ func deleteFile(native *native.NativeService, fileInfo *FileInfo, errInfos *Erro
 				continue
 			}
 			nodeInfo.Profit += nodeProfit
+			if fileInfo.RestAmount < nodeProfit {
+				errInfos.AddObjectError(string(fileInfo.FileHash), "[APP SDK] DeleteFile fileInfo.RestAmount not enough")
+				continue
+			}
+			fileInfo.RestAmount -= nodeProfit
 		case FileStorageTypeUseSpace:
 			spaceInfo := getSpaceInfoFromDb(native, fileInfo.FileOwner)
 			if spaceInfo == nil {
@@ -748,6 +754,12 @@ func deleteFile(native *native.NativeService, fileInfo *FileInfo, errInfos *Erro
 				continue
 			}
 			nodeInfo.Profit += nodeProfit
+			if spaceInfo.RestAmount < nodeProfit {
+				errInfos.AddObjectError(string(fileInfo.FileHash), "[APP SDK] DeleteFile spaceInfo.RestAmount not enough")
+				continue
+			}
+			spaceInfo.RestAmount -= nodeProfit
+			addSpaceInfo(native, spaceInfo)
 		default:
 			errInfos.AddObjectError(string(fileInfo.FileHash), "[APP SDK] DeleteFile file StorageType error")
 			continue
@@ -757,11 +769,6 @@ func deleteFile(native *native.NativeService, fileInfo *FileInfo, errInfos *Erro
 			errInfos.AddObjectError(string(fileInfo.FileHash), "[APP SDK] DeleteFile checkUint64OverflowWithSum error: "+err.Error())
 			continue
 		}
-		if fileInfo.RestAmount < nodeProfit {
-			errInfos.AddObjectError(string(fileInfo.FileHash), "[APP SDK] DeleteFile fileInfo.RestAmount not enough")
-			continue
-		}
-		fileInfo.RestAmount -= nodeProfit
 		nodeInfo.RestVol += fileSize
 		addNodeInfo(native, nodeInfo)
 	}
