@@ -204,6 +204,20 @@
       "returnType":"Bool"
     },
     {
+      "name":"removeRecovery",
+      "parameters":[
+        {
+          "name":"id",
+          "type":"String"
+        },
+        {
+          "name":"userPublicKeyIndex",
+          "type":"Int"
+        }
+      ],
+      "returnType":"Bool"
+    },
+    {
       "name":"addKeyByController",
       "parameters":[
         {
@@ -527,6 +541,64 @@
       "returnType":"Bool"
     },
     {
+      "name":"addNewAuthKeyByRecovery",
+      "parameters":[
+        {
+          "name":"id",
+          "type":"String"
+        },
+        {
+          "name":"newPublicKey",
+          "type":"Struct",
+          "subType":
+          [
+            {
+              "name": "key",
+              "type": "String"
+            },
+            {
+              "name": "controller",
+              "type": "String"
+            }
+          ]
+        },
+        {
+          "name":"signers",
+          "type":"ByteArray"
+        }
+      ],
+      "returnType":"Bool"
+    },
+    {
+      "name":"addNewAuthKeyByController",
+      "parameters":[
+        {
+          "name":"id",
+          "type":"String"
+        },
+        {
+          "name":"newPublicKey",
+          "type":"Struct",
+          "subType":
+          [
+            {
+              "name": "key",
+              "type": "String"
+            },
+            {
+              "name": "controller",
+              "type": "String"
+            }
+          ]
+        },
+        {
+          "name":"signers",
+          "type":"ByteArray"
+        }
+      ],
+      "returnType":"Bool"
+    },
+    {
       "name":"setAuthKey",
       "parameters":[
         {
@@ -545,6 +617,42 @@
       "returnType":"Bool"
     },
     {
+      "name":"setAuthKeyByRecovery",
+      "parameters":[
+        {
+          "name":"id",
+          "type":"String"
+        },
+        {
+          "name":"index",
+          "type":"Int"
+        },
+        {
+          "name":"signers",
+          "type":"ByteArray"
+        }
+      ],
+      "returnType":"Bool"
+    },
+    {
+      "name":"setAuthKeyByController",
+      "parameters":[
+        {
+          "name":"id",
+          "type":"String"
+        },
+        {
+          "name":"index",
+          "type":"Int"
+        },
+        {
+          "name":"signers",
+          "type":"ByteArray"
+        }
+      ],
+      "returnType":"Bool"
+    },
+    {
       "name":"removeAuthKey",
       "parameters":[
         {
@@ -558,6 +666,42 @@
         {
           "name":"signIndex",
           "type":"Int"
+        }
+      ],
+      "returnType":"Bool"
+    },
+    {
+      "name":"removeAuthKeyByRecovery",
+      "parameters":[
+        {
+          "name":"id",
+          "type":"String"
+        },
+        {
+          "name":"index",
+          "type":"Int"
+        },
+        {
+          "name":"signers",
+          "type":"ByteArray"
+        }
+      ],
+      "returnType":"Bool"
+    },
+    {
+      "name":"removeAuthKeyByController",
+      "parameters":[
+        {
+          "name":"id",
+          "type":"String"
+        },
+        {
+          "name":"index",
+          "type":"Int"
+        },
+        {
+          "name":"signers",
+          "type":"ByteArray"
         }
       ],
       "returnType":"Bool"
@@ -683,28 +827,6 @@
       "returnType":"Bool"
     },
     {
-      "name":"setKeyAccess",
-      "parameters":[
-        {
-          "name":"id",
-          "type":"String"
-        },
-        {
-          "name":"setIndex",
-          "type":"Int"
-        },
-        {
-          "name":"access",
-          "type":"String"
-        },
-        {
-          "name":"index",
-          "type":"Int"
-        }
-      ],
-      "returnType":"Bool"
-    },
-    {
       "name":"addProof",
       "parameters":[],
       "returnType":"Bool"
@@ -803,20 +925,6 @@
     },
     {
       "name":"verifySignature",
-      "parameters":[
-        {
-          "name":"id",
-          "type":"String"
-        },
-        {
-          "name":"keyIndex",
-          "type":"Int"
-        }
-      ],
-      "returnType":"Bool"
-    },
-    {
-      "name":"verifySignatureWithEditAccess",
       "parameters":[
         {
           "name":"id",

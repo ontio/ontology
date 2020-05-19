@@ -212,7 +212,7 @@ func getAttrByKey(srvc *native.NativeService, encId []byte, item []byte) ([]byte
 	if err != nil {
 		return nil, fmt.Errorf("get storage item error, %s", err)
 	} else if node == nil {
-		return nil, fmt.Errorf("storage item not exists, %v", item)
+		return nil, nil
 	}
 
 	var attr attribute
