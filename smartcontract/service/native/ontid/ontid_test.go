@@ -360,6 +360,15 @@ func CaseGetDocument(t *testing.T, n *native.NativeService) {
 	if err := regID(n, id2, a2); err != nil {
 		t.Fatal("register ID error", err)
 	}
+	if err := regID(n, "did:ont:TVuSUjQQYsbK9WBnikeEgVy6GuWQ9qz1iW", a2); err != nil {
+		t.Fatal("register ID error", err)
+	}
+	if err := regID(n, "did:ont:TYtNor9XRNYXe2XrM4abzaRbd37WgGKDC1", a2); err != nil {
+		t.Fatal("register ID error", err)
+	}
+	if err := regID(n, "did:ont:TUgmqNEqDJSpN5AgcV2mQ4HtG4qVNVWb89", a2); err != nil {
+		t.Fatal("register ID error", err)
+	}
 
 	// 2. add key
 	sink := common.NewZeroCopySink(nil)
@@ -372,12 +381,16 @@ func CaseGetDocument(t *testing.T, n *native.NativeService) {
 		t.Fatal(err)
 	}
 
-	// 3. set id1 and id2 as id0's recovery id
-	g := &Group{
-		Threshold: 2,
-		Members:   []interface{}{[]byte(id1), []byte(id2)},
-	}
-	if err := setRec(n, id0, g, a0.Address); err != nil {
+	// 3. set recovery
+	r, _ := hex.DecodeString("01022a6469643a6f6e743a54567553556a51515973624b3957426e696b6545675679364775575139717a3169575a01022a6469643a6f6e743a5459744e6f723958524e5958653258724d3461627a6152626433375767474b4443312a6469643a6f6e743a5455676d714e4571444a53704e3541676356326d51344874473471564e565762383901020101")
+	sink.Reset()
+	sink.WriteString(id0)
+	sink.WriteVarBytes(r)
+	utils.EncodeVarUint(sink, 1)
+	n.Input = sink.Bytes()
+	n.Tx.SignedAddr = []common.Address{a0.Address}
+	_, err := setRecovery(n)
+	if err != nil {
 		t.Fatal(err)
 	}
 
@@ -392,7 +405,7 @@ func CaseGetDocument(t *testing.T, n *native.NativeService) {
 	context.Serialization(sink)
 	n.Input = sink.Bytes()
 	n.Tx.SignedAddr = []common.Address{a0.Address}
-	_, err := addContext(n)
+	_, err = addContext(n)
 	if err != nil {
 		t.Fatal()
 	}
@@ -466,16 +479,7 @@ func CaseGetDocument(t *testing.T, n *native.NativeService) {
 		t.Fatal(err)
 	}
 
-	// 9. set recovery
-	r, _ := hex.DecodeString("01022a6469643a6f6e743a54567553556a51515973624b3957426e696b6545675679364775575139717a3169575a01022a6469643a6f6e743a5459744e6f723958524e5958653258724d3461627a6152626433375767474b4443312a6469643a6f6e743a5455676d714e4571444a53704e3541676356326d51344874473471564e565762383901020101")
-	sink.Reset()
-	sink.WriteString(id0)
-	sink.WriteVarBytes(r)
-	sink.WriteVarUint(1)
-	n.Input = sink.Bytes()
-	n.Tx.SignedAddr = []common.Address{a0.Address}
-
-	// 10. get document
+	// 9. get document
 	res, err := GetDocumentJson(n)
 	if err != nil {
 		t.Fatal(err)

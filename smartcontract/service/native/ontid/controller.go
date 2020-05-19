@@ -357,22 +357,13 @@ func getControllerJson(srvc *native.NativeService, encId []byte) (interface{}, e
 	}
 
 	if account.VerifyID(string(item.Value)) {
-		return item.Value, nil
+		return string(item.Value), nil
 	} else {
 		r, err := deserializeGroup(item.Value)
 		if err != nil {
 			return nil, err
 		}
-		members := make([]interface{}, 0)
-		for _, v := range r.Members {
-			member, ok := v.([]byte)
-			if !ok {
-				return nil, errors.New("member is not byte array")
-			}
-			members = append(members, string(member))
-		}
-		r.Members = members
-		return r, nil
+		return parse(r), nil
 	}
 }
 
