@@ -674,10 +674,6 @@ func FsDeleteFiles(native *native.NativeService) ([]byte, error) {
 			errInfos.AddObjectError(string(fileDel.FileHash), "[APP SDK] FsDeleteFiles fileInfo is nil")
 			continue
 		}
-		if !fileInfo.ValidFlag {
-			errInfos.AddObjectError(string(fileDel.FileHash), "[APP SDK] FsDeleteFiles file is invalid")
-			continue
-		}
 		if !native.ContextRef.CheckWitness(fileInfo.FileOwner) {
 			errInfos.AddObjectError(string(fileDel.FileHash), "[APP SDK] FsDeleteFiles CheckFileOwner failed!")
 			continue
@@ -689,13 +685,33 @@ func FsDeleteFiles(native *native.NativeService) ([]byte, error) {
 	return utils.BYTE_TRUE, nil
 }
 
+func deleteChallenge(native *native.NativeService, nodeAddress common.Address, fileInfo *FileInfo) error {
+	contract := native.ContextRef.CurrentContext().ContractAddress
+	chl := getChallenge(native, nodeAddress, fileInfo.FileHash)
+	if chl == nil {
+		return nil
+	}
+
+	switch chl.State {
+	case NoReplyAndValid, NoReplyAndExpire:
+		if err := appCallTransfer(native, utils.OngContractAddress, contract, fileInfo.FileOwner, chl.Reward); err != nil {
+			return fmt.Errorf("deleteChallenge AppCallTransfer, transfer error: %s", err.Error())
+		}
+	}
+	delChallenge(native, nodeAddress, fileInfo.FileHash)
+	return nil
+}
+
 func deleteFile(native *native.NativeService, fileInfo *FileInfo, errInfos *Errors) bool {
 	contract := native.ContextRef.CurrentContext().ContractAddress
 	pdpRecordList := getPdpRecordList(native, fileInfo.FileHash, fileInfo.FileOwner)
 
 	var err error
 	for _, pdpRecord := range pdpRecordList.PdpRecords {
-		delChallenge(native, pdpRecord.NodeAddr, fileInfo.FileHash)
+		if err = deleteChallenge(native, pdpRecord.NodeAddr, fileInfo); err != nil {
+			errInfos.AddObjectError(string(fileInfo.FileHash), "[APP SDK] DeleteFile deleteChallenge error")
+			continue
+		}
 
 		if pdpRecord.SettleFlag {
 			continue
@@ -706,26 +722,27 @@ func deleteFile(native *native.NativeService, fileInfo *FileInfo, errInfos *Erro
 			continue
 		}
 
+		var nodeProfit uint64
 		switch fileInfo.StorageType {
 		case FileStorageTypeUseFile:
-			profit := calcFileModePerServerProfit(uint64(native.Time), fileInfo)
-			if err = checkUint64OverflowWithSum(nodeInfo.Profit, profit); err != nil {
+			nodeProfit = calcFileModePerServerProfit(uint64(native.Time), fileInfo)
+			if err = checkUint64OverflowWithSum(nodeInfo.Profit, nodeProfit); err != nil {
 				errInfos.AddObjectError(string(fileInfo.FileHash), "[APP SDK] DeleteFile checkUint64OverflowWithSum error: "+err.Error())
 				continue
 			}
-			nodeInfo.Profit += profit
+			nodeInfo.Profit += nodeProfit
 		case FileStorageTypeUseSpace:
 			spaceInfo := getSpaceInfoFromDb(native, fileInfo.FileOwner)
 			if spaceInfo == nil {
 				errInfos.AddObjectError(string(fileInfo.FileHash), "[APP SDK] DeleteFile getSpaceInfoFromDb error!")
 				continue
 			}
-			profit := calcSpaceModePerServerProfit(uint64(native.Time), spaceInfo.TimeExpired, fileInfo)
-			if err = checkUint64OverflowWithSum(nodeInfo.Profit, profit); err != nil {
+			nodeProfit = calcSpaceModePerServerProfit(uint64(native.Time), spaceInfo.TimeExpired, fileInfo)
+			if err = checkUint64OverflowWithSum(nodeInfo.Profit, nodeProfit); err != nil {
 				errInfos.AddObjectError(string(fileInfo.FileHash), "[APP SDK] DeleteFile checkUint64OverflowWithSum error: "+err.Error())
 				continue
 			}
-			nodeInfo.Profit += profit
+			nodeInfo.Profit += nodeProfit
 		default:
 			errInfos.AddObjectError(string(fileInfo.FileHash), "[APP SDK] DeleteFile file StorageType error")
 			continue
@@ -735,6 +752,11 @@ func deleteFile(native *native.NativeService, fileInfo *FileInfo, errInfos *Erro
 			errInfos.AddObjectError(string(fileInfo.FileHash), "[APP SDK] DeleteFile checkUint64OverflowWithSum error: "+err.Error())
 			continue
 		}
+		if fileInfo.RestAmount < nodeProfit {
+			errInfos.AddObjectError(string(fileInfo.FileHash), "[APP SDK] DeleteFile fileInfo.RestAmount not enough")
+			continue
+		}
+		fileInfo.RestAmount -= nodeProfit
 		nodeInfo.RestVol += fileSize
 		addNodeInfo(native, nodeInfo)
 	}
