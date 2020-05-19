@@ -133,8 +133,8 @@ func regIdWithAttributes(srvc *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return utils.BYTE_FALSE, errors.New("register ID with attributes error: " + err.Error())
 	}
-	if !isValid(srvc, key) {
-		return utils.BYTE_FALSE, errors.New("register ID with attributes error: have not registered")
+	if checkIDState(srvc, key) != flag_not_exist {
+		return utils.BYTE_FALSE, errors.New("register ONT ID with attributes error: already registered")
 	}
 
 	public, err := keypair.DeserializePublicKey(arg1)
