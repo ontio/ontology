@@ -11,10 +11,6 @@
         {
           "name":"publicKey",
           "type":"ByteArray"
-        },
-        {
-          "name":"access",
-          "type":"String"
         }
       ],
       "returnType":"Bool"
@@ -97,10 +93,6 @@
         {
           "name":"controller",
           "type":"String"
-        },
-        {
-          "name":"access",
-          "type":"String"
         }
       ],
       "returnType":"Bool"
@@ -122,10 +114,6 @@
         },
         {
           "name":"controller",
-          "type":"String"
-        },
-        {
-          "name":"access",
           "type":"String"
         }
       ],
@@ -235,10 +223,6 @@
         {
           "name":"controller",
           "type":"String"
-        },
-        {
-          "name":"access",
-          "type":"String"
         }
       ],
       "returnType":"Bool"
@@ -278,10 +262,6 @@
         },
         {
           "name":"controller",
-          "type":"String"
-        },
-        {
-          "name":"access",
           "type":"String"
         }
       ],
