@@ -465,7 +465,7 @@ type Document struct {
 	PublicKey      []*publicKeyJson `json:"publicKey"`
 	Authentication []interface{}    `json:"authentication"`
 	Controller     interface{}      `json:"controller"`
-	Recovery       *Group           `json:"recovery"`
+	Recovery       *GroupJson       `json:"recovery"`
 	Service        []*serviceJson   `json:"service"`
 	Attribute      []*attributeJson `json:"attribute"`
 	Created        uint32           `json:"created"`

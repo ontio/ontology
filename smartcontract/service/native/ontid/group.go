@@ -35,8 +35,13 @@ type Group struct {
 	Threshold uint          `json:"threshold"`
 }
 
-func parse(g *Group) *Group {
-	gr := &Group{
+type GroupJson struct {
+	Members   []interface{} `json:"members"`
+	Threshold uint          `json:"threshold"`
+}
+
+func parse(g *Group) *GroupJson {
+	gr := &GroupJson{
 		Members:   make([]interface{}, len(g.Members)),
 		Threshold: g.Threshold,
 	}

@@ -306,7 +306,7 @@ func getRecovery(srvc *native.NativeService, encId []byte) (*Group, error) {
 	return deserializeGroup(item.Value)
 }
 
-func getRecoveryJson(srvc *native.NativeService, encId []byte) (*Group, error) {
+func getRecoveryJson(srvc *native.NativeService, encId []byte) (*GroupJson, error) {
 	key := append(encId, FIELD_RECOVERY)
 	item, err := utils.GetStorageItem(srvc, key)
 	if err != nil {
