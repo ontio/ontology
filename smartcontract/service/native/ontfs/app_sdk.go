@@ -200,7 +200,12 @@ func FsJudge(native *native.NativeService) ([]byte, error) {
 		if spaceInfo == nil {
 			return utils.BYTE_FALSE, errors.NewErr("[APP SDK] FsJudge getSpaceRawRealInfo error!")
 		}
-		punishAmount = calcSpaceModePerServerProfit(spaceInfo.TimeExpired, spaceInfo.TimeExpired, fileInfo)
+		//fileInfo.CurrFeeRate equals spaceInfo.CurrFeeRate
+		punishAmount = calcTotalPayAmountWithFile(fileInfo)
+		if err = checkUint64OverflowWithSum(punishAmount, 2*globalParam.ContractInvokeGasFee); err != nil {
+			return utils.BYTE_FALSE, fmt.Errorf("[APP SDK] FsJudge error: %s", err.Error())
+		}
+		punishAmount = punishAmount + 2*globalParam.ContractInvokeGasFee
 	default:
 		return utils.BYTE_FALSE, errors.NewErr("[APP SDK] FsJudge file StorageType error!")
 	}
