@@ -55,6 +55,9 @@ func setRecovery(srvc *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return utils.BYTE_FALSE, errors.New("setRecovery: " + err.Error())
 	}
+	if !isValid(srvc, encId) {
+		return utils.BYTE_FALSE, errors.New("setRecovery error: have not registered")
+	}
 	if err := checkWitnessByIndex(srvc, encId, uint32(arg2)); err != nil {
 		return utils.BYTE_FALSE, errors.New("setRecovery: authentication failed: " + err.Error())
 	}
@@ -96,6 +99,9 @@ func updateRecovery(srvc *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return utils.BYTE_FALSE, errors.New("update recovery: " + err.Error())
 	}
+	if !isValid(srvc, key) {
+		return utils.BYTE_FALSE, errors.New("updateRecovery error: have not registered")
+	}
 	re, err := getRecovery(srvc, key)
 	if err != nil {
 		return utils.BYTE_FALSE, errors.New("update recovery: get old recovery error, " + err.Error())
@@ -126,7 +132,7 @@ func removeRecovery(srvc *native.NativeService) ([]byte, error) {
 	// arg0: ID
 	arg0, err := utils.DecodeVarBytes(source)
 	if err != nil {
-		return utils.BYTE_FALSE, errors.New("updateRecovery: argument 0 error")
+		return utils.BYTE_FALSE, errors.New("removeRecovery: argument 0 error")
 	}
 	// arg1: public key index
 	arg1, err := utils.DecodeVarUint(source)
@@ -137,6 +143,9 @@ func removeRecovery(srvc *native.NativeService) ([]byte, error) {
 	encId, err := encodeID(arg0)
 	if err != nil {
 		return utils.BYTE_FALSE, err
+	}
+	if !isValid(srvc, encId) {
+		return utils.BYTE_FALSE, errors.New("removeRecovery error: have not registered")
 	}
 	if err := checkWitnessByIndex(srvc, encId, uint32(arg1)); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("checkWitness failed, %s", err)
@@ -171,6 +180,9 @@ func addKeyByRecovery(srvc *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return utils.BYTE_FALSE, err
 	}
+	if !isValid(srvc, encId) {
+		return utils.BYTE_FALSE, errors.New("addKeyByRecovery error: have not registered")
+	}
 
 	signers, err := deserializeSigners(arg2)
 	if err != nil {
@@ -195,7 +207,7 @@ func addKeyByRecovery(srvc *native.NativeService) ([]byte, error) {
 		controller = arg0
 	}
 
-	index, err := insertPk(srvc, encId, arg1, controller, ONLY_PUBLICKEY)
+	index, err := insertPk(srvc, encId, arg1, controller, true, false)
 	if err != nil {
 		return utils.BYTE_FALSE, err
 	}
@@ -226,6 +238,9 @@ func removeKeyByRecovery(srvc *native.NativeService) ([]byte, error) {
 	encId, err := encodeID(arg0)
 	if err != nil {
 		return utils.BYTE_FALSE, err
+	}
+	if !isValid(srvc, encId) {
+		return utils.BYTE_FALSE, errors.New("removeKeyByRecovery error: have not registered")
 	}
 
 	signers, err := deserializeSigners(arg2)

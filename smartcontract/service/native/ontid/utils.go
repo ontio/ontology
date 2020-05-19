@@ -113,7 +113,7 @@ func checkWitnessByIndex(srvc *native.NativeService, encId []byte, index uint32)
 	}
 
 	//verify access
-	if pk.authentication == ONLY_PUBLICKEY {
+	if !pk.isAuthentication {
 		return fmt.Errorf("pk do not have access")
 	}
 

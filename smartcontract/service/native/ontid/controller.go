@@ -91,7 +91,6 @@ func revokeIDByController(srvc *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return utils.BYTE_FALSE, err
 	}
-
 	if !isValid(srvc, encId) {
 		return utils.BYTE_FALSE, fmt.Errorf("%s is not registered or already revoked", string(arg0))
 	}
@@ -201,7 +200,7 @@ func addKeyByController(srvc *native.NativeService) ([]byte, error) {
 		controller = arg0
 	}
 
-	index, err := insertPk(srvc, encId, arg1, controller, ONLY_PUBLICKEY)
+	index, err := insertPk(srvc, encId, arg1, controller, true, false)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("insertion failed, %s", err)
 	}

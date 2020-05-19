@@ -49,7 +49,7 @@ func addNewAuthKey(srvc *native.NativeService) ([]byte, error) {
 	}
 
 	index, err := insertPk(srvc, encId, params.NewPublicKey.key, params.NewPublicKey.controller,
-		ONLY_AUTHENTICATION)
+		false, true)
 	if err != nil {
 		return utils.BYTE_FALSE, errors.New("add auth key error, insertPk failed " + err.Error())
 	}
@@ -107,7 +107,7 @@ func addNewAuthKeyByRecovery(srvc *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, errors.New("verification failed")
 	}
 
-	index, err := insertPk(srvc, encId, key, controller, ONLY_AUTHENTICATION)
+	index, err := insertPk(srvc, encId, key, controller, false, true)
 	if err != nil {
 		return utils.BYTE_FALSE, errors.New("add auth key error, insertPk failed " + err.Error())
 	}
@@ -149,7 +149,7 @@ func addNewAuthKeyByController(srvc *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, errors.New("verifying signature failed")
 	}
 
-	index, err := insertPk(srvc, encId, key, controller, ONLY_AUTHENTICATION)
+	index, err := insertPk(srvc, encId, key, controller, false, true)
 	if err != nil {
 		return utils.BYTE_FALSE, errors.New("add auth key error, insertPk failed " + err.Error())
 	}
@@ -176,7 +176,7 @@ func setAuthKey(srvc *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, errors.New("verify signature failed: " + err.Error())
 	}
 
-	err = changePkAuthentication(srvc, encId, params.Index, BOTH)
+	err = changePkAuthentication(srvc, encId, params.Index, true)
 	if err != nil {
 		return utils.BYTE_FALSE, errors.New("add auth key error, changePkAuthentication failed " + err.Error())
 	}
@@ -209,7 +209,7 @@ func setAuthKeyByRecovery(srvc *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, err
 	}
 	if !isValid(srvc, encId) {
-		return utils.BYTE_FALSE, errors.New("add new auth key error: have not registered")
+		return utils.BYTE_FALSE, errors.New("setAuthKeyByRecovery error: have not registered")
 	}
 
 	signers, err := deserializeSigners(arg2)
@@ -229,7 +229,7 @@ func setAuthKeyByRecovery(srvc *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, errors.New("verification failed")
 	}
 
-	err = changePkAuthentication(srvc, encId, uint32(index), BOTH)
+	err = changePkAuthentication(srvc, encId, uint32(index), true)
 	if err != nil {
 		return utils.BYTE_FALSE, errors.New("add auth key error, changePkAuthentication failed " + err.Error())
 	}
@@ -258,7 +258,7 @@ func setAuthKeyByController(srvc *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, errors.New(err.Error())
 	}
 	if !isValid(srvc, encId) {
-		return utils.BYTE_FALSE, errors.New("add new auth key error: have not registered")
+		return utils.BYTE_FALSE, errors.New("setAuthKeyByController error: have not registered")
 	}
 
 	err = verifyControllerSignature(srvc, encId, source)
@@ -266,7 +266,7 @@ func setAuthKeyByController(srvc *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, errors.New("verifying signature failed")
 	}
 
-	err = changePkAuthentication(srvc, encId, uint32(index), BOTH)
+	err = changePkAuthentication(srvc, encId, uint32(index), true)
 	if err != nil {
 		return utils.BYTE_FALSE, errors.New("add auth key error, changePkAuthentication failed " + err.Error())
 	}
@@ -293,7 +293,7 @@ func removeAuthKey(srvc *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, errors.New("verify signature failed: " + err.Error())
 	}
 
-	if err := revokeAuthKey(srvc, encId, params.Index); err != nil {
+	if err := changePkAuthentication(srvc, encId, uint32(params.Index), false); err != nil {
 		return utils.BYTE_FALSE, errors.New("remove auth key error, revokeAuthKey failed: " + err.Error())
 	}
 
@@ -325,7 +325,7 @@ func removeAuthKeyByRecovery(srvc *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, err
 	}
 	if !isValid(srvc, encId) {
-		return utils.BYTE_FALSE, errors.New("add new auth key error: have not registered")
+		return utils.BYTE_FALSE, errors.New("removeAuthKeyByRecovery error: have not registered")
 	}
 
 	signers, err := deserializeSigners(arg2)
@@ -345,7 +345,7 @@ func removeAuthKeyByRecovery(srvc *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, errors.New("verification failed")
 	}
 
-	if err := revokeAuthKey(srvc, encId, uint32(index)); err != nil {
+	if err := changePkAuthentication(srvc, encId, uint32(index), false); err != nil {
 		return utils.BYTE_FALSE, errors.New("remove auth key error, revokeAuthKey failed: " + err.Error())
 	}
 
@@ -373,7 +373,7 @@ func removeAuthKeyByController(srvc *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, errors.New(err.Error())
 	}
 	if !isValid(srvc, encId) {
-		return utils.BYTE_FALSE, errors.New("add new auth key error: have not registered")
+		return utils.BYTE_FALSE, errors.New("removeAuthKeyByController error: have not registered")
 	}
 
 	err = verifyControllerSignature(srvc, encId, source)
@@ -381,7 +381,7 @@ func removeAuthKeyByController(srvc *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, errors.New("verifying signature failed")
 	}
 
-	if err := revokeAuthKey(srvc, encId, uint32(index)); err != nil {
+	if err := changePkAuthentication(srvc, encId, uint32(index), false); err != nil {
 		return utils.BYTE_FALSE, errors.New("remove auth key error, revokeAuthKey failed: " + err.Error())
 	}
 
@@ -403,7 +403,7 @@ func getAuthentication(srvc *native.NativeService, encId []byte) ([]interface{},
 			if err != nil {
 				return nil, err
 			}
-			if p.authentication == ONLY_AUTHENTICATION {
+			if p.isAuthentication && !p.isPkList {
 				publicKey := new(publicKeyJson)
 				publicKey.Id = fmt.Sprintf("%s#keys-%d", string(ontId), index+1)
 				publicKey.Controller = string(p.controller)
@@ -413,7 +413,7 @@ func getAuthentication(srvc *native.NativeService, encId []byte) ([]interface{},
 				}
 				authentication = append(authentication, publicKey)
 			}
-			if p.authentication == BOTH {
+			if p.isAuthentication && p.isPkList {
 				authentication = append(authentication, fmt.Sprintf("%s#keys-%d", string(ontId), index+1))
 			}
 		}

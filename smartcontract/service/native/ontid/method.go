@@ -65,7 +65,6 @@ func regIdWithPublicKey(srvc *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return utils.BYTE_FALSE, errors.New("register ONT ID error: " + err.Error())
 	}
-
 	if checkIDState(srvc, key) != flag_not_exist {
 		return utils.BYTE_FALSE, errors.New("register ONT ID error: already registered")
 	}
@@ -80,7 +79,7 @@ func regIdWithPublicKey(srvc *native.NativeService) ([]byte, error) {
 	}
 
 	// insert public key
-	_, err = insertPk(srvc, key, arg1, arg0, BOTH)
+	_, err = insertPk(srvc, key, arg1, arg0, true, true)
 	if err != nil {
 		return utils.BYTE_FALSE, errors.New("register ONT ID error: store public key error, " + err.Error())
 	}
@@ -134,10 +133,10 @@ func regIdWithAttributes(srvc *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return utils.BYTE_FALSE, errors.New("register ID with attributes error: " + err.Error())
 	}
-
-	if checkIDState(srvc, key) != flag_not_exist {
-		return utils.BYTE_FALSE, errors.New("register ID with attributes error: already registered")
+	if !isValid(srvc, key) {
+		return utils.BYTE_FALSE, errors.New("register ID with attributes error: have not registered")
 	}
+
 	public, err := keypair.DeserializePublicKey(arg1)
 	if err != nil {
 		return utils.BYTE_FALSE, errors.New("register ID with attributes error: invalid public key: " + err.Error())
@@ -147,7 +146,7 @@ func regIdWithAttributes(srvc *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, errors.New("register ID with attributes error: check witness failed")
 	}
 
-	_, err = insertPk(srvc, key, arg1, arg0, ONLY_PUBLICKEY)
+	_, err = insertPk(srvc, key, arg1, arg0, true, false)
 	if err != nil {
 		return utils.BYTE_FALSE, errors.New("register ID with attributes error: store pubic key error: " + err.Error())
 	}
@@ -219,7 +218,7 @@ func addKey(srvc *native.NativeService) ([]byte, error) {
 		controller = arg0
 	}
 
-	keyID, err := insertPk(srvc, key, arg1, controller, ONLY_PUBLICKEY)
+	keyID, err := insertPk(srvc, key, arg1, controller, true, false)
 	if err != nil {
 		return utils.BYTE_FALSE, errors.New("add key failed: insert public key error, " + err.Error())
 	}
@@ -274,7 +273,7 @@ func addKeyByIndex(srvc *native.NativeService) ([]byte, error) {
 		controller = arg0
 	}
 
-	keyID, err := insertPk(srvc, key, arg1, controller, ONLY_PUBLICKEY)
+	keyID, err := insertPk(srvc, key, arg1, controller, true, false)
 	if err != nil {
 		return utils.BYTE_FALSE, errors.New("add key failed: insert public key error, " + err.Error())
 	}
@@ -583,6 +582,9 @@ func verifySignature(srvc *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return utils.BYTE_FALSE, errors.New("verify signature error: " + err.Error())
 	}
+	if !isValid(srvc, key) {
+		return utils.BYTE_FALSE, errors.New("verify signature error: have not registered")
+	}
 	if err := checkWitnessWithoutAuth(srvc, key, uint32(arg1)); err != nil {
 		return utils.BYTE_FALSE, errors.New("verify signature failed: " + err.Error())
 	}
@@ -607,7 +609,6 @@ func revokeID(srvc *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return utils.BYTE_FALSE, err
 	}
-
 	if !isValid(srvc, encId) {
 		return utils.BYTE_FALSE, fmt.Errorf("%s is not registered or already revoked", string(arg0))
 	}

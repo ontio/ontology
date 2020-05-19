@@ -34,10 +34,6 @@ import (
 
 const (
 	OWNER_TOTAL_SIZE = 1024 * 1024 // 1MB
-
-	ONLY_PUBLICKEY      = 1
-	ONLY_AUTHENTICATION = 2
-	BOTH                = 3
 )
 
 type publicKeyJson struct {
@@ -48,17 +44,19 @@ type publicKeyJson struct {
 }
 
 type publicKey struct {
-	key            []byte
-	revoked        bool
-	controller     []byte
-	authentication uint8
+	key              []byte
+	revoked          bool
+	controller       []byte
+	isPkList         bool
+	isAuthentication bool
 }
 
 func (this *publicKey) Serialization(sink *common.ZeroCopySink) {
 	sink.WriteVarBytes(this.key)
 	sink.WriteBool(this.revoked)
 	sink.WriteVarBytes(this.controller)
-	sink.WriteByte(this.authentication)
+	sink.WriteBool(this.isPkList)
+	sink.WriteBool(this.isAuthentication)
 }
 
 func (this *publicKey) Deserialization(source *common.ZeroCopySource) error {
@@ -74,15 +72,20 @@ func (this *publicKey) Deserialization(source *common.ZeroCopySource) error {
 	if err != nil {
 		return err
 	}
-	authentication, eof := source.NextByte()
-	if eof {
-		return fmt.Errorf("deserilize authentication error: eof")
+	isPkList, err := utils.DecodeBool(source)
+	if err != nil {
+		return err
+	}
+	isAuthentication, err := utils.DecodeBool(source)
+	if err != nil {
+		return err
 	}
 
 	this.key = key
 	this.revoked = revoked
 	this.controller = controller
-	this.authentication = authentication
+	this.isPkList = isPkList
+	this.isAuthentication = isAuthentication
 	return nil
 }
 
@@ -157,7 +160,8 @@ func getAllPk_Version1(srvc *native.NativeService, encId, key []byte) ([]*public
 			}
 			p.key = t.key
 			p.controller = ontid
-			p.authentication = BOTH
+			p.isPkList = true
+			p.isAuthentication = true
 			p.revoked = t.revoked
 			publicKeys = append(publicKeys, p)
 		}
@@ -231,7 +235,7 @@ func putAllPk_Version1(srvc *native.NativeService, key []byte, val []*publicKey)
 	return nil
 }
 
-func insertPk(srvc *native.NativeService, encId, pk, controller []byte, authentication uint8) (uint32, error) {
+func insertPk(srvc *native.NativeService, encId, pk, controller []byte, isPkList, isAuthentication bool) (uint32, error) {
 	key := append(encId, FIELD_PK)
 	if srvc.Height < config.GetNewOntIdHeight() {
 		owners, err := getAllPk(srvc, key)
@@ -262,7 +266,7 @@ func insertPk(srvc *native.NativeService, encId, pk, controller []byte, authenti
 			}
 		}
 		size := len(publicKeys)
-		publicKeys = append(publicKeys, &publicKey{pk, false, controller, authentication})
+		publicKeys = append(publicKeys, &publicKey{pk, false, controller, isPkList, isAuthentication})
 		err = putAllPk_Version1(srvc, key, publicKeys)
 		if err != nil {
 			return 0, err
@@ -271,7 +275,7 @@ func insertPk(srvc *native.NativeService, encId, pk, controller []byte, authenti
 	}
 }
 
-func changePkAuthentication(srvc *native.NativeService, encId []byte, index uint32, authentication uint8) error {
+func changePkAuthentication(srvc *native.NativeService, encId []byte, index uint32, isAuthentication bool) error {
 	key := append(encId, FIELD_PK)
 
 	publicKeys, err := getAllPk_Version1(srvc, encId, key)
@@ -284,7 +288,7 @@ func changePkAuthentication(srvc *native.NativeService, encId []byte, index uint
 	if publicKeys[index-1].revoked {
 		return errors.New("key already revoked")
 	}
-	publicKeys[index-1].authentication = authentication
+	publicKeys[index-1].isAuthentication = isAuthentication
 	err = putAllPk_Version1(srvc, key, publicKeys)
 	if err != nil {
 		return err
@@ -328,37 +332,11 @@ func findPk_Version1(srvc *native.NativeService, encId, pub []byte) (uint32, boo
 		return 0, false, err
 	}
 	for i, v := range publicKeys {
-		if bytes.Equal(pub, v.key) && v.authentication != ONLY_PUBLICKEY {
+		if bytes.Equal(pub, v.key) && v.isAuthentication {
 			return uint32(i + 1), v.revoked, nil
 		}
 	}
 	return 0, false, nil
-}
-
-func revokeAuthKey(srvc *native.NativeService, encId []byte, index uint32) error {
-	key := append(encId, FIELD_PK)
-
-	publicKeys, err := getAllPk_Version1(srvc, encId, key)
-	if err != nil {
-		return err
-	}
-	if index < 1 || index > uint32(len(publicKeys)) {
-		return errors.New("invalid key index")
-	}
-	if publicKeys[index-1].authentication == BOTH {
-		publicKeys[index-1].authentication = ONLY_PUBLICKEY
-	}
-	if publicKeys[index-1].authentication == ONLY_PUBLICKEY {
-		return errors.New("key is not auth key")
-	}
-	if publicKeys[index-1].authentication == ONLY_AUTHENTICATION {
-		publicKeys[index-1].revoked = true
-	}
-	err = putAllPk_Version1(srvc, key, publicKeys)
-	if err != nil {
-		return err
-	}
-	return nil
 }
 
 func revokePk(srvc *native.NativeService, encId, pub []byte) (uint32, error) {

@@ -177,6 +177,9 @@ func GetPublicKeysJson(srvc *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("get public keys error: %s", err)
 	}
+	if !isValid(srvc, encId) {
+		return nil, fmt.Errorf("GetPublicKeysJson error: have not registered")
+	}
 	r, err := getAllPkJson(srvc, encId)
 	if err != nil {
 		return nil, fmt.Errorf("get public keys error: %s", err)
@@ -205,6 +208,9 @@ func GetAttributes(srvc *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("get all attributes error: %s", err)
 	}
+	if !isValid(srvc, key) {
+		return nil, fmt.Errorf("GetAttributes error: have not registered")
+	}
 	res, err := getAllAttr(srvc, key)
 	if err != nil {
 		return nil, fmt.Errorf("get all attributes error: %s", err)
@@ -226,6 +232,9 @@ func GetAttributeByKey(srvc *native.NativeService) ([]byte, error) {
 	key, err := encodeID(did)
 	if err != nil {
 		return nil, fmt.Errorf("get attributes by key error: %s", err)
+	}
+	if !isValid(srvc, key) {
+		return nil, fmt.Errorf("get attributes by key error: have not registered")
 	}
 	item, err := utils.DecodeVarBytes(source)
 	if err != nil {
@@ -252,6 +261,9 @@ func GetAttributesJson(srvc *native.NativeService) ([]byte, error) {
 	key, err := encodeID(did)
 	if err != nil {
 		return nil, fmt.Errorf("get public keys error: %s", err)
+	}
+	if !isValid(srvc, key) {
+		return nil, fmt.Errorf("GetAttributesJson error: have not registered")
 	}
 	res, err := getAllAttrJson(srvc, key)
 	if err != nil {
@@ -283,6 +295,9 @@ func GetKeyState(srvc *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("get key state failed: %s", err)
 	}
+	if !isValid(srvc, key) {
+		return nil, fmt.Errorf("GetKeyState error: have not registered")
+	}
 
 	owner, err := getPk(srvc, key, uint32(arg1))
 	if err != nil {
@@ -311,6 +326,9 @@ func GetServiceJson(srvc *native.NativeService) ([]byte, error) {
 	encId, err := encodeID(params.OntId)
 	if err != nil {
 		return nil, fmt.Errorf("encodeID failed: %s", err)
+	}
+	if !isValid(srvc, encId) {
+		return nil, fmt.Errorf("GetServiceJson error: have not registered")
 	}
 
 	services, err := getServices(srvc, encId)
@@ -345,6 +363,9 @@ func GetControllerJson(srvc *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("encodeID failed: %s", err)
 	}
+	if !isValid(srvc, encId) {
+		return nil, fmt.Errorf("GetControllerJson error: have not registered")
+	}
 	key := append(encId, FIELD_CONTROLLER)
 	item, err := utils.GetStorageItem(srvc, key)
 	if err != nil {
@@ -375,6 +396,9 @@ func GetDocumentJson(srvc *native.NativeService) ([]byte, error) {
 	encId, err := encodeID(arg0)
 	if err != nil {
 		return nil, fmt.Errorf("encodeID failed: %s", err)
+	}
+	if !isValid(srvc, encId) {
+		return nil, fmt.Errorf("GetDocumentJson error: have not registered")
 	}
 	contexts, err := getContextsWithDefault(srvc, encId)
 	if err != nil {
