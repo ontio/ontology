@@ -23,12 +23,35 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/ontio/ontology/account"
+	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/states"
 	"github.com/ontio/ontology/core/store/leveldbstore"
 	"github.com/ontio/ontology/core/store/overlaydb"
 	"github.com/ontio/ontology/smartcontract/service/native"
+	"github.com/ontio/ontology/smartcontract/service/native/utils"
 	"github.com/ontio/ontology/smartcontract/storage"
 )
+
+func (g *Group) Serialize() []byte {
+	sink := common.NewZeroCopySink(nil)
+	utils.EncodeVarUint(sink, uint64(len(g.Members)))
+	for _, m := range g.Members {
+		switch t := m.(type) {
+		case []byte:
+			if !account.VerifyID(string(t)) {
+				panic("invalid ont id format")
+			}
+			sink.WriteVarBytes(t)
+		case *Group:
+			sink.WriteVarBytes(t.Serialize())
+		default:
+			panic("invalid member type")
+		}
+	}
+	utils.EncodeVarUint(sink, uint64(g.Threshold))
+	return sink.Bytes()
+}
 
 func TestDeserializeGroup(t *testing.T) {
 	id0 := []byte("did:ont:ARY2ekof1eCSetcimGdjqyzUYaVDDPVWmw")
@@ -68,13 +91,13 @@ func TestDeserializeGroup(t *testing.T) {
 	srvc.CacheDB = cache
 
 	key, _ := encodeID(id0)
-	insertPk(srvc, key, []byte("test pk"))
+	insertPk(srvc, key, []byte("test pk"), []byte("controller"), true, false)
 	cache.Put(key, states.GenRawStorageItem([]byte{flag_valid}))
 	key, _ = encodeID(id1)
-	insertPk(srvc, key, []byte("test pk"))
+	insertPk(srvc, key, []byte("test pk"), []byte("controller"), true, false)
 	cache.Put(key, states.GenRawStorageItem([]byte{flag_valid}))
 	key, _ = encodeID(id2)
-	insertPk(srvc, key, []byte("test pk"))
+	insertPk(srvc, key, []byte("test pk"), []byte("controller"), true, false)
 	cache.Put(key, states.GenRawStorageItem([]byte{flag_valid}))
 
 	err = validateMembers(srvc, g)

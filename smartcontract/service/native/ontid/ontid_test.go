@@ -19,6 +19,8 @@ package ontid
 
 import (
 	"bytes"
+	"encoding/hex"
+	"fmt"
 	"testing"
 
 	"github.com/ontio/ontology-crypto/keypair"
@@ -36,6 +38,10 @@ func testcase(t *testing.T, f func(t *testing.T, n *native.NativeService)) {
 			return nil, nil
 		},
 	)
+}
+
+func TestGetDocument(t *testing.T) {
+	testcase(t, CaseGetDocument)
 }
 
 func TestReg(t *testing.T) {
@@ -330,8 +336,153 @@ func CaseOwnerSize(t *testing.T, n *native.NativeService) {
 	}
 
 	buf := make([]byte, OWNER_TOTAL_SIZE)
-	_, err = insertPk(n, enc, buf)
+	_, err = insertPk(n, enc, buf, []byte("controller"), true, false)
 	if err == nil {
 		t.Fatal("total size of the owner's key should be limited")
 	}
+}
+
+func CaseGetDocument(t *testing.T, n *native.NativeService) {
+	n.Height = 10000000
+	// 1. register ID
+	id0, _ := account.GenerateID()
+	a0 := account.NewAccount("")
+	id1, _ := account.GenerateID()
+	a1 := account.NewAccount("")
+	id2, _ := account.GenerateID()
+	a2 := account.NewAccount("")
+	if err := regID(n, id0, a0); err != nil {
+		t.Fatal("register ID error", err)
+	}
+	if err := regID(n, id1, a1); err != nil {
+		t.Fatal("register ID error", err)
+	}
+	if err := regID(n, id2, a2); err != nil {
+		t.Fatal("register ID error", err)
+	}
+	if err := regID(n, "did:ont:TVuSUjQQYsbK9WBnikeEgVy6GuWQ9qz1iW", a2); err != nil {
+		t.Fatal("register ID error", err)
+	}
+	if err := regID(n, "did:ont:TYtNor9XRNYXe2XrM4abzaRbd37WgGKDC1", a2); err != nil {
+		t.Fatal("register ID error", err)
+	}
+	if err := regID(n, "did:ont:TUgmqNEqDJSpN5AgcV2mQ4HtG4qVNVWb89", a2); err != nil {
+		t.Fatal("register ID error", err)
+	}
+
+	// 2. add key
+	sink := common.NewZeroCopySink(nil)
+	sink.WriteString(id0)
+	sink.WriteVarBytes(keypair.SerializePublicKey(a1.PubKey()))
+	sink.WriteVarBytes(keypair.SerializePublicKey(a0.PubKey()))
+	n.Input = sink.Bytes()
+	n.Tx.SignedAddr = []common.Address{a0.Address}
+	if _, err := addKey(n); err != nil {
+		t.Fatal(err)
+	}
+
+	// 3. set recovery
+	r, _ := hex.DecodeString("01022a6469643a6f6e743a54567553556a51515973624b3957426e696b6545675679364775575139717a3169575a01022a6469643a6f6e743a5459744e6f723958524e5958653258724d3461627a6152626433375767474b4443312a6469643a6f6e743a5455676d714e4571444a53704e3541676356326d51344874473471564e565762383901020101")
+	sink.Reset()
+	sink.WriteString(id0)
+	sink.WriteVarBytes(r)
+	utils.EncodeVarUint(sink, 1)
+	n.Input = sink.Bytes()
+	n.Tx.SignedAddr = []common.Address{a0.Address}
+	_, err := setRecovery(n)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// 4. add context
+	var contexts = [][]byte{[]byte("https://www.w3.org/ns0/did/v1"), []byte("https://ontid.ont.io0/did/v1"), []byte("https://ontid.ont.io0/did/v1")}
+	context := &Context{
+		OntId:    []byte(id0),
+		Contexts: contexts,
+		Index:    1,
+	}
+	sink.Reset()
+	context.Serialization(sink)
+	n.Input = sink.Bytes()
+	n.Tx.SignedAddr = []common.Address{a0.Address}
+	_, err = addContext(n)
+	if err != nil {
+		t.Fatal()
+	}
+
+	// 5. add attribute
+	attr := attribute{
+		key:       []byte("test key"),
+		valueType: []byte("test type"),
+		value:     []byte("test value"),
+	}
+	sink.Reset()
+	sink.WriteString(id0)
+	utils.EncodeVarUint(sink, 1)
+	attr.Serialization(sink)
+	sink.WriteVarBytes(keypair.SerializePublicKey(a0.PubKey()))
+	n.Input = sink.Bytes()
+	n.Tx.SignedAddr = []common.Address{a0.Address}
+	if _, err := addAttributes(n); err != nil {
+		t.Fatal(err)
+	}
+
+	// 6. add auth key
+	newPublicKey := &NewPublicKey{
+		key:        keypair.SerializePublicKey(a2.PublicKey),
+		controller: []byte(id2),
+	}
+	authKeyParam := &AddNewAuthKeyParam{
+		OntId:        []byte(id0),
+		NewPublicKey: newPublicKey,
+		SignIndex:    1,
+	}
+
+	sink.Reset()
+	authKeyParam.Serialization(sink)
+	n.Input = sink.Bytes()
+	n.Tx.SignedAddr = []common.Address{a0.Address}
+	if _, err := addNewAuthKey(n); err != nil {
+		t.Fatal(err)
+	}
+
+	// 7. set auth key
+	setAuthKeyParam := &SetAuthKeyParam{
+		OntId:     []byte(id0),
+		Index:     1,
+		SignIndex: 1,
+	}
+
+	sink.Reset()
+	setAuthKeyParam.Serialization(sink)
+	n.Input = sink.Bytes()
+	n.Tx.SignedAddr = []common.Address{a0.Address}
+	if _, err := setAuthKey(n); err != nil {
+		t.Fatal(err)
+	}
+
+	// 8. add service
+	service := &ServiceParam{
+		OntId:          []byte(id0),
+		ServiceId:      []byte("someService"),
+		Type:           []byte("sss"),
+		ServiceEndpint: []byte("http;;s;s;s;;s"),
+		Index:          1,
+	}
+
+	sink.Reset()
+	service.Serialization(sink)
+	n.Input = sink.Bytes()
+	n.Tx.SignedAddr = []common.Address{a0.Address}
+	_, err = addService(n)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// 9. get document
+	res, err := GetDocumentJson(n)
+	if err != nil {
+		t.Fatal(err)
+	}
+	fmt.Println(string(res))
 }

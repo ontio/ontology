@@ -18,7 +18,9 @@
 package ontid
 
 import (
+	"bytes"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
 
@@ -58,6 +60,7 @@ func GetPublicKeyByID(srvc *native.NativeService) ([]byte, error) {
 	return pk.key, nil
 }
 
+// deprecated
 func GetDDO(srvc *native.NativeService) ([]byte, error) {
 	log.Debug("GetDDO")
 	source := common.NewZeroCopySource(srvc.Input)
@@ -124,6 +127,7 @@ func GetDDO(srvc *native.NativeService) ([]byte, error) {
 	return res, nil
 }
 
+// Deprecated
 func GetPublicKeys(srvc *native.NativeService) ([]byte, error) {
 	log.Debug("GetPublicKeys")
 	args := common.NewZeroCopySource(srvc.Input)
@@ -158,8 +162,93 @@ func GetPublicKeys(srvc *native.NativeService) ([]byte, error) {
 	return sink.Bytes(), nil
 }
 
+func GetPublicKeysJson(srvc *native.NativeService) ([]byte, error) {
+	log.Debug("GetPublicKeysJson")
+	args := common.NewZeroCopySource(srvc.Input)
+	did, err := utils.DecodeVarBytes(args)
+	if err != nil {
+		return nil, fmt.Errorf("get public keys error: invalid argument, %s", err)
+	}
+	if len(did) == 0 {
+		return nil, errors.New("get public keys error: invalid ID")
+	}
+	encId, err := encodeID(did)
+	if err != nil {
+		return nil, fmt.Errorf("get public keys error: %s", err)
+	}
+	if !isValid(srvc, encId) {
+		return nil, nil
+	}
+	r, err := getAllPkJson(srvc, encId)
+	if err != nil {
+		return nil, fmt.Errorf("get public keys error: %s", err)
+	} else if r == nil {
+		return nil, nil
+	}
+
+	result, err := json.Marshal(r)
+	if err != nil {
+		return nil, fmt.Errorf("json.Marshal error: %s", err)
+	}
+	return result, nil
+}
+
 func GetAttributes(srvc *native.NativeService) ([]byte, error) {
 	log.Debug("GetAttributes")
+	source := common.NewZeroCopySource(srvc.Input)
+	did, err := utils.DecodeVarBytes(source)
+	if err != nil {
+		return nil, fmt.Errorf("get all attributes error: invalid argument, %s", err)
+	}
+	if len(did) == 0 {
+		return nil, errors.New("get all attributes error: invalid ID")
+	}
+	key, err := encodeID(did)
+	if err != nil {
+		return nil, fmt.Errorf("get all attributes error: %s", err)
+	}
+	if !isValid(srvc, key) {
+		return nil, nil
+	}
+	res, err := getAllAttr(srvc, key)
+	if err != nil {
+		return nil, fmt.Errorf("get all attributes error: %s", err)
+	}
+
+	return res, nil
+}
+
+func GetAttributeByKey(srvc *native.NativeService) ([]byte, error) {
+	log.Debug("GetAttributeByKey")
+	source := common.NewZeroCopySource(srvc.Input)
+	did, err := utils.DecodeVarBytes(source)
+	if err != nil {
+		return nil, fmt.Errorf("get attributes by key error: invalid argument1, %s", err)
+	}
+	if len(did) == 0 {
+		return nil, errors.New("get attributes by key error: invalid ID")
+	}
+	key, err := encodeID(did)
+	if err != nil {
+		return nil, fmt.Errorf("get attributes by key error: %s", err)
+	}
+	if !isValid(srvc, key) {
+		return nil, nil
+	}
+	item, err := utils.DecodeVarBytes(source)
+	if err != nil {
+		return nil, fmt.Errorf("get attributes by key error: invalid argument2, %s", err)
+	}
+	res, err := getAttrByKey(srvc, key, item)
+	if err != nil {
+		return nil, fmt.Errorf("get attributes by key error: %s", err)
+	}
+
+	return res, nil
+}
+
+func GetAttributesJson(srvc *native.NativeService) ([]byte, error) {
+	log.Debug("GetAttributesJson")
 	source := common.NewZeroCopySource(srvc.Input)
 	did, err := utils.DecodeVarBytes(source)
 	if err != nil {
@@ -172,12 +261,19 @@ func GetAttributes(srvc *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("get public keys error: %s", err)
 	}
-	res, err := getAllAttr(srvc, key)
+	if !isValid(srvc, key) {
+		return nil, nil
+	}
+	res, err := getAllAttrJson(srvc, key)
 	if err != nil {
 		return nil, fmt.Errorf("get attributes error: %s", err)
 	}
 
-	return res, nil
+	result, err := json.Marshal(res)
+	if err != nil {
+		return nil, fmt.Errorf("json.Marshal error: %s", err)
+	}
+	return result, nil
 }
 
 func GetKeyState(srvc *native.NativeService) ([]byte, error) {
@@ -198,6 +294,9 @@ func GetKeyState(srvc *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("get key state failed: %s", err)
 	}
+	if !isValid(srvc, key) {
+		return nil, nil
+	}
 
 	owner, err := getPk(srvc, key, uint32(arg1))
 	if err != nil {
@@ -213,4 +312,133 @@ func GetKeyState(srvc *native.NativeService) ([]byte, error) {
 	} else {
 		return []byte("in use"), nil
 	}
+}
+
+func GetServiceJson(srvc *native.NativeService) ([]byte, error) {
+	log.Debug("GetServiceJson")
+	params := new(SearchServiceParam)
+	source := common.NewZeroCopySource(srvc.Input)
+	err := params.Deserialization(source)
+	if err != nil {
+		return nil, errors.New("GetService error: deserialization params error, " + err.Error())
+	}
+	encId, err := encodeID(params.OntId)
+	if err != nil {
+		return nil, fmt.Errorf("encodeID failed: %s", err)
+	}
+	if !isValid(srvc, encId) {
+		return nil, nil
+	}
+
+	services, err := getServices(srvc, encId)
+	if err != nil {
+		return nil, errors.New("GetService error: getServices error, " + err.Error())
+	}
+	for i := 0; i < len(services); i++ {
+		if bytes.Equal(services[i].ServiceId, params.ServiceId) {
+			service := new(serviceJson)
+			service.Id = fmt.Sprintf("%s#%s", string(params.OntId), string(params.ServiceId))
+			service.Type = string(services[i].Type)
+			service.ServiceEndpint = string(services[i].ServiceEndpint)
+			data, err := json.Marshal(service)
+			if err != nil {
+				return nil, errors.New("GetService error: json.Marshal error, " + err.Error())
+			}
+			return data, nil
+		}
+	}
+	return nil, nil
+}
+
+func GetControllerJson(srvc *native.NativeService) ([]byte, error) {
+	log.Debug("GetControllerJson")
+	source := common.NewZeroCopySource(srvc.Input)
+	// arg0: ID
+	arg0, _, irregular, eof := source.NextVarBytes()
+	if irregular || eof {
+		return nil, fmt.Errorf("get key state failed: argument 0 error")
+	}
+	encId, err := encodeID(arg0)
+	if err != nil {
+		return nil, fmt.Errorf("encodeID failed: %s", err)
+	}
+	if !isValid(srvc, encId) {
+		return nil, nil
+	}
+	r, err := getControllerJson(srvc, encId)
+	if err != nil {
+		return nil, fmt.Errorf("getControllerJson failed: %s", err)
+	}
+	return json.Marshal(r)
+}
+
+func GetDocumentJson(srvc *native.NativeService) ([]byte, error) {
+	log.Debug("GetDocumentJson")
+	source := common.NewZeroCopySource(srvc.Input)
+	// arg0: ID
+	arg0, _, irregular, eof := source.NextVarBytes()
+	if irregular || eof {
+		return nil, fmt.Errorf("get key state failed: argument 0 error")
+	}
+	encId, err := encodeID(arg0)
+	if err != nil {
+		return nil, fmt.Errorf("encodeID failed: %s", err)
+	}
+	if !isValid(srvc, encId) {
+		return nil, nil
+	}
+	contexts, err := getContextsWithDefault(srvc, encId)
+	if err != nil {
+		return nil, fmt.Errorf("getContextsWithDefault failed: %s", err)
+	}
+	id := string(arg0)
+	publicKey, err := getAllPkJson(srvc, encId)
+	if err != nil {
+		return nil, fmt.Errorf("getAllPkJson failed: %s", err)
+	}
+	authentication, err := getAuthentication(srvc, encId)
+	if err != nil {
+		return nil, fmt.Errorf("getAuthentication failed: %s", err)
+	}
+	controller, err := getControllerJson(srvc, encId)
+	if err != nil {
+		return nil, fmt.Errorf("getController failed: %s", err)
+	}
+	recovery, err := getRecoveryJson(srvc, encId)
+	if err != nil {
+		return nil, fmt.Errorf("getRecovery failed: %s", err)
+	}
+	service, err := getServicesJson(srvc, encId)
+	if err != nil {
+		return nil, fmt.Errorf("getServicesJson failed: %s", err)
+	}
+	attribute, err := getAllAttrJson(srvc, encId)
+	if err != nil {
+		return nil, fmt.Errorf("getAllAttrJson failed: %s", err)
+	}
+	created, err := getCreateTime(srvc, encId)
+	if err != nil {
+		return nil, fmt.Errorf("getCreateTime failed: %s", err)
+	}
+	updated, err := getUpdateTime(srvc, encId)
+	if err != nil {
+		return nil, fmt.Errorf("getUpdateTime failed: %s", err)
+	}
+	proof, err := getProof(srvc, encId)
+	if err != nil {
+		return nil, fmt.Errorf("getProof failed: %s", err)
+	}
+	document := new(Document)
+	document.Contexts = contexts
+	document.Id = id
+	document.PublicKey = publicKey
+	document.Authentication = authentication
+	document.Controller = controller
+	document.Recovery = recovery
+	document.Service = service
+	document.Attribute = attribute
+	document.Created = created
+	document.Updated = updated
+	document.Proof = proof
+	return json.Marshal(document)
 }

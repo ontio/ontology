@@ -264,14 +264,14 @@ func CaseGroupController(t *testing.T, n *native.NativeService) {
 	}
 
 	// 5. register with invalid signers, should fail
-	signers[0].id = []byte(id3)
+	signers[0].Id = []byte(id3)
 	addr[0] = a3.Address
 	if err := regGroupControlledID(n, id, g, signers, addr); err == nil {
 		t.Error("registered invalid controller")
 	}
 
 	// 5. register controlled id
-	signers[0].id = []byte(id0)
+	signers[0].Id = []byte(id0)
 	addr[0] = a0.Address
 	if err := regGroupControlledID(n, id, g, signers, addr); err != nil {
 		t.Fatal(err)

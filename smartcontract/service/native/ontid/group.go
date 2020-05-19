@@ -35,26 +35,32 @@ type Group struct {
 	Threshold uint          `json:"threshold"`
 }
 
-func (g *Group) ToJson() []byte {
-	j, _ := json.Marshal(g)
-	return j
+type GroupJson struct {
+	Members   []interface{} `json:"members"`
+	Threshold uint          `json:"threshold"`
 }
 
-func (g *Group) Serialize() []byte {
-	sink := common.NewZeroCopySink(nil)
-	utils.EncodeVarUint(sink, uint64(len(g.Members)))
-	for _, m := range g.Members {
-		switch t := m.(type) {
+func parse(g *Group) *GroupJson {
+	gr := &GroupJson{
+		Members:   make([]interface{}, len(g.Members)),
+		Threshold: g.Threshold,
+	}
+	for i := 0; i < len(g.Members); i++ {
+		switch t := g.Members[i].(type) {
 		case []byte:
-			sink.WriteVarBytes(t)
+			gr.Members[i] = string(t)
 		case *Group:
-			sink.WriteVarBytes(t.Serialize())
+			gr.Members[i] = parse(t)
 		default:
-			panic("invlid member type")
+			panic("invalid member type")
 		}
 	}
-	utils.EncodeVarUint(sink, uint64(g.Threshold))
-	return sink.Bytes()
+	return gr
+}
+
+func (g *Group) ToJson() []byte {
+	j, _ := json.Marshal(parse(g))
+	return j
 }
 
 func rDeserialize(data []byte, depth uint) (*Group, error) {
@@ -135,16 +141,16 @@ func validateMembers(srvc *native.NativeService, g *Group) error {
 }
 
 type Signer struct {
-	id    []byte
-	index uint32
+	Id    []byte
+	Index uint32
 }
 
 func SerializeSigners(s []Signer) []byte {
 	sink := common.NewZeroCopySink(nil)
 	utils.EncodeVarUint(sink, uint64(len(s)))
 	for _, v := range s {
-		sink.WriteVarBytes(v.id)
-		utils.EncodeVarUint(sink, uint64(v.index))
+		sink.WriteVarBytes(v.Id)
+		utils.EncodeVarUint(sink, uint64(v.Index))
 	}
 	return sink.Bytes()
 }
@@ -176,7 +182,7 @@ func deserializeSigners(data []byte) ([]Signer, error) {
 
 func findSigner(id []byte, signers []Signer) bool {
 	for _, signer := range signers {
-		if bytes.Equal(signer.id, id) {
+		if bytes.Equal(signer.Id, id) {
 			return true
 		}
 	}
@@ -208,11 +214,11 @@ func verifyGroupSignature(srvc *native.NativeService, g *Group, signers []Signer
 	}
 
 	for _, signer := range signers {
-		key, err := encodeID(signer.id)
+		key, err := encodeID(signer.Id)
 		if err != nil {
 			return false
 		}
-		if checkWitnessByIndex(srvc, key, signer.index) != nil {
+		if checkWitnessByIndex(srvc, key, signer.Index) != nil {
 			return false
 		}
 	}

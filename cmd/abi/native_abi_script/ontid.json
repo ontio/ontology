@@ -16,6 +16,66 @@
       "returnType":"Bool"
     },
     {
+      "name":"regIDWithController",
+      "parameters":[
+        {
+          "name":"id",
+          "type":"String"
+        },
+        {
+          "name":"controller",
+          "type":"ByteArray"
+        },
+        {
+          "name":"signers",
+          "type":"ByteArray"
+        }
+      ],
+      "returnType":"Bool"
+    },
+    {
+      "name":"revokeID",
+      "parameters":[
+        {
+          "name":"id",
+          "type":"String"
+        },
+        {
+          "name":"index",
+          "type":"Int"
+        }
+      ],
+      "returnType":"Bool"
+    },
+    {
+      "name":"revokeIDByController",
+      "parameters":[
+        {
+          "name":"id",
+          "type":"String"
+        },
+        {
+          "name":"signers",
+          "type":"ByteArray"
+        }
+      ],
+      "returnType":"Bool"
+    },
+    {
+      "name":"removeController",
+      "parameters":[
+        {
+          "name":"id",
+          "type":"String"
+        },
+        {
+          "name":"index",
+          "type":"Int"
+        }
+      ],
+      "returnType":"Bool"
+    },
+    {
       "name":"addKey",
       "parameters":[
         {
@@ -27,8 +87,34 @@
           "type":"ByteArray"
         },
         {
-          "name":"userxPublicKey",
+          "name":"userPublicKey",
           "type":"ByteArray"
+        },
+        {
+          "name":"controller",
+          "type":"String"
+        }
+      ],
+      "returnType":"Bool"
+    },
+    {
+      "name":"addKeyByIndex",
+      "parameters":[
+        {
+          "name":"id",
+          "type":"String"
+        },
+        {
+          "name":"newPublicKey",
+          "type":"ByteArray"
+        },
+        {
+          "name":"userPublicKeyIndex",
+          "type":"Int"
+        },
+        {
+          "name":"controller",
+          "type":"String"
         }
       ],
       "returnType":"Bool"
@@ -52,7 +138,25 @@
       "returnType":"Bool"
     },
     {
-      "name":"addRecovery",
+      "name":"removeKeyByIndex",
+      "parameters":[
+        {
+          "name":"id",
+          "type":"String"
+        },
+        {
+          "name":"removedKey",
+          "type":"ByteArray"
+        },
+        {
+          "name":"userPublicKeyIndex",
+          "type":"Int"
+        }
+      ],
+      "returnType":"Bool"
+    },
+    {
+      "name":"setRecovery",
       "parameters":[
         {
           "name":"id",
@@ -60,17 +164,17 @@
         },
         {
           "name":"recovery",
-          "type":"Address"
+          "type":"ByteArray"
         },
         {
-          "name":"userPublicKey",
-          "type":"ByteArray"
+          "name":"userPublicKeyIndex",
+          "type":"Int"
         }
       ],
       "returnType":"Bool"
     },
     {
-      "name":"changeRecovery",
+      "name":"updateRecovery",
       "parameters":[
         {
           "name":"id",
@@ -78,11 +182,105 @@
         },
         {
           "name":"newRecovery",
-          "type":"Address"
+          "type":"ByteArray"
         },
         {
-          "name":"oldRecovery",
-          "type":"Address"
+          "name":"oldRecoverySigner",
+          "type":"ByteArray"
+        }
+      ],
+      "returnType":"Bool"
+    },
+    {
+      "name":"removeRecovery",
+      "parameters":[
+        {
+          "name":"id",
+          "type":"String"
+        },
+        {
+          "name":"userPublicKeyIndex",
+          "type":"Int"
+        }
+      ],
+      "returnType":"Bool"
+    },
+    {
+      "name":"addKeyByController",
+      "parameters":[
+        {
+          "name":"id",
+          "type":"String"
+        },
+        {
+          "name":"userPublicKey",
+          "type":"ByteArray"
+        },
+        {
+          "name":"signers",
+          "type":"ByteArray"
+        },
+        {
+          "name":"controller",
+          "type":"String"
+        }
+      ],
+      "returnType":"Bool"
+    },
+    {
+      "name":"removeKeyByController",
+      "parameters":[
+        {
+          "name":"id",
+          "type":"String"
+        },
+        {
+          "name":"index",
+          "type":"Int"
+        },
+        {
+          "name":"signers",
+          "type":"ByteArray"
+        }
+      ],
+      "returnType":"Bool"
+    },
+    {
+      "name":"addKeyByRecovery",
+      "parameters":[
+        {
+          "name":"id",
+          "type":"String"
+        },
+        {
+          "name":"userPublicKey",
+          "type":"ByteArray"
+        },
+        {
+          "name":"signers",
+          "type":"ByteArray"
+        },
+        {
+          "name":"controller",
+          "type":"String"
+        }
+      ],
+      "returnType":"Bool"
+    },
+    {
+      "name":"removeKeyByRecovery",
+      "parameters":[
+        {
+          "name":"id",
+          "type":"String"
+        },
+        {
+          "name":"index",
+          "type":"Int"
+        },
+        {
+          "name":"signers",
+          "type":"ByteArray"
         }
       ],
       "returnType":"Bool"
@@ -108,15 +306,15 @@
               "subType":[
                 {
                   "name":"key",
-                  "type":"ByteArray"
+                  "type":"String"
                 },
                 {
                   "name":"type",
-                  "type":"ByteArray"
+                  "type":"String"
                 },
                 {
                   "name":"value",
-                  "type":"ByteArray"
+                  "type":"String"
                 }
               ]
             }
@@ -141,16 +339,16 @@
               "type":"Struct",
               "subType":[
                 {
-                  "name":"path",
-                  "type":"ByteArray"
+                  "name":"key",
+                  "type":"String"
                 },
                 {
                   "name":"type",
-                  "type":"ByteArray"
+                  "type":"String"
                 },
                 {
                   "name":"value",
-                  "type":"ByteArray"
+                  "type":"String"
                 }
               ]
             }
@@ -164,6 +362,44 @@
       "returnType":"Bool"
     },
     {
+      "name":"addAttributesByIndex",
+      "parameters":[
+        {
+          "name":"id",
+          "type":"String"
+        },
+        {
+          "name":"attributes",
+          "type":"Array",
+          "subType":[
+            {
+              "name":"",
+              "type":"Struct",
+              "subType":[
+                {
+                  "name":"key",
+                  "type":"String"
+                },
+                {
+                  "name":"type",
+                  "type":"String"
+                },
+                {
+                  "name":"value",
+                  "type":"String"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name":"userPublicKeyIndex",
+          "type":"Int"
+        }
+      ],
+      "returnType":"Bool"
+    },
+    {
       "name":"removeAttribute",
       "parameters":[
         {
@@ -172,7 +408,7 @@
         },
         {
           "name":"attributePath",
-          "type":"ByteArray"
+          "type":"String"
         },
         {
           "name":"userPublicKey",
@@ -182,7 +418,401 @@
       "returnType":"Bool"
     },
     {
-      "name":"getPublicKeys",
+      "name":"removeAttributeByIndex",
+      "parameters":[
+        {
+          "name":"id",
+          "type":"String"
+        },
+        {
+          "name":"attributePath",
+          "type":"String"
+        },
+        {
+          "name":"userPublicKeyIndex",
+          "type":"Int"
+        }
+      ],
+      "returnType":"Bool"
+    },
+    {
+      "name":"addAttributesByController",
+      "parameters":[
+        {
+          "name":"id",
+          "type":"String"
+        },
+        {
+          "name":"attributes",
+          "type":"Array",
+          "subType":[
+            {
+              "name":"",
+              "type":"Struct",
+              "subType":[
+                {
+                  "name":"key",
+                  "type":"String"
+                },
+                {
+                  "name":"type",
+                  "type":"String"
+                },
+                {
+                  "name":"value",
+                  "type":"String"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name":"signers",
+          "type":"ByteArray"
+        }
+      ],
+      "returnType":"Bool"
+    },
+    {
+      "name":"removeAttributeByController",
+      "parameters":[
+        {
+          "name":"id",
+          "type":"String"
+        },
+        {
+          "name":"attributePath",
+          "type":"String"
+        },
+        {
+          "name":"signers",
+          "type":"ByteArray"
+        }
+      ],
+      "returnType":"Bool"
+    },
+    {
+      "name":"addNewAuthKey",
+      "parameters":[
+        {
+          "name":"id",
+          "type":"String"
+        },
+        {
+          "name":"newPublicKey",
+          "type":"Struct",
+          "subType":
+          [
+            {
+              "name": "key",
+              "type": "ByteArray"
+            },
+            {
+              "name": "controller",
+              "type": "String"
+            }
+          ]
+        },
+        {
+          "name":"signIndex",
+          "type":"Int"
+        }
+      ],
+      "returnType":"Bool"
+    },
+    {
+      "name":"addNewAuthKeyByRecovery",
+      "parameters":[
+        {
+          "name":"id",
+          "type":"String"
+        },
+        {
+          "name":"newPublicKey",
+          "type":"Struct",
+          "subType":
+          [
+            {
+              "name": "key",
+              "type": "ByteArray"
+            },
+            {
+              "name": "controller",
+              "type": "String"
+            }
+          ]
+        },
+        {
+          "name":"signers",
+          "type":"ByteArray"
+        }
+      ],
+      "returnType":"Bool"
+    },
+    {
+      "name":"addNewAuthKeyByController",
+      "parameters":[
+        {
+          "name":"id",
+          "type":"String"
+        },
+        {
+          "name":"newPublicKey",
+          "type":"Struct",
+          "subType":
+          [
+            {
+              "name": "key",
+              "type": "ByteArray"
+            },
+            {
+              "name": "controller",
+              "type": "String"
+            }
+          ]
+        },
+        {
+          "name":"signers",
+          "type":"ByteArray"
+        }
+      ],
+      "returnType":"Bool"
+    },
+    {
+      "name":"setAuthKey",
+      "parameters":[
+        {
+          "name":"id",
+          "type":"String"
+        },
+        {
+          "name":"index",
+          "type":"Int"
+        },
+        {
+          "name":"signIndex",
+          "type":"Int"
+        }
+      ],
+      "returnType":"Bool"
+    },
+    {
+      "name":"setAuthKeyByRecovery",
+      "parameters":[
+        {
+          "name":"id",
+          "type":"String"
+        },
+        {
+          "name":"index",
+          "type":"Int"
+        },
+        {
+          "name":"signers",
+          "type":"ByteArray"
+        }
+      ],
+      "returnType":"Bool"
+    },
+    {
+      "name":"setAuthKeyByController",
+      "parameters":[
+        {
+          "name":"id",
+          "type":"String"
+        },
+        {
+          "name":"index",
+          "type":"Int"
+        },
+        {
+          "name":"signers",
+          "type":"ByteArray"
+        }
+      ],
+      "returnType":"Bool"
+    },
+    {
+      "name":"removeAuthKey",
+      "parameters":[
+        {
+          "name":"id",
+          "type":"String"
+        },
+        {
+          "name":"index",
+          "type":"Int"
+        },
+        {
+          "name":"signIndex",
+          "type":"Int"
+        }
+      ],
+      "returnType":"Bool"
+    },
+    {
+      "name":"removeAuthKeyByRecovery",
+      "parameters":[
+        {
+          "name":"id",
+          "type":"String"
+        },
+        {
+          "name":"index",
+          "type":"Int"
+        },
+        {
+          "name":"signers",
+          "type":"ByteArray"
+        }
+      ],
+      "returnType":"Bool"
+    },
+    {
+      "name":"removeAuthKeyByController",
+      "parameters":[
+        {
+          "name":"id",
+          "type":"String"
+        },
+        {
+          "name":"index",
+          "type":"Int"
+        },
+        {
+          "name":"signers",
+          "type":"ByteArray"
+        }
+      ],
+      "returnType":"Bool"
+    },
+    {
+      "name":"addService",
+      "parameters":[
+        {
+          "name":"id",
+          "type":"String"
+        },
+        {
+          "name":"serviceId",
+          "type":"String"
+        },
+        {
+          "name":"type",
+          "type":"String"
+        },
+        {
+          "name":"serviceEndpoint",
+          "type":"String"
+        },
+        {
+          "name":"index",
+          "type":"Int"
+        }
+      ],
+      "returnType":"Bool"
+    },
+    {
+      "name":"updateService",
+      "parameters":[
+        {
+          "name":"id",
+          "type":"String"
+        },
+        {
+          "name":"serviceId",
+          "type":"String"
+        },
+        {
+          "name":"type",
+          "type":"String"
+        },
+        {
+          "name":"serviceEndpoint",
+          "type":"String"
+        },
+        {
+          "name":"index",
+          "type":"Int"
+        }
+      ],
+      "returnType":"Bool"
+    },
+    {
+      "name":"removeService",
+      "parameters":[
+        {
+          "name":"id",
+          "type":"String"
+        },
+        {
+          "name":"serviceId",
+          "type":"String"
+        },
+        {
+          "name":"index",
+          "type":"Int"
+        }
+      ],
+      "returnType":"Bool"
+    },
+    {
+      "name":"addContext",
+      "parameters":[
+        {
+          "name":"id",
+          "type":"String"
+        },
+        {
+          "name":"contexts",
+          "type":"Array",
+          "subType":
+          [
+            {
+              "name": "",
+              "type": "String"
+            }
+          ]
+        },
+        {
+          "name":"index",
+          "type":"Int"
+        }
+      ],
+      "returnType":"Bool"
+    },
+    {
+      "name":"removeContext",
+      "parameters":[
+        {
+          "name":"id",
+          "type":"String"
+        },
+        {
+          "name":"contexts",
+          "type":"Array",
+          "subType":
+          [
+            {
+              "name": "",
+              "type": "String"
+            }
+          ]
+        },
+        {
+          "name":"index",
+          "type":"Int"
+        }
+      ],
+      "returnType":"Bool"
+    },
+    {
+      "name":"addProof",
+      "parameters":[],
+      "returnType":"Bool"
+    },
+    {
+      "name":"getPublicKeysJson",
       "parameters":[
         {
           "name":"id",
@@ -216,7 +846,55 @@
       "returnType":"ByteArray"
     },
     {
-      "name":"getDDO",
+      "name":"getAttributesJson",
+      "parameters":[
+        {
+          "name":"id",
+          "type":"String"
+        }
+      ],
+      "returnType":"ByteArray"
+    },
+    {
+      "name":"getAttributeByKey",
+      "parameters":[
+        {
+          "name":"id",
+          "type":"String"
+        },
+        {
+          "name":"key",
+          "type":"String"
+        }
+      ],
+      "returnType":"ByteArray"
+    },
+    {
+      "name":"getServiceJson",
+      "parameters":[
+        {
+          "name":"id",
+          "type":"String"
+        },
+        {
+          "name":"serviceId",
+          "type":"String"
+        }
+      ],
+      "returnType":"ByteArray"
+    },
+    {
+      "name":"getControllerJson",
+      "parameters":[
+        {
+          "name":"id",
+          "type":"String"
+        }
+      ],
+      "returnType":"ByteArray"
+    },
+    {
+      "name":"getDocumentJson",
       "parameters":[
         {
           "name":"id",
@@ -235,6 +913,20 @@
         {
           "name":"keyIndex",
           "type":"Int"
+        }
+      ],
+      "returnType":"Bool"
+    },
+    {
+      "name":"verifyController",
+      "parameters":[
+        {
+          "name":"id",
+          "type":"String"
+        },
+        {
+          "name":"signers",
+          "type":"ByteArray"
         }
       ],
       "returnType":"Bool"
@@ -306,6 +998,64 @@
         {
           "name":"recoveryAddress",
           "type":"Address"
+        }
+      ]
+    },
+    {
+      "name":"Recovery",
+      "parameters":[
+        {
+          "name":"operation",
+          "type":"String"
+        },
+        {
+          "name":"id",
+          "type":"String"
+        },
+        {
+          "name":"context",
+          "type":"Array",
+          "subType":
+          [
+            {
+              "name": "",
+              "type": "String"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name":"Service",
+      "parameters":[
+        {
+          "name":"operation",
+          "type":"String"
+        },
+        {
+          "name":"id",
+          "type":"String"
+        },
+        {
+          "name":"serviceId",
+          "type":"ByteArray"
+        }
+      ]
+    },
+    {
+      "name":"AuthKey",
+      "parameters":[
+        {
+          "name":"operation",
+          "type":"String"
+        },
+        {
+          "name":"id",
+          "type":"String"
+        },
+        {
+          "name":"keyID",
+          "type":"Int"
         }
       ]
     }
