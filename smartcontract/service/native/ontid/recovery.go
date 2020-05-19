@@ -22,6 +22,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/states"
 	"github.com/ontio/ontology/smartcontract/service/native"
@@ -169,6 +170,10 @@ func addKeyByRecovery(srvc *native.NativeService) ([]byte, error) {
 	arg1, err := utils.DecodeVarBytes(source)
 	if err != nil {
 		return utils.BYTE_FALSE, errors.New("argument 1 error")
+	}
+	_, err = keypair.DeserializePublicKey(arg1)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("invalid key")
 	}
 	// arg2: signers
 	arg2, err := utils.DecodeVarBytes(source)

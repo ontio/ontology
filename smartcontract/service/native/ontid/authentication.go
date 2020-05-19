@@ -71,6 +71,10 @@ func addNewAuthKeyByRecovery(srvc *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return utils.BYTE_FALSE, errors.New("argument 1 error")
 	}
+	_, err = keypair.DeserializePublicKey(key)
+	if err != nil {
+		return utils.BYTE_FALSE, errors.New("add new auth key error: invalid key")
+	}
 	// arg2: new public key controller
 	controller, err := utils.DecodeVarBytes(source)
 	if err != nil {
@@ -129,6 +133,10 @@ func addNewAuthKeyByController(srvc *native.NativeService) ([]byte, error) {
 	key, err := utils.DecodeVarBytes(source)
 	if err != nil {
 		return utils.BYTE_FALSE, errors.New("argument 1 error")
+	}
+	_, err = keypair.DeserializePublicKey(key)
+	if err != nil {
+		return utils.BYTE_FALSE, errors.New("add new auth key error: invalid key")
 	}
 	// arg2: new public key controller
 	controller, err := utils.DecodeVarBytes(source)

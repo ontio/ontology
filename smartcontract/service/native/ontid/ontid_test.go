@@ -19,6 +19,7 @@ package ontid
 
 import (
 	"bytes"
+	"encoding/hex"
 	"fmt"
 	"testing"
 
@@ -465,7 +466,16 @@ func CaseGetDocument(t *testing.T, n *native.NativeService) {
 		t.Fatal(err)
 	}
 
-	// 9. get document
+	// 9. set recovery
+	r, _ := hex.DecodeString("01022a6469643a6f6e743a54567553556a51515973624b3957426e696b6545675679364775575139717a3169575a01022a6469643a6f6e743a5459744e6f723958524e5958653258724d3461627a6152626433375767474b4443312a6469643a6f6e743a5455676d714e4571444a53704e3541676356326d51344874473471564e565762383901020101")
+	sink.Reset()
+	sink.WriteString(id0)
+	sink.WriteVarBytes(r)
+	sink.WriteVarUint(1)
+	n.Input = sink.Bytes()
+	n.Tx.SignedAddr = []common.Address{a0.Address}
+
+	// 10. get document
 	res, err := GetDocumentJson(n)
 	if err != nil {
 		t.Fatal(err)

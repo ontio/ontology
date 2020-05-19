@@ -505,7 +505,7 @@
           [
             {
               "name": "key",
-              "type": "String"
+              "type": "ByteArray"
             },
             {
               "name": "controller",
@@ -534,7 +534,7 @@
           [
             {
               "name": "key",
-              "type": "String"
+              "type": "ByteArray"
             },
             {
               "name": "controller",
@@ -563,7 +563,7 @@
           [
             {
               "name": "key",
-              "type": "String"
+              "type": "ByteArray"
             },
             {
               "name": "controller",

@@ -24,7 +24,6 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/ontio/ontology/account"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/smartcontract/service/native"
@@ -178,7 +177,7 @@ func GetPublicKeysJson(srvc *native.NativeService) ([]byte, error) {
 		return nil, fmt.Errorf("get public keys error: %s", err)
 	}
 	if !isValid(srvc, encId) {
-		return nil, fmt.Errorf("GetPublicKeysJson error: have not registered")
+		return nil, nil
 	}
 	r, err := getAllPkJson(srvc, encId)
 	if err != nil {
@@ -209,7 +208,7 @@ func GetAttributes(srvc *native.NativeService) ([]byte, error) {
 		return nil, fmt.Errorf("get all attributes error: %s", err)
 	}
 	if !isValid(srvc, key) {
-		return nil, fmt.Errorf("GetAttributes error: have not registered")
+		return nil, nil
 	}
 	res, err := getAllAttr(srvc, key)
 	if err != nil {
@@ -234,7 +233,7 @@ func GetAttributeByKey(srvc *native.NativeService) ([]byte, error) {
 		return nil, fmt.Errorf("get attributes by key error: %s", err)
 	}
 	if !isValid(srvc, key) {
-		return nil, fmt.Errorf("get attributes by key error: have not registered")
+		return nil, nil
 	}
 	item, err := utils.DecodeVarBytes(source)
 	if err != nil {
@@ -263,7 +262,7 @@ func GetAttributesJson(srvc *native.NativeService) ([]byte, error) {
 		return nil, fmt.Errorf("get public keys error: %s", err)
 	}
 	if !isValid(srvc, key) {
-		return nil, fmt.Errorf("GetAttributesJson error: have not registered")
+		return nil, nil
 	}
 	res, err := getAllAttrJson(srvc, key)
 	if err != nil {
@@ -296,7 +295,7 @@ func GetKeyState(srvc *native.NativeService) ([]byte, error) {
 		return nil, fmt.Errorf("get key state failed: %s", err)
 	}
 	if !isValid(srvc, key) {
-		return nil, fmt.Errorf("GetKeyState error: have not registered")
+		return nil, nil
 	}
 
 	owner, err := getPk(srvc, key, uint32(arg1))
@@ -328,7 +327,7 @@ func GetServiceJson(srvc *native.NativeService) ([]byte, error) {
 		return nil, fmt.Errorf("encodeID failed: %s", err)
 	}
 	if !isValid(srvc, encId) {
-		return nil, fmt.Errorf("GetServiceJson error: have not registered")
+		return nil, nil
 	}
 
 	services, err := getServices(srvc, encId)
@@ -364,25 +363,13 @@ func GetControllerJson(srvc *native.NativeService) ([]byte, error) {
 		return nil, fmt.Errorf("encodeID failed: %s", err)
 	}
 	if !isValid(srvc, encId) {
-		return nil, fmt.Errorf("GetControllerJson error: have not registered")
-	}
-	key := append(encId, FIELD_CONTROLLER)
-	item, err := utils.GetStorageItem(srvc, key)
-	if err != nil {
-		return nil, err
-	} else if item == nil {
 		return nil, nil
 	}
-
-	if account.VerifyID(string(item.Value)) {
-		return item.Value, nil
-	} else {
-		group, err := deserializeGroup(item.Value)
-		if err != nil {
-			return nil, errors.New("deserializeGroup controller storage")
-		}
-		return json.Marshal(group)
+	r, err := getControllerJson(srvc, encId)
+	if err != nil {
+		return nil, fmt.Errorf("getControllerJson failed: %s", err)
 	}
+	return json.Marshal(r)
 }
 
 func GetDocumentJson(srvc *native.NativeService) ([]byte, error) {
@@ -398,7 +385,7 @@ func GetDocumentJson(srvc *native.NativeService) ([]byte, error) {
 		return nil, fmt.Errorf("encodeID failed: %s", err)
 	}
 	if !isValid(srvc, encId) {
-		return nil, fmt.Errorf("GetDocumentJson error: have not registered")
+		return nil, nil
 	}
 	contexts, err := getContextsWithDefault(srvc, encId)
 	if err != nil {
@@ -413,7 +400,7 @@ func GetDocumentJson(srvc *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("getAuthentication failed: %s", err)
 	}
-	controller, err := getController(srvc, encId)
+	controller, err := getControllerJson(srvc, encId)
 	if err != nil {
 		return nil, fmt.Errorf("getController failed: %s", err)
 	}
