@@ -96,11 +96,11 @@ func updateService(srvc *native.NativeService) ([]byte, error) {
 		if bytes.Equal(services[i].ServiceId, service.ServiceId) {
 			services[i] = service
 			storeServices(services, srvc, key)
+			updateTimeAndClearProof(srvc, encId)
 			triggerServiceEvent(srvc, "update", params.OntId, params.ServiceId)
 			return utils.BYTE_TRUE, nil
 		}
 	}
-	updateTimeAndClearProof(srvc, encId)
 	return utils.BYTE_FALSE, errors.New("updateService: update service error: have not registered such service")
 }
 
@@ -134,11 +134,11 @@ func removeService(srvc *native.NativeService) ([]byte, error) {
 		if bytes.Equal((services)[i].ServiceId, params.ServiceId) {
 			services := append((services)[:i], (services)[i+1:]...)
 			storeServices(services, srvc, key)
+			updateTimeAndClearProof(srvc, encId)
 			triggerServiceEvent(srvc, "remove", params.OntId, params.ServiceId)
 			return utils.BYTE_TRUE, nil
 		}
 	}
-	updateTimeAndClearProof(srvc, encId)
 	return utils.BYTE_FALSE, errors.New("removeService: remove service error: have not registered such service")
 }
 
