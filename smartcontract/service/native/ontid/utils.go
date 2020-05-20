@@ -23,6 +23,7 @@ import (
 
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/core/states"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract/service/native"
@@ -140,22 +141,22 @@ func deleteID(srvc *native.NativeService, encId []byte) error {
 
 	key = append(encId, FIELD_RECOVERY)
 	srvc.CacheDB.Delete(key)
+	if srvc.Height >= config.GetNewOntIdHeight() {
+		key = append(encId, FIELD_SERVICE)
+		srvc.CacheDB.Delete(key)
 
-	key = append(encId, FIELD_SERVICE)
-	srvc.CacheDB.Delete(key)
+		key = append(encId, FIELD_CREATED)
+		srvc.CacheDB.Delete(key)
 
-	key = append(encId, FIELD_CREATED)
-	srvc.CacheDB.Delete(key)
+		key = append(encId, FIELD_UPDATED)
+		srvc.CacheDB.Delete(key)
 
-	key = append(encId, FIELD_UPDATED)
-	srvc.CacheDB.Delete(key)
+		key = append(encId, FIELD_PROOF)
+		srvc.CacheDB.Delete(key)
 
-	key = append(encId, FIELD_PROOF)
-	srvc.CacheDB.Delete(key)
-
-	key = append(encId, FIELD_CONTEXT)
-	srvc.CacheDB.Delete(key)
-
+		key = append(encId, FIELD_CONTEXT)
+		srvc.CacheDB.Delete(key)
+	}
 	err := deleteAllAttr(srvc, encId)
 	if err != nil {
 		return err
@@ -167,13 +168,11 @@ func deleteID(srvc *native.NativeService, encId []byte) error {
 }
 
 func updateTimeAndClearProof(srvc *native.NativeService, encId []byte) {
-	clearProof(srvc, encId)
 	key := append(encId, FIELD_UPDATED)
 	updateTime(srvc, key)
 }
 
 func createTimeAndClearProof(srvc *native.NativeService, encId []byte) {
-	clearProof(srvc, encId)
 	key := append(encId, FIELD_CREATED)
 	updateTime(srvc, key)
 }
