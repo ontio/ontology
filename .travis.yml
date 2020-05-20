@@ -26,5 +26,4 @@ deploy:
   overwrite: true
   draft: true
   on:
-    repo: ontio/ontology
     tags: true
