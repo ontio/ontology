@@ -6,7 +6,6 @@ require (
 	github.com/JohnCGriffin/overflow v0.0.0-20170615021017-4d914c927216
 	github.com/Workiva/go-datastructures v1.0.50 // indirect
 	github.com/blang/semver v3.5.1+incompatible
-	github.com/btcsuite/btcd v0.20.1-beta // indirect
 	github.com/emirpasic/gods v1.12.0 // indirect
 	github.com/ethereum/go-ethereum v1.9.13
 	github.com/gogo/protobuf v1.3.1 // indirect
@@ -30,7 +29,6 @@ require (
 	github.com/valyala/bytebufferpool v1.0.0
 	golang.org/x/crypto v0.0.0-20200311171314-f7b00557c8c4
 	golang.org/x/net v0.0.0-20200301022130-244492dfa37a
-	gopkg.in/sourcemap.v1 v1.0.5 // indirect
 )
 
 replace (
