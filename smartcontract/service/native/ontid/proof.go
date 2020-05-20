@@ -29,11 +29,6 @@ func addProof(srvc *native.NativeService) ([]byte, error) {
 	return utils.BYTE_FALSE, errors.New("property \"proof\" in ONT ID document is not supported yet")
 }
 
-func clearProof(srvc *native.NativeService, encId []byte) {
-	key := append(encId, FIELD_PROOF)
-	srvc.CacheDB.Delete(key)
-}
-
 func getProof(srvc *native.NativeService, encId []byte) (string, error) {
 	key := append(encId, FIELD_PROOF)
 	proofStore, err := utils.GetStorageItem(srvc, key)
