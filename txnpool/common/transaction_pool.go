@@ -193,6 +193,17 @@ func (tp *TXPool) GetTransactionCount() int {
 	return len(tp.txList)
 }
 
+// GetTransactionCount returns the tx number of the pool.
+func (tp *TXPool) GetTransactionHashList() []common.Uint256 {
+	tp.RLock()
+	defer tp.RUnlock()
+	ret := make([]common.Uint256, 0, len(tp.txList))
+	for txHash := range tp.txList {
+		ret = append(ret, txHash)
+	}
+	return ret
+}
+
 // GetUnverifiedTxs checks the tx list in the block from consensus,
 // and returns verified tx list, unverified tx list, and
 // the tx list to be re-verified

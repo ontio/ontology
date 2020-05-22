@@ -278,6 +278,15 @@ func (ta *TxActor) Receive(context actor.Context) {
 			sender.Request(&tc.GetTxnCountRsp{Count: res},
 				context.Self())
 		}
+	case *tc.GetPendingTxnHashReq:
+		sender := context.Sender()
+
+		log.Debugf("txpool-tx actor receives getting pedning tx hash req from %v", sender)
+
+		res := ta.server.getTxHashList()
+		if sender != nil {
+			sender.Request(&tc.GetPendingTxnHashRsp{TxHashs: res}, context.Self())
+		}
 
 	default:
 		log.Debugf("txpool-tx actor: unknown msg %v type %v", msg, reflect.TypeOf(msg))
@@ -324,7 +333,6 @@ func (tpa *TxPoolActor) Receive(context actor.Context) {
 		if sender != nil {
 			sender.Request(&tc.GetPendingTxnRsp{Txs: res}, context.Self())
 		}
-
 	case *tc.VerifyBlockReq:
 		sender := context.Sender()
 

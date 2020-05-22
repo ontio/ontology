@@ -75,6 +75,7 @@ const (
 	GET_GRANTONG          = "/api/v1/grantong/:addr"
 	GET_MEMPOOL_TXCOUNT   = "/api/v1/mempool/txcount"
 	GET_MEMPOOL_TXSTATE   = "/api/v1/mempool/txstate/:hash"
+	GET_MEMPOOL_TXHASHS   = "/api/v1/mempool/txhashlist"
 	GET_VERSION           = "/api/v1/version"
 	GET_NETWORKID         = "/api/v1/networkid"
 
@@ -156,6 +157,7 @@ func (this *restServer) registryMethod() {
 		GET_GRANTONG:          {name: "getgrantong", handler: rest.GetGrantOng},
 		GET_MEMPOOL_TXCOUNT:   {name: "getmempooltxcount", handler: rest.GetMemPoolTxCount},
 		GET_MEMPOOL_TXSTATE:   {name: "getmempooltxstate", handler: rest.GetMemPoolTxState},
+		GET_MEMPOOL_TXHASHS:   {name: "getmempooltxhashlist", handler: rest.GetMemPoolTxHashList},
 		GET_VERSION:           {name: "getversion", handler: rest.GetNodeVersion},
 		GET_NETWORKID:         {name: "getnetworkid", handler: rest.GetNetworkId},
 	}

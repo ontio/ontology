@@ -113,7 +113,12 @@ func Handle(w http.ResponseWriter, r *http.Request) {
 	//get the corresponding function
 	function, ok := mainMux.m[method]
 	if ok {
-		response := function(request["params"].([]interface{}))
+		param, ok := request["params"].([]interface{})
+		if !ok {
+			log.Error("HTTP JSON RPC Handle - parameter should be array")
+			return
+		}
+		response := function(param)
 		data, err := json.Marshal(map[string]interface{}{
 			"jsonrpc": "2.0",
 			"error":   response["error"],

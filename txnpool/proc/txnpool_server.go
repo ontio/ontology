@@ -528,6 +528,27 @@ func (s *TXPoolServer) getPendingTxs(byCount bool) []*tx.Transaction {
 	return ret
 }
 
+// getTxHashList returns a currently pending tx hash list
+func (s *TXPoolServer) getTxHashList() []common.Uint256 {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	txHashPool := s.txPool.GetTransactionHashList()
+	ret := make([]common.Uint256, 0, len(s.allPendingTxs)+len(txHashPool))
+	existedTxHash := make(map[common.Uint256]bool)
+	for _, hash := range txHashPool {
+		ret = append(ret, hash)
+		existedTxHash[hash] = true
+	}
+	for _, v := range s.allPendingTxs {
+		hash := v.tx.Hash()
+		if !existedTxHash[hash] {
+			ret = append(ret, hash)
+			existedTxHash[hash] = true
+		}
+	}
+	return ret
+}
+
 // cleanTransactionList cleans the txs in the block from the ledger
 func (s *TXPoolServer) cleanTransactionList(txs []*tx.Transaction, height uint32) {
 	s.txPool.CleanTransactionList(txs)
