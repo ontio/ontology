@@ -71,6 +71,10 @@ func RegisterFsContract(native *native.NativeService) {
 //To enable administrators to adjust global parameters
 func FsSetGlobalParam(native *native.NativeService) ([]byte, error) {
 	var globalParam FsGlobalParam
+	if err := CheckOntFsAvailability(native); err != nil {
+		return utils.BYTE_FALSE, err
+	}
+
 	infoSource := common.NewZeroCopySource(native.Input)
 	if err := globalParam.Deserialization(infoSource); err != nil {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "[FS Init] FsSetGlobalParam Deserialization error!")
@@ -80,6 +84,9 @@ func FsSetGlobalParam(native *native.NativeService) ([]byte, error) {
 }
 
 func FsGetGlobalParam(native *native.NativeService) ([]byte, error) {
+	if err := CheckOntFsAvailability(native); err != nil {
+		return utils.BYTE_FALSE, err
+	}
 	globalParam, err := getGlobalParam(native)
 	if err != nil || globalParam == nil {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "[FS Init] FsGetGlobalParam error!")

@@ -33,6 +33,10 @@ import (
 )
 
 func FsFileProve(native *native.NativeService) ([]byte, error) {
+	if err := CheckOntFsAvailability(native); err != nil {
+		return utils.BYTE_FALSE, err
+	}
+
 	var pdpData PdpData
 	source := common.NewZeroCopySource(native.Input)
 	if err := pdpData.Deserialization(source); err != nil {
@@ -175,6 +179,10 @@ func FsFileProve(native *native.NativeService) ([]byte, error) {
 }
 
 func FsGetNodeChallengeList(native *native.NativeService) ([]byte, error) {
+	if err := CheckOntFsAvailability(native); err != nil {
+		return utils.BYTE_FALSE, err
+	}
+
 	source := common.NewZeroCopySource(native.Input)
 	nodeAddr, err := utils.DecodeAddress(source)
 	if err != nil {
@@ -193,6 +201,9 @@ func FsGetNodeChallengeList(native *native.NativeService) ([]byte, error) {
 }
 
 func FsResponse(native *native.NativeService) ([]byte, error) {
+	if err := CheckOntFsAvailability(native); err != nil {
+		return utils.BYTE_FALSE, err
+	}
 	contract := native.ContextRef.CurrentContext().ContractAddress
 
 	var pdpData PdpData
@@ -303,6 +314,9 @@ func CheckPdpProve(nodeAddr common.Address, blockHash []byte, fileBlockCount uin
 }
 
 func FsReadFileSettle(native *native.NativeService) ([]byte, error) {
+	if err := CheckOntFsAvailability(native); err != nil {
+		return utils.BYTE_FALSE, err
+	}
 	var settleSlice FileReadSettleSlice
 	source := common.NewZeroCopySource(native.Input)
 	if err := settleSlice.Deserialization(source); err != nil {

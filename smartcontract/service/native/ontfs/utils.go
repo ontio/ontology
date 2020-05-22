@@ -22,6 +22,7 @@ import (
 	"fmt"
 
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/ont"
@@ -189,4 +190,11 @@ func DecodeBool(source *common.ZeroCopySource) (bool, error) {
 		return false, common.ErrIrregularData
 	}
 	return ret, err
+}
+
+func CheckOntFsAvailability(service *native.NativeService) error {
+	if service.Height < config.GetOntFsHeight() {
+		return fmt.Errorf("OntFs contract is not avaliable")
+	}
+	return nil
 }
