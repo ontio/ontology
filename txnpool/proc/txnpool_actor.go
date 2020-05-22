@@ -283,7 +283,7 @@ func (ta *TxActor) Receive(context actor.Context) {
 
 		log.Debugf("txpool-tx actor receives getting pedning tx hash req from %v", sender)
 
-		res := ta.server.getPendingTxHashList()
+		res := ta.server.getTxHashList()
 		if sender != nil {
 			sender.Request(&tc.GetPendingTxnHashRsp{TxHashs: res}, context.Self())
 		}

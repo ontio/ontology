@@ -528,8 +528,8 @@ func (s *TXPoolServer) getPendingTxs(byCount bool) []*tx.Transaction {
 	return ret
 }
 
-// getPendingTxHashList returns a currently pending tx hash list
-func (s *TXPoolServer) getPendingTxHashList() []common.Uint256 {
+// getTxHashList returns a currently pending tx hash list
+func (s *TXPoolServer) getTxHashList() []common.Uint256 {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	txHashPool := s.txPool.GetTransactionHashList()
@@ -543,6 +543,7 @@ func (s *TXPoolServer) getPendingTxHashList() []common.Uint256 {
 		hash := v.tx.Hash()
 		if !existedTxHash[hash] {
 			ret = append(ret, hash)
+			existedTxHash[hash] = true
 		}
 	}
 	return ret
