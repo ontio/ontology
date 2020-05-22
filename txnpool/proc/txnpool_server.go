@@ -532,9 +532,18 @@ func (s *TXPoolServer) getPendingTxs(byCount bool) []*tx.Transaction {
 func (s *TXPoolServer) getPendingTxHashList() []common.Uint256 {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	ret := make([]common.Uint256, 0, len(s.allPendingTxs))
+	txHashPool := s.txPool.GetTransactionHashList()
+	ret := make([]common.Uint256, 0, len(s.allPendingTxs)+len(txHashPool))
+	existedTxHash := make(map[common.Uint256]bool)
+	for _, hash := range txHashPool {
+		ret = append(ret, hash)
+		existedTxHash[hash] = true
+	}
 	for _, v := range s.allPendingTxs {
-		ret = append(ret, v.tx.Hash())
+		hash := v.tx.Hash()
+		if !existedTxHash[hash] {
+			ret = append(ret, hash)
+		}
 	}
 	return ret
 }
