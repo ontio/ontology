@@ -26,10 +26,16 @@ import (
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/account"
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/testsuite"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
+	"github.com/stretchr/testify/assert"
 )
+
+func init() {
+	Init()
+}
 
 func testcase(t *testing.T, f func(t *testing.T, n *native.NativeService)) {
 	testsuite.InvokeNativeContract(t, utils.OntIDContractAddress,
@@ -54,6 +60,11 @@ func TestOwner(t *testing.T) {
 
 func TestOwnerSize(t *testing.T) {
 	testcase(t, CaseOwnerSize)
+}
+
+func TestNewApiFork(t *testing.T) {
+	testcase(t, CaseBeforeNewApiFork)
+	testcase(t, CaseAfterNewApiFork)
 }
 
 // Register id with account acc
@@ -343,7 +354,7 @@ func CaseOwnerSize(t *testing.T, n *native.NativeService) {
 }
 
 func CaseGetDocument(t *testing.T, n *native.NativeService) {
-	n.Height = 10000000
+	n.Height = config.GetNewOntIdHeight()
 	// 1. register ID
 	id0, _ := account.GenerateID()
 	a0 := account.NewAccount("")
@@ -484,5 +495,169 @@ func CaseGetDocument(t *testing.T, n *native.NativeService) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	fmt.Println(string(res))
+}
+
+func CaseBeforeNewApiFork(t *testing.T, n *native.NativeService) {
+	// 1. register ID
+	id0, _ := account.GenerateID()
+	a0 := account.NewAccount("")
+	id1, _ := account.GenerateID()
+	a1 := account.NewAccount("")
+	id2, _ := account.GenerateID()
+	a2 := account.NewAccount("")
+	if err := regID(n, id0, a0); err != nil {
+		t.Fatal("register ID error", err)
+	}
+	if err := regID(n, id1, a1); err != nil {
+		t.Fatal("register ID error", err)
+	}
+	if err := regID(n, id2, a2); err != nil {
+		t.Fatal("register ID error", err)
+	}
+
+	// 2. add context before fork height
+	var contexts = [][]byte{[]byte("https://www.w3.org/ns0/did/v1"), []byte("https://ontid.ont.io0/did/v1"), []byte("https://ontid.ont.io0/did/v1")}
+	context := &Context{
+		OntId:    []byte(id0),
+		Contexts: contexts,
+		Index:    1,
+	}
+	sink := common.NewZeroCopySink(nil)
+	context.Serialization(sink)
+	n.Tx.SignedAddr = []common.Address{a0.Address}
+	_, err := n.NativeCall(utils.OntIDContractAddress, "addContext", sink.Bytes())
+	assert.Contains(t, err.Error(), "doesn't support this function")
+
+	// 3. add auth key before fork height
+	newPublicKey := &NewPublicKey{
+		key:        keypair.SerializePublicKey(a2.PublicKey),
+		controller: []byte(id2),
+	}
+	authKeyParam := &AddNewAuthKeyParam{
+		OntId:        []byte(id0),
+		NewPublicKey: newPublicKey,
+		SignIndex:    1,
+	}
+
+	sink.Reset()
+	authKeyParam.Serialization(sink)
+	n.Tx.SignedAddr = []common.Address{a0.Address}
+	_, err = n.NativeCall(utils.OntIDContractAddress, "addNewAuthKey", sink.Bytes())
+	assert.Contains(t, err.Error(), "doesn't support this function")
+
+	// 4. set auth key before fork height
+	setAuthKeyParam := &SetAuthKeyParam{
+		OntId:     []byte(id0),
+		Index:     1,
+		SignIndex: 1,
+	}
+
+	sink.Reset()
+	setAuthKeyParam.Serialization(sink)
+	n.Tx.SignedAddr = []common.Address{a0.Address}
+	_, err = n.NativeCall(utils.OntIDContractAddress, "setAuthKey", sink.Bytes())
+	assert.Contains(t, err.Error(), "doesn't support this function")
+
+	// 5. add service before fork height
+	service := &ServiceParam{
+		OntId:          []byte(id0),
+		ServiceId:      []byte("someService"),
+		Type:           []byte("sss"),
+		ServiceEndpint: []byte("http;;s;s;s;;s"),
+		Index:          1,
+	}
+
+	sink.Reset()
+	service.Serialization(sink)
+	n.Tx.SignedAddr = []common.Address{a0.Address}
+	_, err = n.NativeCall(utils.OntIDContractAddress, "addService", sink.Bytes())
+	assert.Contains(t, err.Error(), "doesn't support this function")
+
+	// 6. get document before fork height
+	_, err = n.NativeCall(utils.OntIDContractAddress, "getDocumentJson", sink.Bytes())
+	assert.Contains(t, err.Error(), "doesn't support this function")
+}
+
+func CaseAfterNewApiFork(t *testing.T, n *native.NativeService) {
+	n.Height = config.GetNewOntIdHeight()
+	// 1. register ID
+	id0, _ := account.GenerateID()
+	a0 := account.NewAccount("")
+	id1, _ := account.GenerateID()
+	a1 := account.NewAccount("")
+	id2, _ := account.GenerateID()
+	a2 := account.NewAccount("")
+	if err := regID(n, id0, a0); err != nil {
+		t.Fatal("register ID error", err)
+	}
+	if err := regID(n, id1, a1); err != nil {
+		t.Fatal("register ID error", err)
+	}
+	if err := regID(n, id2, a2); err != nil {
+		t.Fatal("register ID error", err)
+	}
+
+	// 2. add context after fork height
+	var contexts = [][]byte{[]byte("https://www.w3.org/ns0/did/v1"), []byte("https://ontid.ont.io0/did/v1"), []byte("https://ontid.ont.io0/did/v1")}
+	context := &Context{
+		OntId:    []byte(id0),
+		Contexts: contexts,
+		Index:    1,
+	}
+	sink := common.NewZeroCopySink(nil)
+	context.Serialization(sink)
+	n.Tx.SignedAddr = []common.Address{a0.Address}
+	_, err := n.NativeCall(utils.OntIDContractAddress, "addContext", sink.Bytes())
+	assert.NoError(t, err)
+
+	// 3. add auth key after fork height
+	newPublicKey := &NewPublicKey{
+		key:        keypair.SerializePublicKey(a2.PublicKey),
+		controller: []byte(id2),
+	}
+	authKeyParam := &AddNewAuthKeyParam{
+		OntId:        []byte(id0),
+		NewPublicKey: newPublicKey,
+		SignIndex:    1,
+	}
+
+	sink.Reset()
+	authKeyParam.Serialization(sink)
+	n.Tx.SignedAddr = []common.Address{a0.Address}
+	_, err = n.NativeCall(utils.OntIDContractAddress, "addNewAuthKey", sink.Bytes())
+	assert.NoError(t, err)
+
+	// 4. set auth key after fork height
+	setAuthKeyParam := &SetAuthKeyParam{
+		OntId:     []byte(id0),
+		Index:     1,
+		SignIndex: 1,
+	}
+
+	sink.Reset()
+	setAuthKeyParam.Serialization(sink)
+	n.Tx.SignedAddr = []common.Address{a0.Address}
+	_, err = n.NativeCall(utils.OntIDContractAddress, "setAuthKey", sink.Bytes())
+	assert.NoError(t, err)
+
+	// 5. add service after fork height
+	service := &ServiceParam{
+		OntId:          []byte(id0),
+		ServiceId:      []byte("someService"),
+		Type:           []byte("sss"),
+		ServiceEndpint: []byte("http;;s;s;s;;s"),
+		Index:          1,
+	}
+
+	sink.Reset()
+	service.Serialization(sink)
+	n.Tx.SignedAddr = []common.Address{a0.Address}
+	_, err = n.NativeCall(utils.OntIDContractAddress, "addService", sink.Bytes())
+	assert.NoError(t, err)
+
+	// 6. get document after fork height
+	res, err := n.NativeCall(utils.OntIDContractAddress, "getDocumentJson", sink.Bytes())
+	assert.NoError(t, err)
 	fmt.Println(string(res))
 }
