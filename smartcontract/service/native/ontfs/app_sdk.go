@@ -30,6 +30,9 @@ import (
 )
 
 func FsGetNodeInfoList(native *native.NativeService) ([]byte, error) {
+	if err := CheckOntFsAvailability(native); err != nil {
+		return utils.BYTE_FALSE, err
+	}
 	var nodesInfoList FsNodeInfoList
 
 	source := common.NewZeroCopySource(native.Input)
@@ -66,6 +69,9 @@ func FsGetNodeInfoList(native *native.NativeService) ([]byte, error) {
 }
 
 func FsChallenge(native *native.NativeService) ([]byte, error) {
+	if err := CheckOntFsAvailability(native); err != nil {
+		return utils.BYTE_FALSE, err
+	}
 	contract := native.ContextRef.CurrentContext().ContractAddress
 
 	var pdpRecord *PdpRecord
@@ -137,6 +143,9 @@ func FsChallenge(native *native.NativeService) ([]byte, error) {
 }
 
 func FsJudge(native *native.NativeService) ([]byte, error) {
+	if err := CheckOntFsAvailability(native); err != nil {
+		return utils.BYTE_FALSE, err
+	}
 	contract := native.ContextRef.CurrentContext().ContractAddress
 
 	var challengeReq Challenge
@@ -234,6 +243,9 @@ func FsJudge(native *native.NativeService) ([]byte, error) {
 }
 
 func FsGetChallenge(native *native.NativeService) ([]byte, error) {
+	if err := CheckOntFsAvailability(native); err != nil {
+		return utils.BYTE_FALSE, err
+	}
 	var challengeReq Challenge
 	challengeSrc := common.NewZeroCopySource(native.Input)
 	challengeData, err := DecodeVarBytes(challengeSrc)
@@ -258,6 +270,9 @@ func FsGetChallenge(native *native.NativeService) ([]byte, error) {
 }
 
 func FsGetFileChallengeList(native *native.NativeService) ([]byte, error) {
+	if err := CheckOntFsAvailability(native); err != nil {
+		return utils.BYTE_FALSE, err
+	}
 	var getFileChallengeReq Challenge
 	getFileChallengeSrc := common.NewZeroCopySource(native.Input)
 	getFileChallengeData, err := DecodeVarBytes(getFileChallengeSrc)
@@ -286,6 +301,9 @@ func FsGetFileChallengeList(native *native.NativeService) ([]byte, error) {
 }
 
 func FsCreateSpace(native *native.NativeService) ([]byte, error) {
+	if err := CheckOntFsAvailability(native); err != nil {
+		return utils.BYTE_FALSE, err
+	}
 	contract := native.ContextRef.CurrentContext().ContractAddress
 
 	var spaceInfo SpaceInfo
@@ -344,6 +362,9 @@ func FsCreateSpace(native *native.NativeService) ([]byte, error) {
 }
 
 func FsDeleteSpace(native *native.NativeService) ([]byte, error) {
+	if err := CheckOntFsAvailability(native); err != nil {
+		return utils.BYTE_FALSE, err
+	}
 	contract := native.ContextRef.CurrentContext().ContractAddress
 
 	source := common.NewZeroCopySource(native.Input)
@@ -374,6 +395,9 @@ func FsDeleteSpace(native *native.NativeService) ([]byte, error) {
 }
 
 func FsUpdateSpace(native *native.NativeService) ([]byte, error) {
+	if err := CheckOntFsAvailability(native); err != nil {
+		return utils.BYTE_FALSE, err
+	}
 	contract := native.ContextRef.CurrentContext().ContractAddress
 
 	var spaceUpdate SpaceUpdate
@@ -480,6 +504,9 @@ func FsUpdateSpace(native *native.NativeService) ([]byte, error) {
 }
 
 func FsGetSpaceInfo(native *native.NativeService) ([]byte, error) {
+	if err := CheckOntFsAvailability(native); err != nil {
+		return utils.BYTE_FALSE, err
+	}
 	source := common.NewZeroCopySource(native.Input)
 	spaceOwner, err := utils.DecodeAddress(source)
 	if err != nil {
@@ -495,6 +522,9 @@ func FsGetSpaceInfo(native *native.NativeService) ([]byte, error) {
 }
 
 func FsStoreFiles(native *native.NativeService) ([]byte, error) {
+	if err := CheckOntFsAvailability(native); err != nil {
+		return utils.BYTE_FALSE, err
+	}
 	contract := native.ContextRef.CurrentContext().ContractAddress
 
 	var errInfos Errors
@@ -603,6 +633,9 @@ func FsStoreFiles(native *native.NativeService) ([]byte, error) {
 }
 
 func FsRenewFiles(native *native.NativeService) ([]byte, error) {
+	if err := CheckOntFsAvailability(native); err != nil {
+		return utils.BYTE_FALSE, err
+	}
 	contract := native.ContextRef.CurrentContext().ContractAddress
 
 	var errInfos Errors
@@ -662,6 +695,9 @@ func FsRenewFiles(native *native.NativeService) ([]byte, error) {
 }
 
 func FsDeleteFiles(native *native.NativeService) ([]byte, error) {
+	if err := CheckOntFsAvailability(native); err != nil {
+		return utils.BYTE_FALSE, err
+	}
 	var errInfos Errors
 	var fileDelList FileDelList
 	fileDelListSrc := common.NewZeroCopySource(native.Input)
@@ -804,6 +840,9 @@ func deleteFile(native *native.NativeService, fileInfo *FileInfo, errInfos *Erro
 }
 
 func FsTransferFiles(native *native.NativeService) ([]byte, error) {
+	if err := CheckOntFsAvailability(native); err != nil {
+		return utils.BYTE_FALSE, err
+	}
 	//Note: May cause storage node not to find PdpInfo, so when an error occurs,
 	//the storage node needs to try to commit more than once
 
@@ -865,6 +904,9 @@ func FsTransferFiles(native *native.NativeService) ([]byte, error) {
 }
 
 func FsGetFileHashList(native *native.NativeService) ([]byte, error) {
+	if err := CheckOntFsAvailability(native); err != nil {
+		return utils.BYTE_FALSE, err
+	}
 	source := common.NewZeroCopySource(native.Input)
 	passportData, err := DecodeVarBytes(source)
 	if err != nil {
@@ -890,6 +932,9 @@ func FsGetFileHashList(native *native.NativeService) ([]byte, error) {
 }
 
 func FsGetFileInfo(native *native.NativeService) ([]byte, error) {
+	if err := CheckOntFsAvailability(native); err != nil {
+		return utils.BYTE_FALSE, err
+	}
 	source := common.NewZeroCopySource(native.Input)
 	fileHash, err := DecodeVarBytes(source)
 	if err != nil {
@@ -906,6 +951,9 @@ func FsGetFileInfo(native *native.NativeService) ([]byte, error) {
 }
 
 func FsGetPdpInfoList(native *native.NativeService) ([]byte, error) {
+	if err := CheckOntFsAvailability(native); err != nil {
+		return utils.BYTE_FALSE, err
+	}
 	source := common.NewZeroCopySource(native.Input)
 	fileHash, err := DecodeVarBytes(source)
 	if err != nil {
@@ -925,6 +973,9 @@ func FsGetPdpInfoList(native *native.NativeService) ([]byte, error) {
 }
 
 func FsReadFilePledge(native *native.NativeService) ([]byte, error) {
+	if err := CheckOntFsAvailability(native); err != nil {
+		return utils.BYTE_FALSE, err
+	}
 	contract := native.ContextRef.CurrentContext().ContractAddress
 
 	var err error
@@ -1015,6 +1066,9 @@ func FsReadFilePledge(native *native.NativeService) ([]byte, error) {
 }
 
 func FsGetReadPledge(native *native.NativeService) ([]byte, error) {
+	if err := CheckOntFsAvailability(native); err != nil {
+		return utils.BYTE_FALSE, err
+	}
 	var getPledge GetReadPledge
 	source := common.NewZeroCopySource(native.Input)
 	if err := getPledge.Deserialization(source); err != nil {

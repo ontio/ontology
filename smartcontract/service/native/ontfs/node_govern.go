@@ -27,6 +27,9 @@ import (
 )
 
 func FsNodeRegister(native *native.NativeService) ([]byte, error) {
+	if err := CheckOntFsAvailability(native); err != nil {
+		return utils.BYTE_FALSE, err
+	}
 	contract := native.ContextRef.CurrentContext().ContractAddress
 
 	var nodeInfo FsNodeInfo
@@ -71,6 +74,9 @@ func FsNodeRegister(native *native.NativeService) ([]byte, error) {
 }
 
 func FsNodeQuery(native *native.NativeService) ([]byte, error) {
+	if err := CheckOntFsAvailability(native); err != nil {
+		return utils.BYTE_FALSE, err
+	}
 	source := common.NewZeroCopySource(native.Input)
 	nodeAddr, err := utils.DecodeAddress(source)
 	if err != nil {
@@ -85,6 +91,9 @@ func FsNodeQuery(native *native.NativeService) ([]byte, error) {
 }
 
 func FsNodeUpdate(native *native.NativeService) ([]byte, error) {
+	if err := CheckOntFsAvailability(native); err != nil {
+		return utils.BYTE_FALSE, err
+	}
 	contract := native.ContextRef.CurrentContext().ContractAddress
 
 	var newNodeInfo FsNodeInfo
@@ -146,6 +155,9 @@ func FsNodeUpdate(native *native.NativeService) ([]byte, error) {
 }
 
 func FsNodeCancel(native *native.NativeService) ([]byte, error) {
+	if err := CheckOntFsAvailability(native); err != nil {
+		return utils.BYTE_FALSE, err
+	}
 	contract := native.ContextRef.CurrentContext().ContractAddress
 
 	source := common.NewZeroCopySource(native.Input)
@@ -179,6 +191,9 @@ func FsNodeCancel(native *native.NativeService) ([]byte, error) {
 }
 
 func FsNodeWithdrawProfit(native *native.NativeService) ([]byte, error) {
+	if err := CheckOntFsAvailability(native); err != nil {
+		return utils.BYTE_FALSE, err
+	}
 	contract := native.ContextRef.CurrentContext().ContractAddress
 
 	source := common.NewZeroCopySource(native.Input)
