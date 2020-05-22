@@ -191,6 +191,16 @@ type GetPendingTxnRsp struct {
 	Txs []*types.Transaction
 }
 
+// GetPendingTxnHashReq specifies the api that how to get a pending txHash list
+// in the pool.
+type GetPendingTxnHashReq struct {
+}
+
+// GetPendingTxnHashRsp returns a transaction hash list for GetPendingTxnHashReq.
+type GetPendingTxnHashRsp struct {
+	TxHashs []common.Uint256
+}
+
 // consensus messages
 // GetTxnPoolReq specifies the api that how to get the valid transaction list.
 type GetTxnPoolReq struct {

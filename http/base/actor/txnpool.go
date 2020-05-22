@@ -128,3 +128,18 @@ func GetTxnCount() ([]uint32, error) {
 	}
 	return txnCnt.Count, nil
 }
+
+//GetTxnHashList from txpool actor
+func GetTxnHashList() ([]common.Uint256, error) {
+	future := txnPid.RequestFuture(&tcomn.GetPendingTxnHashReq{}, REQ_TIMEOUT*time.Second)
+	result, err := future.Result()
+	if err != nil {
+		log.Errorf(ERR_ACTOR_COMM, err)
+		return []common.Uint256{}, err
+	}
+	txnHashList, ok := result.(*tcomn.GetPendingTxnHashRsp)
+	if !ok {
+		return []common.Uint256{}, errors.New("fail")
+	}
+	return txnHashList.TxHashs, nil
+}

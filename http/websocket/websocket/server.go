@@ -201,6 +201,7 @@ func (self *WsServer) registryMethod() {
 		"getgrantong":               {handler: rest.GetGrantOng},
 		"getmempooltxcount":         {handler: rest.GetMemPoolTxCount},
 		"getmempooltxstate":         {handler: rest.GetMemPoolTxState},
+		"getmempooltxhashlist":      {handler: rest.GetMemPoolTxHashList},
 		"getversion":                {handler: rest.GetNodeVersion},
 		"getnetworkid":              {handler: rest.GetNetworkId},
 

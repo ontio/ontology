@@ -150,6 +150,15 @@ func GetMemPoolTxCount(params []interface{}) map[string]interface{} {
 	return responseSuccess(count)
 }
 
+//get memory pool transaction hash
+func GetMemPoolTxHashList(params []interface{}) map[string]interface{} {
+	txHashList, err := bactor.GetTxnHashList()
+	if err != nil {
+		return responsePack(berr.INTERNAL_ERROR, nil)
+	}
+	return responseSuccess(txHashList)
+}
+
 //get memory pool transaction state
 func GetMemPoolTxState(params []interface{}) map[string]interface{} {
 	if len(params) < 1 {

@@ -563,6 +563,17 @@ func GetMemPoolTxCount(cmd map[string]interface{}) map[string]interface{} {
 	return resp
 }
 
+//get memory pool transaction hash list
+func GetMemPoolTxHashList(cmd map[string]interface{}) map[string]interface{} {
+	resp := ResponsePack(berr.SUCCESS)
+	txHashList, err := bactor.GetTxnHashList()
+	if err != nil {
+		return ResponsePack(berr.INTERNAL_ERROR)
+	}
+	resp["Result"] = txHashList
+	return resp
+}
+
 //get memory poll transaction state
 func GetMemPoolTxState(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(berr.SUCCESS)
