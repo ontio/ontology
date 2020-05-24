@@ -286,7 +286,7 @@ func (self *StateMgr) onLiveTick(evt *StateEvent) error {
 		return nil
 	}
 
-	if self.getState() != Synced {
+	if self.getState() != Synced && self.getState() != SyncReady {
 		return nil
 	}
 
