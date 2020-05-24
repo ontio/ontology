@@ -682,15 +682,13 @@ func (pool *BlockPool) setBlockSealed(block *Block, forEmpty bool, sigdata bool)
 	}
 	stateRoot, err := pool.chainStore.getExecMerkleRoot(pool.chainStore.GetChainedBlockNum())
 	if err != nil {
-		log.Errorf("handleBlockSubmit failed:%s", err)
+		log.Errorf("setBlockSealed blk %d failed:%s", blkNum, err)
 		return nil
 	}
 	if blocksubmitMsg, _ := pool.server.constructBlockSubmitMsg(pool.chainStore.GetChainedBlockNum(), stateRoot); blocksubmitMsg != nil {
 		pool.server.broadcast(blocksubmitMsg)
-		pool.server.bftActionC <- &BftAction{
-			Type:     SubmitBlock,
-			BlockNum: pool.chainStore.GetChainedBlockNum(),
-			forEmpty: false,
+		if err := pool.server.makeBlockSubmit(pool.chainStore.GetChainedBlockNum()); err != nil {
+			log.Errorf("setBlockSealed submit block: %s", err)
 		}
 	}
 	return nil

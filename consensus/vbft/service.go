@@ -1073,10 +1073,8 @@ func (self *Server) onConsensusMsg(peerIdx uint32, msg ConsensusMsg, msgHash com
 			return
 		}
 		if self.CheckSubmitBlock(msgBlkNum, pMsg.BlockStateRoot) {
-			self.bftActionC <- &BftAction{
-				Type:     SubmitBlock,
-				BlockNum: msgBlkNum,
-				forEmpty: false,
+			if err := self.makeBlockSubmit(msgBlkNum); err != nil {
+				log.Errorf("server %d processing submit msg: %s", self.Index, err)
 			}
 		}
 	}
@@ -2292,38 +2290,39 @@ func (self *Server) makeSealed(proposal *blockProposalMsg, forEmpty bool) error 
 	return nil
 }
 
-func (self *Server) makeFastForward() error {
+//
+// safeWriteActionChannel is to write Server.bftActionC when there's free buffer
+// bftActionC is limited buffered channel, writing to channel will be blocked when it is full.
+// Most bft actions are from other routines, such as msg-processor and timer-processor.
+// But in a few cases, action processing routine writes to this channel too. (fastforward, rebroadcast, submitblock)
+// They must check if channel is full before writing to channel.
+//
+func (self *Server) safeWriteActionChannel(action BftActionType, blknum uint32) error {
 	if len(self.bftActionC)+3 >= cap(self.bftActionC) {
-		// FIXME:
-		// some cases, such as burst of heartbeat msg, may do too much fast forward.
+		// some cases, such as burst of heartbeat msg, or do too much fast forward.
 		// make bftActionC full, and bftActionLoop halted.
 		// TODO: add throttling in state-mgmt
-		return fmt.Errorf("server %d make fastforward skipped, %d vs %d",
-			self.Index, len(self.bftActionC), cap(self.bftActionC))
+		return fmt.Errorf("server %d push action %d skipped, %d vs %d",
+			self.Index, action, len(self.bftActionC), cap(self.bftActionC))
 	}
 
 	self.bftActionC <- &BftAction{
-		Type:     FastForward,
-		BlockNum: self.GetCurrentBlockNo(),
+		Type:     action,
+		BlockNum: blknum,
 	}
 	return nil
 }
 
-func (self *Server) reBroadcastCurrentRoundMsgs() error {
-	if len(self.bftActionC)+3 >= cap(self.bftActionC) {
-		// FIXME:
-		// some cases, such as burst of heartbeat msg, may do too much rebroadcast.
-		// make bftActionC full, and bftActionLoop halted.
-		// TODO: add throttling in state-mgmt
-		return fmt.Errorf("server %d make rebroadcasting skipped, %d vs %d",
-			self.Index, len(self.bftActionC), cap(self.bftActionC))
-	}
+func (self *Server) makeFastForward() error {
+	return self.safeWriteActionChannel(FastForward, self.GetCurrentBlockNo())
+}
 
-	self.bftActionC <- &BftAction{
-		Type:     ReBroadcast,
-		BlockNum: self.GetCurrentBlockNo(),
-	}
-	return nil
+func (self *Server) reBroadcastCurrentRoundMsgs() error {
+	return self.safeWriteActionChannel(ReBroadcast, self.GetCurrentBlockNo())
+}
+
+func (self *Server) makeBlockSubmit(blknum uint32) error {
+	return self.safeWriteActionChannel(SubmitBlock, blknum)
 }
 
 func (self *Server) fetchProposal(blkNum uint32, proposer uint32) error {
