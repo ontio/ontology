@@ -687,9 +687,7 @@ func (pool *BlockPool) setBlockSealed(block *Block, forEmpty bool, sigdata bool)
 	}
 	if blocksubmitMsg, _ := pool.server.constructBlockSubmitMsg(pool.chainStore.GetChainedBlockNum(), stateRoot); blocksubmitMsg != nil {
 		pool.server.broadcast(blocksubmitMsg)
-		if err := pool.server.makeBlockSubmit(pool.chainStore.GetChainedBlockNum()); err != nil {
-			log.Errorf("setBlockSealed submit block: %s", err)
-		}
+		pool.server.makeBlockSubmit(pool.chainStore.GetChainedBlockNum())
 	}
 	return nil
 }
