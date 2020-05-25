@@ -71,6 +71,16 @@ func calcTotalPayAmountWithFile(fileInfo *FileInfo) uint64 {
 	return intervalMinute * fileInfo.CopyNumber * fileInfo.FileBlockCount * fileInfo.CurrFeeRate
 }
 
+func calcTotalPayAmountWithSpaceFile(fileInfo *FileInfo, spaceTimeExpired uint64) uint64 {
+	fStart := formatUint64TimeToHour(fileInfo.TimeStart)
+	fExpired := formatUint64TimeToHour(spaceTimeExpired)
+	if fExpired <= fStart {
+		return 0
+	}
+	intervalMinute := (fExpired - fStart) / Hour
+	return intervalMinute * fileInfo.CopyNumber * fileInfo.FileBlockCount * fileInfo.CurrFeeRate
+}
+
 func calcTotalPayAmountWithSpace(spaceInfo *SpaceInfo) uint64 {
 	sStart := formatUint64TimeToHour(spaceInfo.TimeStart)
 	sExpired := formatUint64TimeToHour(spaceInfo.TimeExpired)
