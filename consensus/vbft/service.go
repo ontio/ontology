@@ -61,7 +61,7 @@ const (
 )
 
 const (
-	CAP_MESSAGE_CHANNEL  = 64
+	CAP_MESSAGE_CHANNEL  = 4096
 	CAP_ACTION_CHANNEL   = 64
 	CAP_MSG_SEND_CHANNEL = 16
 )
@@ -1073,11 +1073,7 @@ func (self *Server) onConsensusMsg(peerIdx uint32, msg ConsensusMsg, msgHash com
 			return
 		}
 		if self.CheckSubmitBlock(msgBlkNum, pMsg.BlockStateRoot) {
-			self.bftActionC <- &BftAction{
-				Type:     SubmitBlock,
-				BlockNum: msgBlkNum,
-				forEmpty: false,
-			}
+			self.makeBlockSubmit(msgBlkNum)
 		}
 	}
 }
@@ -2047,7 +2043,7 @@ func (self *Server) sealProposal(proposal *blockProposalMsg, empty bool) error {
 	}
 
 	if self.hasBlockConsensused() {
-		return self.makeFastForward()
+		self.makeFastForward()
 	} else {
 		return self.startNewRound()
 	}
@@ -2292,38 +2288,31 @@ func (self *Server) makeSealed(proposal *blockProposalMsg, forEmpty bool) error 
 	return nil
 }
 
-func (self *Server) makeFastForward() error {
-	if len(self.bftActionC)+3 >= cap(self.bftActionC) {
-		// FIXME:
-		// some cases, such as burst of heartbeat msg, may do too much fast forward.
-		// make bftActionC full, and bftActionLoop halted.
-		// TODO: add throttling in state-mgmt
-		return fmt.Errorf("server %d make fastforward skipped, %d vs %d",
-			self.Index, len(self.bftActionC), cap(self.bftActionC))
-	}
-
-	self.bftActionC <- &BftAction{
-		Type:     FastForward,
-		BlockNum: self.GetCurrentBlockNo(),
-	}
-	return nil
+func (self *Server) makeFastForward() {
+	go func() {
+		self.bftActionC <- &BftAction{
+			Type:     FastForward,
+			BlockNum: self.GetCurrentBlockNo(),
+		}
+	}()
 }
 
-func (self *Server) reBroadcastCurrentRoundMsgs() error {
-	if len(self.bftActionC)+3 >= cap(self.bftActionC) {
-		// FIXME:
-		// some cases, such as burst of heartbeat msg, may do too much rebroadcast.
-		// make bftActionC full, and bftActionLoop halted.
-		// TODO: add throttling in state-mgmt
-		return fmt.Errorf("server %d make rebroadcasting skipped, %d vs %d",
-			self.Index, len(self.bftActionC), cap(self.bftActionC))
-	}
+func (self *Server) reBroadcastCurrentRoundMsgs() {
+	go func() {
+		self.bftActionC <- &BftAction{
+			Type:     ReBroadcast,
+			BlockNum: self.GetCurrentBlockNo(),
+		}
+	}()
+}
 
-	self.bftActionC <- &BftAction{
-		Type:     ReBroadcast,
-		BlockNum: self.GetCurrentBlockNo(),
-	}
-	return nil
+func (self *Server) makeBlockSubmit(blknum uint32) {
+	go func() {
+		self.bftActionC <- &BftAction{
+			Type:     SubmitBlock,
+			BlockNum: self.GetCurrentBlockNo(),
+		}
+	}()
 }
 
 func (self *Server) fetchProposal(blkNum uint32, proposer uint32) error {

@@ -200,11 +200,7 @@ func TestStateMgr_onLiveTick(t *testing.T) {
 		peerState: peerstate,
 		blockNum:  1,
 	}
-	err := statemgr.onLiveTick(stateevent)
-	if err != nil {
-		t.Errorf("TestonLiveTick failed: %v", err)
-		return
-	}
+	statemgr.onLiveTick(stateevent)
 	t.Logf("TestonLiveTick succ")
 }
 

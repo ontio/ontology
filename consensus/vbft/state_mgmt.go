@@ -164,9 +164,7 @@ func (self *StateMgr) run() {
 				}
 
 			case LiveTick:
-				if err := self.onLiveTick(evt); err != nil {
-					log.Errorf("server %d, live ticker: %s", self.server.Index, err)
-				}
+				self.onLiveTick(evt)
 			}
 
 		case <-self.server.quitC:
@@ -217,10 +215,7 @@ func (self *StateMgr) onPeerUpdate(peerState *PeerState) {
 				log.Infof("server %d, syncing %d, target %d, fastforward %t",
 					self.server.Index, self.server.GetCommittedBlockNo(), committedBlkNum, fastforward)
 				if fastforward {
-					if err := self.server.makeFastForward(); err != nil {
-						log.Errorf("server %d state %d fastforward: %s",
-							self.server.Index, self.currentState, err)
-					}
+					self.server.makeFastForward()
 				} else {
 					self.checkStartSyncing(self.server.GetCommittedBlockNo(), false)
 				}
@@ -243,10 +238,7 @@ func (self *StateMgr) onPeerUpdate(peerState *PeerState) {
 		if ok && committedBlkNum > self.server.GetCommittedBlockNo()+1 {
 			log.Infof("server %d synced try fastforward from %d",
 				self.server.Index, self.server.GetCommittedBlockNo())
-			if err := self.server.makeFastForward(); err != nil {
-				log.Errorf("server %d state %d fast forward from %d: %s",
-					self.server.Index, self.currentState, self.server.GetCommittedBlockNo(), err)
-			}
+			self.server.makeFastForward()
 		}
 	case SyncingCheck:
 		if self.isSyncedReady() {
@@ -275,19 +267,19 @@ func (self *StateMgr) onPeerDisconnected(peerIdx uint32) {
 
 }
 
-func (self *StateMgr) onLiveTick(evt *StateEvent) error {
+func (self *StateMgr) onLiveTick(evt *StateEvent) {
 	if evt.blockNum > self.lastTickChainHeight {
 		self.lastTickChainHeight = evt.blockNum
-		return nil
+		return
 	}
 
 	if self.lastTickChainHeight == 0 {
 		self.lastTickChainHeight = evt.blockNum
-		return nil
+		return
 	}
 
-	if self.getState() != Synced {
-		return nil
+	if self.getState() != Synced && self.getState() != SyncReady {
+		return
 	}
 
 	log.Warnf("server %d detected consensus halt %d",
@@ -299,15 +291,13 @@ func (self *StateMgr) onLiveTick(evt *StateEvent) error {
 		log.Infof("server %d, syncing %d, target %d, fast-forward %t",
 			self.server.Index, self.server.GetCommittedBlockNo(), committedBlkNum, fastforward)
 		if fastforward {
-			if err := self.server.makeFastForward(); err != nil {
-				log.Errorf("server %d on live ticker fast forward: %s", self.server.Index, err)
-			}
+			self.server.makeFastForward()
 		} else {
 			self.checkStartSyncing(self.server.GetCommittedBlockNo(), false)
 		}
 	}
 
-	return self.server.reBroadcastCurrentRoundMsgs()
+	self.server.reBroadcastCurrentRoundMsgs()
 }
 
 func (self *StateMgr) getMinActivePeerCount() int {
@@ -368,7 +358,7 @@ func (self *StateMgr) setSyncedReady() error {
 				blockNum: blkNum,
 			}
 		})
-		return self.server.makeFastForward()
+		self.server.makeFastForward()
 	}
 
 	return nil
