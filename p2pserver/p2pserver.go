@@ -22,6 +22,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ontio/ontology/account"
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/ledger"
@@ -37,11 +38,10 @@ type P2PServer struct {
 }
 
 //NewServer return a new p2pserver according to the pubkey
-func NewServer() (*P2PServer, error) {
-	ld := ledger.DefLedger
-
-	protocol := protocols.NewMsgHandler(ld)
-	n, err := netserver.NewNetServer(protocol, config.DefConfig.P2PNode)
+func NewServer(acct *account.Account) (*P2PServer, error) {
+	protocol := protocols.NewMsgHandler(acct, ledger.DefLedger, log.Log)
+	reserved := protocol.GetReservedAddrFilter()
+	n, err := netserver.NewNetServer(protocol, config.DefConfig.P2PNode, reserved)
 	if err != nil {
 		return nil, err
 	}

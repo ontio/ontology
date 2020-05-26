@@ -23,6 +23,7 @@ import (
 	"fmt"
 
 	lru "github.com/hashicorp/golang-lru"
+	"github.com/ontio/ontology/account"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
@@ -39,35 +40,59 @@ import (
 	"github.com/ontio/ontology/p2pserver/protocols/heatbeat"
 	"github.com/ontio/ontology/p2pserver/protocols/recent_peers"
 	"github.com/ontio/ontology/p2pserver/protocols/reconnect"
+	"github.com/ontio/ontology/p2pserver/protocols/subnet"
+	"github.com/ontio/ontology/p2pserver/protocols/utils"
 )
 
 //respCache cache for some response data
-var respCache *lru.ARCCache
+var respCache, _ = lru.NewARC(msgCommon.MAX_RESP_CACHE_SIZE)
 
 //Store txHash, using for rejecting duplicate tx
 // thread safe
 var txCache, _ = lru.NewARC(msgCommon.MAX_TX_CACHE_SIZE)
 
 type MsgHandler struct {
+	seeds                    *utils.HostsResolver
 	blockSync                *block_sync.BlockSyncMgr
 	reconnect                *reconnect.ReconnectService
 	discovery                *discovery.Discovery
 	heatBeat                 *heatbeat.HeartBeat
 	bootstrap                *bootstrap.BootstrapService
 	persistRecentPeerService *recent_peers.PersistRecentPeerService
+	subnet                   *subnet.SubNet
 	ledger                   *ledger.Ledger
+	acct                     *account.Account // nil if conenesus is not enabled
 }
 
-func NewMsgHandler(ld *ledger.Ledger) *MsgHandler {
-	return &MsgHandler{ledger: ld}
+func NewMsgHandler(acct *account.Account, ld *ledger.Ledger, logger msgCommon.Logger) *MsgHandler {
+	gov := utils.NewGovNodeResolver(ld)
+	seedsList := config.DefConfig.Genesis.SeedList
+	seeds, invalid := utils.NewHostsResolver(seedsList)
+	if invalid != nil {
+		panic(fmt.Errorf("invalid seed list； %v", invalid))
+	}
+	subNet := subnet.NewSubNet(acct, seeds, gov, logger)
+	return &MsgHandler{ledger: ld, seeds: seeds, subnet: subNet, acct: acct}
+}
+
+func (self *MsgHandler) GetReservedAddrFilter() p2p.AddressFilter {
+	return self.subnet.GetReservedAddrFilter()
+}
+
+func (self *MsgHandler) GetMaskAddrFilter() p2p.AddressFilter {
+	return self.subnet.GetMaskAddrFilter()
+}
+
+func (self *MsgHandler) GetSubnetMembersInfo() []msgCommon.SubnetMemberInfo {
+	return self.subnet.GetMembersInfo()
 }
 
 func (self *MsgHandler) start(net p2p.P2P) {
 	self.blockSync = block_sync.NewBlockSyncMgr(net, self.ledger)
 	self.reconnect = reconnect.NewReconectService(net)
-	self.discovery = discovery.NewDiscovery(net, config.DefConfig.P2PNode.ReservedCfg.MaskPeers, 0)
-	seeds := config.DefConfig.Genesis.SeedList
-	self.bootstrap = bootstrap.NewBootstrapService(net, seeds)
+	maskFilter := self.subnet.GetMaskAddrFilter()
+	self.discovery = discovery.NewDiscovery(net, config.DefConfig.P2PNode.ReservedCfg.MaskPeers, maskFilter, 0)
+	self.bootstrap = bootstrap.NewBootstrapService(net, self.seeds)
 	self.heatBeat = heatbeat.NewHeartBeat(net, self.ledger)
 	self.persistRecentPeerService = recent_peers.NewPersistRecentPeerService(net)
 	go self.persistRecentPeerService.Start()
@@ -76,6 +101,7 @@ func (self *MsgHandler) start(net p2p.P2P) {
 	go self.discovery.Start()
 	go self.heatBeat.Start()
 	go self.bootstrap.Start()
+	go self.subnet.Start(net)
 }
 
 func (self *MsgHandler) stop() {
@@ -85,6 +111,7 @@ func (self *MsgHandler) stop() {
 	self.persistRecentPeerService.Stop()
 	self.heatBeat.Stop()
 	self.bootstrap.Stop()
+	self.subnet.Stop()
 }
 
 func (self *MsgHandler) HandleSystemMessage(net p2p.P2P, msg p2p.SystemMessage) {
@@ -97,14 +124,18 @@ func (self *MsgHandler) HandleSystemMessage(net p2p.P2P, msg p2p.SystemMessage) 
 		self.discovery.OnAddPeer(m.Info)
 		self.bootstrap.OnAddPeer(m.Info)
 		self.persistRecentPeerService.AddNodeAddr(m.Info.RemoteListenAddress())
+		self.subnet.OnAddPeer(net, m.Info)
 	case p2p.PeerDisConnected:
 		self.blockSync.OnDelNode(m.Info.Id)
 		self.reconnect.OnDelPeer(m.Info)
 		self.discovery.OnDelPeer(m.Info)
 		self.bootstrap.OnDelPeer(m.Info)
+		self.subnet.OnDelPeer(m.Info)
 		self.persistRecentPeerService.DelNodeAddr(m.Info.RemoteListenAddress())
 	case p2p.NetworkStop:
 		self.stop()
+	case p2p.HostAddrDetected:
+		self.subnet.OnHostAddrDetected(m.ListenAddr)
 	}
 }
 
@@ -137,6 +168,10 @@ func (self *MsgHandler) HandlePeerMessage(ctx *p2p.Context, msg msgTypes.Message
 		DataReqHandle(ctx, m)
 	case *msgTypes.Inv:
 		InvHandle(ctx, m)
+	case *msgTypes.SubnetMembersRequest:
+		self.subnet.OnMembersRequest(ctx, m)
+	case *msgTypes.SubnetMembers:
+		self.subnet.OnMembersResponse(ctx, m)
 	case *msgTypes.NotFound:
 		log.Debug("[p2p]receive notFound message, hash is ", m.Hash)
 	default:
@@ -432,9 +467,6 @@ func GetHeadersFromHash(startHash common.Uint256, stopHash common.Uint256) ([]*t
 
 //getRespCacheValue get response data from cache
 func getRespCacheValue(key string) interface{} {
-	if respCache == nil {
-		return nil
-	}
 	data, ok := respCache.Get(key)
 	if ok {
 		return data
@@ -443,16 +475,8 @@ func getRespCacheValue(key string) interface{} {
 }
 
 //saveRespCache save response msg to cache
-func saveRespCache(key string, value interface{}) bool {
-	if respCache == nil {
-		var err error
-		respCache, err = lru.NewARC(msgCommon.MAX_RESP_CACHE_SIZE)
-		if err != nil {
-			return false
-		}
-	}
+func saveRespCache(key string, value interface{}) {
 	respCache.Add(key, value)
-	return true
 }
 
 func (mh *MsgHandler) ReconnectService() *reconnect.ReconnectService {

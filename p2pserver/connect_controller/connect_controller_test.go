@@ -25,8 +25,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/p2pserver/common"
 	"github.com/ontio/ontology/p2pserver/handshake"
+	p2p "github.com/ontio/ontology/p2pserver/net/protocol"
 	"github.com/ontio/ontology/p2pserver/peer"
 	"github.com/stretchr/testify/assert"
 )
@@ -91,8 +93,9 @@ func NewNode(option ConnCtrlOption) *Node {
 		SoftVersion: common.MIN_VERSION_FOR_DHT,
 	}
 
+	logger := common.LoggerWithContext(log.Log, fmt.Sprintf("peer %s:, ", info.Id.ToHexString()[:6]))
 	return &Node{
-		ConnectController: NewConnectController(info, key, option),
+		ConnectController: NewConnectController(info, key, option, p2p.NoneAddrFilter(), logger),
 		Info:              info,
 		Key:               key,
 	}
@@ -238,7 +241,9 @@ func TestCheckReserveWithDomain(t *testing.T) {
 	gips, err := net.LookupHost(dname)
 	a.Nil(err, "fail to get domain record")
 
-	cc := &ConnectController{}
+	cc := &ConnectController{
+		reserveAddrFilter: p2p.NoneAddrFilter(),
+	}
 	cc.ReservedPeers = []string{dname}
 	for _, ip := range gips {
 		err := cc.checkReservedPeers(fmt.Sprintf("%s:1234", ip))

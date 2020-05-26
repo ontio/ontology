@@ -168,10 +168,7 @@ func registerCandidate(native *native.NativeService, flag string) error {
 				return fmt.Errorf("registerCandidate, put candidateIndex error: %v", err)
 			}
 
-			indexBytes, err := GetUint32Bytes(peerPoolItem.Index)
-			if err != nil {
-				return fmt.Errorf("registerCandidate, get indexBytes error: %v", err)
-			}
+			indexBytes := GetUint32Bytes(peerPoolItem.Index)
 			native.CacheDB.Put(utils.ConcatKey(contract, []byte(PEER_INDEX), peerPubkeyPrefix), cstates.GenRawStorageItem(indexBytes))
 		}
 
@@ -1230,10 +1227,7 @@ func executeCommitDpos1(native *native.NativeService, contract common.Address) e
 		return fmt.Errorf("putPeerPoolMap, put peerPoolMap error: %v", err)
 	}
 	oldView := view - 1
-	oldViewBytes, err := GetUint32Bytes(oldView)
-	if err != nil {
-		return fmt.Errorf("GetUint32Bytes, get oldViewBytes error: %v", err)
-	}
+	oldViewBytes := GetUint32Bytes(oldView)
 	native.CacheDB.Delete(utils.ConcatKey(contract, []byte(PEER_POOL), oldViewBytes))
 
 	return nil
@@ -1386,10 +1380,7 @@ func executeCommitDpos2(native *native.NativeService, contract common.Address) e
 		return fmt.Errorf("putPeerPoolMap, put peerPoolMap error: %v", err)
 	}
 	oldView := view - 1
-	oldViewBytes, err := GetUint32Bytes(oldView)
-	if err != nil {
-		return fmt.Errorf("GetUint32Bytes, get oldViewBytes error: %v", err)
-	}
+	oldViewBytes := GetUint32Bytes(oldView)
 	native.CacheDB.Delete(utils.ConcatKey(contract, []byte(PEER_POOL), oldViewBytes))
 
 	//update split fee

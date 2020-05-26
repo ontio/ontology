@@ -231,10 +231,7 @@ func InitConfig(native *native.NativeService) ([]byte, error) {
 			return utils.BYTE_FALSE, fmt.Errorf("hex.DecodeString, peerPubkey format error: %v", err)
 		}
 		index := peerPoolItem.Index
-		indexBytes, err := GetUint32Bytes(index)
-		if err != nil {
-			return nil, fmt.Errorf("getUint32Bytes, getUint32Bytes error: %v", err)
-		}
+		indexBytes := GetUint32Bytes(index)
 		native.CacheDB.Put(utils.ConcatKey(contract, []byte(PEER_INDEX), peerPubkeyPrefix), cstates.GenRawStorageItem(indexBytes))
 
 		//update total stake
@@ -253,10 +250,7 @@ func InitConfig(native *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("putPeerPoolMap, put peerPoolMap error: %v", err)
 	}
-	indexBytes, err := GetUint32Bytes(maxId + 1)
-	if err != nil {
-		return nil, fmt.Errorf("getUint32Bytes, get indexBytes error: %v", err)
-	}
+	indexBytes := GetUint32Bytes(maxId + 1)
 	native.CacheDB.Put(utils.ConcatKey(contract, []byte(CANDIDITE_INDEX)), cstates.GenRawStorageItem(indexBytes))
 
 	//init governance view
@@ -515,10 +509,7 @@ func ApproveCandidate(native *native.NativeService) ([]byte, error) {
 			return nil, fmt.Errorf("putCandidateIndex, put candidateIndex error: %v", err)
 		}
 
-		indexBytes, err := GetUint32Bytes(peerPoolItem.Index)
-		if err != nil {
-			return nil, fmt.Errorf("GetUint32Bytes, get indexBytes error: %v", err)
-		}
+		indexBytes := GetUint32Bytes(peerPoolItem.Index)
 		native.CacheDB.Put(utils.ConcatKey(contract, []byte(PEER_INDEX), peerPubkeyPrefix), cstates.GenRawStorageItem(indexBytes))
 	}
 	peerPoolMap.PeerPoolMap[params.PeerPubkey] = peerPoolItem

@@ -187,10 +187,7 @@ func GetPeersConfig(memdb *overlaydb.MemDB) ([]*config.VBFTPeerStakeInfo, error)
 	if err != nil {
 		return nil, err
 	}
-	viewBytes, err := gov.GetUint32Bytes(goveranceview.View)
-	if err != nil {
-		return nil, err
-	}
+	viewBytes := gov.GetUint32Bytes(goveranceview.View)
 	key := append([]byte(gov.PEER_POOL), viewBytes...)
 	data, err := GetStorageValue(memdb, ledger.DefLedger, nutils.GovernanceContractAddress, key)
 	if err != nil {

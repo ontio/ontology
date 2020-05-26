@@ -18,6 +18,7 @@
 package connect_controller
 
 import (
+	"errors"
 	"fmt"
 	"net"
 	"sort"
@@ -25,15 +26,17 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/p2pserver/common"
 	"github.com/ontio/ontology/p2pserver/handshake"
+	p2p "github.com/ontio/ontology/p2pserver/net/protocol"
 	"github.com/ontio/ontology/p2pserver/peer"
 	"github.com/scylladb/go-set/strset"
 )
 
 const INBOUND_INDEX = 0
 const OUTBOUND_INDEX = 1
+
+var ErrHandshakeSelf = errors.New("the node handshake with itself")
 
 type connectedPeer struct {
 	connectId uint64
@@ -43,6 +46,7 @@ type connectedPeer struct {
 
 type ConnectController struct {
 	ConnCtrlOption
+	reserveAddrFilter p2p.AddressFilter //todo combine with ConnCtrlOption
 
 	selfId   *common.PeerKeyId
 	peerInfo *peer.PeerInfo
@@ -53,20 +57,24 @@ type ConnectController struct {
 	connecting           *strset.Set
 	peers                map[common.PeerId]*connectedPeer // all connected peers
 
-	ownAddr       string
+	ownListenAddr string
 	nextConnectId uint64
+
+	logger common.Logger
 }
 
 func NewConnectController(peerInfo *peer.PeerInfo, keyid *common.PeerKeyId,
-	option ConnCtrlOption) *ConnectController {
+	option ConnCtrlOption, reserveAddrFilter p2p.AddressFilter, logger common.Logger) *ConnectController {
 	control := &ConnectController{
 		ConnCtrlOption:       option,
+		reserveAddrFilter:    reserveAddrFilter,
 		selfId:               keyid,
 		peerInfo:             peerInfo,
 		inoutbounds:          [2]*strset.Set{strset.New(), strset.New()},
 		inboundListenAddress: strset.New(),
 		connecting:           strset.New(),
 		peers:                make(map[common.PeerId]*connectedPeer),
+		logger:               logger,
 	}
 	// put domain to the end
 	sort.Slice(control.ReservedPeers, func(i, j int) bool {
@@ -77,7 +85,7 @@ func NewConnectController(peerInfo *peer.PeerInfo, keyid *common.PeerKeyId,
 }
 
 func (self *ConnectController) OwnAddress() string {
-	return self.ownAddr
+	return self.ownListenAddr
 }
 
 func (self *ConnectController) getConnectId() uint64 {
@@ -172,9 +180,10 @@ func (self *ConnectController) inReserveList(remoteIPPort string) bool {
 }
 
 func (self *ConnectController) checkReservedPeers(remoteAddr string) error {
-	if !self.reserveEnabled() || self.inReserveList(remoteAddr) {
+	if !self.reserveAddrFilter.Filtered(remoteAddr) && (!self.reserveEnabled() || self.inReserveList(remoteAddr)) {
 		return nil
 	}
+
 	return fmt.Errorf("the remote addr: %s not in reserved list", remoteAddr)
 }
 
@@ -213,7 +222,7 @@ func (self *ConnectController) AcceptConnect(conn net.Conn) (*peer.PeerInfo, net
 
 	wrapped := self.savePeer(conn, peerInfo, INBOUND_INDEX)
 
-	log.Infof("inbound peer %s connected, %s", conn.RemoteAddr().String(), peerInfo)
+	self.logger.Infof("inbound peer %s connected, %s", conn.RemoteAddr().String(), peerInfo)
 	return peerInfo, wrapped, nil
 }
 
@@ -249,7 +258,7 @@ func (self *ConnectController) Connect(addr string) (*peer.PeerInfo, net.Conn, e
 
 	wrapped := self.savePeer(conn, peerInfo, OUTBOUND_INDEX)
 
-	log.Infof("outbound peer %s connected. %s", conn.RemoteAddr().String(), peerInfo)
+	self.logger.Infof("outbound peer %s connected. %s", conn.RemoteAddr().String(), peerInfo)
 	return peerInfo, wrapped, nil
 }
 
@@ -271,7 +280,7 @@ func (self *ConnectController) beforeHandshakeCheck(addr string, index int) erro
 		return fmt.Errorf("peer %s already in connection records", addr)
 	}
 
-	if self.ownAddr == addr {
+	if self.ownListenAddr == addr {
 		return fmt.Errorf("connecting with self address %s", addr)
 	}
 
@@ -296,13 +305,13 @@ func (self *ConnectController) beforeHandshakeCheck(addr string, index int) erro
 func (self *ConnectController) isHandWithSelf(remotePeer *peer.PeerInfo, remoteAddr string) error {
 	addrIp, err := common.ParseIPAddr(remoteAddr)
 	if err != nil {
-		log.Warn(err)
+		self.logger.Warn(err)
 		return err
 	}
 	nodeAddr := addrIp + ":" + strconv.Itoa(int(remotePeer.Port))
 	if remotePeer.Id.ToUint64() == self.selfId.Id.ToUint64() {
-		self.ownAddr = nodeAddr
-		return fmt.Errorf("the node handshake with itself: %s", remoteAddr)
+		self.ownListenAddr = nodeAddr
+		return ErrHandshakeSelf
 	}
 
 	return nil
@@ -355,7 +364,7 @@ func (self *ConnectController) removePeer(conn *Conn) {
 
 	p := self.peers[conn.kid]
 	if p == nil || p.peer == nil {
-		log.Fatalf("connection %s not in controller", conn.kid.ToHexString())
+		self.logger.Fatalf("connection %s not in controller", conn.kid.ToHexString())
 	} else if p.connectId == conn.connectId { // connection not replaced
 		delete(self.peers, conn.kid)
 	}
@@ -371,19 +380,19 @@ func (self *ConnectController) checkPeerIdAndIP(peer *peer.PeerInfo, addr string
 	ipOld, err := common.ParseIPAddr(oldPeer.addr)
 	if err != nil {
 		err := fmt.Errorf("[createPeer]exist peer ip format is wrong %s", oldPeer.addr)
-		log.Fatal(err)
+		self.logger.Fatal(err)
 		return err
 	}
 	ipNew, err := common.ParseIPAddr(addr)
 	if err != nil {
 		err := fmt.Errorf("[createPeer]connecting peer ip format is wrong %s, close", addr)
-		log.Fatal(err)
+		self.logger.Fatal(err)
 		return err
 	}
 
 	if ipNew != ipOld {
 		err := fmt.Errorf("[createPeer]same peer id from different addr: %s, %s close latest one", ipOld, ipNew)
-		log.Warn(err)
+		self.logger.Warn(err)
 		return err
 	}
 

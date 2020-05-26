@@ -34,24 +34,26 @@ import (
 )
 
 type Discovery struct {
-	dht     *dht.DHT
-	net     p2p.P2P
-	id      common.PeerId
-	quit    chan bool
-	maskSet *strset.Set
+	dht        *dht.DHT
+	net        p2p.P2P
+	id         common.PeerId
+	quit       chan bool
+	maskSet    *strset.Set
+	maskFilter p2p.AddressFilter //todo : conbine with maskSet
 }
 
-func NewDiscovery(net p2p.P2P, maskLst []string, refleshInterval time.Duration) *Discovery {
+func NewDiscovery(net p2p.P2P, maskLst []string, maskFilter p2p.AddressFilter, refleshInterval time.Duration) *Discovery {
 	dht := dht.NewDHT(net.GetID())
 	if refleshInterval != 0 {
 		dht.RtRefreshPeriod = refleshInterval
 	}
 	return &Discovery{
-		id:      net.GetID(),
-		dht:     dht,
-		net:     net,
-		quit:    make(chan bool),
-		maskSet: strset.New(maskLst...),
+		id:         net.GetID(),
+		dht:        dht,
+		net:        net,
+		quit:       make(chan bool),
+		maskSet:    strset.New(maskLst...),
+		maskFilter: maskFilter,
 	}
 }
 
@@ -155,8 +157,8 @@ func (self *Discovery) FindNodeHandle(ctx *p2p.Context, freq *types.FindNodeReq)
 	// mask peer see everyone, but other's will not see mask node
 	// if remotePeer is in msk-list, give them everything
 	// not in mask set means they are in the other side
-	if self.maskSet.Size() > 0 && !self.maskSet.Has(remoteIP.String()) {
-		mskedAddrs := make([]common.PeerIDAddressPair, 0)
+	if !self.maskSet.Has(remoteIP.String()) && !self.maskFilter.Filtered(remotePeer.Info.RemoteListenAddress()) {
+		unmaskedAddrs := make([]common.PeerIDAddressPair, 0)
 		// filter out the masked node
 		for _, pair := range fresp.CloserPeers {
 			ip, _, err := net.SplitHostPort(pair.Address)
@@ -164,13 +166,13 @@ func (self *Discovery) FindNodeHandle(ctx *p2p.Context, freq *types.FindNodeReq)
 				continue
 			}
 			// hide mask node
-			if self.maskSet.Has(ip) {
+			if self.maskSet.Has(ip) || self.maskFilter.Filtered(pair.Address) {
 				continue
 			}
-			mskedAddrs = append(mskedAddrs, pair)
+			unmaskedAddrs = append(unmaskedAddrs, pair)
 		}
 		// replace with masked nodes
-		fresp.CloserPeers = mskedAddrs
+		fresp.CloserPeers = unmaskedAddrs
 	}
 
 	log.Debugf("[dht] find %d more closer peers:", len(fresp.CloserPeers))

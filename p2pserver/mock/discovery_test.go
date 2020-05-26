@@ -31,6 +31,7 @@ import (
 	"github.com/ontio/ontology/p2pserver/peer"
 	"github.com/ontio/ontology/p2pserver/protocols/bootstrap"
 	"github.com/ontio/ontology/p2pserver/protocols/discovery"
+	"github.com/ontio/ontology/p2pserver/protocols/utils"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -52,8 +53,12 @@ func NewDiscoveryProtocol(seeds []string, maskPeers []string) *DiscoveryProtocol
 }
 
 func (self *DiscoveryProtocol) start(net p2p.P2P) {
-	self.discovery = discovery.NewDiscovery(net, self.MaskPeers, self.RefleshInterval)
-	self.bootstrap = bootstrap.NewBootstrapService(net, self.seeds)
+	self.discovery = discovery.NewDiscovery(net, self.MaskPeers, p2p.NoneAddrFilter(), self.RefleshInterval)
+	seeds, invalid := utils.NewHostsResolver(self.seeds)
+	if len(invalid) != 0 {
+		panic(fmt.Errorf("invalid seed list； %v", invalid))
+	}
+	self.bootstrap = bootstrap.NewBootstrapService(net, seeds)
 	go self.discovery.Start()
 	go self.bootstrap.Start()
 }
@@ -130,5 +135,7 @@ func NewDiscoveryNode(seeds []string, net Network) *netserver.NetServer {
 	dis := NewDiscoveryProtocol(seeds, nil)
 	dis.RefleshInterval = time.Millisecond * 10
 
-	return NewNode(seedId, info, dis, net, nil)
+	context := fmt.Sprintf("peer %s:, ", seedId.Id.ToHexString()[:6])
+	logger := common.LoggerWithContext(log.Log, context)
+	return NewNode(seedId, "", info, dis, net, nil, p2p.NoneAddrFilter(), logger)
 }

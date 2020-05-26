@@ -15,31 +15,33 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
-package connect_controller
 
-import (
-	"net"
+package p2p
 
-	"github.com/ontio/ontology/p2pserver/common"
-)
-
-// Conn is a net.Conn wrapper to do some clean up when Close.
-type Conn struct {
-	net.Conn
-	addr       string
-	listenAddr string
-	kid        common.PeerId
-	boundIndex int
-	connectId  uint64
-	controller *ConnectController
+type AddressFilter interface {
+	// addr format : ip:port
+	Filtered(addr string) bool
 }
 
-// Close overwrite net.Conn
-// warning: this method will try to lock the controller, be carefull to avoid deadlock
-func (self *Conn) Close() error {
-	self.controller.logger.Infof("closing connection: peer %s, address: %s", self.kid.ToHexString(), self.addr)
+func CombineAddrFilter(filter1, filter2 AddressFilter) AddressFilter {
+	return &combineAddrFilter{filter1: filter1, filter2: filter2}
+}
 
-	self.controller.removePeer(self)
+func NoneAddrFilter() AddressFilter {
+	return &noneAddrFilter{}
+}
 
-	return self.Conn.Close()
+type combineAddrFilter struct {
+	filter1 AddressFilter
+	filter2 AddressFilter
+}
+
+func (self *combineAddrFilter) Filtered(addr string) bool {
+	return self.filter1.Filtered(addr) || self.filter2.Filtered(addr)
+}
+
+type noneAddrFilter struct{}
+
+func (self *noneAddrFilter) Filtered(addr string) bool {
+	return false
 }

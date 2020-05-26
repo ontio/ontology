@@ -23,6 +23,8 @@ import (
 	"net"
 	"time"
 
+	"github.com/ontio/ontology/p2pserver/protocols"
+
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/p2pserver/common"
@@ -33,24 +35,39 @@ import (
 )
 
 //NewNetServer return the net object in p2p
-func NewNetServer(protocol p2p.Protocol, conf *config.P2PNodeConfig) (*NetServer, error) {
-	n := &NetServer{
-		NetChan:    make(chan *types.MsgPayload, common.CHAN_CAPABILITY),
-		base:       &peer.PeerInfo{},
-		Np:         NewNbrPeers(),
-		protocol:   protocol,
-		stopRecvCh: make(chan bool),
+func NewNetServer(protocol p2p.Protocol, conf *config.P2PNodeConfig, reserveAddrFilter p2p.AddressFilter) (*NetServer, error) {
+	nodePort := conf.NodePort
+	if nodePort == 0 {
+		nodePort = config.DEFAULT_NODE_PORT
 	}
 
-	err := n.init(conf)
+	keyId := common.RandPeerKeyId()
+	info := peer.NewPeerInfo(keyId.Id, common.PROTOCOL_VERSION, common.SERVICE_NODE, true,
+		conf.HttpInfoPort, nodePort, 0, config.Version, "")
+
+	option, err := connect_controller.ConnCtrlOptionFromConfig(conf)
 	if err != nil {
 		return nil, err
 	}
-	return n, nil
+
+	listener, err := connect_controller.NewListener(nodePort, conf)
+	if err != nil {
+		log.Error("[p2p]failed to create sync listener")
+		return nil, errors.New("[p2p]failed to create sync listener")
+	}
+
+	log.Infof("[p2p] init peer ID to %s", info.Id.ToHexString())
+
+	return NewCustomNetServer(keyId, info, protocol, listener, option, reserveAddrFilter, nil), nil
 }
 
 func NewCustomNetServer(id *common.PeerKeyId, info *peer.PeerInfo, proto p2p.Protocol,
-	listener net.Listener, opt connect_controller.ConnCtrlOption) *NetServer {
+	listener net.Listener, opt connect_controller.ConnCtrlOption, reserveAddrFilter p2p.AddressFilter, logger common.Logger) *NetServer {
+	if logger == nil {
+		logger = log.Log
+	}
+	connCtrl := connect_controller.NewConnectController(info, id, opt, reserveAddrFilter, logger)
+
 	n := &NetServer{
 		base:       info,
 		listener:   listener,
@@ -58,8 +75,9 @@ func NewCustomNetServer(id *common.PeerKeyId, info *peer.PeerInfo, proto p2p.Pro
 		NetChan:    make(chan *types.MsgPayload, common.CHAN_CAPABILITY),
 		Np:         NewNbrPeers(),
 		stopRecvCh: make(chan bool),
+		connCtrl:   connCtrl,
+		logger:     logger,
 	}
-	n.connCtrl = connect_controller.NewConnectController(info, id, opt)
 
 	return n
 }
@@ -73,6 +91,7 @@ type NetServer struct {
 	Np       *NbrPeers
 
 	connCtrl *connect_controller.ConnectController
+	logger   common.Logger
 
 	stopRecvCh chan bool // To stop sync channel
 }
@@ -86,7 +105,7 @@ func (this *NetServer) processMessage(channel chan *types.MsgPayload,
 			if ok {
 				sender := this.GetPeer(data.Id)
 				if sender == nil {
-					log.Warnf("[router] remote peer %s invalid.", data.Id.ToHexString())
+					this.logger.Warnf("[router] remote peer %s invalid.", data.Id.ToHexString())
 					continue
 				}
 
@@ -99,50 +118,14 @@ func (this *NetServer) processMessage(channel chan *types.MsgPayload,
 	}
 }
 
-//init initializes attribute of network server
-func (this *NetServer) init(conf *config.P2PNodeConfig) error {
-	keyId := common.RandPeerKeyId()
-
-	httpInfo := conf.HttpInfoPort
-	nodePort := conf.NodePort
-	if nodePort == 0 {
-		log.Error("[p2p]link port invalid")
-		return errors.New("[p2p]invalid link port")
-	}
-
-	this.base = peer.NewPeerInfo(keyId.Id, common.PROTOCOL_VERSION, common.SERVICE_NODE, true, httpInfo,
-		nodePort, 0, config.Version, "")
-
-	option, err := connect_controller.ConnCtrlOptionFromConfig(conf)
-	if err != nil {
-		return err
-	}
-	this.connCtrl = connect_controller.NewConnectController(this.base, keyId, option)
-
-	syncPort := this.base.Port
-	if syncPort == 0 {
-		log.Error("[p2p]sync port invalid")
-		return errors.New("[p2p]sync port invalid")
-	}
-	this.listener, err = connect_controller.NewListener(syncPort, config.DefConfig.P2PNode)
-	if err != nil {
-		log.Error("[p2p]failed to create sync listener")
-		return errors.New("[p2p]failed to create sync listener")
-	}
-
-	log.Infof("[p2p]init peer ID to %s", this.base.Id.ToHexString())
-
-	return nil
-}
-
 //InitListen start listening on the config port
 func (this *NetServer) Start() error {
 	this.protocol.HandleSystemMessage(this, p2p.NetworkStart{})
 	go this.startNetAccept(this.listener)
-	log.Infof("[p2p]start listen on sync port %d", this.base.Port)
+	this.logger.Infof("[p2p]start listen on sync port %d", this.base.Port)
 	go this.processMessage(this.NetChan, this.stopRecvCh)
 
-	log.Debug("[p2p]MessageRouter start to parse p2p message...")
+	this.logger.Debug("[p2p]MessageRouter start to parse p2p message...")
 	return nil
 }
 
@@ -208,7 +191,7 @@ func (this *NetServer) Send(p *peer.Peer, msg types.Message) error {
 	if p != nil {
 		return p.Send(msg)
 	}
-	log.Warn("[p2p]sendMsg to a invalid peer")
+	this.logger.Warn("[p2p]sendMsg to a invalid peer")
 	return errors.New("[p2p]sendMsg to a invalid peer")
 }
 
@@ -216,7 +199,7 @@ func (this *NetServer) Send(p *peer.Peer, msg types.Message) error {
 func (this *NetServer) Connect(addr string) {
 	err := this.connect(addr)
 	if err != nil {
-		log.Debugf("%s connecting to %s failed, err: %s", this.base.Addr, addr, err)
+		this.logger.Debugf("%s connecting to %s failed, err: %s", this.base.Addr, addr, err)
 	}
 }
 
@@ -224,6 +207,11 @@ func (this *NetServer) Connect(addr string) {
 func (this *NetServer) connect(addr string) error {
 	peerInfo, conn, err := this.connCtrl.Connect(addr)
 	if err != nil {
+		if err == connect_controller.ErrHandshakeSelf {
+			this.logger.Info("[p2p] node host address detected: ", this.connCtrl.OwnAddress())
+			this.protocol.HandleSystemMessage(this, p2p.HostAddrDetected{ListenAddr: this.connCtrl.OwnAddress()})
+			return nil
+		}
 		return err
 	}
 	remotePeer := createPeer(peerInfo, conn)
@@ -278,13 +266,13 @@ func (this *NetServer) startNetAccept(listener net.Listener) {
 		conn, err := listener.Accept()
 
 		if err != nil {
-			log.Error("[p2p]error accepting ", err.Error())
+			this.logger.Error("[p2p]error accepting ", err.Error())
 			return
 		}
 
 		go func() {
 			if err := this.handleClientConnection(conn); err != nil {
-				log.Warnf("[p2p] client connect error: %s", err)
+				this.logger.Warnf("[p2p] client connect error: %s", err)
 				_ = conn.Close()
 			}
 		}()
@@ -325,4 +313,13 @@ func (this *NetServer) SendTo(p common.PeerId, msg types.Message) {
 	if peer != nil {
 		this.Send(peer, msg)
 	}
+}
+
+func (self *NetServer) GetSubnetMembersInfo() []common.SubnetMemberInfo {
+	handler, ok := self.protocol.(*protocols.MsgHandler)
+	if !ok {
+		return nil
+	}
+
+	return handler.GetSubnetMembersInfo()
 }
