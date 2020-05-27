@@ -265,6 +265,14 @@ func insertPk(srvc *native.NativeService, encId, pk, controller []byte, isPkList
 				return 0, errors.New("the key is already added")
 			}
 		}
+		key, err := encodeID(controller)
+		if err != nil {
+			return 0, err
+		}
+		// controller must exists
+		if !isValid(srvc, key) {
+			return 0, fmt.Errorf("controller %s not registered", string(controller))
+		}
 		size := len(publicKeys)
 		publicKeys = append(publicKeys, &publicKey{pk, false, controller, isPkList, isAuthentication})
 		err = putAllPk_Version1(srvc, key, publicKeys)

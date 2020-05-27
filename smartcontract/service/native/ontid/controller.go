@@ -196,7 +196,7 @@ func addKeyByController(srvc *native.NativeService) ([]byte, error) {
 
 	//decode new field of verison 1
 	controller, err := utils.DecodeVarBytes(source)
-	if err != nil {
+	if err != nil || len(controller) == 0 {
 		controller = arg0
 	}
 

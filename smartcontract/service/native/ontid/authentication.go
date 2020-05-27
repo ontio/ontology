@@ -80,6 +80,9 @@ func addNewAuthKeyByRecovery(srvc *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return utils.BYTE_FALSE, errors.New("argument 1 error")
 	}
+	if len(controller) == 0 {
+		controller = arg0
+	}
 	// arg3: signers
 	arg2, err := utils.DecodeVarBytes(source)
 	if err != nil {
@@ -142,6 +145,9 @@ func addNewAuthKeyByController(srvc *native.NativeService) ([]byte, error) {
 	controller, err := utils.DecodeVarBytes(source)
 	if err != nil {
 		return utils.BYTE_FALSE, errors.New("argument 1 error")
+	}
+	if len(controller) == 0 {
+		controller = arg0
 	}
 
 	encId, err := encodeID(arg0)
