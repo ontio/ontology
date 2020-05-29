@@ -570,7 +570,7 @@ func (this *BlockSyncMgr) OnHeaderReceive(fromID p2pComm.PeerId, headers []*type
 		}
 		log.Debugf("[block-sync] OnHeaderReceive GetHeaderByHeight height:%d, prevHeader transaction root:%+v", header.Height - 1,  prevHeader.TransactionsRoot)
 		//handle empty block
-		if header.TransactionsRoot == common.UINT256_EMPTY && prevHeader.TransactionsRoot != common.UINT256_EMPTY {
+		if header.TransactionsRoot == common.UINT256_EMPTY && prevHeader.TransactionsRoot == common.UINT256_EMPTY {
 			log.Debugf("[block-sync] OnHeaderReceive empty block Height:%d", header.Height)
 			height := header.Height
 			blockHash := header.Hash()
