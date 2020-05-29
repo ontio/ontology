@@ -565,11 +565,13 @@ func (this *BlockSyncMgr) OnHeaderReceive(fromID p2pComm.PeerId, headers []*type
 	for _, header := range headers {
 		prevHeader, err := this.ledger.GetHeaderByHeight(header.Height - 1)
 		if err != nil {
+			log.Debugf("[block-sync] OnHeaderReceive GetHeaderByHeight error:%s", err)
 			continue
 		}
+		log.Debugf("[block-sync] OnHeaderReceive GetHeaderByHeight height:%d, prevHeader transaction root:%+v", header.Height - 1,  prevHeader.TransactionsRoot)
 		//handle empty block
 		if header.TransactionsRoot == common.UINT256_EMPTY && prevHeader.TransactionsRoot != common.UINT256_EMPTY {
-			log.Trace("[block-sync] OnHeaderReceive empty block Height:%d", header.Height)
+			log.Debugf("[block-sync] OnHeaderReceive empty block Height:%d", header.Height)
 			height := header.Height
 			blockHash := header.Hash()
 			this.delFlightBlock(blockHash)
@@ -595,7 +597,7 @@ func (this *BlockSyncMgr) OnBlockReceive(fromID p2pComm.PeerId, blockSize uint32
 	merkleRoot common.Uint256) {
 	height := block.Header.Height
 	blockHash := block.Hash()
-	log.Tracef("[block-sync] OnBlockReceive Height:%d", height)
+	log.Debugf("[block-sync] OnBlockReceive Height:%d ccMsg:%+v", height, ccMsg)
 	flightInfo := this.getFlightBlock(blockHash, fromID)
 	if flightInfo != nil {
 		t := (time.Now().UnixNano() - flightInfo.GetStartTime().UnixNano()) / int64(time.Millisecond)
