@@ -2310,7 +2310,7 @@ func (self *Server) makeBlockSubmit(blknum uint32) {
 	go func() {
 		self.bftActionC <- &BftAction{
 			Type:     SubmitBlock,
-			BlockNum: self.GetCurrentBlockNo(),
+			BlockNum: blknum,
 		}
 	}()
 }
