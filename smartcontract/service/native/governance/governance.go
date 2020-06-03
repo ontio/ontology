@@ -32,6 +32,7 @@ import (
 	cstates "github.com/ontio/ontology/core/states"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/global_params"
+	"github.com/ontio/ontology/smartcontract/service/native/ont"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
@@ -972,6 +973,12 @@ func Withdraw(native *native.NativeService) ([]byte, error) {
 //Go to next consensus epoch
 func CommitDpos(native *native.NativeService) ([]byte, error) {
 	contract := native.ContextRef.CurrentContext().ContractAddress
+
+	//unbound ong to governance
+	err := ont.UnboundOngToGovernance(native)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("CommitDpos, UnboundOngToGovernance error: %v", err)
+	}
 
 	// get config
 	config, err := getConfig(native, contract)

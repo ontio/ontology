@@ -26,6 +26,9 @@ import (
 var (
 	//TODO: modify this when on mainnet
 	GENESIS_BLOCK_TIMESTAMP = uint32(time.Date(2018, time.June, 30, 0, 0, 0, 0, time.UTC).Unix())
+
+	CHANGE_UNBOUND_TIMESTAMP_MAINNET = uint32(time.Date(2020, time.July, 15, 0, 0, 0, 0, time.UTC).Unix())
+	CHANGE_UNBOUND_TIMESTAMP_POLARIS = uint32(time.Date(2020, time.July, 15, 0, 0, 0, 0, time.UTC).Unix())
 )
 
 // ont constants
@@ -48,6 +51,7 @@ const (
 const UNBOUND_TIME_INTERVAL = uint32(31536000)
 
 var UNBOUND_GENERATION_AMOUNT = [18]uint64{5, 4, 3, 3, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}
+var NEW_UNBOUND_GENERATION_AMOUNT = [18]uint64{5, 4, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 3, 3}
 
 // the end of unbound timestamp offset from genesis block's timestamp
 var UNBOUND_DEADLINE = (func() uint32 {

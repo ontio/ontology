@@ -891,7 +891,7 @@ func executeSplit(native *native.NativeService, contract common.Address, view ui
 func executeSplit2(native *native.NativeService, contract common.Address, view uint32) (uint64, error) {
 	var splitSum uint64 = 0
 	// get config
-	config, err := getConfig(native, contract)
+	configuration, err := getConfig(native, contract)
 	if err != nil {
 		return splitSum, fmt.Errorf("getConfig, get config error: %v", err)
 	}
@@ -979,17 +979,34 @@ func executeSplit2(native *native.NativeService, contract common.Address, view u
 	})
 
 	// cal s of each consensus node
-	var sum uint64
-	for i := 0; i < int(config.K); i++ {
-		sum += peersCandidate[i].Stake
+	var sum1 uint64
+	for i := 0; i < int(configuration.K); i++ {
+		sum1 += peersCandidate[i].Stake
 	}
 	// if sum = 0, means consensus peer in config, do not split
-	if sum < uint64(config.K) {
+	if sum1 < uint64(configuration.K) {
 		return splitSum, nil
 	}
-	avg := sum / uint64(config.K)
+
+	//cal s of each candidate node
+	var length int
+	if int(globalParam2.CandidateFeeSplitNum) >= len(peersCandidate) {
+		length = len(peersCandidate)
+	} else {
+		length = int(globalParam2.CandidateFeeSplitNum)
+	}
+	var sum2 uint64
+	for i := int(configuration.K); i < length; i++ {
+		sum2 += peersCandidate[i].Stake
+	}
+	if sum2 == 0 {
+		return splitSum, nil
+	}
+
+	sum := sum1 + sum2
+	avg := sum1 / uint64(configuration.K)
 	var sumS uint64
-	for i := 0; i < int(config.K); i++ {
+	for i := 0; i < int(configuration.K); i++ {
 		peersCandidate[i].S, err = splitCurve(native, contract, peersCandidate[i].Stake, avg, uint64(globalParam.Yita))
 		if err != nil {
 			return splitSum, fmt.Errorf("splitCurve, calculate splitCurve error: %v", err)
@@ -1001,14 +1018,20 @@ func executeSplit2(native *native.NativeService, contract common.Address, view u
 	}
 
 	//fee split of consensus peer
-	for i := 0; i < int(config.K); i++ {
+	var consensusAmount *big.Int
+	if native.Time <= config.GetChangeUnboundTimestamp() {
+		consensusWeight := new(big.Int).Mul(nodeIncome, new(big.Int).SetUint64(uint64(globalParam.A)))
+		consensusAmount = new(big.Int).Div(consensusWeight, new(big.Int).SetUint64(100))
+	} else {
+		consensusWeight := new(big.Int).Mul(nodeIncome, new(big.Int).SetUint64(sum1))
+		consensusAmount = new(big.Int).Div(consensusWeight, new(big.Int).SetUint64(sum))
+	}
+	for i := 0; i < int(configuration.K); i++ {
 		//nodeAmount := nodeIncome * uint64(globalParam.A) / 100 * peersCandidate[i].S / sumS
 		//consensusWeight := nodeIncome * uint64(globalParam.A)
 		//consensusAmount := consensusWeight / 100
 		//nodeWeight := consensusAmount * peersCandidate[i].S
 		//nodeAmount := nodeWeight / sumS
-		consensusWeight := new(big.Int).Mul(nodeIncome, new(big.Int).SetUint64(uint64(globalParam.A)))
-		consensusAmount := new(big.Int).Div(consensusWeight, new(big.Int).SetUint64(100))
 		nodeWeight := new(big.Int).Mul(consensusAmount, new(big.Int).SetUint64(peersCandidate[i].S))
 		nodeAmount := new(big.Int).Div(nodeWeight, new(big.Int).SetUint64(sumS))
 
@@ -1023,30 +1046,22 @@ func executeSplit2(native *native.NativeService, contract common.Address, view u
 	}
 
 	//fee split of candidate peer
-	//cal s of each candidate node
-	var length int
-	if int(globalParam2.CandidateFeeSplitNum) >= len(peersCandidate) {
-		length = len(peersCandidate)
+	var candidateAmount *big.Int
+	if native.Time <= config.GetChangeUnboundTimestamp() {
+		candidateWeight := new(big.Int).Mul(nodeIncome, new(big.Int).SetUint64(uint64(globalParam.B)))
+		candidateAmount = new(big.Int).Div(candidateWeight, new(big.Int).SetUint64(100))
 	} else {
-		length = int(globalParam2.CandidateFeeSplitNum)
+		candidateWeight := new(big.Int).Mul(nodeIncome, new(big.Int).SetUint64(sum2))
+		candidateAmount = new(big.Int).Div(candidateWeight, new(big.Int).SetUint64(sum))
 	}
-	sum = 0
-	for i := int(config.K); i < length; i++ {
-		sum += peersCandidate[i].Stake
-	}
-	if sum == 0 {
-		return splitSum, nil
-	}
-	for i := int(config.K); i < length; i++ {
-		//nodeAmount := nodeIncome * uint64(globalParam.B) / 100 * peersCandidate[i].Stake / sum
+	for i := int(configuration.K); i < length; i++ {
+		//nodeAmount := nodeIncome * uint64(globalParam.B) / 100 * peersCandidate[i].Stake / sum2
 		//candidateWeight := nodeIncome * uint64(globalParam.B)
 		//candidateAmount := candidateWeight / 100
 		//nodeWeight := candidateAmount * peersCandidate[i].Stake
-		//nodeAmount := nodeWeight / sum
-		candidateWeight := new(big.Int).Mul(nodeIncome, new(big.Int).SetUint64(uint64(globalParam.B)))
-		candidateAmount := new(big.Int).Div(candidateWeight, new(big.Int).SetUint64(100))
+		//nodeAmount := nodeWeight / sum2
 		nodeWeight := new(big.Int).Mul(candidateAmount, new(big.Int).SetUint64(peersCandidate[i].Stake))
-		nodeAmount := new(big.Int).Div(nodeWeight, new(big.Int).SetUint64(sum))
+		nodeAmount := new(big.Int).Div(nodeWeight, new(big.Int).SetUint64(sum2))
 
 		err = splitNodeFee(native, contract, peersCandidate[i].PeerPubkey, peersCandidate[i].Address,
 			peerPoolMap.PeerPoolMap[peersCandidate[i].PeerPubkey].Status == ConsensusStatus,

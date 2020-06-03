@@ -24,6 +24,7 @@ import (
 	"math/big"
 
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/constants"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/common/serialization"
@@ -297,15 +298,64 @@ func grantOng(native *native.NativeService, contract, address common.Address, ba
 
 	if balance != 0 {
 		value := utils.CalcUnbindOng(balance, startOffset, endOffset)
-
-		args, err := getApproveArgs(native, contract, utils.OngContractAddress, address, value)
-		if err != nil {
-			return err
+		if native.Time <= config.GetChangeUnboundTimestamp() {
+			args, err := getApproveArgs(native, contract, utils.OngContractAddress, address, value)
+			if err != nil {
+				return err
+			}
+			if _, err := native.NativeCall(utils.OngContractAddress, "approve", args); err != nil {
+				return err
+			}
+		} else {
+			args, err := getTransferArgs(contract, address, value)
+			if err != nil {
+				return err
+			}
+			if _, err := native.NativeCall(utils.OngContractAddress, "transfer", args); err != nil {
+				return err
+			}
 		}
+	}
 
-		if _, err := native.NativeCall(utils.OngContractAddress, "approve", args); err != nil {
-			return err
+	native.CacheDB.Put(genAddressUnboundOffsetKey(contract, address), utils.GenUInt32StorageItem(endOffset).ToArray())
+	return nil
+}
+
+func UnboundOngToGovernance(native *native.NativeService) error {
+	contract := utils.OntContractAddress
+	address := utils.GovernanceContractAddress
+	startOffset, err := getUnboundOffset(native, contract, address)
+	if err != nil {
+		return err
+	}
+	now := native.Time
+	if now < config.GetChangeUnboundTimestamp() {
+		return nil
+	}
+	if startOffset < (config.GetChangeUnboundTimestamp() - constants.GENESIS_BLOCK_TIMESTAMP) {
+		startOffset = config.GetChangeUnboundTimestamp() - constants.GENESIS_BLOCK_TIMESTAMP
+	}
+	endOffset := now - constants.GENESIS_BLOCK_TIMESTAMP
+	if endOffset < startOffset {
+		if native.PreExec {
+			return nil
 		}
+		errstr := fmt.Sprintf("grant Ong error: wrong timestamp endOffset: %d < startOffset: %d", endOffset, startOffset)
+		log.Error(errstr)
+		return errors.NewErr(errstr)
+	} else if endOffset == startOffset {
+		return nil
+	}
+
+	value := utils.CalcGovernanceUnbindOng(startOffset, endOffset)
+
+	args, err := getTransferArgs(contract, address, value)
+	if err != nil {
+		return err
+	}
+
+	if _, err := native.NativeCall(utils.OngContractAddress, "transfer", args); err != nil {
+		return err
 	}
 
 	native.CacheDB.Put(genAddressUnboundOffsetKey(contract, address), utils.GenUInt32StorageItem(endOffset).ToArray())
@@ -327,5 +377,18 @@ func getApproveArgs(native *native.NativeService, contract, ongContract, address
 
 	approve.Value += stateValue
 	approve.Serialization(bf)
+	return bf.Bytes(), nil
+}
+
+func getTransferArgs(contract, address common.Address, value uint64) ([]byte, error) {
+	bf := common.NewZeroCopySink(nil)
+	state := State{
+		From:  contract,
+		To:    address,
+		Value: value,
+	}
+	transfers := Transfers{[]State{state}}
+
+	transfers.Serialization(bf)
 	return bf.Bytes(), nil
 }

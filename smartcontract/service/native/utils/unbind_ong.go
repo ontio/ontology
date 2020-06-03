@@ -18,16 +18,27 @@
 
 package utils
 
-import "github.com/ontio/ontology/common/constants"
+import (
+	"github.com/ontio/ontology/common/config"
+	"github.com/ontio/ontology/common/constants"
+)
 
 var (
-	TIME_INTERVAL     = constants.UNBOUND_TIME_INTERVAL
-	GENERATION_AMOUNT = constants.UNBOUND_GENERATION_AMOUNT
+	TIME_INTERVAL         = constants.UNBOUND_TIME_INTERVAL
+	GENERATION_AMOUNT     = constants.UNBOUND_GENERATION_AMOUNT
+	NEW_GENERATION_AMOUNT = constants.NEW_UNBOUND_GENERATION_AMOUNT
 )
 
 // startOffset : start timestamp offset from genesis block
 // endOffset :  end timestamp offset from genesis block
 func CalcUnbindOng(balance uint64, startOffset, endOffset uint32) uint64 {
+	if startOffset > (config.GetChangeUnboundTimestamp() - constants.GENESIS_BLOCK_TIMESTAMP) {
+		return 0
+	}
+	if endOffset > (config.GetChangeUnboundTimestamp() - constants.GENESIS_BLOCK_TIMESTAMP) {
+		endOffset = config.GetChangeUnboundTimestamp() - constants.GENESIS_BLOCK_TIMESTAMP
+	}
+
 	var amount uint64 = 0
 	if startOffset >= endOffset {
 		return 0
@@ -49,4 +60,30 @@ func CalcUnbindOng(balance uint64, startOffset, endOffset uint32) uint64 {
 	}
 
 	return uint64(amount) * balance
+}
+
+// startOffset : start timestamp offset from genesis block
+// endOffset :  end timestamp offset from genesis block
+func CalcGovernanceUnbindOng(startOffset, endOffset uint32) uint64 {
+	var amount uint64 = 0
+	if startOffset >= endOffset {
+		return 0
+	}
+	if startOffset < config.GetNewUnboundDeadline() {
+		ustart := startOffset / TIME_INTERVAL
+		istart := startOffset % TIME_INTERVAL
+		if endOffset >= config.GetNewUnboundDeadline() {
+			endOffset = config.GetNewUnboundDeadline()
+		}
+		uend := endOffset / TIME_INTERVAL
+		iend := endOffset % TIME_INTERVAL
+		for ustart < uend {
+			amount += uint64(TIME_INTERVAL-istart) * NEW_GENERATION_AMOUNT[ustart]
+			ustart++
+			istart = 0
+		}
+		amount += uint64(iend-istart) * NEW_GENERATION_AMOUNT[ustart]
+	}
+
+	return uint64(amount) * constants.ONT_TOTAL_SUPPLY
 }
