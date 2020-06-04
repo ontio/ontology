@@ -328,14 +328,10 @@ func UnboundOngToGovernance(native *native.NativeService) error {
 	if err != nil {
 		return err
 	}
-	now := native.Time
-	if now < config.GetChangeUnboundTimestamp() {
+	if native.Time <= constants.GENESIS_BLOCK_TIMESTAMP {
 		return nil
 	}
-	if startOffset < (config.GetChangeUnboundTimestamp() - constants.GENESIS_BLOCK_TIMESTAMP) {
-		startOffset = config.GetChangeUnboundTimestamp() - constants.GENESIS_BLOCK_TIMESTAMP
-	}
-	endOffset := now - constants.GENESIS_BLOCK_TIMESTAMP
+	endOffset := native.Time - constants.GENESIS_BLOCK_TIMESTAMP
 	if endOffset < startOffset {
 		if native.PreExec {
 			return nil

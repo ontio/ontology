@@ -65,6 +65,13 @@ func CalcUnbindOng(balance uint64, startOffset, endOffset uint32) uint64 {
 // startOffset : start timestamp offset from genesis block
 // endOffset :  end timestamp offset from genesis block
 func CalcGovernanceUnbindOng(startOffset, endOffset uint32) uint64 {
+	if endOffset < (config.GetChangeUnboundTimestamp() - constants.GENESIS_BLOCK_TIMESTAMP) {
+		return 0
+	}
+	if startOffset < (config.GetChangeUnboundTimestamp() - constants.GENESIS_BLOCK_TIMESTAMP) {
+		startOffset = config.GetChangeUnboundTimestamp() - constants.GENESIS_BLOCK_TIMESTAMP
+	}
+
 	var amount uint64 = 0
 	if startOffset >= endOffset {
 		return 0
