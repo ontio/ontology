@@ -315,7 +315,7 @@ func getRecoveryJson(srvc *native.NativeService, encId []byte) (*GroupJson, erro
 		return nil, nil
 	}
 	if item.StateVersion != _VERSION_1 {
-		return nil, errors.New("unexpected storage version")
+		return nil, nil
 	}
 	r, err := deserializeGroup(item.Value)
 	if err != nil {
