@@ -93,8 +93,7 @@ func TestSubnet(t *testing.T) {
 
 	time.Sleep(time.Second * 10)
 	for i := 0; i < S+G; i++ {
-		//assert.Equal(t, uint32(T)-1, nodes[i].GetConnectionCnt(), i)
-		//todo check members
+		assert.Equal(t, len(getSubnetMemberInfo(nodes[i].Protocol())), G, i)
 	}
 	for i := 0; i < T; i++ {
 		if i < S {
@@ -105,6 +104,15 @@ func TestSubnet(t *testing.T) {
 			assert.Equal(t, uint32(S+N-1), nodes[i].GetConnectionCnt(), i)
 		}
 	}
+}
+
+func getSubnetMemberInfo(protocol p2p.Protocol) []common.SubnetMemberInfo {
+	handler, ok := protocol.(*TestSubnetProtocalHandler)
+	if !ok {
+		return nil
+	}
+
+	return handler.subnet.GetMembersInfo()
 }
 
 func NewSubnetNode(acct *account.Account, listenAddr string, seeds, govs []string, net Network, reservedPeers []string,

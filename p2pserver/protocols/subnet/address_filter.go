@@ -26,7 +26,7 @@ type SubNetReservedAddrFilter struct {
 
 func (self *SubNetReservedAddrFilter) Filtered(addr string) bool {
 	// seed node should allow all node connection
-	if self.subnet.seedNode {
+	if self.subnet.IsSeedNode() {
 		return false
 	}
 

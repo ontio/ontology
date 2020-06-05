@@ -33,7 +33,7 @@ import (
 
 type SubnetMembersRequest struct {
 	Timestamp uint32
-	PubKey    keypair.PublicKey
+	PubKey    keypair.PublicKey // only valid if Timestamp != 0
 	Sig       []byte
 }
 

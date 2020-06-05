@@ -56,7 +56,7 @@ func NewHostsResolver(hosts []string) (*HostsResolver, []string) {
 
 func (self *HostsResolver) GetHostAddrs() []string {
 	// fast path test
-	cached := (*HostsCache)(self.cache)
+	cached := (*HostsCache)(atomic.LoadPointer(&self.cache))
 	if cached != nil && cached.refleshTime.Add(time.Minute*10).After(time.Now()) && len(cached.addrs) != 0 {
 		return cached.addrs
 	}

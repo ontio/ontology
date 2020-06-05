@@ -19,6 +19,7 @@ package bootstrap
 
 import (
 	"math/rand"
+	"sync/atomic"
 	"time"
 
 	"github.com/ontio/ontology/p2pserver/common"
@@ -33,7 +34,7 @@ const activeConnect = 4 // when connection num less than this value, we connect 
 
 type BootstrapService struct {
 	seeds     *utils.HostsResolver
-	connected uint
+	connected uint32
 	net       p2p.P2P
 	quit      chan bool
 }
@@ -55,11 +56,11 @@ func (self *BootstrapService) Stop() {
 }
 
 func (self *BootstrapService) OnAddPeer(info *peer.PeerInfo) {
-	self.connected += 1
+	atomic.AddUint32(&self.connected, 1)
 }
 
 func (self *BootstrapService) OnDelPeer(info *peer.PeerInfo) {
-	self.connected -= 1
+	atomic.AddUint32(&self.connected, ^uint32(0))
 }
 
 //connectSeedService make sure seed peer be connected
@@ -70,7 +71,8 @@ func (self *BootstrapService) connectSeedService() {
 		case <-t.C:
 			self.connectSeeds()
 			t.Stop()
-			if self.connected >= activeConnect {
+			connected := atomic.LoadUint32(&self.connected)
+			if connected >= activeConnect {
 				t.Reset(time.Second * time.Duration(10*common.CONN_MONITOR))
 			} else {
 				t.Reset(time.Second * common.CONN_MONITOR)

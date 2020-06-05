@@ -85,7 +85,15 @@ func NewConnectController(peerInfo *peer.PeerInfo, keyid *common.PeerKeyId,
 }
 
 func (self *ConnectController) OwnAddress() string {
+	self.mutex.Lock()
+	defer self.mutex.Unlock()
 	return self.ownListenAddr
+}
+
+func (self *ConnectController) SetOwnAddress(listenAddr string) {
+	self.mutex.Lock()
+	defer self.mutex.Unlock()
+	self.ownListenAddr = listenAddr
 }
 
 func (self *ConnectController) getConnectId() uint64 {
@@ -280,7 +288,7 @@ func (self *ConnectController) beforeHandshakeCheck(addr string, index int) erro
 		return fmt.Errorf("peer %s already in connection records", addr)
 	}
 
-	if self.ownListenAddr == addr {
+	if self.OwnAddress() == addr {
 		return fmt.Errorf("connecting with self address %s", addr)
 	}
 
@@ -310,7 +318,7 @@ func (self *ConnectController) isHandWithSelf(remotePeer *peer.PeerInfo, remoteA
 	}
 	nodeAddr := addrIp + ":" + strconv.Itoa(int(remotePeer.Port))
 	if remotePeer.Id.ToUint64() == self.selfId.Id.ToUint64() {
-		self.ownListenAddr = nodeAddr
+		self.SetOwnAddress(nodeAddr)
 		return ErrHandshakeSelf
 	}
 

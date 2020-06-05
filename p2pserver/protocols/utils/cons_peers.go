@@ -75,7 +75,7 @@ func NewGovNodeResolver(db *ledger.Ledger) *GovNodeLedgerResolver {
 }
 
 func (self *GovNodeLedgerResolver) isGovNodeFromCache(pubkey string) bool {
-	cached := (*GovCache)(self.cache)
+	cached := (*GovCache)(atomic.LoadPointer(&self.cache))
 	if cached != nil {
 		_, ok := cached.pubkeys[pubkey]
 		return ok

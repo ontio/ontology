@@ -26,78 +26,12 @@ import (
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/account"
 	comm "github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/common/log"
 	ct "github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/p2pserver/common"
 	mt "github.com/ontio/ontology/p2pserver/message/types"
 )
 
-var (
-	cliLink    *Link
-	serverLink *Link
-	cliChan    chan *mt.MsgPayload
-	serverChan chan *mt.MsgPayload
-	cliAddr    string
-	serAddr    string
-)
-
-func init() {
-	log.InitLog(log.InfoLog, log.Stdout)
-
-	cliLink = NewLink()
-	serverLink = NewLink()
-	id := common.PseudoPeerIdFromUint64(0x733936)
-	cliLink.SetID(id)
-	id2 := common.PseudoPeerIdFromUint64(0x8274950)
-	serverLink.SetID(id2)
-
-	cliChan = make(chan *mt.MsgPayload, 100)
-	serverChan = make(chan *mt.MsgPayload, 100)
-	//listen ip addr
-	cliAddr = "127.0.0.1:50338"
-	serAddr = "127.0.0.1:50339"
-}
-
-func TestNewLink(t *testing.T) {
-	id := 0x74936295
-
-	if cliLink.GetID().ToUint64() != 0x733936 {
-		t.Fatal("link GetID failed")
-	}
-	i := common.PseudoPeerIdFromUint64(uint64(id))
-	cliLink.SetID(i)
-	if cliLink.GetID().ToUint64() != uint64(id) {
-		t.Fatal("link SetID failed")
-	}
-
-	cliLink.SetChan(cliChan)
-	serverLink.SetChan(serverChan)
-
-	cliLink.UpdateRXTime(time.Now())
-
-	msg := &mt.MsgPayload{
-		Id:      cliLink.GetID(),
-		Addr:    cliLink.GetAddr(),
-		Payload: &mt.NotFound{comm.UINT256_EMPTY},
-	}
-	go func() {
-		time.Sleep(5000000)
-		cliChan <- msg
-	}()
-
-	timeout := time.NewTimer(time.Second)
-	select {
-	case <-cliChan:
-		t.Log("read data from channel")
-	case <-timeout.C:
-		timeout.Stop()
-		t.Fatal("can`t read data from link channel")
-	}
-
-}
-
 func TestUnpackBufNode(t *testing.T) {
-	cliLink.SetChan(cliChan)
 
 	msgType := "block"
 

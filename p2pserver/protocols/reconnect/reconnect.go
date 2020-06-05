@@ -98,11 +98,10 @@ func (this *ReconnectService) retryInactivePeer() {
 	}
 
 	//try connect
+	var addrs []string
+	this.Lock()
 	if len(this.RetryAddrs) > 0 {
-		this.Lock()
-
 		list := make(map[string]*ReconnectPeerInfo)
-		addrs := make([]string, 0, len(this.RetryAddrs))
 		for addr, v := range this.RetryAddrs {
 			v.count += 1
 			if v.count <= common.MAX_RETRY_COUNT && net.GetPeer(v.id) == nil {
@@ -112,14 +111,14 @@ func (this *ReconnectService) retryInactivePeer() {
 		}
 
 		this.RetryAddrs = list
-		this.Unlock()
-		for _, addr := range addrs {
-			rand.Seed(time.Now().UnixNano())
-			log.Debug("[p2p]Try to reconnect peer, peer addr is ", addr)
-			<-time.After(time.Duration(rand.Intn(common.CONN_MAX_BACK)) * time.Millisecond)
-			log.Debug("[p2p]Back off time`s up, start connect node")
-			net.Connect(addr)
-		}
+	}
+	this.Unlock()
+	for _, addr := range addrs {
+		rand.Seed(time.Now().UnixNano())
+		log.Debug("[p2p]Try to reconnect peer, peer addr is ", addr)
+		<-time.After(time.Duration(rand.Intn(common.CONN_MAX_BACK)) * time.Millisecond)
+		log.Debug("[p2p]Back off time`s up, start connect node")
+		net.Connect(addr)
 	}
 }
 

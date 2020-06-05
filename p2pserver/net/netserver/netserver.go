@@ -21,7 +21,6 @@ package netserver
 import (
 	"errors"
 	"net"
-	"time"
 
 	"github.com/ontio/ontology/p2pserver/protocols"
 
@@ -214,9 +213,8 @@ func (this *NetServer) connect(addr string) error {
 		}
 		return err
 	}
-	remotePeer := createPeer(peerInfo, conn)
+	remotePeer := peer.NewPeer(peerInfo, conn, this.NetChan)
 
-	remotePeer.AttachChan(this.NetChan)
 	this.ReplacePeer(remotePeer)
 	go remotePeer.Link.Rx()
 
@@ -251,8 +249,7 @@ func (this *NetServer) handleClientConnection(conn net.Conn) error {
 	if err != nil {
 		return err
 	}
-	remotePeer := createPeer(peerInfo, conn)
-	remotePeer.AttachChan(this.NetChan)
+	remotePeer := peer.NewPeer(peerInfo, conn, this.NetChan)
 	this.ReplacePeer(remotePeer)
 
 	go remotePeer.Link.Rx()
@@ -287,17 +284,6 @@ func (this *NetServer) GetOutConnRecordLen() uint {
 //check own network address
 func (this *NetServer) IsOwnAddress(addr string) bool {
 	return addr == this.connCtrl.OwnAddress()
-}
-
-func createPeer(info *peer.PeerInfo, conn net.Conn) *peer.Peer {
-	remotePeer := peer.NewPeer()
-	remotePeer.SetInfo(info)
-	remotePeer.Link.UpdateRXTime(time.Now())
-	remotePeer.Link.SetAddr(conn.RemoteAddr().String())
-	remotePeer.Link.SetConn(conn)
-	remotePeer.Link.SetID(info.Id)
-
-	return remotePeer
 }
 
 func (ns *NetServer) ConnectController() *connect_controller.ConnectController {

@@ -22,6 +22,7 @@ import (
 	"encoding/json"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/ontio/ontology/account"
@@ -43,12 +44,12 @@ type SubNet struct {
 	seeds    *utils.HostsResolver
 	gov      utils.GovNodeResolver
 	unparker *utils.Parker
-	selfAddr string
 
-	seedNode bool
+	lock     sync.RWMutex
+	selfAddr string
+	seedNode uint32 // bool acturally
 	closed   bool
 
-	lock      sync.RWMutex
 	connected map[string]*peer.PeerInfo // connected seed or gov node, listen address --> PeerInfo
 	members   map[string]*MemberStatus  // gov node info, listen address --> pubkey hex string
 	logger    common.Logger
@@ -87,7 +88,7 @@ func (self *SubNet) OnAddPeer(net p2p.P2P, info *peer.PeerInfo) {
 	defer self.lock.Unlock()
 	listenAddr := info.RemoteListenAddress()
 	member := self.members[listenAddr]
-	if self.isSeed(listenAddr) || member != nil {
+	if self.isSeedAddr(listenAddr) || member != nil {
 		self.connected[listenAddr] = info
 		self.sendMembersRequest(net, info.Id)
 	}
@@ -101,7 +102,7 @@ func (self *SubNet) OnDelPeer(info *peer.PeerInfo) {
 	defer self.lock.Unlock()
 	listenAddr := info.RemoteListenAddress()
 	member := self.members[listenAddr]
-	if self.isSeed(listenAddr) || member != nil {
+	if self.isSeedAddr(listenAddr) || member != nil {
 		delete(self.connected, listenAddr)
 	}
 	if member != nil {
@@ -131,7 +132,7 @@ func (self *SubNet) isSeedIp(ip string) bool {
 	return false
 }
 
-func (self *SubNet) isSeed(addr string) bool {
+func (self *SubNet) isSeedAddr(addr string) bool {
 	hosts := self.seeds.GetHostAddrs()
 	for _, host := range hosts {
 		if host == addr {
@@ -142,14 +143,25 @@ func (self *SubNet) isSeed(addr string) bool {
 	return false
 }
 
+func (self *SubNet) IsSeedNode() bool {
+	return atomic.LoadUint32(&self.seedNode) == 1
+}
+
 func (self *SubNet) OnHostAddrDetected(listenAddr string) {
+	seed := self.isSeedAddr(listenAddr)
+	self.lock.Lock()
+	defer self.lock.Unlock()
 	self.selfAddr = listenAddr
-	self.seedNode = self.isSeed(listenAddr)
+	if seed {
+		atomic.StoreUint32(&self.seedNode, 1)
+	} else {
+		atomic.StoreUint32(&self.seedNode, 0)
+	}
 }
 
 func (self *SubNet) checkAuthority(listenAddr string, msg *types.SubnetMembersRequest) bool {
 	if msg.FromSeed() {
-		return self.isSeed(listenAddr)
+		return self.isSeedAddr(listenAddr)
 	}
 
 	return self.gov.IsGovNode(msg.PubKey)
@@ -164,15 +176,15 @@ func (self *SubNet) OnMembersRequest(ctx *p2p.Context, msg *types.SubnetMembersR
 		return
 	}
 
-	members := make([]types.MemberInfo, 0, len(self.members))
 	self.lock.Lock()
+	members := make([]types.MemberInfo, 0, len(self.members))
 
 	for addr, status := range self.members {
 		members = append(members, types.MemberInfo{PubKey: status.PubKey, Addr: addr})
 	}
 
 	//update self.members
-	if self.gov.IsGovNode(msg.PubKey) && self.members[peerAddr] == nil {
+	if !msg.FromSeed() && self.gov.IsGovNode(msg.PubKey) && self.members[peerAddr] == nil {
 		self.members[peerAddr] = &MemberStatus{
 			PubKey: vconfig.PubkeyID(msg.PubKey),
 			Alive:  time.Now(),
@@ -224,7 +236,7 @@ func (self *SubNet) getUnconnectedGovNode() []string {
 
 func (self *SubNet) newMembersRequest() *types.SubnetMembersRequest {
 	var request *types.SubnetMembersRequest
-	if self.seedNode {
+	if self.IsSeedNode() {
 		request = types.NewMembersRequestFromSeed()
 	} else if self.acct != nil && self.gov.IsGovNode(self.acct.PublicKey) {
 		var err error
@@ -244,13 +256,20 @@ func (self *SubNet) sendMembersRequestToRandNodes(net p2p.P2P) {
 	}
 
 	count := 0
+	peerIds := make([]common.PeerId, 0, MaxMemberRequests)
+	self.lock.RLock()
 	// note map iteration is randomized
-	for _, peer := range self.connected {
-		net.SendTo(peer.Id, request)
+	for _, p := range self.connected {
 		count += 1
+		peerIds = append(peerIds, p.Id)
 		if count == MaxMemberRequests {
 			break
 		}
+	}
+
+	self.lock.RUnlock()
+	for _, peerId := range peerIds {
+		net.SendTo(peerId, request)
 	}
 }
 
@@ -286,6 +305,7 @@ func (self *SubNet) maintainLoop(net p2p.P2P) {
 				self.members[listen].Alive = time.Now()
 			}
 		}
+		seedOrGov := self.IsSeedNode() || (self.acct != nil && self.gov.IsGovNode(self.acct.PublicKey))
 		self.lock.Unlock()
 
 		for _, addr := range self.getUnconnectedGovNode() {
@@ -296,7 +316,7 @@ func (self *SubNet) maintainLoop(net p2p.P2P) {
 		self.cleanStaleGovNode()
 		self.sendMembersRequestToRandNodes(net)
 
-		if self.seedNode || (self.acct != nil && self.gov.IsGovNode(self.acct.PublicKey)) {
+		if seedOrGov {
 			members := self.GetMembersInfo()
 			buf, _ := json.Marshal(members)
 			self.logger.Infof("[subnet] current members: %s", string(buf))
