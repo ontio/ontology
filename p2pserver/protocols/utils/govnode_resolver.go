@@ -57,8 +57,9 @@ func (self *GovNodeMockResolver) IsGovNode(key keypair.PublicKey) bool {
 }
 
 type GovNodeLedgerResolver struct {
-	db   *ledger.Ledger
-	view uint32
+	db          *ledger.Ledger
+	view        uint32
+	refleshTime uint32
 
 	cache unsafe.Pointer // atomic pointer to GovCache, avoid read&write data race
 }

@@ -144,6 +144,7 @@ func (self *SubnetMembers) Deserialization(source *comm.ZeroCopySource) error {
 	if err != nil {
 		return err
 	}
+	var members []MemberInfo
 	for i := uint32(0); i < num; i++ {
 		pubKey, err := source.ReadString()
 		if err != nil {
@@ -154,8 +155,9 @@ func (self *SubnetMembers) Deserialization(source *comm.ZeroCopySource) error {
 			return err
 		}
 
-		self.Members = append(self.Members, MemberInfo{PubKey: pubKey, Addr: addr})
+		members = append(members, MemberInfo{PubKey: pubKey, Addr: addr})
 	}
 
+	self.Members = members
 	return nil
 }
