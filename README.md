@@ -39,31 +39,17 @@ You can download a stable compiled version of the Ontology node software by eith
 
 ### Prerequisites
 
-- [Golang](https://golang.org/doc/install) version 1.11 or later
-- [Glide](https://glide.sh) (a third party package management tool for Golang)
+- [Golang](https://golang.org/doc/install) version 1.12 or later
 
 
 ### Build
 
 Note that the code in the `master` branch may not be stable.
 
-1) Clone the Ontology repository into the appropriate `$GOPATH/src/github.com/ontio` directory:
-
 ```
 $ git clone https://github.com/ontio/ontology.git
-```
-or
-```
-$ go get github.com/ontio/ontology
-```
-
-2) Fetch the dependent third party packages with [Glide](https://glide.sh):
-
-```
-cd $GOPATH/src/github.com/ontio/ontology
-glide install
-glide update
-make all
+$ cd ontology
+$ make all
 ```
 
 After building the source code successfully, you should see two executable programs:
