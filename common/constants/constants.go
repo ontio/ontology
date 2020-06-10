@@ -53,24 +53,6 @@ const UNBOUND_TIME_INTERVAL = uint32(31536000)
 var UNBOUND_GENERATION_AMOUNT = [18]uint64{5, 4, 3, 3, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}
 var NEW_UNBOUND_GENERATION_AMOUNT = [18]uint64{5, 4, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 3, 3}
 
-// the end of unbound timestamp offset from genesis block's timestamp
-var UNBOUND_DEADLINE = (func() uint32 {
-	count := uint64(0)
-	for _, m := range UNBOUND_GENERATION_AMOUNT {
-		count += m
-	}
-	count *= uint64(UNBOUND_TIME_INTERVAL)
-
-	numInterval := len(UNBOUND_GENERATION_AMOUNT)
-
-	if UNBOUND_GENERATION_AMOUNT[numInterval-1] != 1 ||
-		!(count-uint64(UNBOUND_TIME_INTERVAL) < ONT_TOTAL_SUPPLY && ONT_TOTAL_SUPPLY <= count) {
-		panic("incompatible constants setting")
-	}
-
-	return UNBOUND_TIME_INTERVAL*uint32(numInterval) - uint32(count-uint64(ONT_TOTAL_SUPPLY))
-})()
-
 // multi-sig constants
 const MULTI_SIG_MAX_PUBKEY_SIZE = 16
 

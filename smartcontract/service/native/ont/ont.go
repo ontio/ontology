@@ -298,7 +298,7 @@ func grantOng(native *native.NativeService, contract, address common.Address, ba
 
 	if balance != 0 {
 		value := utils.CalcUnbindOng(balance, startOffset, endOffset)
-		if native.Time <= config.GetChangeUnboundTimestamp() {
+		if native.Time <= config.GetOntHolderUnboundDeadline() + constants.GENESIS_BLOCK_TIMESTAMP {
 			args, err := getApproveArgs(native, contract, utils.OngContractAddress, address, value)
 			if err != nil {
 				return err

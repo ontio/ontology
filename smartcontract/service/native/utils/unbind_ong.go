@@ -32,22 +32,15 @@ var (
 // startOffset : start timestamp offset from genesis block
 // endOffset :  end timestamp offset from genesis block
 func CalcUnbindOng(balance uint64, startOffset, endOffset uint32) uint64 {
-	if startOffset > (config.GetChangeUnboundTimestamp() - constants.GENESIS_BLOCK_TIMESTAMP) {
-		return 0
-	}
-	if endOffset > (config.GetChangeUnboundTimestamp() - constants.GENESIS_BLOCK_TIMESTAMP) {
-		endOffset = config.GetChangeUnboundTimestamp() - constants.GENESIS_BLOCK_TIMESTAMP
-	}
-
 	var amount uint64 = 0
 	if startOffset >= endOffset {
 		return 0
 	}
-	if startOffset < constants.UNBOUND_DEADLINE {
+	if startOffset < config.GetOntHolderUnboundDeadline() {
 		ustart := startOffset / TIME_INTERVAL
 		istart := startOffset % TIME_INTERVAL
-		if endOffset >= constants.UNBOUND_DEADLINE {
-			endOffset = constants.UNBOUND_DEADLINE
+		if endOffset >= config.GetOntHolderUnboundDeadline() {
+			endOffset = config.GetOntHolderUnboundDeadline()
 		}
 		uend := endOffset / TIME_INTERVAL
 		iend := endOffset % TIME_INTERVAL
@@ -65,22 +58,25 @@ func CalcUnbindOng(balance uint64, startOffset, endOffset uint32) uint64 {
 // startOffset : start timestamp offset from genesis block
 // endOffset :  end timestamp offset from genesis block
 func CalcGovernanceUnbindOng(startOffset, endOffset uint32) uint64 {
-	if endOffset < (config.GetChangeUnboundTimestamp() - constants.GENESIS_BLOCK_TIMESTAMP) {
+	if endOffset < config.GetOntHolderUnboundDeadline() {
 		return 0
 	}
-	if startOffset < (config.GetChangeUnboundTimestamp() - constants.GENESIS_BLOCK_TIMESTAMP) {
-		startOffset = config.GetChangeUnboundTimestamp() - constants.GENESIS_BLOCK_TIMESTAMP
+	if startOffset < config.GetOntHolderUnboundDeadline() {
+		startOffset = config.GetOntHolderUnboundDeadline()
 	}
 
 	var amount uint64 = 0
 	if startOffset >= endOffset {
 		return 0
 	}
-	if startOffset < config.GetNewUnboundDeadline() {
+	deadline, _ := config.GetNewUnboundDeadline()
+	var gap uint64 = 0
+	if startOffset < deadline {
 		ustart := startOffset / TIME_INTERVAL
 		istart := startOffset % TIME_INTERVAL
-		if endOffset >= config.GetNewUnboundDeadline() {
-			endOffset = config.GetNewUnboundDeadline()
+		if endOffset > deadline {
+			endOffset = deadline
+			_, gap = config.GetNewUnboundDeadline()
 		}
 		uend := endOffset / TIME_INTERVAL
 		iend := endOffset % TIME_INTERVAL
@@ -90,6 +86,7 @@ func CalcGovernanceUnbindOng(startOffset, endOffset uint32) uint64 {
 			istart = 0
 		}
 		amount += uint64(iend-istart) * NEW_GENERATION_AMOUNT[ustart]
+		amount += gap
 	}
 
 	return uint64(amount) * constants.ONT_TOTAL_SUPPLY
