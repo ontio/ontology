@@ -55,6 +55,7 @@ func RegisterOntContract(native *native.NativeService) {
 	native.Register(BALANCEOF_NAME, OntBalanceOf)
 	native.Register(ALLOWANCE_NAME, OntAllowance)
 	native.Register(TOTAL_ALLOWANCE_NAME, OntTotalAllowance)
+	native.Register(UNBOUND_GOVERNANCE_ONG, UnboundGovernanceOng)
 }
 
 func OntInit(native *native.NativeService) ([]byte, error) {
@@ -276,6 +277,10 @@ func TotalAllowance(native *native.NativeService) ([]byte, error) {
 	return common.BigIntToNeoBytes(big.NewInt(int64(r))), nil
 }
 
+func UnboundGovernanceOng(native *native.NativeService) ([]byte, error) {
+	return nil, UnboundOngToGovernance(native)
+}
+
 func grantOng(native *native.NativeService, contract, address common.Address, balance uint64) error {
 	startOffset, err := getUnboundOffset(native, contract, address)
 	if err != nil {
@@ -324,7 +329,7 @@ func grantOng(native *native.NativeService, contract, address common.Address, ba
 func UnboundOngToGovernance(native *native.NativeService) error {
 	contract := utils.OntContractAddress
 	address := utils.GovernanceContractAddress
-	startOffset, err := getUnboundOffset(native, contract, address)
+	startOffset, err := getGovernanceUnboundOffset(native, contract)
 	if err != nil {
 		return err
 	}
@@ -354,7 +359,7 @@ func UnboundOngToGovernance(native *native.NativeService) error {
 		return err
 	}
 
-	native.CacheDB.Put(genAddressUnboundOffsetKey(contract, address), utils.GenUInt32StorageItem(endOffset).ToArray())
+	native.CacheDB.Put(genGovernanceUnboundOffsetKey(contract), utils.GenUInt32StorageItem(endOffset).ToArray())
 	return nil
 }
 

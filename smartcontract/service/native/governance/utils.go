@@ -175,6 +175,13 @@ func appCallTransferFrom(native *native.NativeService, contract common.Address, 
 	return nil
 }
 
+func appCallUnboundGovernanceOng(native *native.NativeService) error {
+	if _, err := native.NativeCall(utils.OntContractAddress, ont.UNBOUND_GOVERNANCE_ONG, []byte{}); err != nil {
+		return fmt.Errorf("appCallUnboundGovernanceOng, appCall error: %v", err)
+	}
+	return nil
+}
+
 func getOngBalance(native *native.NativeService, address common.Address) (uint64, error) {
 	sink := common.ZeroCopySink{}
 	utils.EncodeAddress(&sink, address)
