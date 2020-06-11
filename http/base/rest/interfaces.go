@@ -55,6 +55,37 @@ func GetNetworkId(cmd map[string]interface{}) map[string]interface{} {
 }
 
 //get connection node count
+func GetAllApi(cmd map[string]interface{}) map[string]interface{} {
+	resp := ResponsePack(berr.SUCCESS)
+	resp["Result"] = []string{"/api/v1",
+		"/api/v1/node/connectioncount",
+		"/api/v1/node/syncstatus",
+		"/api/v1/block/transactions/height/:height",
+		"/api/v1/block/details/height/:height",
+		"/api/v1/block/details/hash/:hash",
+		"/api/v1/block/height",
+		"/api/v1/block/hash/:height",
+		"/api/v1/transaction/:hash",
+		"/api/v1/storage/:hash/:key",
+		"/api/v1/balance/:addr",
+		"/api/v1/contract/:hash",
+		"/api/v1/smartcode/event/transactions/:height",
+		"/api/v1/smartcode/event/txhash/:hash",
+		"/api/v1/block/height/txhash/:hash",
+		"/api/v1/merkleproof/:hash",
+		"/api/v1/gasprice",
+		"/api/v1/allowance/:asset/:from/:to",
+		"/api/v1/unboundong/:addr",
+		"/api/v1/grantong/:addr",
+		"/api/v1/mempool/txcount",
+		"/api/v1/mempool/txstate/:hash",
+		"/api/v1/mempool/txhashlist",
+		"/api/v1/version",
+		"/api/v1/networkid"}
+	return resp
+}
+
+//get connection node count
 func GetConnectionCount(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(berr.SUCCESS)
 	count := bactor.GetConnectionCnt()

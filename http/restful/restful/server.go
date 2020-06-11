@@ -54,6 +54,7 @@ type restServer struct {
 }
 
 const (
+	GET_ALL_API           = "/api/v1"
 	GET_CONN_COUNT        = "/api/v1/node/connectioncount"
 	GET_SYNC_STATUS       = "/api/v1/node/syncstatus"
 	GET_BLK_TXS_BY_HEIGHT = "/api/v1/block/transactions/height/:height"
@@ -136,6 +137,7 @@ func (this *restServer) Start() error {
 func (this *restServer) registryMethod() {
 
 	getMethodMap := map[string]Action{
+		GET_ALL_API:           {name: "getallapi", handler: rest.GetAllApi},
 		GET_CONN_COUNT:        {name: "getconnectioncount", handler: rest.GetConnectionCount},
 		GET_SYNC_STATUS:       {name: "getsyncstatus", handler: rest.GetNodeSyncStatus},
 		GET_BLK_TXS_BY_HEIGHT: {name: "getblocktxsbyheight", handler: rest.GetBlockTxsByHeight},
