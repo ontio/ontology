@@ -200,7 +200,7 @@ func GetOntHolderUnboundDeadline() uint32 {
 }
 
 // the end of unbound timestamp offset from genesis block's timestamp
-func GetNewUnboundDeadline() (uint32, uint64) {
+func GetGovUnboundDeadline() (uint32, uint64) {
 	count := uint64(0)
 	index := int(GetOntHolderUnboundDeadline() / constants.UNBOUND_TIME_INTERVAL)
 	for i := 0; i < index; i++ {
