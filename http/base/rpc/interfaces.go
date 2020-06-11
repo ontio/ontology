@@ -34,20 +34,6 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
-//get all api
-func GetAllApi(params []interface{}) map[string]interface{} {
-	res := []string{"getallapi",
-		"getbestblockhash", "getblock", "getblockcount",
-		"getblockhash", "getconnectioncount", "getsyncstatus",
-		"getrawtransaction", "sendrawtransaction", "getstorage",
-		"getversion", "getnetworkid", "getcontractstate",
-		"getmempooltxcount", "getmempooltxstate", "getmempooltxhashlist",
-		"getsmartcodeevent", "getblockheightbytxhash", "getbalance",
-		"getallowance", "getmerkleproof", "getblocktxsbyheight", "getgasprice",
-		"getunboundong", "getgrantong", "getcrosschainmsg", "getcrossstatesproof"}
-	return responseSuccess(res)
-}
-
 //get best block hash
 func GetBestBlockHash(params []interface{}) map[string]interface{} {
 	hash := bactor.CurrentBlockHash()
