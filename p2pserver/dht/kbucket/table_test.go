@@ -311,7 +311,7 @@ func TestTableFindMultipleBuckets(t *testing.T) {
 	local := genpeerID()
 	localID := local
 
-	rt := NewRoutingTable(5, local.Id)
+	rt := NewRoutingTable(10, local.Id)
 
 	peers := make([]*common.PeerKeyId, 100)
 	for i := 0; i < 100; i++ {
