@@ -1582,7 +1582,7 @@ func ReduceInitPos(native *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("getGlobalParam, getGlobalParam error: %v", err)
 	}
-	if newInitPos < peerPoolItem.TotalPos/uint64(globalParam.PosLimit) {
+	if newInitPos < (peerPoolItem.TotalPos+uint64(globalParam.PosLimit)-1)/uint64(globalParam.PosLimit) {
 		return utils.BYTE_FALSE, fmt.Errorf("initPos must more than totalPos/posLimit")
 	}
 	//get promise pos
