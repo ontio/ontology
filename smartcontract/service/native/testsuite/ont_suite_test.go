@@ -19,6 +19,7 @@ package testsuite
 
 import (
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/constants"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	_ "github.com/ontio/ontology/smartcontract/service/native/init"
@@ -184,6 +185,27 @@ func TestGovernanceUnbound(t *testing.T) {
 		gov := utils.GovernanceContractAddress
 		setOntBalance(native.CacheDB, gov, constants.ONT_TOTAL_SUPPLY)
 		setOngBalance(native.CacheDB, utils.OntContractAddress, constants.ONG_TOTAL_SUPPLY)
+
+		native.Time = constants.GENESIS_BLOCK_TIMESTAMP + 18*constants.UNBOUND_TIME_INTERVAL
+
+		assert.Nil(t, unboundGovernanceOng(native))
+		assert.Nil(t, ontTransfer(native, gov, gov, 1))
+		assert.Equal(t, ongBalanceOf(native, gov), constants.ONG_TOTAL_SUPPLY)
+
+		return nil, nil
+	})
+
+	InvokeNativeContract(t, utils.OntContractAddress, func(native *native.NativeService) ([]byte, error) {
+		gov := utils.GovernanceContractAddress
+		setOntBalance(native.CacheDB, gov, constants.ONT_TOTAL_SUPPLY)
+		setOngBalance(native.CacheDB, utils.OntContractAddress, constants.ONG_TOTAL_SUPPLY)
+
+		native.Time = constants.GENESIS_BLOCK_TIMESTAMP + 1
+		assert.Nil(t, ontTransfer(native, gov, gov, 1))
+		native.Time = constants.GENESIS_BLOCK_TIMESTAMP + 10000
+		assert.Nil(t, ontTransfer(native, gov, gov, 1))
+		native.Time = config.GetOntHolderUnboundDeadline() - 100
+		assert.Nil(t, ontTransfer(native, gov, gov, 1))
 
 		native.Time = constants.GENESIS_BLOCK_TIMESTAMP + 18*constants.UNBOUND_TIME_INTERVAL
 
