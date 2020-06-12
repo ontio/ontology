@@ -278,7 +278,11 @@ func TotalAllowance(native *native.NativeService) ([]byte, error) {
 }
 
 func UnboundOngToGovernance(native *native.NativeService) ([]byte, error) {
-	return nil, unboundOngToGovernance(native)
+	err := unboundOngToGovernance(native)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("unboundOngToGovernance error: %s", err)
+	}
+	return utils.BYTE_TRUE, nil
 }
 
 func grantOng(native *native.NativeService, contract, address common.Address, balance uint64) error {
