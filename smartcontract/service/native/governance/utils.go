@@ -176,7 +176,7 @@ func appCallTransferFrom(native *native.NativeService, contract common.Address, 
 }
 
 func appCallUnboundGovernanceOng(native *native.NativeService) error {
-	if _, err := native.NativeCall(utils.OntContractAddress, ont.UNBOUND_GOVERNANCE_ONG, []byte{}); err != nil {
+	if _, err := native.NativeCall(utils.OntContractAddress, ont.UNBOUND_ONG_TO_GOVERNANCE, []byte{}); err != nil {
 		return fmt.Errorf("appCallUnboundGovernanceOng, appCall error: %v", err)
 	}
 	return nil

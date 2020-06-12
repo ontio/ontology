@@ -102,7 +102,7 @@ func ontApprove(native *native.NativeService, from, to common.Address, value uin
 }
 
 func unboundGovernanceOng(native *native.NativeService) error {
-	_, err := ont.UnboundGovernanceOng(native)
+	_, err := ont.UnboundOngToGovernance(native)
 	return err
 }
 
