@@ -156,7 +156,7 @@ func HeadersReqHandle(ctx *p2p.Context, headersReq *msgTypes.HeadersReq) {
 
 	headers, err := GetHeadersFromHash(startHash, stopHash)
 	if err != nil {
-		log.Warnf("HeadersReqHandle error: %s,startHash:%s,stopHash:%s", err.Error(), startHash.ToHexString(), stopHash.ToHexString())
+		log.Debugf("HeadersReqHandle error: %s,startHash:%s,stopHash:%s", err.Error(), startHash.ToHexString(), stopHash.ToHexString())
 		return
 	}
 	remotePeer := ctx.Sender()
