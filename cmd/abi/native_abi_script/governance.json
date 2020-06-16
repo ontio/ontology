@@ -556,6 +556,35 @@
         }
       ],
       "returnType":"Bool"
+    },
+    {
+      "name":"getPeerPool",
+      "parameters":
+      [
+      ],
+      "returnType":"ByteArray"
+    },
+    {
+      "name":"getPeerInfo",
+      "parameters":
+      [
+        {
+          "name":"PeerPublicKey",
+          "type":"String"
+        }
+      ],
+      "returnType":"ByteArray"
+    },
+    {
+      "name":"getPeerPoolByAddress",
+      "parameters":
+      [
+        {
+          "name":"Address",
+          "type":"Address"
+        }
+      ],
+      "returnType":"ByteArray"
     }
   ],
   "events":
