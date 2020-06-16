@@ -30,7 +30,7 @@ import (
 type HostsResolver struct {
 	hosts [][2]string
 
-	lock  sync.Mutex     // avoid concurrent cache reflesh
+	lock  sync.Mutex     // avoid concurrent cache refresh
 	cache unsafe.Pointer // atomic pointer to HostsCache, avoid read&write data race
 }
 
