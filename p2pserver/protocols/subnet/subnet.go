@@ -151,11 +151,15 @@ func (self *SubNet) OnHostAddrDetected(listenAddr string) {
 	seed := self.isSeedAddr(listenAddr)
 	self.lock.Lock()
 	defer self.lock.Unlock()
-	self.selfAddr = listenAddr
-	if seed {
-		atomic.StoreUint32(&self.seedNode, 1)
-	} else {
-		atomic.StoreUint32(&self.seedNode, 0)
+	// host address detection may be fooled by remote peer
+	// so add this check to make sure seed node will detected itself finally.
+	if seed || self.selfAddr == "" {
+		self.selfAddr = listenAddr
+		if seed {
+			atomic.StoreUint32(&self.seedNode, 1)
+		} else {
+			atomic.StoreUint32(&self.seedNode, 0)
+		}
 	}
 }
 
