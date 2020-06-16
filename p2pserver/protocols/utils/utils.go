@@ -26,7 +26,7 @@ import (
 	"unsafe"
 )
 
-// host resovler with cache
+// host resolver with cache
 type HostsResolver struct {
 	hosts [][2]string
 
