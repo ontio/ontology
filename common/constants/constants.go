@@ -26,6 +26,9 @@ import (
 var (
 	//TODO: modify this when on mainnet
 	GENESIS_BLOCK_TIMESTAMP = uint32(time.Date(2018, time.June, 30, 0, 0, 0, 0, time.UTC).Unix())
+
+	CHANGE_UNBOUND_TIMESTAMP_MAINNET = uint32(time.Date(2020, time.July, 7, 0, 0, 0, 0, time.UTC).Unix())
+	CHANGE_UNBOUND_TIMESTAMP_POLARIS = uint32(time.Date(2020, time.June, 28, 0, 0, 0, 0, time.UTC).Unix())
 )
 
 // ont constants
@@ -48,24 +51,7 @@ const (
 const UNBOUND_TIME_INTERVAL = uint32(31536000)
 
 var UNBOUND_GENERATION_AMOUNT = [18]uint64{5, 4, 3, 3, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}
-
-// the end of unbound timestamp offset from genesis block's timestamp
-var UNBOUND_DEADLINE = (func() uint32 {
-	count := uint64(0)
-	for _, m := range UNBOUND_GENERATION_AMOUNT {
-		count += m
-	}
-	count *= uint64(UNBOUND_TIME_INTERVAL)
-
-	numInterval := len(UNBOUND_GENERATION_AMOUNT)
-
-	if UNBOUND_GENERATION_AMOUNT[numInterval-1] != 1 ||
-		!(count-uint64(UNBOUND_TIME_INTERVAL) < ONT_TOTAL_SUPPLY && ONT_TOTAL_SUPPLY <= count) {
-		panic("incompatible constants setting")
-	}
-
-	return UNBOUND_TIME_INTERVAL*uint32(numInterval) - uint32(count-uint64(ONT_TOTAL_SUPPLY))
-})()
+var NEW_UNBOUND_GENERATION_AMOUNT = [18]uint64{5, 4, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 3, 3}
 
 // multi-sig constants
 const MULTI_SIG_MAX_PUBKEY_SIZE = 16

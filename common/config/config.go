@@ -188,6 +188,43 @@ func GetNewOntIdHeight() uint32 {
 	}
 }
 
+func GetOntHolderUnboundDeadline() uint32 {
+	switch DefConfig.P2PNode.NetworkId {
+	case NETWORK_ID_MAIN_NET:
+		return constants.CHANGE_UNBOUND_TIMESTAMP_MAINNET - constants.GENESIS_BLOCK_TIMESTAMP
+	case NETWORK_ID_POLARIS_NET:
+		return constants.CHANGE_UNBOUND_TIMESTAMP_POLARIS - constants.GENESIS_BLOCK_TIMESTAMP
+	default:
+		return 0
+	}
+}
+
+// the end of unbound timestamp offset from genesis block's timestamp
+func GetGovUnboundDeadline() (uint32, uint64) {
+	count := uint64(0)
+	index := int(GetOntHolderUnboundDeadline() / constants.UNBOUND_TIME_INTERVAL)
+	for i := 0; i < index; i++ {
+		count += constants.UNBOUND_GENERATION_AMOUNT[i] * uint64(constants.UNBOUND_TIME_INTERVAL)
+	}
+	gap := uint64(GetOntHolderUnboundDeadline()) - uint64(index)*uint64(constants.UNBOUND_TIME_INTERVAL)
+	count += constants.UNBOUND_GENERATION_AMOUNT[index]*gap +
+		constants.NEW_UNBOUND_GENERATION_AMOUNT[index]*(uint64(constants.UNBOUND_TIME_INTERVAL)-gap)
+
+	for i := index + 1; i < len(constants.NEW_UNBOUND_GENERATION_AMOUNT); i++ {
+		count += constants.NEW_UNBOUND_GENERATION_AMOUNT[i] * uint64(constants.UNBOUND_TIME_INTERVAL)
+	}
+
+	numInterval := len(constants.NEW_UNBOUND_GENERATION_AMOUNT)
+
+	if constants.NEW_UNBOUND_GENERATION_AMOUNT[numInterval-1] != 3 ||
+		!(count-3*uint64(constants.UNBOUND_TIME_INTERVAL) < constants.ONT_TOTAL_SUPPLY && constants.ONT_TOTAL_SUPPLY <= count) {
+		panic("incompatible constants setting")
+	}
+
+	return constants.UNBOUND_TIME_INTERVAL*uint32(numInterval) - uint32(count-uint64(constants.ONT_TOTAL_SUPPLY))/3 - 1,
+		uint64(3 - (count-uint64(constants.ONT_TOTAL_SUPPLY))%3)
+}
+
 func GetNetworkName(id uint32) string {
 	name, ok := NETWORK_NAME[id]
 	if ok {

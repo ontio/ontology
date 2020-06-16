@@ -24,6 +24,7 @@ import (
 	"math/big"
 
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/constants"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/common/serialization"
@@ -54,6 +55,7 @@ func RegisterOntContract(native *native.NativeService) {
 	native.Register(BALANCEOF_NAME, OntBalanceOf)
 	native.Register(ALLOWANCE_NAME, OntAllowance)
 	native.Register(TOTAL_ALLOWANCE_NAME, OntTotalAllowance)
+	native.Register(UNBOUND_ONG_TO_GOVERNANCE, UnboundOngToGovernance)
 }
 
 func OntInit(native *native.NativeService) ([]byte, error) {
@@ -275,6 +277,14 @@ func TotalAllowance(native *native.NativeService) ([]byte, error) {
 	return common.BigIntToNeoBytes(big.NewInt(int64(r))), nil
 }
 
+func UnboundOngToGovernance(native *native.NativeService) ([]byte, error) {
+	err := unboundOngToGovernance(native)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("unboundOngToGovernance error: %s", err)
+	}
+	return utils.BYTE_TRUE, nil
+}
+
 func grantOng(native *native.NativeService, contract, address common.Address, balance uint64) error {
 	startOffset, err := getUnboundOffset(native, contract, address)
 	if err != nil {
@@ -298,13 +308,21 @@ func grantOng(native *native.NativeService, contract, address common.Address, ba
 	if balance != 0 {
 		value := utils.CalcUnbindOng(balance, startOffset, endOffset)
 
-		args, err := getApproveArgs(native, contract, utils.OngContractAddress, address, value)
+		args, amount, err := getApproveArgs(native, contract, utils.OngContractAddress, address, value)
 		if err != nil {
 			return err
 		}
-
 		if _, err := native.NativeCall(utils.OngContractAddress, "approve", args); err != nil {
 			return err
+		}
+		if endOffset > config.GetOntHolderUnboundDeadline() {
+			args, err := getTransferFromArgs(address, contract, address, amount)
+			if err != nil {
+				return err
+			}
+			if _, err := native.NativeCall(utils.OngContractAddress, "transferFrom", args); err != nil {
+				return err
+			}
 		}
 	}
 
@@ -312,7 +330,44 @@ func grantOng(native *native.NativeService, contract, address common.Address, ba
 	return nil
 }
 
-func getApproveArgs(native *native.NativeService, contract, ongContract, address common.Address, value uint64) ([]byte, error) {
+func unboundOngToGovernance(native *native.NativeService) error {
+	contract := utils.OntContractAddress
+	address := utils.GovernanceContractAddress
+	startOffset, err := getGovernanceUnboundOffset(native, contract)
+	if err != nil {
+		return err
+	}
+	if native.Time <= constants.GENESIS_BLOCK_TIMESTAMP {
+		return nil
+	}
+	endOffset := native.Time - constants.GENESIS_BLOCK_TIMESTAMP
+	if endOffset < startOffset {
+		if native.PreExec {
+			return nil
+		}
+		errstr := fmt.Sprintf("grant Ong error: wrong timestamp endOffset: %d < startOffset: %d", endOffset, startOffset)
+		log.Error(errstr)
+		return errors.NewErr(errstr)
+	} else if endOffset == startOffset {
+		return nil
+	}
+
+	value := utils.CalcGovernanceUnbindOng(startOffset, endOffset)
+
+	args, err := getTransferArgs(contract, address, value)
+	if err != nil {
+		return err
+	}
+
+	if _, err := native.NativeCall(utils.OngContractAddress, "transfer", args); err != nil {
+		return err
+	}
+
+	native.CacheDB.Put(genGovernanceUnboundOffsetKey(contract), utils.GenUInt32StorageItem(endOffset).ToArray())
+	return nil
+}
+
+func getApproveArgs(native *native.NativeService, contract, ongContract, address common.Address, value uint64) ([]byte, uint64, error) {
 	bf := common.NewZeroCopySink(nil)
 	approve := State{
 		From:  contract,
@@ -322,10 +377,36 @@ func getApproveArgs(native *native.NativeService, contract, ongContract, address
 
 	stateValue, err := utils.GetStorageUInt64(native, GenApproveKey(ongContract, approve.From, approve.To))
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 
 	approve.Value += stateValue
 	approve.Serialization(bf)
+	return bf.Bytes(), approve.Value, nil
+}
+
+func getTransferArgs(contract, address common.Address, value uint64) ([]byte, error) {
+	bf := common.NewZeroCopySink(nil)
+	state := State{
+		From:  contract,
+		To:    address,
+		Value: value,
+	}
+	transfers := Transfers{[]State{state}}
+
+	transfers.Serialization(bf)
 	return bf.Bytes(), nil
+}
+
+func getTransferFromArgs(sender, from, to common.Address, value uint64) ([]byte, error) {
+	sink := common.NewZeroCopySink(nil)
+	param := TransferFrom{
+		Sender: sender,
+		From:   from,
+		To:     to,
+		Value:  value,
+	}
+
+	param.Serialization(sink)
+	return sink.Bytes(), nil
 }

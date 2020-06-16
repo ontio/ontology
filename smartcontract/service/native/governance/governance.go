@@ -973,6 +973,12 @@ func Withdraw(native *native.NativeService) ([]byte, error) {
 func CommitDpos(native *native.NativeService) ([]byte, error) {
 	contract := native.ContextRef.CurrentContext().ContractAddress
 
+	//unbound ong to governance
+	err := appCallUnboundGovernanceOng(native)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("CommitDpos, appCallUnboundGovernanceOng error: %v", err)
+	}
+
 	// get config
 	config, err := getConfig(native, contract)
 	if err != nil {
@@ -1576,7 +1582,7 @@ func ReduceInitPos(native *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("getGlobalParam, getGlobalParam error: %v", err)
 	}
-	if newInitPos < peerPoolItem.TotalPos/uint64(globalParam.PosLimit) {
+	if newInitPos < (peerPoolItem.TotalPos+uint64(globalParam.PosLimit)-1)/uint64(globalParam.PosLimit) {
 		return utils.BYTE_FALSE, fmt.Errorf("initPos must more than totalPos/posLimit")
 	}
 	//get promise pos

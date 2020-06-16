@@ -19,8 +19,11 @@ package testsuite
 
 import (
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/config"
+	"github.com/ontio/ontology/common/constants"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	_ "github.com/ontio/ontology/smartcontract/service/native/init"
+	"github.com/ontio/ontology/smartcontract/service/native/ong"
 	"github.com/ontio/ontology/smartcontract/service/native/ont"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 	"github.com/ontio/ontology/smartcontract/storage"
@@ -42,6 +45,33 @@ func ontBalanceOf(native *native.NativeService, addr common.Address) int {
 	buf, _ := ont.OntBalanceOf(native)
 	val := common.BigIntFromNeoBytes(buf)
 	return int(val.Uint64())
+}
+
+func setOngBalance(db *storage.CacheDB, addr common.Address, value uint64) {
+	balanceKey := ont.GenBalanceKey(utils.OngContractAddress, addr)
+	item := utils.GenUInt64StorageItem(value)
+	db.Put(balanceKey, item.ToArray())
+}
+
+func ongBalanceOf(native *native.NativeService, addr common.Address) uint64 {
+	native.ContextRef.CurrentContext().ContractAddress = utils.OngContractAddress
+	sink := common.NewZeroCopySink(nil)
+	utils.EncodeAddress(sink, addr)
+	native.Input = sink.Bytes()
+	buf, _ := ong.OngBalanceOf(native)
+	val := common.BigIntFromNeoBytes(buf)
+	return val.Uint64()
+}
+
+func ongAllowance(native *native.NativeService, from, to common.Address) uint64 {
+	native.ContextRef.CurrentContext().ContractAddress = utils.OngContractAddress
+	sink := common.NewZeroCopySink(nil)
+	utils.EncodeAddress(sink, from)
+	utils.EncodeAddress(sink, to)
+	native.Input = sink.Bytes()
+	buf, _ := ong.OngAllowance(native)
+	val := common.BigIntFromNeoBytes(buf)
+	return val.Uint64()
 }
 
 func ontTotalAllowance(native *native.NativeService, addr common.Address) int {
@@ -69,6 +99,11 @@ func ontApprove(native *native.NativeService, from, to common.Address, value uin
 	native.Input = common.SerializeToBytes(&ont.State{from, to, value})
 
 	_, err := ont.OntApprove(native)
+	return err
+}
+
+func unboundGovernanceOng(native *native.NativeService) error {
+	_, err := ont.UnboundOngToGovernance(native)
 	return err
 }
 
@@ -113,6 +148,70 @@ func TestTotalAllowance(t *testing.T) {
 		assert.Nil(t, ontApprove(native, a, c, 100))
 		assert.Equal(t, ontTotalAllowance(native, a), 110)
 		assert.Equal(t, ontTotalAllowance(native, c), 0)
+
+		return nil, nil
+	})
+}
+
+func TestGovernanceUnbound(t *testing.T) {
+	InvokeNativeContract(t, utils.OntContractAddress, func(native *native.NativeService) ([]byte, error) {
+		gov := utils.GovernanceContractAddress
+		setOntBalance(native.CacheDB, gov, constants.ONT_TOTAL_SUPPLY)
+		setOngBalance(native.CacheDB, utils.OntContractAddress, constants.ONG_TOTAL_SUPPLY)
+
+		native.Time = constants.GENESIS_BLOCK_TIMESTAMP + 1
+
+		assert.Nil(t, ontTransfer(native, gov, gov, 1))
+		assert.Equal(t, ongAllowance(native, utils.OntContractAddress, gov), uint64(5000000000))
+
+		return nil, nil
+	})
+
+	InvokeNativeContract(t, utils.OntContractAddress, func(native *native.NativeService) ([]byte, error) {
+		gov := utils.GovernanceContractAddress
+		setOntBalance(native.CacheDB, gov, constants.ONT_TOTAL_SUPPLY)
+		setOngBalance(native.CacheDB, utils.OntContractAddress, constants.ONG_TOTAL_SUPPLY)
+
+		native.Time = constants.GENESIS_BLOCK_TIMESTAMP + 18*constants.UNBOUND_TIME_INTERVAL
+
+		assert.Nil(t, ontTransfer(native, gov, gov, 1))
+		assert.Nil(t, unboundGovernanceOng(native))
+		assert.Equal(t, ongBalanceOf(native, gov), constants.ONG_TOTAL_SUPPLY)
+
+		return nil, nil
+	})
+
+	InvokeNativeContract(t, utils.OntContractAddress, func(native *native.NativeService) ([]byte, error) {
+		gov := utils.GovernanceContractAddress
+		setOntBalance(native.CacheDB, gov, constants.ONT_TOTAL_SUPPLY)
+		setOngBalance(native.CacheDB, utils.OntContractAddress, constants.ONG_TOTAL_SUPPLY)
+
+		native.Time = constants.GENESIS_BLOCK_TIMESTAMP + 18*constants.UNBOUND_TIME_INTERVAL
+
+		assert.Nil(t, unboundGovernanceOng(native))
+		assert.Nil(t, ontTransfer(native, gov, gov, 1))
+		assert.Equal(t, ongBalanceOf(native, gov), constants.ONG_TOTAL_SUPPLY)
+
+		return nil, nil
+	})
+
+	InvokeNativeContract(t, utils.OntContractAddress, func(native *native.NativeService) ([]byte, error) {
+		gov := utils.GovernanceContractAddress
+		setOntBalance(native.CacheDB, gov, constants.ONT_TOTAL_SUPPLY)
+		setOngBalance(native.CacheDB, utils.OntContractAddress, constants.ONG_TOTAL_SUPPLY)
+
+		native.Time = constants.GENESIS_BLOCK_TIMESTAMP + 1
+		assert.Nil(t, ontTransfer(native, gov, gov, 1))
+		native.Time = constants.GENESIS_BLOCK_TIMESTAMP + 10000
+		assert.Nil(t, ontTransfer(native, gov, gov, 1))
+		native.Time = config.GetOntHolderUnboundDeadline() - 100
+		assert.Nil(t, ontTransfer(native, gov, gov, 1))
+
+		native.Time = constants.GENESIS_BLOCK_TIMESTAMP + 18*constants.UNBOUND_TIME_INTERVAL
+
+		assert.Nil(t, unboundGovernanceOng(native))
+		assert.Nil(t, ontTransfer(native, gov, gov, 1))
+		assert.Equal(t, ongBalanceOf(native, gov), constants.ONG_TOTAL_SUPPLY)
 
 		return nil, nil
 	})

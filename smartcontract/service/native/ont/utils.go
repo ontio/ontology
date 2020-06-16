@@ -31,19 +31,20 @@ import (
 )
 
 const (
-	UNBOUND_TIME_OFFSET  = "unboundTimeOffset"
-	TOTAL_SUPPLY_NAME    = "totalSupply"
-	INIT_NAME            = "init"
-	TRANSFER_NAME        = "transfer"
-	APPROVE_NAME         = "approve"
-	TRANSFERFROM_NAME    = "transferFrom"
-	NAME_NAME            = "name"
-	SYMBOL_NAME          = "symbol"
-	DECIMALS_NAME        = "decimals"
-	TOTALSUPPLY_NAME     = "totalSupply"
-	BALANCEOF_NAME       = "balanceOf"
-	ALLOWANCE_NAME       = "allowance"
-	TOTAL_ALLOWANCE_NAME = "totalAllowance"
+	UNBOUND_TIME_OFFSET       = "unboundTimeOffset"
+	TOTAL_SUPPLY_NAME         = "totalSupply"
+	INIT_NAME                 = "init"
+	TRANSFER_NAME             = "transfer"
+	APPROVE_NAME              = "approve"
+	TRANSFERFROM_NAME         = "transferFrom"
+	NAME_NAME                 = "name"
+	SYMBOL_NAME               = "symbol"
+	DECIMALS_NAME             = "decimals"
+	TOTALSUPPLY_NAME          = "totalSupply"
+	BALANCEOF_NAME            = "balanceOf"
+	ALLOWANCE_NAME            = "allowance"
+	TOTAL_ALLOWANCE_NAME      = "totalAllowance"
+	UNBOUND_ONG_TO_GOVERNANCE = "unboundOngToGovernance"
 )
 
 func AddNotifications(native *native.NativeService, contract common.Address, state *State) {
@@ -121,6 +122,14 @@ func getUnboundOffset(native *native.NativeService, contract, address common.Add
 	return offset, nil
 }
 
+func getGovernanceUnboundOffset(native *native.NativeService, contract common.Address) (uint32, error) {
+	offset, err := utils.GetStorageUInt32(native, genGovernanceUnboundOffsetKey(contract))
+	if err != nil {
+		return 0, err
+	}
+	return offset, nil
+}
+
 func genTransferFromKey(contract common.Address, state *TransferFrom) []byte {
 	temp := append(contract[:], state.From[:]...)
 	return append(temp, state.Sender[:]...)
@@ -170,4 +179,9 @@ func toTransfer(native *native.NativeService, toKey []byte, value uint64) (uint6
 func genAddressUnboundOffsetKey(contract, address common.Address) []byte {
 	temp := append(contract[:], UNBOUND_TIME_OFFSET...)
 	return append(temp, address[:]...)
+}
+
+func genGovernanceUnboundOffsetKey(contract common.Address) []byte {
+	temp := append(contract[:], UNBOUND_TIME_OFFSET...)
+	return temp
 }
