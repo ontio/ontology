@@ -26,6 +26,7 @@ import (
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
+	"github.com/ontio/ontology/common/log"
 	vconfig "github.com/ontio/ontology/consensus/vbft/config"
 	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/smartcontract/service/native/governance"
@@ -88,13 +89,18 @@ func (self *GovNodeLedgerResolver) isGovNodeFromCache(pubkey string) bool {
 func (self *GovNodeLedgerResolver) IsGovNode(key keypair.PublicKey) bool {
 	pubKey := vconfig.PubkeyID(key)
 	view, err := GetGovernanceView(self.db)
-	if err != nil || view.View == self.view {
+	if err != nil {
+		log.Warnf("gov node resolver failed to load view from ledger, err: %v", err)
+		return false
+	}
+	if view.View == self.view {
 		return self.isGovNodeFromCache(pubKey)
 	}
 
 	govNode := false
 	peers, err := GetPeersConfig(self.db, view.View)
 	if err != nil {
+		log.Warnf("gov node resolver failed to load peers from ledger, err: %v", err)
 		return false
 	}
 

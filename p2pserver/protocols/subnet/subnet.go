@@ -153,6 +153,7 @@ func (self *SubNet) OnHostAddrDetected(listenAddr string) {
 	defer self.lock.Unlock()
 	// host address detection may be fooled by remote peer
 	// so add this check to make sure seed node will detected itself finally.
+	// and will not be replaced by no seed address.
 	if seed || self.selfAddr == "" {
 		self.selfAddr = listenAddr
 		if seed {
