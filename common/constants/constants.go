@@ -27,8 +27,8 @@ var (
 	//TODO: modify this when on mainnet
 	GENESIS_BLOCK_TIMESTAMP = uint32(time.Date(2018, time.June, 30, 0, 0, 0, 0, time.UTC).Unix())
 
-	CHANGE_UNBOUND_TIMESTAMP_MAINNET = uint32(time.Date(2020, time.July, 15, 0, 0, 0, 0, time.UTC).Unix())
-	CHANGE_UNBOUND_TIMESTAMP_POLARIS = uint32(time.Date(2020, time.July, 15, 0, 0, 0, 0, time.UTC).Unix())
+	CHANGE_UNBOUND_TIMESTAMP_MAINNET = uint32(time.Date(2020, time.July, 7, 0, 0, 0, 0, time.UTC).Unix())
+	CHANGE_UNBOUND_TIMESTAMP_POLARIS = uint32(time.Date(2020, time.June, 28, 0, 0, 0, 0, time.UTC).Unix())
 )
 
 // ont constants
