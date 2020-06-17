@@ -156,7 +156,8 @@ func GetPeersConfig(backend *ledger.Ledger, view uint32) ([]*config.VBFTPeerStak
 	}
 	var peerstakes []*config.VBFTPeerStakeInfo
 	for _, id := range peerMap.PeerPoolMap {
-		if id.Status == governance.CandidateStatus || id.Status == governance.ConsensusStatus {
+		switch id.Status {
+		case governance.CandidateStatus, governance.ConsensusStatus, governance.QuitConsensusStatus:
 			conf := &config.VBFTPeerStakeInfo{
 				Index:      uint32(id.Index),
 				PeerPubkey: id.PeerPubkey,
