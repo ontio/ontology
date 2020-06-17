@@ -74,6 +74,9 @@ const (
 	REDUCE_INIT_POS                  = "reduceInitPos"
 	SET_PROMISE_POS                  = "setPromisePos"
 	SET_GAS_ADDRESS                  = "setGasAddress"
+	GET_PEER_POOL                    = "getPeerPool"
+	GET_PEER_INFO                    = "getPeerInfo"
+	GET_PEER_POOL_BY_ADDRESS         = "getPeerPoolByAddress"
 
 	//key prefix
 	GLOBAL_PARAM      = "globalParam"
@@ -150,6 +153,10 @@ func RegisterGovernanceContract(native *native.NativeService) {
 	native.Register(TRANSFER_PENALTY, TransferPenalty)
 	native.Register(SET_PROMISE_POS, SetPromisePos)
 	native.Register(SET_GAS_ADDRESS, SetGasAddress)
+
+	native.Register(GET_PEER_POOL, GetPeerPool)
+	native.Register(GET_PEER_INFO, GetPeerInfo)
+	native.Register(GET_PEER_POOL_BY_ADDRESS, GetPeerPoolByAddress)
 }
 
 //Init governance contract, include vbft config, global param and ontid admin.
@@ -1681,4 +1688,83 @@ func SetGasAddress(native *native.NativeService) ([]byte, error) {
 	}
 
 	return utils.BYTE_TRUE, nil
+}
+
+func GetPeerPool(native *native.NativeService) ([]byte, error) {
+	contract := native.ContextRef.CurrentContext().ContractAddress
+
+	//get current view
+	view, err := GetView(native, contract)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("GetPeerPool, get view error: %v", err)
+	}
+
+	//get peerPoolMap
+	peerPoolMap, err := GetPeerPoolMap(native, contract, view)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("GetPeerPool, get peerPoolMap error: %v", err)
+	}
+
+	sink := common.NewZeroCopySink(nil)
+	peerPoolMap.SerializationForVm(sink)
+	return sink.Bytes(), nil
+}
+
+func GetPeerInfo(native *native.NativeService) ([]byte, error) {
+	contract := native.ContextRef.CurrentContext().ContractAddress
+	source := common.NewZeroCopySource(native.Input)
+	pk, err := utils.DecodeString(source)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("GetPeerInfo, get public key error: %s", err)
+	}
+	//get current view
+	view, err := GetView(native, contract)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("GetPeerInfo, get view error: %v", err)
+	}
+
+	//get peerPoolMap
+	peerPoolMap, err := GetPeerPoolMap(native, contract, view)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("GetPeerInfo, get peerPoolMap error: %v", err)
+	}
+	peerInfo, ok := peerPoolMap.PeerPoolMap[pk]
+	if !ok {
+		return utils.BYTE_FALSE, fmt.Errorf("GetPeerInfo, get peerInfo error: %v", err)
+	}
+
+	sink := common.NewZeroCopySink(nil)
+	peerInfo.SerializationForVm(sink)
+	return sink.Bytes(), nil
+}
+
+func GetPeerPoolByAddress(native *native.NativeService) ([]byte, error) {
+	contract := native.ContextRef.CurrentContext().ContractAddress
+	source := common.NewZeroCopySource(native.Input)
+	address, err := utils.DecodeAddress(source)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("GetPeerPoolByAddress, get public key error: %s", err)
+	}
+	//get current view
+	view, err := GetView(native, contract)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("GetPeerPoolByAddress, get view error: %v", err)
+	}
+
+	//get peerPoolMap
+	peerPoolMap, err := GetPeerPoolMap(native, contract, view)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("GetPeerPoolByAddress, get peerPoolMap error: %v", err)
+	}
+	subPeerPool := make(map[string]*PeerPoolItem)
+	for k, v := range peerPoolMap.PeerPoolMap {
+		if v.Address == address {
+			subPeerPool[k] = v
+		}
+	}
+	peerPoolMap.PeerPoolMap = subPeerPool
+
+	sink := common.NewZeroCopySink(nil)
+	peerPoolMap.SerializationForVm(sink)
+	return sink.Bytes(), nil
 }
