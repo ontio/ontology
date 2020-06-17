@@ -123,7 +123,7 @@ func NewSubnetNode(acct *account.Account, listenAddr string, seeds, govs []strin
 	context := fmt.Sprintf("peer %s-%s: ", logPrefix, seedId.Id.ToHexString()[:6])
 	logger := common.LoggerWithContext(log.Log, context)
 	protocal := NewTestSubnetProtocalHandler(acct, seeds, govs, logger)
-	resvFilter := protocal.GetReservedAddrFilter()
+	resvFilter := protocal.GetReservedAddrFilter(len(reservedPeers) != 0)
 	return NewNode(seedId, listenAddr, info, protocal, net, reservedPeers, resvFilter, logger)
 }
 
@@ -146,8 +146,8 @@ func NewTestSubnetProtocalHandler(acct *account.Account, seedList, govs []string
 	return &TestSubnetProtocalHandler{seeds: seeds, subnet: subNet, acct: acct}
 }
 
-func (self *TestSubnetProtocalHandler) GetReservedAddrFilter() p2p.AddressFilter {
-	return self.subnet.GetReservedAddrFilter()
+func (self *TestSubnetProtocalHandler) GetReservedAddrFilter(staticFilterEnabled bool) p2p.AddressFilter {
+	return self.subnet.GetReservedAddrFilter(staticFilterEnabled)
 }
 
 func (self *TestSubnetProtocalHandler) GetMaskAddrFilter() p2p.AddressFilter {

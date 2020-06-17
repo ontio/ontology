@@ -17,13 +17,16 @@
  */
 package connect_controller
 
-import "github.com/ontio/ontology/common/config"
+import (
+	"github.com/ontio/ontology/common/config"
+	p2p "github.com/ontio/ontology/p2pserver/net/protocol"
+)
 
 type ConnCtrlOption struct {
 	MaxConnOutBound     uint
 	MaxConnInBound      uint
 	MaxConnInBoundPerIP uint
-	ReservedPeers       []string // enabled if not empty
+	ReservedPeers       p2p.AddressFilter // enabled if not empty
 	dialer              Dialer
 }
 
@@ -52,7 +55,7 @@ func (self ConnCtrlOption) MaxInBoundPerIp(n uint) ConnCtrlOption {
 }
 
 func (self ConnCtrlOption) ReservedOnly(peers []string) ConnCtrlOption {
-	self.ReservedPeers = peers
+	self.ReservedPeers = NewStaticReserveFilter(peers)
 	return self
 }
 
@@ -61,7 +64,7 @@ func (self ConnCtrlOption) WithDialer(dialer Dialer) ConnCtrlOption {
 	return self
 }
 
-func ConnCtrlOptionFromConfig(config *config.P2PNodeConfig) (option ConnCtrlOption, err error) {
+func ConnCtrlOptionFromConfig(config *config.P2PNodeConfig, dynReserveFilter p2p.AddressFilter) (option ConnCtrlOption, err error) {
 	var rsv []string
 	if config.ReservedPeersOnly && config.ReservedCfg != nil {
 		rsv = config.ReservedCfg.ReservedPeers
@@ -71,11 +74,12 @@ func ConnCtrlOptionFromConfig(config *config.P2PNodeConfig) (option ConnCtrlOpti
 		err = e
 		return
 	}
+	staticFilter := NewStaticReserveFilter(rsv)
 	return ConnCtrlOption{
 		MaxConnOutBound:     config.MaxConnOutBound,
 		MaxConnInBound:      config.MaxConnInBound,
 		MaxConnInBoundPerIP: config.MaxConnInBoundForSingleIP,
-		ReservedPeers:       rsv,
+		ReservedPeers:       p2p.CombineAddrFilter(staticFilter, dynReserveFilter),
 
 		dialer: dialer,
 	}, nil

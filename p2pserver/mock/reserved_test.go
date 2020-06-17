@@ -97,5 +97,10 @@ func NewReservedNode(seeds []string, net Network, reservedPeers []string, logPre
 	dis.RefleshInterval = time.Millisecond * 1000
 	context := fmt.Sprintf("peer %s-%s:, ", logPrefix, seedId.Id.ToHexString()[:6])
 	logger := common.LoggerWithContext(log.Log, context)
-	return NewNode(seedId, "", info, dis, net, reservedPeers, p2p.NoneAddrFilter(), logger)
+
+	rsvFilter := p2p.NoneAddrFilter()
+	if len(reservedPeers) == 0 {
+		rsvFilter = p2p.AllAddrFilter()
+	}
+	return NewNode(seedId, "", info, dis, net, reservedPeers, rsvFilter, logger)
 }

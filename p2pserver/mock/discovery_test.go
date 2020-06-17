@@ -137,5 +137,5 @@ func NewDiscoveryNode(seeds []string, net Network) *netserver.NetServer {
 
 	context := fmt.Sprintf("peer %s:, ", seedId.Id.ToHexString()[:6])
 	logger := common.LoggerWithContext(log.Log, context)
-	return NewNode(seedId, "", info, dis, net, nil, p2p.NoneAddrFilter(), logger)
+	return NewNode(seedId, "", info, dis, net, nil, p2p.AllAddrFilter(), logger)
 }

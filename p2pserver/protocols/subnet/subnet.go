@@ -352,9 +352,10 @@ func (self *SubNet) maintainLoop(net p2p.P2P) {
 	}
 }
 
-func (self *SubNet) GetReservedAddrFilter() p2p.AddressFilter {
+func (self *SubNet) GetReservedAddrFilter(staticFilterEnabled bool) p2p.AddressFilter {
 	return &SubNetReservedAddrFilter{
-		subnet: self,
+		subnet:              self,
+		staticFilterEnabled: staticFilterEnabled,
 	}
 }
 

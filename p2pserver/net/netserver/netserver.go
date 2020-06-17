@@ -43,7 +43,14 @@ func NewNetServer(protocol p2p.Protocol, conf *config.P2PNodeConfig, reserveAddr
 	info := peer.NewPeerInfo(keyId.Id, common.PROTOCOL_VERSION, common.SERVICE_NODE, true,
 		conf.HttpInfoPort, nodePort, 0, config.Version, "")
 
-	option, err := connect_controller.ConnCtrlOptionFromConfig(conf)
+	var rsv []string
+	if conf.ReservedPeersOnly && conf.ReservedCfg != nil {
+		rsv = conf.ReservedCfg.ReservedPeers
+	}
+	staticFilter := connect_controller.NewStaticReserveFilter(rsv)
+	reservedPeers := p2p.CombineAddrFilter(staticFilter, reserveAddrFilter)
+
+	option, err := connect_controller.ConnCtrlOptionFromConfig(conf, reservedPeers)
 	if err != nil {
 		return nil, err
 	}
@@ -56,15 +63,15 @@ func NewNetServer(protocol p2p.Protocol, conf *config.P2PNodeConfig, reserveAddr
 
 	log.Infof("[p2p] init peer ID to %s", info.Id.ToHexString())
 
-	return NewCustomNetServer(keyId, info, protocol, listener, option, reserveAddrFilter, nil), nil
+	return NewCustomNetServer(keyId, info, protocol, listener, option, nil), nil
 }
 
 func NewCustomNetServer(id *common.PeerKeyId, info *peer.PeerInfo, proto p2p.Protocol,
-	listener net.Listener, opt connect_controller.ConnCtrlOption, reserveAddrFilter p2p.AddressFilter, logger common.Logger) *NetServer {
+	listener net.Listener, opt connect_controller.ConnCtrlOption, logger common.Logger) *NetServer {
 	if logger == nil {
 		logger = log.Log
 	}
-	connCtrl := connect_controller.NewConnectController(info, id, opt, reserveAddrFilter, logger)
+	connCtrl := connect_controller.NewConnectController(info, id, opt, logger)
 
 	n := &NetServer{
 		base:       info,

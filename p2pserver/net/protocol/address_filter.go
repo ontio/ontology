@@ -20,7 +20,7 @@ package p2p
 
 type AddressFilter interface {
 	// addr format : ip:port
-	Filtered(addr string) bool
+	Contains(addr string) bool
 }
 
 func CombineAddrFilter(filter1, filter2 AddressFilter) AddressFilter {
@@ -36,12 +36,22 @@ type combineAddrFilter struct {
 	filter2 AddressFilter
 }
 
-func (self *combineAddrFilter) Filtered(addr string) bool {
-	return self.filter1.Filtered(addr) || self.filter2.Filtered(addr)
+func (self *combineAddrFilter) Contains(addr string) bool {
+	return self.filter1.Contains(addr) || self.filter2.Contains(addr)
 }
 
 type noneAddrFilter struct{}
 
-func (self *noneAddrFilter) Filtered(addr string) bool {
+func (self *noneAddrFilter) Contains(addr string) bool {
 	return false
+}
+
+func AllAddrFilter() AddressFilter {
+	return &allAddrFilter{}
+}
+
+type allAddrFilter struct{}
+
+func (self *allAddrFilter) Contains(addr string) bool {
+	return true
 }

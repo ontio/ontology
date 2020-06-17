@@ -57,5 +57,6 @@ func NewNode(keyId *common.PeerKeyId, listenAddr string, localInfo *peer.PeerInf
 	localInfo.Port = uint16(iport)
 	opt := connect_controller.NewConnCtrlOption().MaxInBoundPerIp(10).
 		MaxInBound(20).MaxOutBound(20).WithDialer(dialer).ReservedOnly(reservedPeers)
-	return netserver.NewCustomNetServer(keyId, localInfo, proto, listener, opt, reserveAddrFilter, logger)
+	opt.ReservedPeers = p2p.CombineAddrFilter(opt.ReservedPeers, reserveAddrFilter)
+	return netserver.NewCustomNetServer(keyId, localInfo, proto, listener, opt, logger)
 }

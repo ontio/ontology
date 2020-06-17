@@ -75,8 +75,8 @@ func NewMsgHandler(acct *account.Account, ld *ledger.Ledger, logger msgCommon.Lo
 	return &MsgHandler{ledger: ld, seeds: seeds, subnet: subNet, acct: acct}
 }
 
-func (self *MsgHandler) GetReservedAddrFilter() p2p.AddressFilter {
-	return self.subnet.GetReservedAddrFilter()
+func (self *MsgHandler) GetReservedAddrFilter(staticFilterEnabled bool) p2p.AddressFilter {
+	return self.subnet.GetReservedAddrFilter(staticFilterEnabled)
 }
 
 func (self *MsgHandler) GetMaskAddrFilter() p2p.AddressFilter {

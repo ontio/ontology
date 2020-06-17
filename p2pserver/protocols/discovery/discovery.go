@@ -157,7 +157,7 @@ func (self *Discovery) FindNodeHandle(ctx *p2p.Context, freq *types.FindNodeReq)
 	// mask peer see everyone, but other's will not see mask node
 	// if remotePeer is in msk-list, give them everything
 	// not in mask set means they are in the other side
-	if !self.maskSet.Has(remoteIP.String()) && !self.maskFilter.Filtered(remotePeer.Info.RemoteListenAddress()) {
+	if !self.maskSet.Has(remoteIP.String()) && !self.maskFilter.Contains(remotePeer.Info.RemoteListenAddress()) {
 		unmaskedAddrs := make([]common.PeerIDAddressPair, 0)
 		// filter out the masked node
 		for _, pair := range fresp.CloserPeers {
@@ -166,7 +166,7 @@ func (self *Discovery) FindNodeHandle(ctx *p2p.Context, freq *types.FindNodeReq)
 				continue
 			}
 			// hide mask node
-			if self.maskSet.Has(ip) || self.maskFilter.Filtered(pair.Address) {
+			if self.maskSet.Has(ip) || self.maskFilter.Contains(pair.Address) {
 				continue
 			}
 			unmaskedAddrs = append(unmaskedAddrs, pair)

@@ -19,7 +19,6 @@
 package nodeinfo
 
 import (
-	"strings"
 	"time"
 
 	"github.com/ontio/ontology/common/config"
@@ -55,11 +54,6 @@ var (
 		Name: "ontology_p2p_peer_status",
 		Help: "ontology peer info",
 	}, []string{"ip", "id"})
-
-	reserveCountMetric = prom.NewGaugeVec(prom.GaugeOpts{
-		Name: "ontology_p2p_reserve_count",
-		Help: "ontology peer info",
-	}, []string{"ips"})
 
 	reconnectCountMetric = prom.NewGauge(prom.GaugeOpts{
 		Name: "ontology_p2p_reconnect_count",
@@ -101,8 +95,6 @@ func metricUpdate(n p2p.P2P) {
 		// label: IP PeedID
 		peerStatusMetric.WithLabelValues(curPeer.GetAddr(), id.ToHexString()).Set(float64(curPeer.GetHeight()))
 	}
-
-	reserveCountMetric.WithLabelValues(strings.Join(ns.ConnectController().ReservedPeers, " ")).Set(float64(len(ns.ConnectController().ReservedPeers)))
 
 	pt := ns.Protocol()
 	mh, ok := pt.(*protocols.MsgHandler)

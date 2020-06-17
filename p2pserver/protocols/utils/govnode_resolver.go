@@ -76,6 +76,7 @@ type GovNodeLedgerResolver struct {
 type GovCache struct {
 	view        uint32
 	refreshTime time.Time
+	govNodeNum  uint32
 	pubkeys     map[string]struct{}
 }
 
@@ -104,7 +105,7 @@ func (self *GovNodeLedgerResolver) IsGovNode(pubKey string) bool {
 	}
 
 	govNode := false
-	peers, err := GetPeersConfig(self.db, view.View)
+	peers, count, err := GetPeersConfig(self.db, view.View)
 	if err != nil {
 		log.Warnf("gov node resolver failed to load peers from ledger, err: %v", err)
 		return false
@@ -119,6 +120,7 @@ func (self *GovNodeLedgerResolver) IsGovNode(pubKey string) bool {
 	}
 
 	atomic.StorePointer(&self.cache, unsafe.Pointer(&GovCache{
+		govNodeNum:  count,
 		pubkeys:     pubkeys,
 		refreshTime: time.Now(),
 		view:        view.View,
@@ -140,20 +142,22 @@ func GetGovernanceView(backend *ledger.Ledger) (*governance.GovernanceView, erro
 	return governanceView, nil
 }
 
-func GetPeersConfig(backend *ledger.Ledger, view uint32) ([]*config.VBFTPeerStakeInfo, error) {
+func GetPeersConfig(backend *ledger.Ledger, view uint32) ([]*config.VBFTPeerStakeInfo, uint32, error) {
 	viewBytes := governance.GetUint32Bytes(view)
 	key := append([]byte(governance.PEER_POOL), viewBytes...)
 	data, err := backend.GetStorageItem(utils.GovernanceContractAddress, key)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	peerMap := &governance.PeerPoolMap{
 		PeerPoolMap: make(map[string]*governance.PeerPoolItem),
 	}
 	err = peerMap.Deserialization(common.NewZeroCopySource(data))
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
+
+	govCount := uint32(0)
 	var peerstakes []*config.VBFTPeerStakeInfo
 	for _, id := range peerMap.PeerPoolMap {
 		switch id.Status {
@@ -165,6 +169,9 @@ func GetPeersConfig(backend *ledger.Ledger, view uint32) ([]*config.VBFTPeerStak
 			}
 			peerstakes = append(peerstakes, conf)
 		}
+		if id.Status == governance.ConsensusStatus || id.Status == governance.QuitConsensusStatus {
+			govCount += 1
+		}
 	}
-	return peerstakes, nil
+	return peerstakes, govCount, nil
 }
