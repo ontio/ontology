@@ -287,7 +287,7 @@ func (self *SubNet) sendMembersRequest(net p2p.P2P, peer common.PeerId) {
 	net.SendTo(peer, request)
 }
 
-func (self *SubNet) cleanStaleGovNode() {
+func (self *SubNet) cleanInactiveGovNode() {
 	now := time.Now()
 	self.lock.Lock()
 	defer self.lock.Unlock()
@@ -299,26 +299,42 @@ func (self *SubNet) cleanStaleGovNode() {
 	}
 }
 
+func (self *SubNet) cleanRetiredGovNode(net p2p.P2P) {
+	self.lock.Lock()
+	defer self.lock.Unlock()
+	for addr, status := range self.members {
+		if !self.gov.IsGovNode(status.PubKey) {
+			delete(self.members, addr)
+			if info := self.connected[addr]; info != nil {
+				if p := net.GetPeer(info.Id); p != nil {
+					p.Close()
+				}
+			}
+		}
+	}
+}
+
 func (self *SubNet) maintainLoop(net p2p.P2P) {
 	parker := self.unparker
 	for {
 		self.lock.Lock()
-		for _, peer := range net.GetNeighbors() {
-			listen := peer.Info.RemoteListenAddress()
+		for _, p := range net.GetNeighbors() {
+			listen := p.Info.RemoteListenAddress()
 			if self.members[listen] != nil && self.connected[listen] == nil {
-				self.connected[listen] = peer.Info
+				self.connected[listen] = p.Info
 				self.members[listen].Alive = time.Now()
 			}
 		}
 		seedOrGov := self.IsSeedNode() || (self.acct != nil && self.gov.IsGovNode(self.acct.PublicKey))
 		self.lock.Unlock()
 
+		self.cleanRetiredGovNode(net)
 		for _, addr := range self.getUnconnectedGovNode() {
 			self.logger.Infof("[subnet] try connect gov node: %s", addr)
 			go net.Connect(addr)
 		}
 
-		self.cleanStaleGovNode()
+		self.cleanInactiveGovNode()
 		self.sendMembersRequestToRandNodes(net)
 
 		if seedOrGov {
