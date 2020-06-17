@@ -34,7 +34,8 @@ import (
 )
 
 type GovNodeResolver interface {
-	IsGovNode(key keypair.PublicKey) bool
+	IsGovNodePubKey(key keypair.PublicKey) bool
+	IsGovNode(key string) bool
 }
 
 type GovNodeMockResolver struct {
@@ -50,7 +51,13 @@ func NewGovNodeMockResolver(gov []string) *GovNodeMockResolver {
 	return &GovNodeMockResolver{govNode}
 }
 
-func (self *GovNodeMockResolver) IsGovNode(key keypair.PublicKey) bool {
+func (self *GovNodeMockResolver) IsGovNode(key string) bool {
+	_, ok := self.govNode[key]
+
+	return ok
+}
+
+func (self *GovNodeMockResolver) IsGovNodePubKey(key keypair.PublicKey) bool {
 	pubKey := vconfig.PubkeyID(key)
 	_, ok := self.govNode[pubKey]
 
@@ -86,8 +93,12 @@ func (self *GovNodeLedgerResolver) isGovNodeFromCache(pubkey string) bool {
 	return false
 }
 
-func (self *GovNodeLedgerResolver) IsGovNode(key keypair.PublicKey) bool {
+func (self *GovNodeLedgerResolver) IsGovNodePubKey(key keypair.PublicKey) bool {
 	pubKey := vconfig.PubkeyID(key)
+	return self.IsGovNode(pubKey)
+}
+
+func (self *GovNodeLedgerResolver) IsGovNode(pubKey string) bool {
 	view, err := GetGovernanceView(self.db)
 	if err != nil {
 		log.Warnf("gov node resolver failed to load view from ledger, err: %v", err)

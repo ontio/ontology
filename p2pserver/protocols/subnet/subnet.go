@@ -169,11 +169,14 @@ func (self *SubNet) checkAuthority(listenAddr string, msg *types.SubnetMembersRe
 		return self.isSeedAddr(listenAddr)
 	}
 
-	return self.gov.IsGovNode(msg.PubKey)
+	return self.gov.IsGovNodePubKey(msg.PubKey)
 }
 
 func (self *SubNet) OnMembersRequest(ctx *p2p.Context, msg *types.SubnetMembersRequest) {
 	sender := ctx.Sender()
+	if msg.From != sender.GetID() || msg.To != ctx.Network().GetID() {
+		return
+	}
 
 	peerAddr := sender.Info.RemoteListenAddress()
 	if !self.checkAuthority(peerAddr, msg) {
@@ -189,7 +192,7 @@ func (self *SubNet) OnMembersRequest(ctx *p2p.Context, msg *types.SubnetMembersR
 	}
 
 	//update self.members
-	if !msg.FromSeed() && self.gov.IsGovNode(msg.PubKey) && self.members[peerAddr] == nil {
+	if !msg.FromSeed() && self.gov.IsGovNodePubKey(msg.PubKey) && self.members[peerAddr] == nil {
 		self.members[peerAddr] = &MemberStatus{
 			PubKey: vconfig.PubkeyID(msg.PubKey),
 			Alive:  time.Now(),
@@ -239,13 +242,13 @@ func (self *SubNet) getUnconnectedGovNode() []string {
 	return addrs
 }
 
-func (self *SubNet) newMembersRequest() *types.SubnetMembersRequest {
+func (self *SubNet) newMembersRequest(from, to common.PeerId) *types.SubnetMembersRequest {
 	var request *types.SubnetMembersRequest
 	if self.IsSeedNode() {
 		request = types.NewMembersRequestFromSeed()
-	} else if self.acct != nil && self.gov.IsGovNode(self.acct.PublicKey) {
+	} else if self.acct != nil && self.gov.IsGovNodePubKey(self.acct.PublicKey) {
 		var err error
-		request, err = types.NewMembersRequest(self.acct)
+		request, err = types.NewMembersRequest(from, to, self.acct)
 		if err != nil {
 			return nil
 		}
@@ -255,11 +258,6 @@ func (self *SubNet) newMembersRequest() *types.SubnetMembersRequest {
 }
 
 func (self *SubNet) sendMembersRequestToRandNodes(net p2p.P2P) {
-	request := self.newMembersRequest()
-	if request == nil {
-		return
-	}
-
 	count := 0
 	peerIds := make([]common.PeerId, 0, MaxMemberRequests)
 	self.lock.RLock()
@@ -271,15 +269,19 @@ func (self *SubNet) sendMembersRequestToRandNodes(net p2p.P2P) {
 			break
 		}
 	}
-
 	self.lock.RUnlock()
+
 	for _, peerId := range peerIds {
+		request := self.newMembersRequest(net.GetID(), peerId)
+		if request == nil {
+			return
+		}
 		net.SendTo(peerId, request)
 	}
 }
 
 func (self *SubNet) sendMembersRequest(net p2p.P2P, peer common.PeerId) {
-	request := self.newMembersRequest()
+	request := self.newMembersRequest(net.GetID(), peer)
 	if request == nil {
 		return
 	}
@@ -325,7 +327,7 @@ func (self *SubNet) maintainLoop(net p2p.P2P) {
 				self.members[listen].Alive = time.Now()
 			}
 		}
-		seedOrGov := self.IsSeedNode() || (self.acct != nil && self.gov.IsGovNode(self.acct.PublicKey))
+		seedOrGov := self.IsSeedNode() || (self.acct != nil && self.gov.IsGovNodePubKey(self.acct.PublicKey))
 		self.lock.Unlock()
 
 		self.cleanRetiredGovNode(net)
@@ -335,9 +337,9 @@ func (self *SubNet) maintainLoop(net p2p.P2P) {
 		}
 
 		self.cleanInactiveGovNode()
-		self.sendMembersRequestToRandNodes(net)
 
 		if seedOrGov {
+			self.sendMembersRequestToRandNodes(net)
 			members := self.GetMembersInfo()
 			buf, _ := json.Marshal(members)
 			self.logger.Infof("[subnet] current members: %s", string(buf))
