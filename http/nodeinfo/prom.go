@@ -62,7 +62,8 @@ var (
 )
 
 var (
-	metrics = []prom.Collector{nodePortMetric, blockHeightMetric, inboundsCountMetric, outboundsCountMetric, peerStatusMetric, reserveCountMetric, reconnectCountMetric}
+	metrics = []prom.Collector{nodePortMetric, blockHeightMetric, inboundsCountMetric,
+		outboundsCountMetric, peerStatusMetric, reconnectCountMetric}
 )
 
 func initMetric() error {

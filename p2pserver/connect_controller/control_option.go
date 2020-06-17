@@ -35,6 +35,7 @@ func NewConnCtrlOption() ConnCtrlOption {
 		MaxConnInBound:      config.DEFAULT_MAX_CONN_IN_BOUND,
 		MaxConnOutBound:     config.DEFAULT_MAX_CONN_OUT_BOUND,
 		MaxConnInBoundPerIP: config.DEFAULT_MAX_CONN_IN_BOUND_FOR_SINGLE_IP,
+		ReservedPeers:       p2p.AllAddrFilter(),
 		dialer:              &noTlsDialer{},
 	}
 }
@@ -64,22 +65,17 @@ func (self ConnCtrlOption) WithDialer(dialer Dialer) ConnCtrlOption {
 	return self
 }
 
-func ConnCtrlOptionFromConfig(config *config.P2PNodeConfig, dynReserveFilter p2p.AddressFilter) (option ConnCtrlOption, err error) {
-	var rsv []string
-	if config.ReservedPeersOnly && config.ReservedCfg != nil {
-		rsv = config.ReservedCfg.ReservedPeers
-	}
+func ConnCtrlOptionFromConfig(config *config.P2PNodeConfig, reserveFilter p2p.AddressFilter) (option ConnCtrlOption, err error) {
 	dialer, e := NewDialer(config)
 	if e != nil {
 		err = e
 		return
 	}
-	staticFilter := NewStaticReserveFilter(rsv)
 	return ConnCtrlOption{
 		MaxConnOutBound:     config.MaxConnOutBound,
 		MaxConnInBound:      config.MaxConnInBound,
 		MaxConnInBoundPerIP: config.MaxConnInBoundForSingleIP,
-		ReservedPeers:       p2p.CombineAddrFilter(staticFilter, dynReserveFilter),
+		ReservedPeers:       reserveFilter,
 
 		dialer: dialer,
 	}, nil
