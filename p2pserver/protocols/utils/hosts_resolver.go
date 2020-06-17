@@ -37,7 +37,7 @@ type HostsResolver struct {
 }
 
 type HostsCache struct {
-	refleshTime time.Time
+	refreshTime time.Time
 	addrs       []string
 }
 
@@ -59,7 +59,7 @@ func NewHostsResolver(hosts []string) (*HostsResolver, []string) {
 func (self *HostsResolver) GetHostAddrs() []string {
 	// fast path test
 	cached := (*HostsCache)(atomic.LoadPointer(&self.cache))
-	if cached != nil && cached.refleshTime.Add(HostsResolverCacheTime).After(time.Now()) && len(cached.addrs) != 0 {
+	if cached != nil && cached.refreshTime.Add(HostsResolverCacheTime).After(time.Now()) && len(cached.addrs) != 0 {
 		return cached.addrs
 	}
 
@@ -67,7 +67,7 @@ func (self *HostsResolver) GetHostAddrs() []string {
 	defer self.lock.Unlock()
 
 	cached = (*HostsCache)(self.cache)
-	if cached != nil && cached.refleshTime.Add(HostsResolverCacheTime).After(time.Now()) && len(cached.addrs) != 0 {
+	if cached != nil && cached.refreshTime.Add(HostsResolverCacheTime).After(time.Now()) && len(cached.addrs) != 0 {
 		return cached.addrs
 	}
 
@@ -84,7 +84,7 @@ func (self *HostsResolver) GetHostAddrs() []string {
 		}
 	}
 
-	atomic.StorePointer(&self.cache, unsafe.Pointer(&HostsCache{refleshTime: time.Now(), addrs: cache}))
+	atomic.StorePointer(&self.cache, unsafe.Pointer(&HostsCache{refreshTime: time.Now(), addrs: cache}))
 
 	return cache
 }

@@ -21,6 +21,7 @@ package utils
 import (
 	"bytes"
 	"sync/atomic"
+	"time"
 	"unsafe"
 
 	"github.com/ontio/ontology-crypto/keypair"
@@ -32,6 +33,8 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/native/governance"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
+
+const GovNodeCacheTime = time.Minute * 10
 
 type GovNodeResolver interface {
 	IsGovNodePubKey(key keypair.PublicKey) bool
@@ -65,15 +68,15 @@ func (self *GovNodeMockResolver) IsGovNodePubKey(key keypair.PublicKey) bool {
 }
 
 type GovNodeLedgerResolver struct {
-	db          *ledger.Ledger
-	view        uint32
-	refleshTime uint32
+	db *ledger.Ledger
 
 	cache unsafe.Pointer // atomic pointer to GovCache, avoid read&write data race
 }
 
 type GovCache struct {
-	pubkeys map[string]struct{}
+	view        uint32
+	refreshTime time.Time
+	pubkeys     map[string]struct{}
 }
 
 func NewGovNodeResolver(db *ledger.Ledger) *GovNodeLedgerResolver {
@@ -81,16 +84,6 @@ func NewGovNodeResolver(db *ledger.Ledger) *GovNodeLedgerResolver {
 		db:    db,
 		cache: unsafe.Pointer(&GovCache{pubkeys: make(map[string]struct{})}),
 	}
-}
-
-func (self *GovNodeLedgerResolver) isGovNodeFromCache(pubkey string) bool {
-	cached := (*GovCache)(atomic.LoadPointer(&self.cache))
-	if cached != nil {
-		_, ok := cached.pubkeys[pubkey]
-		return ok
-	}
-
-	return false
 }
 
 func (self *GovNodeLedgerResolver) IsGovNodePubKey(key keypair.PublicKey) bool {
@@ -104,8 +97,10 @@ func (self *GovNodeLedgerResolver) IsGovNode(pubKey string) bool {
 		log.Warnf("gov node resolver failed to load view from ledger, err: %v", err)
 		return false
 	}
-	if view.View == self.view {
-		return self.isGovNodeFromCache(pubKey)
+	cached := (*GovCache)(atomic.LoadPointer(&self.cache))
+	if cached != nil && view.View == cached.view && cached.refreshTime.Add(GovNodeCacheTime).After(time.Now()) {
+		_, ok := cached.pubkeys[pubKey]
+		return ok
 	}
 
 	govNode := false
@@ -123,8 +118,11 @@ func (self *GovNodeLedgerResolver) IsGovNode(pubKey string) bool {
 		}
 	}
 
-	atomic.StorePointer(&self.cache, unsafe.Pointer(&GovCache{pubkeys: pubkeys}))
-	self.view = view.View
+	atomic.StorePointer(&self.cache, unsafe.Pointer(&GovCache{
+		pubkeys:     pubkeys,
+		refreshTime: time.Now(),
+		view:        view.View,
+	}))
 
 	return govNode
 }
