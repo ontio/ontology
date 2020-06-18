@@ -35,21 +35,25 @@ type ReconnectPeerInfo struct {
 	id    common.PeerId
 }
 
+const MaxRetryCountForReserveNode = 100
+
 //ReconnectService contain addr need to reconnect
 type ReconnectService struct {
 	sync.RWMutex
-	MaxRetryCount uint
-	RetryAddrs    map[string]*ReconnectPeerInfo
-	net           p2p.P2P
-	quit          chan bool
+	MaxRetryCount       int
+	RetryAddrs          map[string]*ReconnectPeerInfo
+	net                 p2p.P2P
+	staticReserveFilter p2p.AddressFilter
+	quit                chan bool
 }
 
-func NewReconectService(net p2p.P2P) *ReconnectService {
+func NewReconectService(net p2p.P2P, staticReserveFilter p2p.AddressFilter) *ReconnectService {
 	return &ReconnectService{
-		net:           net,
-		MaxRetryCount: common.MAX_RETRY_COUNT,
-		quit:          make(chan bool),
-		RetryAddrs:    make(map[string]*ReconnectPeerInfo),
+		net:                 net,
+		staticReserveFilter: staticReserveFilter,
+		MaxRetryCount:       common.MAX_RETRY_COUNT,
+		quit:                make(chan bool),
+		RetryAddrs:          make(map[string]*ReconnectPeerInfo),
 	}
 }
 
@@ -83,8 +87,12 @@ func (self *ReconnectService) OnAddPeer(p *peer.PeerInfo) {
 
 func (self *ReconnectService) OnDelPeer(p *peer.PeerInfo) {
 	nodeAddr := p.RemoteListenAddress()
+	maxCount := self.MaxRetryCount
+	if self.staticReserveFilter.Contains(nodeAddr) {
+		maxCount = MaxRetryCountForReserveNode
+	}
 	self.Lock()
-	self.RetryAddrs[nodeAddr] = &ReconnectPeerInfo{count: 0, id: p.Id}
+	self.RetryAddrs[nodeAddr] = &ReconnectPeerInfo{count: maxCount, id: p.Id}
 	self.Unlock()
 }
 
@@ -103,8 +111,8 @@ func (this *ReconnectService) retryInactivePeer() {
 	if len(this.RetryAddrs) > 0 {
 		list := make(map[string]*ReconnectPeerInfo)
 		for addr, v := range this.RetryAddrs {
-			v.count += 1
-			if v.count <= common.MAX_RETRY_COUNT && net.GetPeer(v.id) == nil {
+			v.count -= 1
+			if v.count >= 0 && net.GetPeer(v.id) == nil {
 				addrs = append(addrs, addr)
 				list[addr] = v
 			}

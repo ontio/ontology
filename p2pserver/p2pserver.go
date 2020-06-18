@@ -22,6 +22,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ontio/ontology/p2pserver/protocols"
+
 	"github.com/ontio/ontology/account"
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
@@ -30,7 +32,6 @@ import (
 	"github.com/ontio/ontology/p2pserver/connect_controller"
 	"github.com/ontio/ontology/p2pserver/net/netserver"
 	p2p "github.com/ontio/ontology/p2pserver/net/protocol"
-	"github.com/ontio/ontology/p2pserver/protocols"
 	"github.com/ontio/ontology/p2pserver/protocols/utils"
 )
 
@@ -43,13 +44,13 @@ type P2PServer struct {
 //NewServer return a new p2pserver according to the pubkey
 func NewServer(acct *account.Account) (*P2PServer, error) {
 	db := ledger.DefLedger
-	protocol := protocols.NewMsgHandler(acct, db, log.Log)
 	var rsv []string
 	conf := config.DefConfig.P2PNode
 	if conf.ReservedPeersOnly && conf.ReservedCfg != nil {
 		rsv = conf.ReservedCfg.ReservedPeers
 	}
 	staticFilter := connect_controller.NewStaticReserveFilter(rsv)
+	protocol := protocols.NewMsgHandler(acct, staticFilter, db, log.Log)
 	reserved := protocol.GetReservedAddrFilter(len(rsv) != 0)
 	reservedPeers := p2p.CombineAddrFilter(staticFilter, reserved)
 	n, err := netserver.NewNetServer(protocol, conf, reservedPeers)
