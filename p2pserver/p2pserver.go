@@ -22,8 +22,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ontio/ontology/p2pserver/protocols"
-
 	"github.com/ontio/ontology/account"
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
@@ -32,6 +30,7 @@ import (
 	"github.com/ontio/ontology/p2pserver/connect_controller"
 	"github.com/ontio/ontology/p2pserver/net/netserver"
 	p2p "github.com/ontio/ontology/p2pserver/net/protocol"
+	"github.com/ontio/ontology/p2pserver/protocols"
 	"github.com/ontio/ontology/p2pserver/protocols/utils"
 )
 
