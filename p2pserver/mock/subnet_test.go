@@ -33,7 +33,6 @@ import (
 	"github.com/ontio/ontology/p2pserver/peer"
 	"github.com/ontio/ontology/p2pserver/protocols/bootstrap"
 	"github.com/ontio/ontology/p2pserver/protocols/discovery"
-	"github.com/ontio/ontology/p2pserver/protocols/reconnect"
 	"github.com/ontio/ontology/p2pserver/protocols/subnet"
 	"github.com/ontio/ontology/p2pserver/protocols/utils"
 	"github.com/stretchr/testify/assert"
@@ -129,7 +128,6 @@ func NewSubnetNode(acct *account.Account, listenAddr string, seeds, govs []strin
 
 type TestSubnetProtocalHandler struct {
 	seeds     *utils.HostsResolver
-	reconnect *reconnect.ReconnectService
 	discovery *discovery.Discovery
 	bootstrap *bootstrap.BootstrapService
 	subnet    *subnet.SubNet
@@ -155,19 +153,16 @@ func (self *TestSubnetProtocalHandler) GetMaskAddrFilter() p2p.AddressFilter {
 }
 
 func (self *TestSubnetProtocalHandler) start(net p2p.P2P) {
-	self.reconnect = reconnect.NewReconectService(net)
 	maskFilter := self.subnet.GetMaskAddrFilter()
 	self.discovery = discovery.NewDiscovery(net, config.DefConfig.P2PNode.ReservedCfg.MaskPeers,
 		maskFilter, time.Millisecond*1000)
 	self.bootstrap = bootstrap.NewBootstrapService(net, self.seeds)
-	go self.reconnect.Start()
 	go self.discovery.Start()
 	go self.bootstrap.Start()
 	go self.subnet.Start(net)
 }
 
 func (self *TestSubnetProtocalHandler) stop() {
-	self.reconnect.Stop()
 	self.discovery.Stop()
 	self.bootstrap.Stop()
 	self.subnet.Stop()
@@ -178,12 +173,10 @@ func (self *TestSubnetProtocalHandler) HandleSystemMessage(net p2p.P2P, msg p2p.
 	case p2p.NetworkStart:
 		self.start(net)
 	case p2p.PeerConnected:
-		self.reconnect.OnAddPeer(m.Info)
 		self.discovery.OnAddPeer(m.Info)
 		self.bootstrap.OnAddPeer(m.Info)
 		self.subnet.OnAddPeer(net, m.Info)
 	case p2p.PeerDisConnected:
-		self.reconnect.OnDelPeer(m.Info)
 		self.discovery.OnDelPeer(m.Info)
 		self.bootstrap.OnDelPeer(m.Info)
 		self.subnet.OnDelPeer(m.Info)
@@ -215,8 +208,4 @@ func (self *TestSubnetProtocalHandler) HandlePeerMessage(ctx *p2p.Context, msg m
 		msgType := msg.CmdType()
 		log.Warn("unknown message handler for the msg: ", msgType)
 	}
-}
-
-func (mh *TestSubnetProtocalHandler) ReconnectService() *reconnect.ReconnectService {
-	return mh.reconnect
 }
