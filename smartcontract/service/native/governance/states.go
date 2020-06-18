@@ -117,18 +117,14 @@ func (this *PeerPoolMap) Deserialization(source *common.ZeroCopySource) error {
 	return nil
 }
 
-func (this *PeerPoolMap) SerializationForVm(sink *common.ZeroCopySink) {
-	sink.WriteUint32(uint32(len(this.PeerPoolMap)))
+type PeerPoolListForVm struct {
+	PeerPoolList []*PeerPoolItemForVm
+}
 
-	var peerPoolItemList []*PeerPoolItem
-	for _, v := range this.PeerPoolMap {
-		peerPoolItemList = append(peerPoolItemList, v)
-	}
-	sort.SliceStable(peerPoolItemList, func(i, j int) bool {
-		return peerPoolItemList[i].PeerPubkey > peerPoolItemList[j].PeerPubkey
-	})
-	for _, v := range peerPoolItemList {
-		v.SerializationForVm(sink)
+func (this *PeerPoolListForVm) Serialization(sink *common.ZeroCopySink) {
+	sink.WriteUint32(uint32(len(this.PeerPoolList)))
+	for _, v := range this.PeerPoolList {
+		v.Serialization(sink)
 	}
 }
 
@@ -187,10 +183,18 @@ func (this *PeerPoolItem) Deserialization(source *common.ZeroCopySource) error {
 }
 
 // readable for neovm, only used for GetPeerPool, GetPeerInfo and GetPeerPoolByAddress
-func (this *PeerPoolItem) SerializationForVm(sink *common.ZeroCopySink) {
+type PeerPoolItemForVm struct {
+	Index       uint32         //peer index
+	PeerAddress common.Address //peer address
+	Address     common.Address //peer owner
+	Status      Status         //peer status
+	InitPos     uint64         //peer initPos
+	TotalPos    uint64         //total authorize pos this peer received
+}
+
+func (this *PeerPoolItemForVm) Serialization(sink *common.ZeroCopySink) {
 	sink.WriteUint32(this.Index)
-	sink.WriteUint64(uint64(len([]byte(this.PeerPubkey))))
-	sink.WriteBytes([]byte(this.PeerPubkey))
+	this.PeerAddress.Serialization(sink)
 	this.Address.Serialization(sink)
 	this.Status.Serialization(sink)
 	sink.WriteUint64(this.InitPos)

@@ -26,10 +26,12 @@ import (
 	"fmt"
 	"math"
 
+	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/constants"
 	cstates "github.com/ontio/ontology/core/states"
+	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/global_params"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
@@ -1705,8 +1707,33 @@ func GetPeerPool(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("GetPeerPool, get peerPoolMap error: %v", err)
 	}
 
+	peerPoolList := make([]*PeerPoolItemForVm, 0)
+	for _, v := range peerPoolMap.PeerPoolMap {
+		pkb, err := hex.DecodeString(v.PeerPubkey)
+		if err != nil {
+			return utils.BYTE_FALSE, fmt.Errorf("GetPeerPool, hex.DecodeString public key error: %v", err)
+		}
+		pk, err := keypair.DeserializePublicKey(pkb)
+		if err != nil {
+			return utils.BYTE_FALSE, fmt.Errorf("GetPeerPool, keypair.DeserializePublicKey error: %v", err)
+		}
+		peerAddress := types.AddressFromPubKey(pk)
+		peerPoolItemForVm := &PeerPoolItemForVm{
+			Index:       v.Index,
+			PeerAddress: peerAddress,
+			Address:     v.Address,
+			Status:      v.Status,
+			InitPos:     v.InitPos,
+			TotalPos:    v.TotalPos,
+		}
+		peerPoolList = append(peerPoolList, peerPoolItemForVm)
+	}
+
+	peerPoolListForVm := &PeerPoolListForVm{
+		PeerPoolList: peerPoolList,
+	}
 	sink := common.NewZeroCopySink(nil)
-	peerPoolMap.SerializationForVm(sink)
+	peerPoolListForVm.Serialization(sink)
 	return sink.Bytes(), nil
 }
 
@@ -1733,8 +1760,26 @@ func GetPeerInfo(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("GetPeerInfo, get peerInfo error: %v", err)
 	}
 
+	peerPkb, err := hex.DecodeString(peerInfo.PeerPubkey)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("GetPeerInfo, hex.DecodeString public key error: %v", err)
+	}
+	peerPk, err := keypair.DeserializePublicKey(peerPkb)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("GetPeerInfo, keypair.DeserializePublicKey error: %v", err)
+	}
+	peerAddress := types.AddressFromPubKey(peerPk)
+	peerPoolItemForVm := &PeerPoolItemForVm{
+		Index:       peerInfo.Index,
+		PeerAddress: peerAddress,
+		Address:     peerInfo.Address,
+		Status:      peerInfo.Status,
+		InitPos:     peerInfo.InitPos,
+		TotalPos:    peerInfo.TotalPos,
+	}
+
 	sink := common.NewZeroCopySink(nil)
-	peerInfo.SerializationForVm(sink)
+	peerPoolItemForVm.Serialization(sink)
 	return sink.Bytes(), nil
 }
 
@@ -1762,9 +1807,33 @@ func GetPeerPoolByAddress(native *native.NativeService) ([]byte, error) {
 			subPeerPool[k] = v
 		}
 	}
-	peerPoolMap.PeerPoolMap = subPeerPool
 
+	peerPoolList := make([]*PeerPoolItemForVm, 0)
+	for _, v := range subPeerPool {
+		pkb, err := hex.DecodeString(v.PeerPubkey)
+		if err != nil {
+			return utils.BYTE_FALSE, fmt.Errorf("GetPeerPoolByAddress, hex.DecodeString public key error: %v", err)
+		}
+		pk, err := keypair.DeserializePublicKey(pkb)
+		if err != nil {
+			return utils.BYTE_FALSE, fmt.Errorf("GetPeerPoolByAddress, keypair.DeserializePublicKey error: %v", err)
+		}
+		peerAddress := types.AddressFromPubKey(pk)
+		peerPoolItemForVm := &PeerPoolItemForVm{
+			Index:       v.Index,
+			PeerAddress: peerAddress,
+			Address:     v.Address,
+			Status:      v.Status,
+			InitPos:     v.InitPos,
+			TotalPos:    v.TotalPos,
+		}
+		peerPoolList = append(peerPoolList, peerPoolItemForVm)
+	}
+
+	peerPoolListForVm := &PeerPoolListForVm{
+		PeerPoolList: peerPoolList,
+	}
 	sink := common.NewZeroCopySink(nil)
-	peerPoolMap.SerializationForVm(sink)
+	peerPoolListForVm.Serialization(sink)
 	return sink.Bytes(), nil
 }
