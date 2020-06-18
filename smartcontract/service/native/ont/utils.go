@@ -23,6 +23,7 @@ import (
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
+	"github.com/ontio/ontology/common/constants"
 	cstates "github.com/ontio/ontology/core/states"
 	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/smartcontract/event"
@@ -94,8 +95,14 @@ func GenApproveKey(contract, from, to common.Address) []byte {
 }
 
 func TransferedFrom(native *native.NativeService, currentContract common.Address, state *TransferFrom) (uint64, uint64, error) {
-	if native.ContextRef.CheckWitness(state.Sender) == false {
-		return 0, 0, errors.NewErr("authentication failed!")
+	if native.Time <= config.GetOntHolderUnboundDeadline()+constants.GENESIS_BLOCK_TIMESTAMP {
+		if native.ContextRef.CheckWitness(state.Sender) == false {
+			return 0, 0, errors.NewErr("authentication failed!")
+		}
+	} else {
+		if state.Sender != state.To && native.ContextRef.CheckWitness(state.Sender) == false {
+			return 0, 0, errors.NewErr("authentication failed!")
+		}
 	}
 
 	if err := fromApprove(native, genTransferFromKey(currentContract, state), state.Value); err != nil {
