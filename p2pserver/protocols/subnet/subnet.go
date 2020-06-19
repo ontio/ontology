@@ -332,12 +332,15 @@ func (self *SubNet) maintainLoop(net p2p.P2P) {
 			}
 		}
 		seedOrGov := self.IsSeedNode() || (self.acct != nil && self.gov.IsGovNodePubKey(self.acct.PublicKey))
+		selfAddr := self.selfAddr
 		self.lock.Unlock()
 
 		self.cleanRetiredGovNode(net)
 		for _, addr := range self.getUnconnectedGovNode() {
-			self.logger.Infof("[subnet] try connect gov node: %s", addr)
-			go net.Connect(addr)
+			if addr != selfAddr {
+				self.logger.Infof("[subnet] try connect gov node: %s", addr)
+				go net.Connect(addr)
+			}
 		}
 
 		self.cleanInactiveGovNode()
