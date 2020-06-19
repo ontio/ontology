@@ -55,11 +55,11 @@ func NewDHT(id common.PeerId) *DHT {
 	rt := kb.NewRoutingTable(bucketSize, id)
 
 	rt.PeerAdded = func(p common.PeerId) {
-		log.Debugf("dht: peer: %d added to dht", p)
+		log.Debugf("dht: peer: %s added to dht", p.ToHexString())
 	}
 
 	rt.PeerRemoved = func(p common.PeerId) {
-		log.Debugf("dht: peer: %d removed from dht", p)
+		log.Debugf("dht: peer: %s removed from dht", p.ToHexString())
 	}
 
 	return &DHT{

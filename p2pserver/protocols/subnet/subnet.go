@@ -216,8 +216,10 @@ func (self *SubNet) OnMembersResponse(ctx *p2p.Context, msg *types.SubnetMembers
 		return
 	}
 
+	updated := false
 	for _, info := range msg.Members {
 		if self.members[info.Addr] == nil {
+			updated = true
 			self.members[info.Addr] = &MemberStatus{
 				PubKey: info.PubKey,
 				Alive:  time.Now(),
@@ -225,7 +227,9 @@ func (self *SubNet) OnMembersResponse(ctx *p2p.Context, msg *types.SubnetMembers
 		}
 	}
 
-	self.unparker.Unpark()
+	if updated {
+		self.unparker.Unpark()
+	}
 }
 
 func (self *SubNet) getUnconnectedGovNode() []string {
