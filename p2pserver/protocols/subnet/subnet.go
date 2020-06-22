@@ -90,7 +90,9 @@ func (self *SubNet) OnAddPeer(net p2p.P2P, info *peer.PeerInfo) {
 	member := self.members[listenAddr]
 	if self.isSeedAddr(listenAddr) || member != nil {
 		self.connected[listenAddr] = info
-		self.sendMembersRequest(net, info.Id)
+		if supportSubnet(info.SoftVersion) {
+			self.sendMembersRequest(net, info.Id)
+		}
 	}
 	if member != nil {
 		member.Alive = time.Now()
@@ -267,6 +269,9 @@ func (self *SubNet) sendMembersRequestToRandNodes(net p2p.P2P) {
 	self.lock.RLock()
 	// note map iteration is randomized
 	for _, p := range self.connected {
+		if !supportSubnet(p.SoftVersion) {
+			continue
+		}
 		count += 1
 		peerIds = append(peerIds, p.Id)
 		if count == MaxMemberRequests {

@@ -118,7 +118,7 @@ func NewSubnetNode(acct *account.Account, listenAddr string, seeds, govs []strin
 	logPrefix string) *netserver.NetServer {
 	seedId := common.RandPeerKeyId()
 	info := peer.NewPeerInfo(seedId.Id, 0, 0, true, 0,
-		0, 0, "1.10", "")
+		0, 0, "v2.0.0", "")
 	context := fmt.Sprintf("peer %s-%s: ", logPrefix, seedId.Id.ToHexString()[:6])
 	logger := common.LoggerWithContext(log.Log, context)
 	protocal := NewTestSubnetProtocalHandler(acct, seeds, govs, logger)
