@@ -44,12 +44,17 @@ type P2PServer struct {
 func NewServer(acct *account.Account) (*P2PServer, error) {
 	db := ledger.DefLedger
 	var rsv []string
+	var recRsv []string
 	conf := config.DefConfig.P2PNode
 	if conf.ReservedPeersOnly && conf.ReservedCfg != nil {
 		rsv = conf.ReservedCfg.ReservedPeers
 	}
+	if conf.ReservedCfg != nil {
+		recRsv = conf.ReservedCfg.ReservedPeers
+	}
+
 	staticFilter := connect_controller.NewStaticReserveFilter(rsv)
-	protocol := protocols.NewMsgHandler(acct, staticFilter, db, log.Log)
+	protocol := protocols.NewMsgHandler(acct, connect_controller.NewStaticReserveFilter(recRsv), db, log.Log)
 	reserved := protocol.GetReservedAddrFilter(len(rsv) != 0)
 	reservedPeers := p2p.CombineAddrFilter(staticFilter, reserved)
 	n, err := netserver.NewNetServer(protocol, conf, reservedPeers)
