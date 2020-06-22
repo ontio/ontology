@@ -20,7 +20,6 @@ package types
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"io"
 
@@ -33,6 +32,24 @@ type Message interface {
 	Serialization(sink *comm.ZeroCopySink)
 	Deserialization(source *comm.ZeroCopySource) error
 	CmdType() string
+}
+
+type UnknownMessage struct {
+	Cmd     string
+	Payload []byte
+}
+
+func (self *UnknownMessage) CmdType() string {
+	return self.Cmd
+}
+
+func (self *UnknownMessage) Serialization(sink *comm.ZeroCopySink) {
+	sink.WriteBytes(self.Payload)
+}
+
+func (self *UnknownMessage) Deserialization(source *comm.ZeroCopySource) error {
+	self.Payload, _ = source.NextBytes(source.Len())
+	return nil
 }
 
 //MsgPayload in link channel
@@ -130,10 +147,7 @@ func ReadMessage(reader io.Reader) (Message, uint32, error) {
 	}
 
 	cmdType := string(bytes.TrimRight(hdr.CMD[:], string(0)))
-	msg, err := makeEmptyMessage(cmdType)
-	if err != nil {
-		return nil, 0, err
-	}
+	msg := makeEmptyMessage(cmdType)
 
 	// the buf is referenced by msg to avoid reallocation, so can not reused
 	source := comm.NewZeroCopySource(buf)
@@ -145,50 +159,49 @@ func ReadMessage(reader io.Reader) (Message, uint32, error) {
 	return msg, hdr.Length, nil
 }
 
-func makeEmptyMessage(cmdType string) (Message, error) {
+func makeEmptyMessage(cmdType string) Message {
 	switch cmdType {
 	case common.PING_TYPE:
-		return &Ping{}, nil
+		return &Ping{}
 	case common.VERSION_TYPE:
-		return &Version{}, nil
+		return &Version{}
 	case common.VERACK_TYPE:
-		return &VerACK{}, nil
+		return &VerACK{}
 	case common.ADDR_TYPE:
-		return &Addr{}, nil
+		return &Addr{}
 	case common.GetADDR_TYPE:
-		return &AddrReq{}, nil
+		return &AddrReq{}
 	case common.PONG_TYPE:
-		return &Pong{}, nil
+		return &Pong{}
 	case common.GET_HEADERS_TYPE:
-		return &HeadersReq{}, nil
+		return &HeadersReq{}
 	case common.HEADERS_TYPE:
-		return &BlkHeader{}, nil
+		return &BlkHeader{}
 	case common.INV_TYPE:
-		return &Inv{}, nil
+		return &Inv{}
 	case common.GET_DATA_TYPE:
-		return &DataReq{}, nil
+		return &DataReq{}
 	case common.BLOCK_TYPE:
-		return &Block{}, nil
+		return &Block{}
 	case common.TX_TYPE:
-		return &Trn{}, nil
+		return &Trn{}
 	case common.CONSENSUS_TYPE:
-		return &Consensus{}, nil
+		return &Consensus{}
 	case common.NOT_FOUND_TYPE:
-		return &NotFound{}, nil
+		return &NotFound{}
 	case common.GET_BLOCKS_TYPE:
-		return &BlocksReq{}, nil
+		return &BlocksReq{}
 	case common.FINDNODE_TYPE:
-		return &FindNodeReq{}, nil
+		return &FindNodeReq{}
 	case common.FINDNODE_RESP_TYPE:
-		return &FindNodeResp{}, nil
+		return &FindNodeResp{}
 	case common.UPDATE_KADID_TYPE:
-		return &UpdatePeerKeyId{}, nil
+		return &UpdatePeerKeyId{}
 	case common.GET_SUBNET_MEMBERS_TYPE:
-		return &SubnetMembersRequest{}, nil
+		return &SubnetMembersRequest{}
 	case common.SUBNET_MEMBERS_TYPE:
-		return &SubnetMembers{}, nil
+		return &SubnetMembers{}
 	default:
-		return nil, errors.New("unsupported cmd type:" + cmdType)
+		return &UnknownMessage{Cmd: cmdType}
 	}
-
 }
