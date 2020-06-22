@@ -111,10 +111,6 @@ func FsNodeUpdate(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, errors.NewErr("[Node Govern] FsNodeUpdate getGlobalParam error!")
 	}
 
-	if newNodeInfo.ServiceTime < uint64(native.Time) {
-		return utils.BYTE_FALSE, errors.NewErr("[Node Govern] FsNodeUpdate ServiceTime error!")
-	}
-
 	if newNodeInfo.Volume < globalParam.NodeMinVolume {
 		return utils.BYTE_FALSE, errors.NewErr("[Node Govern] FsNodeUpdate Volume < MinVolume!")
 	}
@@ -122,6 +118,10 @@ func FsNodeUpdate(native *native.NativeService) ([]byte, error) {
 	oldNodeInfo := getNodeInfo(native, newNodeInfo.NodeAddr)
 	if oldNodeInfo == nil {
 		return utils.BYTE_FALSE, errors.NewErr("[Node Govern] FsNodeUpdate getNodeInfo error!")
+	}
+
+	if newNodeInfo.ServiceTime < oldNodeInfo.ServiceTime {
+		return utils.BYTE_FALSE, errors.NewErr("[Node Govern] FsNodeUpdate NewServiceTime < OldServiceTime!")
 	}
 
 	if newNodeInfo.Volume < oldNodeInfo.Volume-oldNodeInfo.RestVol {
@@ -173,6 +173,10 @@ func FsNodeCancel(native *native.NativeService) ([]byte, error) {
 	nodeInfo := getNodeInfo(native, nodeAddr)
 	if nodeInfo == nil {
 		return utils.BYTE_FALSE, errors.NewErr("[Node Govern] FsNodeCancel getFsNodeInfo error!")
+	}
+
+	if nodeInfo.RestVol != nodeInfo.Volume {
+		return utils.BYTE_FALSE, errors.NewErr("[Node Govern] FsNodeCancel still holds user files!")
 	}
 
 	if uint64(native.Time) < nodeInfo.ServiceTime {

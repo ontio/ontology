@@ -63,6 +63,11 @@ func FsFileProve(native *native.NativeService) ([]byte, error) {
 
 	pdpRecord := getPdpRecord(native, fileInfo.FileHash, fileInfo.FileOwner, pdpData.NodeAddr)
 	if pdpRecord == nil {
+		recordList := getPdpRecordList(native, fileInfo.FileHash, fileInfo.FileOwner)
+		if recordList != nil && uint64(len(recordList.PdpRecords)) >= fileInfo.CopyNumber {
+			return utils.BYTE_FALSE, errors.NewErr("[Node Business] FsFileProve pdpRecordCount equals copy number error!")
+		}
+
 		if fileInfo.FirstPdp {
 			log.Info("[Node Business] FsFileProve FirstPdp is true, checkPdpData.")
 			if pdpData.ChallengeHeight != fileInfo.BeginHeight {
@@ -251,10 +256,24 @@ func FsResponse(native *native.NativeService) ([]byte, error) {
 	}
 
 	if err := checkPdpData(native, &pdpData, fileInfo); err != nil {
-		if err = checkUint64OverflowWithSum(fileInfo.PayAmount, globalParam.ContractInvokeGasFee); err != nil {
+		var fileCost uint64
+		switch fileInfo.StorageType {
+		case FileStorageTypeUseFile:
+			fileCost = fileInfo.PayAmount
+		case FileStorageTypeUseSpace:
+			spaceInfo := getAndUpdateSpaceInfo(native, fileInfo.FileOwner)
+			if spaceInfo == nil {
+				return utils.BYTE_FALSE, fmt.Errorf("[Node Business] FsResponse getAndUpdateSpaceInfo error")
+			}
+			fileCost = calcTotalPayAmountWithSpaceFile(fileInfo, spaceInfo.TimeExpired)
+		default:
+			return utils.BYTE_FALSE, fmt.Errorf("[Node Business] FsResponse fileType error")
+		}
+
+		if err = checkUint64OverflowWithSum(fileCost, globalParam.ContractInvokeGasFee); err != nil {
 			return utils.BYTE_FALSE, fmt.Errorf("[Node Business] FsResponse error: %s", err.Error())
 		}
-		punishAmount := fileInfo.PayAmount + globalParam.ContractInvokeGasFee
+		punishAmount := fileCost + globalParam.ContractInvokeGasFee
 		if nodeInfo.Profit > punishAmount {
 			nodeInfo.Profit -= punishAmount
 		} else if nodeInfo.Pledge > punishAmount {
