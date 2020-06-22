@@ -19,9 +19,7 @@
 package common
 
 import (
-	"errors"
-	"strconv"
-	"strings"
+	"net"
 )
 
 //peer capability
@@ -116,29 +114,13 @@ const (
 	FINDNODE_TYPE      = "findnode"    // find node using dht
 	FINDNODE_RESP_TYPE = "findnodeack" // find node using dht
 	UPDATE_KADID_TYPE  = "updatekadid" //update node kadid
+
+	GET_SUBNET_MEMBERS_TYPE = "getmembers" // request subnet members
+	SUBNET_MEMBERS_TYPE     = "members"    // response subnet members
 )
 
 //ParseIPAddr return ip address
 func ParseIPAddr(s string) (string, error) {
-	i := strings.Index(s, ":")
-	if i < 0 {
-		return "", errors.New("[p2p]split ip address error")
-	}
-	return s[:i], nil
-}
-
-//ParseIPPort return ip port
-func ParseIPPort(s string) (string, error) {
-	i := strings.LastIndex(s, ":")
-	if i < 0 || i == len(s)-1 {
-		return "", errors.New("[p2p]split ip port error")
-	}
-	port, err := strconv.Atoi(s[i+1:])
-	if err != nil {
-		return "", errors.New("[p2p]parse port error")
-	}
-	if port <= 0 || port >= 65535 {
-		return "", errors.New("[p2p]port out of bound")
-	}
-	return s[i:], nil
+	host, _, err := net.SplitHostPort(s)
+	return host, err
 }

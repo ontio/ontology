@@ -15,31 +15,30 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
-package connect_controller
 
-import (
-	"net"
+package utils
 
-	"github.com/ontio/ontology/p2pserver/common"
-)
+import "time"
 
-// Conn is a net.Conn wrapper to do some clean up when Close.
-type Conn struct {
-	net.Conn
-	addr       string
-	listenAddr string
-	kid        common.PeerId
-	boundIndex int
-	connectId  uint64
-	controller *ConnectController
+type Parker struct {
+	c chan struct{}
 }
 
-// Close overwrite net.Conn
-// warning: this method will try to lock the controller, be carefull to avoid deadlock
-func (self *Conn) Close() error {
-	self.controller.logger.Infof("closing connection: peer %s, address: %s", self.kid.ToHexString(), self.addr)
+func NewParker() *Parker {
+	c := make(chan struct{}, 0)
+	return &Parker{c: c}
+}
 
-	self.controller.removePeer(self)
+func (self *Parker) ParkTimeout(d time.Duration) {
+	select {
+	case <-self.c:
+	case <-time.After(d):
+	}
+}
 
-	return self.Conn.Close()
+func (self *Parker) Unpark() {
+	select {
+	case self.c <- struct{}{}:
+	default:
+	}
 }

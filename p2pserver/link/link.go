@@ -23,6 +23,8 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"sync"
+	"sync/atomic"
 	"time"
 
 	comm "github.com/ontio/ontology/common"
@@ -33,39 +35,27 @@ import (
 
 //Link used to establish
 type Link struct {
-	id        common.PeerId
-	addr      string                 // The address of the node
+	id   common.PeerId
+	addr string // The address of the node
+
+	lock      sync.RWMutex
 	conn      net.Conn               // Connect socket with the peer node
-	time      time.Time              // The latest time the node activity
+	time      int64                  // The latest time the node activity
 	recvChan  chan *types.MsgPayload //msgpayload channel
 	reqRecord map[string]int64       //Map RequestId to Timestamp, using for rejecting duplicate request in specific time
 }
 
-func NewLink() *Link {
+func NewLink(id common.PeerId, c net.Conn, msgChan chan *types.MsgPayload) *Link {
 	link := &Link{
+		id:        id,
+		addr:      c.RemoteAddr().String(),
+		conn:      c,
+		time:      time.Now().UnixNano(),
+		recvChan:  msgChan,
 		reqRecord: make(map[string]int64),
 	}
+
 	return link
-}
-
-//SetID set peer id to link
-func (this *Link) SetID(id common.PeerId) {
-	this.id = id
-}
-
-//GetID return if from peer
-func (this *Link) GetID() common.PeerId {
-	return this.id
-}
-
-//If there is connection return true
-func (this *Link) Valid() bool {
-	return this.conn != nil
-}
-
-//set message channel for link layer
-func (this *Link) SetChan(msgchan chan *types.MsgPayload) {
-	this.recvChan = msgchan
 }
 
 //get address
@@ -73,33 +63,32 @@ func (this *Link) GetAddr() string {
 	return this.addr
 }
 
-//set address
-func (this *Link) SetAddr(addr string) {
-	this.addr = addr
-}
-
 //get connection
 func (this *Link) GetConn() net.Conn {
+	this.lock.RLock()
+	defer this.lock.RUnlock()
 	return this.conn
 }
 
 //set connection
 func (this *Link) SetConn(conn net.Conn) {
+	this.lock.Lock()
+	defer this.lock.Unlock()
 	this.conn = conn
 }
 
 //record latest message time
 func (this *Link) UpdateRXTime(t time.Time) {
-	this.time = t
+	atomic.StoreInt64(&this.time, t.UnixNano())
 }
 
 //GetRXTime return the latest message time
-func (this *Link) GetRXTime() time.Time {
-	return this.time
+func (this *Link) GetRXTime() int64 {
+	return atomic.LoadInt64(&this.time)
 }
 
 func (this *Link) Rx() {
-	conn := this.conn
+	conn := this.GetConn()
 	if conn == nil {
 		return
 	}
@@ -136,9 +125,12 @@ func (this *Link) Rx() {
 
 //close connection
 func (this *Link) CloseConn() {
-	if this.conn != nil {
-		this.conn.Close()
-		this.conn = nil
+	this.lock.Lock()
+	conn := this.conn
+	this.conn = nil
+	this.lock.Unlock()
+	if conn != nil {
+		_ = conn.Close()
 	}
 }
 
@@ -150,7 +142,7 @@ func (this *Link) Send(msg types.Message) error {
 }
 
 func (this *Link) SendRaw(rawPacket []byte) error {
-	conn := this.conn
+	conn := this.GetConn()
 	if conn == nil {
 		return errors.New("[p2p]tx link invalid")
 	}

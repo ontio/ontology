@@ -70,3 +70,8 @@ type NetworkStart struct {
 type NetworkStop struct {
 	implSystemMessage
 }
+
+type HostAddrDetected struct {
+	implSystemMessage
+	ListenAddr string
+}

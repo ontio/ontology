@@ -36,12 +36,11 @@ var _ net.Addr = &Listener{}
 
 func (n *network) NewListener(id common.PeerId) (string, net.Listener) {
 	ip := n.nextFakeIP()
-	return n.NewListenerWithHost(id, ip)
+	hostport := ip + ":" + n.nextPortString()
+	return hostport, n.NewListenerWithAddr(id, hostport)
 }
 
-func (n *network) NewListenerWithHost(id common.PeerId, host string) (string, net.Listener) {
-	hostport := host + ":" + n.nextPortString()
-
+func (n *network) NewListenerWithAddr(id common.PeerId, hostport string) net.Listener {
 	ret := &Listener{
 		id:      id,
 		address: hostport,
@@ -52,7 +51,7 @@ func (n *network) NewListenerWithHost(id common.PeerId, host string) (string, ne
 	n.listeners[hostport] = ret
 	n.Unlock()
 
-	return hostport, ret
+	return ret
 }
 
 func (l *Listener) Accept() (net.Conn, error) {

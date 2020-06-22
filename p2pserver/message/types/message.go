@@ -130,7 +130,7 @@ func ReadMessage(reader io.Reader) (Message, uint32, error) {
 	}
 
 	cmdType := string(bytes.TrimRight(hdr.CMD[:], string(0)))
-	msg, err := MakeEmptyMessage(cmdType)
+	msg, err := makeEmptyMessage(cmdType)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -145,7 +145,7 @@ func ReadMessage(reader io.Reader) (Message, uint32, error) {
 	return msg, hdr.Length, nil
 }
 
-func MakeEmptyMessage(cmdType string) (Message, error) {
+func makeEmptyMessage(cmdType string) (Message, error) {
 	switch cmdType {
 	case common.PING_TYPE:
 		return &Ping{}, nil
@@ -183,6 +183,10 @@ func MakeEmptyMessage(cmdType string) (Message, error) {
 		return &FindNodeResp{}, nil
 	case common.UPDATE_KADID_TYPE:
 		return &UpdatePeerKeyId{}, nil
+	case common.GET_SUBNET_MEMBERS_TYPE:
+		return &SubnetMembersRequest{}, nil
+	case common.SUBNET_MEMBERS_TYPE:
+		return &SubnetMembers{}, nil
 	default:
 		return nil, errors.New("unsupported cmd type:" + cmdType)
 	}

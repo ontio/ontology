@@ -19,27 +19,27 @@ package bootstrap
 
 import (
 	"math/rand"
-	"net"
+	"sync/atomic"
 	"time"
 
-	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/p2pserver/common"
 	msgpack "github.com/ontio/ontology/p2pserver/message/msg_pack"
 	"github.com/ontio/ontology/p2pserver/message/types"
 	p2p "github.com/ontio/ontology/p2pserver/net/protocol"
 	"github.com/ontio/ontology/p2pserver/peer"
+	"github.com/ontio/ontology/p2pserver/protocols/utils"
 )
 
 const activeConnect = 4 // when connection num less than this value, we connect seeds node actively.
 
 type BootstrapService struct {
-	seeds     []string
-	connected uint
+	seeds     *utils.HostsResolver
+	connected uint32
 	net       p2p.P2P
 	quit      chan bool
 }
 
-func NewBootstrapService(net p2p.P2P, seeds []string) *BootstrapService {
+func NewBootstrapService(net p2p.P2P, seeds *utils.HostsResolver) *BootstrapService {
 	return &BootstrapService{
 		seeds: seeds,
 		net:   net,
@@ -56,11 +56,11 @@ func (self *BootstrapService) Stop() {
 }
 
 func (self *BootstrapService) OnAddPeer(info *peer.PeerInfo) {
-	self.connected += 1
+	atomic.AddUint32(&self.connected, 1)
 }
 
 func (self *BootstrapService) OnDelPeer(info *peer.PeerInfo) {
-	self.connected -= 1
+	atomic.AddUint32(&self.connected, ^uint32(0))
 }
 
 //connectSeedService make sure seed peer be connected
@@ -71,7 +71,8 @@ func (self *BootstrapService) connectSeedService() {
 		case <-t.C:
 			self.connectSeeds()
 			t.Stop()
-			if self.connected >= activeConnect {
+			connected := atomic.LoadUint32(&self.connected)
+			if connected >= activeConnect {
 				t.Reset(time.Second * time.Duration(10*common.CONN_MONITOR))
 			} else {
 				t.Reset(time.Second * common.CONN_MONITOR)
@@ -85,26 +86,6 @@ func (self *BootstrapService) connectSeedService() {
 
 //connectSeeds connect the seeds in seedlist and call for nbr list
 func (self *BootstrapService) connectSeeds() {
-	seedNodes := make([]string, 0)
-	for _, n := range self.seeds {
-		ip, err := common.ParseIPAddr(n)
-		if err != nil {
-			log.Warnf("[p2p]seed peer %s address format is wrong", n)
-			continue
-		}
-		ns, err := net.LookupHost(ip)
-		if err != nil {
-			log.Warnf("[p2p]resolve err: %s", err.Error())
-			continue
-		}
-		port, err := common.ParseIPPort(n)
-		if err != nil {
-			log.Warnf("[p2p]seed peer %s address format is wrong", n)
-			continue
-		}
-		seedNodes = append(seedNodes, ns[0]+port)
-	}
-
 	connPeers := make(map[string]*peer.Peer)
 	nps := self.net.GetNeighbors()
 	for _, tn := range nps {
@@ -115,7 +96,7 @@ func (self *BootstrapService) connectSeeds() {
 	seedConnList := make([]*peer.Peer, 0)
 	seedDisconn := make([]string, 0)
 	isSeed := false
-	for _, nodeAddr := range seedNodes {
+	for _, nodeAddr := range self.seeds.GetHostAddrs() {
 		if p, ok := connPeers[nodeAddr]; ok {
 			seedConnList = append(seedConnList, p)
 		} else {
@@ -137,7 +118,7 @@ func (self *BootstrapService) connectSeeds() {
 			go self.net.Connect(seedDisconn[index])
 		}
 	} else { //not found
-		for _, nodeAddr := range seedNodes {
+		for _, nodeAddr := range self.seeds.GetHostAddrs() {
 			go self.net.Connect(nodeAddr)
 		}
 	}

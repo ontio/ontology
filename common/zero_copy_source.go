@@ -21,6 +21,7 @@ package common
 import (
 	"encoding/binary"
 	"errors"
+	"io"
 )
 
 var ErrIrregularData = errors.New("irregular data")
@@ -133,6 +134,15 @@ func (self *ZeroCopySource) NextUint32() (data uint32, eof bool) {
 	return binary.LittleEndian.Uint32(buf), eof
 }
 
+func (self *ZeroCopySource) ReadUint32() (data uint32, err error) {
+	data, eof := self.NextUint32()
+	if eof {
+		return 0, io.ErrUnexpectedEOF
+	}
+
+	return data, nil
+}
+
 func (self *ZeroCopySource) NextUint64() (data uint64, eof bool) {
 	var buf []byte
 	buf, eof = self.NextBytes(UINT64_SIZE)
@@ -171,6 +181,23 @@ func (self *ZeroCopySource) NextVarBytes() (data []byte, size uint64, irregular 
 	}
 
 	return
+}
+
+func (self *ZeroCopySource) ReadString() (string, error) {
+	d, err := self.ReadVarBytes()
+	return string(d), err
+}
+
+func (self *ZeroCopySource) ReadVarBytes() (data []byte, err error) {
+	data, _, irr, eof := self.NextVarBytes()
+	if irr {
+		return nil, ErrIrregularData
+	}
+	if eof {
+		return nil, io.ErrUnexpectedEOF
+	}
+
+	return data, nil
 }
 
 func (self *ZeroCopySource) NextAddress() (data Address, eof bool) {
