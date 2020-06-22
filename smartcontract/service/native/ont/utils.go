@@ -96,11 +96,11 @@ func GenApproveKey(contract, from, to common.Address) []byte {
 
 func TransferedFrom(native *native.NativeService, currentContract common.Address, state *TransferFrom) (uint64, uint64, error) {
 	if native.Time <= config.GetOntHolderUnboundDeadline()+constants.GENESIS_BLOCK_TIMESTAMP {
-		if native.ContextRef.CheckWitness(state.Sender) == false {
+		if !native.ContextRef.CheckWitness(state.Sender) {
 			return 0, 0, errors.NewErr("authentication failed!")
 		}
 	} else {
-		if state.Sender != state.To && native.ContextRef.CheckWitness(state.Sender) == false {
+		if state.Sender != state.To && !native.ContextRef.CheckWitness(state.Sender) {
 			return 0, 0, errors.NewErr("authentication failed!")
 		}
 	}
