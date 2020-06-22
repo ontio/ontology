@@ -1685,47 +1685,9 @@ func SetGasAddress(native *native.NativeService) ([]byte, error) {
 }
 
 func GetPeerPool(native *native.NativeService) ([]byte, error) {
-	contract := native.ContextRef.CurrentContext().ContractAddress
-
-	//get current view
-	view, err := GetView(native, contract)
+	peerPoolListForVm, err := GetPeerPoolForVm(native)
 	if err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("GetPeerPool, get view error: %v", err)
-	}
-
-	//get peerPoolMap
-	peerPoolMap, err := GetPeerPoolMap(native, contract, view)
-	if err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("GetPeerPool, get peerPoolMap error: %v", err)
-	}
-
-	peerPoolList := make([]*PeerPoolItemForVm, 0)
-	for _, v := range peerPoolMap.PeerPoolMap {
-		pkb, err := hex.DecodeString(v.PeerPubkey)
-		if err != nil {
-			return utils.BYTE_FALSE, fmt.Errorf("GetPeerPool, hex.DecodeString public key error: %v", err)
-		}
-		pk, err := keypair.DeserializePublicKey(pkb)
-		if err != nil {
-			return utils.BYTE_FALSE, fmt.Errorf("GetPeerPool, keypair.DeserializePublicKey error: %v", err)
-		}
-		peerAddress := types.AddressFromPubKey(pk)
-		peerPoolItemForVm := &PeerPoolItemForVm{
-			Index:       v.Index,
-			PeerAddress: peerAddress,
-			Address:     v.Address,
-			Status:      v.Status,
-			InitPos:     v.InitPos,
-			TotalPos:    v.TotalPos,
-		}
-		peerPoolList = append(peerPoolList, peerPoolItemForVm)
-	}
-	sort.SliceStable(peerPoolList, func(i, j int) bool {
-		return peerPoolList[i].PeerAddress.ToHexString() > peerPoolList[j].PeerAddress.ToHexString()
-	})
-
-	peerPoolListForVm := &PeerPoolListForVm{
-		PeerPoolList: peerPoolList,
+		return utils.BYTE_FALSE, fmt.Errorf("GetPeerPool, GetPeerPoolForVm error: %s", err)
 	}
 	sink := common.NewZeroCopySink(nil)
 	peerPoolListForVm.Serialization(sink)
@@ -1733,44 +1695,22 @@ func GetPeerPool(native *native.NativeService) ([]byte, error) {
 }
 
 func GetPeerInfo(native *native.NativeService) ([]byte, error) {
-	contract := native.ContextRef.CurrentContext().ContractAddress
 	source := common.NewZeroCopySource(native.Input)
-	pk, err := utils.DecodeString(source)
+	address, err := utils.DecodeAddress(source)
 	if err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("GetPeerInfo, get public key error: %s", err)
-	}
-	//get current view
-	view, err := GetView(native, contract)
-	if err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("GetPeerInfo, get view error: %v", err)
+		return utils.BYTE_FALSE, fmt.Errorf("GetPeerInfo, get peer address error: %s", err)
 	}
 
-	//get peerPoolMap
-	peerPoolMap, err := GetPeerPoolMap(native, contract, view)
+	peerPoolListForVm, err := GetPeerPoolForVm(native)
 	if err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("GetPeerInfo, get peerPoolMap error: %v", err)
-	}
-	peerInfo, ok := peerPoolMap.PeerPoolMap[pk]
-	if !ok {
-		return utils.BYTE_FALSE, fmt.Errorf("GetPeerInfo, get peerInfo error: %v", err)
+		return utils.BYTE_FALSE, fmt.Errorf("GetPeerPool, GetPeerPoolForVm error: %s", err)
 	}
 
-	peerPkb, err := hex.DecodeString(peerInfo.PeerPubkey)
-	if err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("GetPeerInfo, hex.DecodeString public key error: %v", err)
-	}
-	peerPk, err := keypair.DeserializePublicKey(peerPkb)
-	if err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("GetPeerInfo, keypair.DeserializePublicKey error: %v", err)
-	}
-	peerAddress := types.AddressFromPubKey(peerPk)
-	peerPoolItemForVm := &PeerPoolItemForVm{
-		Index:       peerInfo.Index,
-		PeerAddress: peerAddress,
-		Address:     peerInfo.Address,
-		Status:      peerInfo.Status,
-		InitPos:     peerInfo.InitPos,
-		TotalPos:    peerInfo.TotalPos,
+	peerPoolItemForVm := new(PeerPoolItemForVm)
+	for _, v := range peerPoolListForVm.PeerPoolList {
+		if v.PeerAddress == address {
+			peerPoolItemForVm = v
+		}
 	}
 
 	sink := common.NewZeroCopySink(nil)
@@ -1834,4 +1774,50 @@ func GetPeerPoolByAddress(native *native.NativeService) ([]byte, error) {
 	sink := common.NewZeroCopySink(nil)
 	peerPoolListForVm.Serialization(sink)
 	return sink.Bytes(), nil
+}
+
+func GetPeerPoolForVm(native *native.NativeService) (*PeerPoolListForVm, error) {
+	contract := native.ContextRef.CurrentContext().ContractAddress
+
+	//get current view
+	view, err := GetView(native, contract)
+	if err != nil {
+		return nil, fmt.Errorf("GetPeerPoolForVm, get view error: %v", err)
+	}
+
+	//get peerPoolMap
+	peerPoolMap, err := GetPeerPoolMap(native, contract, view)
+	if err != nil {
+		return nil, fmt.Errorf("GetPeerPoolForVm, get peerPoolMap error: %v", err)
+	}
+
+	peerPoolList := make([]*PeerPoolItemForVm, 0)
+	for _, v := range peerPoolMap.PeerPoolMap {
+		pkb, err := hex.DecodeString(v.PeerPubkey)
+		if err != nil {
+			return nil, fmt.Errorf("GetPeerPoolForVm, hex.DecodeString public key error: %v", err)
+		}
+		pk, err := keypair.DeserializePublicKey(pkb)
+		if err != nil {
+			return nil, fmt.Errorf("GetPeerPoolForVm, keypair.DeserializePublicKey error: %v", err)
+		}
+		peerAddress := types.AddressFromPubKey(pk)
+		peerPoolItemForVm := &PeerPoolItemForVm{
+			Index:       v.Index,
+			PeerAddress: peerAddress,
+			Address:     v.Address,
+			Status:      v.Status,
+			InitPos:     v.InitPos,
+			TotalPos:    v.TotalPos,
+		}
+		peerPoolList = append(peerPoolList, peerPoolItemForVm)
+	}
+	sort.SliceStable(peerPoolList, func(i, j int) bool {
+		return peerPoolList[i].PeerAddress.ToHexString() > peerPoolList[j].PeerAddress.ToHexString()
+	})
+
+	peerPoolListForVm := &PeerPoolListForVm{
+		PeerPoolList: peerPoolList,
+	}
+	return peerPoolListForVm, nil
 }
