@@ -1728,10 +1728,10 @@ func GetPeerPool(native *native.NativeService) ([]byte, error) {
 			TotalPos:    v.TotalPos,
 		}
 		peerPoolList = append(peerPoolList, peerPoolItemForVm)
-		sort.SliceStable(peerPoolList, func(i, j int) bool {
-			return peerPoolList[i].PeerAddress.ToHexString() > peerPoolList[j].PeerAddress.ToHexString()
-		})
 	}
+	sort.SliceStable(peerPoolList, func(i, j int) bool {
+		return peerPoolList[i].PeerAddress.ToHexString() > peerPoolList[j].PeerAddress.ToHexString()
+	})
 
 	peerPoolListForVm := &PeerPoolListForVm{
 		PeerPoolList: peerPoolList,
@@ -1832,10 +1832,10 @@ func GetPeerPoolByAddress(native *native.NativeService) ([]byte, error) {
 			TotalPos:    v.TotalPos,
 		}
 		peerPoolList = append(peerPoolList, peerPoolItemForVm)
-		sort.SliceStable(peerPoolList, func(i, j int) bool {
-			return peerPoolList[i].PeerAddress.ToHexString() > peerPoolList[j].PeerAddress.ToHexString()
-		})
 	}
+	sort.SliceStable(peerPoolList, func(i, j int) bool {
+		return peerPoolList[i].PeerAddress.ToHexString() > peerPoolList[j].PeerAddress.ToHexString()
+	})
 
 	peerPoolListForVm := &PeerPoolListForVm{
 		PeerPoolList: peerPoolList,
