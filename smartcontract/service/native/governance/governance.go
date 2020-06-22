@@ -974,12 +974,14 @@ func Withdraw(native *native.NativeService) ([]byte, error) {
 func CommitDpos(native *native.NativeService) ([]byte, error) {
 	contract := native.ContextRef.CurrentContext().ContractAddress
 
-	//unbound ong to governance
-	err := appCallUnboundGovernanceOng(native)
-	if err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("CommitDpos, appCallUnboundGovernanceOng error: %v", err)
+	if native.Time > config.GetOntHolderUnboundDeadline()+constants.GENESIS_BLOCK_TIMESTAMP {
+		//unbound ong to governance
+		err := appCallUnboundGovernanceOng(native)
+		if err != nil {
+			return utils.BYTE_FALSE, fmt.Errorf("CommitDpos, appCallUnboundGovernanceOng error: %v", err)
+		}
 	}
-
+	
 	// get config
 	config, err := getConfig(native, contract)
 	if err != nil {
