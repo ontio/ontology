@@ -25,6 +25,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"math"
+	"sort"
 
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
@@ -1727,6 +1728,9 @@ func GetPeerPool(native *native.NativeService) ([]byte, error) {
 			TotalPos:    v.TotalPos,
 		}
 		peerPoolList = append(peerPoolList, peerPoolItemForVm)
+		sort.SliceStable(peerPoolList, func(i, j int) bool {
+			return peerPoolList[i].PeerAddress.ToHexString() > peerPoolList[j].PeerAddress.ToHexString()
+		})
 	}
 
 	peerPoolListForVm := &PeerPoolListForVm{
@@ -1828,6 +1832,9 @@ func GetPeerPoolByAddress(native *native.NativeService) ([]byte, error) {
 			TotalPos:    v.TotalPos,
 		}
 		peerPoolList = append(peerPoolList, peerPoolItemForVm)
+		sort.SliceStable(peerPoolList, func(i, j int) bool {
+			return peerPoolList[i].PeerAddress.ToHexString() > peerPoolList[j].PeerAddress.ToHexString()
+		})
 	}
 
 	peerPoolListForVm := &PeerPoolListForVm{
