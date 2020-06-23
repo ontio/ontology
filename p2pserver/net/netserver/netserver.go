@@ -43,14 +43,7 @@ func NewNetServer(protocol p2p.Protocol, conf *config.P2PNodeConfig, reserveAddr
 	info := peer.NewPeerInfo(keyId.Id, common.PROTOCOL_VERSION, common.SERVICE_NODE, true,
 		conf.HttpInfoPort, nodePort, 0, config.Version, "")
 
-	var rsv []string
-	if conf.ReservedPeersOnly && conf.ReservedCfg != nil {
-		rsv = conf.ReservedCfg.ReservedPeers
-	}
-	staticFilter := connect_controller.NewStaticReserveFilter(rsv)
-	reservedPeers := p2p.CombineAddrFilter(staticFilter, reserveAddrFilter)
-
-	option, err := connect_controller.ConnCtrlOptionFromConfig(conf, reservedPeers)
+	option, err := connect_controller.ConnCtrlOptionFromConfig(conf, reserveAddrFilter)
 	if err != nil {
 		return nil, err
 	}
