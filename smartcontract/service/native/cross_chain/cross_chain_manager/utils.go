@@ -138,7 +138,7 @@ func MakeFromOntProof(native *native.NativeService, params *CreateCrossChainTxPa
 	return nil
 }
 
-func VerifyToOntTx(native *native.NativeService, proof []byte, fromChainid uint64, header *ccom.Header) (*ccom.ToMerkleValue, error) {
+func VerifyToOntTx(native *native.NativeService, proof []byte, header *ccom.Header) (*ccom.ToMerkleValue, error) {
 	v, err := merkle.MerkleProve(proof, header.CrossStateRoot)
 	if err != nil {
 		return nil, fmt.Errorf("VerifyToOntTx, merkle.MerkleProve verify merkle proof error: %v", err)
@@ -151,17 +151,17 @@ func VerifyToOntTx(native *native.NativeService, proof []byte, fromChainid uint6
 	}
 
 	//record done cross chain tx
-	err = checkDoneTx(native, merkleValue.MakeTxParam.CrossChainID, fromChainid)
+	fromChainId := merkleValue.FromChainID
+	err = checkDoneTx(native, merkleValue.MakeTxParam.CrossChainID, fromChainId)
 	if err != nil {
-		return nil, fmt.Errorf("VerifyToOntTx, checkDoneTx error:%s", err)
+		return nil, fmt.Errorf("VerifyToOntTx, checkDoneTx, CrossChainId: %x, fromChainId: %d, error:%s", merkleValue.MakeTxParam.CrossChainID, fromChainId, err)
 	}
-	err = putDoneTx(native, merkleValue.MakeTxParam.CrossChainID, fromChainid)
+	err = putDoneTx(native, merkleValue.MakeTxParam.CrossChainID, fromChainId)
 	if err != nil {
-		return nil, fmt.Errorf("VerifyToOntTx, putDoneTx error:%s", err)
+		return nil, fmt.Errorf("VerifyToOntTx, putDoneTx, CrossChainId: %x, fromChainId: %d, error:%s", merkleValue.MakeTxParam.CrossChainID, fromChainId, err)
 	}
-
 	notifyVerifyToOntProof(native, hex.EncodeToString(merkleValue.TxHash), hex.EncodeToString(merkleValue.MakeTxParam.TxHash),
-		fromChainid, hex.EncodeToString(merkleValue.MakeTxParam.ToContractAddress))
+		fromChainId, hex.EncodeToString(merkleValue.MakeTxParam.ToContractAddress))
 	return merkleValue, nil
 }
 
