@@ -40,7 +40,7 @@ import (
 
 func TestSubnetAllGovAreSeed(t *testing.T) {
 	subnet.RefreshDuration = time.Millisecond * 1000
-	log.Info("test subnet start")
+	log.Info("test subnet all gov are seed")
 	//topo
 	/**
 		normal —————— normal
@@ -82,7 +82,8 @@ func TestSubnetAllGovAreSeed(t *testing.T) {
 		}
 	}
 
-	time.Sleep(time.Second * 10)
+	//need some time for seed node detected it's identity
+	time.Sleep(time.Second * 20)
 	for i := 0; i < SG; i++ {
 		assert.Equal(t, len(getSubnetMemberInfo(nodes[i].Protocol())), SG, i)
 	}
