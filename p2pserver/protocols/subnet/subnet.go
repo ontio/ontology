@@ -333,9 +333,13 @@ func (self *SubNet) maintainLoop(net p2p.P2P) {
 		self.lock.Lock()
 		for _, p := range net.GetNeighbors() {
 			listen := p.Info.RemoteListenAddress()
-			if self.members[listen] != nil && self.connected[listen] == nil {
-				self.connected[listen] = p.Info
+			if self.members[listen] != nil {
 				self.members[listen].Alive = time.Now()
+				// some gov node may connected before we known it's identity.
+				// so check and add it to connected list here
+				if self.connected[listen] == nil {
+					self.connected[listen] = p.Info
+				}
 			}
 		}
 		seedOrGov := self.IsSeedNode() || (self.acct != nil && self.gov.IsGovNodePubKey(self.acct.PublicKey))
