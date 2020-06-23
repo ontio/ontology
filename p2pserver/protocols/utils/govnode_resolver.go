@@ -20,6 +20,7 @@ package utils
 
 import (
 	"bytes"
+	"encoding/json"
 	"sync/atomic"
 	"time"
 	"unsafe"
@@ -95,7 +96,7 @@ func (self *GovNodeLedgerResolver) IsGovNodePubKey(key keypair.PublicKey) bool {
 func (self *GovNodeLedgerResolver) IsGovNode(pubKey string) bool {
 	view, err := GetGovernanceView(self.db)
 	if err != nil {
-		log.Warnf("gov node resolver failed to load view from ledger, err: %v", err)
+		log.Warnf("[subnet] gov node resolver failed to load view from ledger, err: %v", err)
 		return false
 	}
 	cached := (*GovCache)(atomic.LoadPointer(&self.cache))
@@ -107,7 +108,7 @@ func (self *GovNodeLedgerResolver) IsGovNode(pubKey string) bool {
 	govNode := false
 	peers, count, err := GetPeersConfig(self.db, view.View)
 	if err != nil {
-		log.Warnf("gov node resolver failed to load peers from ledger, err: %v", err)
+		log.Warnf("[subnet] gov node resolver failed to load peers from ledger, err: %v", err)
 		return false
 	}
 
@@ -118,6 +119,9 @@ func (self *GovNodeLedgerResolver) IsGovNode(pubKey string) bool {
 			govNode = true
 		}
 	}
+
+	jsonPeers, _ := json.Marshal(peers)
+	log.Infof("[subnet] reloading gov node: %s", string(jsonPeers))
 
 	atomic.StorePointer(&self.cache, unsafe.Pointer(&GovCache{
 		govNodeNum:  count,
