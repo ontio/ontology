@@ -19,6 +19,7 @@
 package cross_chain_manager
 
 import (
+	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
 
@@ -151,15 +152,23 @@ func VerifyToOntTx(native *native.NativeService, proof []byte, fromChainid uint6
 	}
 
 	//record done cross chain tx
-	err = checkDoneTx(native, merkleValue.MakeTxParam.CrossChainID, fromChainid)
-	if err != nil {
-		return nil, fmt.Errorf("VerifyToOntTx, checkDoneTx error:%s", err)
-	}
-	err = putDoneTx(native, merkleValue.MakeTxParam.CrossChainID, fromChainid)
-	if err != nil {
-		return nil, fmt.Errorf("VerifyToOntTx, putDoneTx error:%s", err)
+	var crossChainId []byte
+	if native.Height > config.GetCrossChainHeight() {
+		fromChainid = merkleValue.FromChainID
+		hash := sha256.Sum256(merkleValue.MakeTxParam.CrossChainID)
+		crossChainId = append(crossChainId, hash[:]...)
+	} else {
+		crossChainId = merkleValue.MakeTxParam.CrossChainID
 	}
 
+	err = checkDoneTx(native, crossChainId, fromChainid)
+	if err != nil {
+		return nil, fmt.Errorf("VerifyToOntTx, checkDoneTx, CrossChainId: %x, fromChainId: %d, error:%s", crossChainId, fromChainid, err)
+	}
+	err = putDoneTx(native, crossChainId, fromChainid)
+	if err != nil {
+		return nil, fmt.Errorf("VerifyToOntTx, putDoneTx, CrossChainId: %x, fromChainId: %d, error:%s", crossChainId, fromChainid, err)
+	}
 	notifyVerifyToOntProof(native, hex.EncodeToString(merkleValue.TxHash), hex.EncodeToString(merkleValue.MakeTxParam.TxHash),
 		fromChainid, hex.EncodeToString(merkleValue.MakeTxParam.ToContractAddress))
 	return merkleValue, nil
