@@ -203,14 +203,14 @@ func (self *SubNet) OnMembersRequest(ctx *p2p.Context, msg *types.SubnetMembersR
 	self.lock.Unlock()
 
 	reply := &types.SubnetMembers{Members: members}
-	self.logger.Debugf("[subnet], send members to peer %s, value: %s", sender.Info.Id.ToHexString(), reply)
+	self.logger.Debugf("[subnet] send members to peer %s, value: %s", sender.Info.Id.ToHexString(), reply)
 	ctx.Network().SendTo(sender.GetID(), reply)
 }
 
 func (self *SubNet) OnMembersResponse(ctx *p2p.Context, msg *types.SubnetMembers) {
 	self.lock.Lock()
 	defer self.lock.Unlock()
-	self.logger.Debugf("[subnet], receive members: %s ", msg.String())
+	self.logger.Debugf("[subnet] receive members: %s ", msg.String())
 
 	listen := ctx.Sender().Info.RemoteListenAddress()
 	if self.connected[listen] == nil {
@@ -250,14 +250,16 @@ func (self *SubNet) getUnconnectedGovNode() []string {
 
 func (self *SubNet) newMembersRequest(from, to common.PeerId) *types.SubnetMembersRequest {
 	var request *types.SubnetMembersRequest
-	if self.IsSeedNode() {
-		request = types.NewMembersRequestFromSeed()
-	} else if self.acct != nil && self.gov.IsGovNodePubKey(self.acct.PublicKey) {
+	// need first check is gov node, since gov node may also be seed node
+	// so the remote peer can known this node is gov node.
+	if self.acct != nil && self.gov.IsGovNodePubKey(self.acct.PublicKey) {
 		var err error
 		request, err = types.NewMembersRequest(from, to, self.acct)
 		if err != nil {
 			return nil
 		}
+	} else if self.IsSeedNode() {
+		request = types.NewMembersRequestFromSeed()
 	}
 
 	return request
@@ -331,9 +333,13 @@ func (self *SubNet) maintainLoop(net p2p.P2P) {
 		self.lock.Lock()
 		for _, p := range net.GetNeighbors() {
 			listen := p.Info.RemoteListenAddress()
-			if self.members[listen] != nil && self.connected[listen] == nil {
-				self.connected[listen] = p.Info
+			if self.members[listen] != nil {
 				self.members[listen].Alive = time.Now()
+				// some gov node may connected before we known it's identity.
+				// so check and add it to connected list here
+				if self.connected[listen] == nil {
+					self.connected[listen] = p.Info
+				}
 			}
 		}
 		seedOrGov := self.IsSeedNode() || (self.acct != nil && self.gov.IsGovNodePubKey(self.acct.PublicKey))
