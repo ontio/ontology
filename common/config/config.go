@@ -188,6 +188,15 @@ func GetNewOntIdHeight() uint32 {
 	}
 }
 
+func GetCrossChainHeight() uint32 {
+	switch DefConfig.P2PNode.NetworkId {
+	case NETWORK_ID_POLARIS_NET:
+		return constants.BLOCKHEIGHT_CC_POLARIS
+	default:
+		return 0
+	}
+}
+
 func GetOntHolderUnboundDeadline() uint32 {
 	switch DefConfig.P2PNode.NetworkId {
 	case NETWORK_ID_MAIN_NET:

@@ -98,7 +98,7 @@ func ProcessCrossChainTx(native *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("ProcessCrossChainTx, proof hex.DecodeString error: %v", err)
 	}
-	merkleValue, err := VerifyToOntTx(native, proof, header)
+	merkleValue, err := VerifyToOntTx(native, proof, params.FromChainID, header)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("ProcessCrossChainTx, VerifyOntTx error: %v", err)
 	}

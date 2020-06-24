@@ -19,6 +19,7 @@
 package cross_chain_manager
 
 import (
+	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
 
@@ -138,7 +139,7 @@ func MakeFromOntProof(native *native.NativeService, params *CreateCrossChainTxPa
 	return nil
 }
 
-func VerifyToOntTx(native *native.NativeService, proof []byte, header *ccom.Header) (*ccom.ToMerkleValue, error) {
+func VerifyToOntTx(native *native.NativeService, proof []byte, fromChainid uint64, header *ccom.Header) (*ccom.ToMerkleValue, error) {
 	v, err := merkle.MerkleProve(proof, header.CrossStateRoot)
 	if err != nil {
 		return nil, fmt.Errorf("VerifyToOntTx, merkle.MerkleProve verify merkle proof error: %v", err)
@@ -151,17 +152,25 @@ func VerifyToOntTx(native *native.NativeService, proof []byte, header *ccom.Head
 	}
 
 	//record done cross chain tx
-	fromChainId := merkleValue.FromChainID
-	err = checkDoneTx(native, merkleValue.MakeTxParam.CrossChainID, fromChainId)
-	if err != nil {
-		return nil, fmt.Errorf("VerifyToOntTx, checkDoneTx, CrossChainId: %x, fromChainId: %d, error:%s", merkleValue.MakeTxParam.CrossChainID, fromChainId, err)
+	var crossChainId []byte
+	if native.Height > config.GetCrossChainHeight() {
+		fromChainid = merkleValue.FromChainID
+		hash := sha256.Sum256(merkleValue.MakeTxParam.CrossChainID)
+		crossChainId = append(crossChainId, hash[:]...)
+	} else {
+		crossChainId = merkleValue.MakeTxParam.CrossChainID
 	}
-	err = putDoneTx(native, merkleValue.MakeTxParam.CrossChainID, fromChainId)
+
+	err = checkDoneTx(native, crossChainId, fromChainid)
 	if err != nil {
-		return nil, fmt.Errorf("VerifyToOntTx, putDoneTx, CrossChainId: %x, fromChainId: %d, error:%s", merkleValue.MakeTxParam.CrossChainID, fromChainId, err)
+		return nil, fmt.Errorf("VerifyToOntTx, checkDoneTx, CrossChainId: %x, fromChainId: %d, error:%s", crossChainId, fromChainid, err)
+	}
+	err = putDoneTx(native, crossChainId, fromChainid)
+	if err != nil {
+		return nil, fmt.Errorf("VerifyToOntTx, putDoneTx, CrossChainId: %x, fromChainId: %d, error:%s", crossChainId, fromChainid, err)
 	}
 	notifyVerifyToOntProof(native, hex.EncodeToString(merkleValue.TxHash), hex.EncodeToString(merkleValue.MakeTxParam.TxHash),
-		fromChainId, hex.EncodeToString(merkleValue.MakeTxParam.ToContractAddress))
+		fromChainid, hex.EncodeToString(merkleValue.MakeTxParam.ToContractAddress))
 	return merkleValue, nil
 }
 
