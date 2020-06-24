@@ -20,6 +20,7 @@ package vbft
 
 import (
 	"math"
+	"sort"
 	"time"
 
 	"github.com/ontio/ontology/common/log"
@@ -411,31 +412,23 @@ func (self *StateMgr) checkStartSyncing(startBlkNum uint32, forceSync bool) {
 
 // return 0 if consensus not reached yet
 func (self *StateMgr) getConsensusedCommittedBlockNum() (uint32, bool) {
-	C := int(self.server.config.C)
-
-	consensused := false
-	var maxCommitted uint32
 	myCommitted := self.server.GetCommittedBlockNo()
-	peers := make(map[uint32][]uint32)
+
+	committedBlocksList := make([]uint32, 0, len(self.peers))
 	for _, p := range self.peers {
-		n := p.committedBlockNum
-		if n >= myCommitted {
-			if _, present := peers[n]; !present {
-				peers[n] = make([]uint32, 0)
-			}
-			for k := range peers {
-				if n >= k {
-					peers[k] = append(peers[k], p.peerIdx)
-				}
-			}
-			if len(peers[n]) > C {
-				maxCommitted = n
-				consensused = true
-			}
+		if p.committedBlockNum > myCommitted {
+			committedBlocksList = append(committedBlocksList, p.committedBlockNum)
 		}
 	}
 
-	return maxCommitted, consensused
+	sort.Slice(committedBlocksList, func(i, j int) bool { return committedBlocksList[i] > committedBlocksList[j] })
+
+	C := int(self.server.config.C)
+	if len(committedBlocksList) <= C || committedBlocksList[C] < myCommitted {
+		return myCommitted, false
+	} else {
+		return committedBlocksList[C], true
+	}
 }
 
 func (self *StateMgr) canFastForward(targetBlkNum uint32) bool {
