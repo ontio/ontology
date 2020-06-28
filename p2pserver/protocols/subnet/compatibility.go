@@ -22,7 +22,7 @@ import (
 	"github.com/blang/semver"
 )
 
-const MIN_VERSION_FOR_SUBNET = "2.0.0-alpha"
+const MIN_VERSION_FOR_SUBNET = "2.0.0-0"
 
 func supportSubnet(version string) bool {
 	if version == "" {
