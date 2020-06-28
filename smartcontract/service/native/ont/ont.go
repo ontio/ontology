@@ -316,12 +316,14 @@ func grantOng(native *native.NativeService, contract, address common.Address, ba
 			return err
 		}
 		if endOffset > config.GetOntHolderUnboundDeadline() {
-			args, err := getTransferFromArgs(address, contract, address, amount)
-			if err != nil {
-				return err
-			}
-			if _, err := native.NativeCall(utils.OngContractAddress, "transferFrom", args); err != nil {
-				return err
+			if address != utils.GovernanceContractAddress {
+				args, err := getTransferFromArgs(address, contract, address, amount)
+				if err != nil {
+					return err
+				}
+				if _, err := native.NativeCall(utils.OngContractAddress, "transferFrom", args); err != nil {
+					return err
+				}
 			}
 		}
 	}
