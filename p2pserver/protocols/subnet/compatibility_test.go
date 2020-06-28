@@ -30,7 +30,7 @@ func TestCompatibility(t *testing.T) {
 		assert.False(t, supportSubnet(version))
 	}
 
-	supported := []string{"v2.0.0", "2.0.0-alpha", "2.0.0-beta", "v2.0.0-alpha.9", "v2.0.0-laizy", "v2.0.0-laizy1"}
+	supported := []string{"v2.0.0-0-gfcbf82c", "v2.0.0", "2.0.0-alpha", "2.0.0-beta", "v2.0.0-alpha.9", "v2.0.0-laizy", "v2.0.0-laizy1"}
 	for _, version := range supported {
 		assert.True(t, supportSubnet(version))
 	}

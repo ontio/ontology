@@ -33,7 +33,7 @@ import (
 	"github.com/ontio/ontology/errors"
 )
 
-var Version = "1.10.0" //Set value when build project
+var Version = "v2.0.0" //Set value when build project
 
 type VerifyMethod int
 
