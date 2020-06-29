@@ -24,7 +24,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/p2pserver/common"
 	"github.com/ontio/ontology/p2pserver/handshake"
 	"github.com/ontio/ontology/p2pserver/peer"
