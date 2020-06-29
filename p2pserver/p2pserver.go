@@ -54,7 +54,7 @@ func NewServer(acct *account.Account) (*P2PServer, error) {
 	}
 
 	staticFilter := connect_controller.NewStaticReserveFilter(rsv)
-	protocol := protocols.NewMsgHandler(acct, connect_controller.NewStaticReserveFilter(recRsv), db, log.Log)
+	protocol := protocols.NewMsgHandler(acct, connect_controller.NewStaticReserveFilter(recRsv), db, common.NewGlobalLoggerWrapper())
 	reserved := protocol.GetReservedAddrFilter(len(rsv) != 0)
 	reservedPeers := p2p.CombineAddrFilter(staticFilter, reserved)
 	n, err := netserver.NewNetServer(protocol, conf, reservedPeers)

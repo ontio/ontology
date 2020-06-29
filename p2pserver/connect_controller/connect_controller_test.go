@@ -91,7 +91,7 @@ func NewNode(option ConnCtrlOption) *Node {
 		SoftVersion: common.MIN_VERSION_FOR_DHT,
 	}
 
-	logger := common.LoggerWithContext(log.Log, fmt.Sprintf("peer %s:, ", info.Id.ToHexString()[:6]))
+	logger := common.LoggerWithContext(common.NewGlobalLoggerWrapper(), fmt.Sprintf("peer %s:, ", info.Id.ToHexString()[:6]))
 	return &Node{
 		ConnectController: NewConnectController(info, key, option, logger),
 		Info:              info,

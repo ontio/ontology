@@ -18,6 +18,8 @@
 
 package common
 
+import "github.com/ontio/ontology/common/log"
+
 type Logger interface {
 	Debug(a ...interface{})
 	Info(a ...interface{})
@@ -29,6 +31,54 @@ type Logger interface {
 	Warnf(format string, a ...interface{})
 	Errorf(format string, a ...interface{})
 	Fatalf(format string, a ...interface{})
+}
+
+// the global log.Log singletion will reinit periodically
+// so must be accessed by function like log.Warn
+type GlobalLoggerWrapper struct{}
+
+func NewGlobalLoggerWrapper() Logger {
+	return &GlobalLoggerWrapper{}
+}
+
+func (self *GlobalLoggerWrapper) Debug(a ...interface{}) {
+	log.Debug(a...)
+}
+
+func (self *GlobalLoggerWrapper) Info(a ...interface{}) {
+	log.Info(a...)
+}
+
+func (self *GlobalLoggerWrapper) Warn(a ...interface{}) {
+	log.Warn(a...)
+}
+
+func (self *GlobalLoggerWrapper) Error(a ...interface{}) {
+	log.Error(a...)
+}
+
+func (self *GlobalLoggerWrapper) Fatal(a ...interface{}) {
+	log.Fatal(a...)
+}
+
+func (self *GlobalLoggerWrapper) Debugf(format string, a ...interface{}) {
+	log.Debugf(format, a...)
+}
+
+func (self *GlobalLoggerWrapper) Infof(format string, a ...interface{}) {
+	log.Infof(format, a...)
+}
+
+func (self *GlobalLoggerWrapper) Warnf(format string, a ...interface{}) {
+	log.Warnf(format, a...)
+}
+
+func (self *GlobalLoggerWrapper) Errorf(format string, a ...interface{}) {
+	log.Errorf(format, a...)
+}
+
+func (self *GlobalLoggerWrapper) Fatalf(format string, a ...interface{}) {
+	log.Fatalf(format, a...)
 }
 
 type withContext struct {

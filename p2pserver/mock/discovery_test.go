@@ -136,6 +136,6 @@ func NewDiscoveryNode(seeds []string, net Network) *netserver.NetServer {
 	dis.RefleshInterval = time.Millisecond * 10
 
 	context := fmt.Sprintf("peer %s:, ", seedId.Id.ToHexString()[:6])
-	logger := common.LoggerWithContext(log.Log, context)
+	logger := common.LoggerWithContext(common.NewGlobalLoggerWrapper(), context)
 	return NewNode(seedId, "", info, dis, net, nil, p2p.AllAddrFilter(), logger)
 }
