@@ -174,7 +174,7 @@ func NewSubnetNode(acct *account.Account, listenAddr string, seeds, govs []strin
 	info := peer.NewPeerInfo(seedId.Id, 0, 0, true, 0,
 		0, 0, "v2.0.0", "")
 	context := fmt.Sprintf("peer %s-%s: ", logPrefix, seedId.Id.ToHexString()[:6])
-	logger := common.LoggerWithContext(log.Log, context)
+	logger := common.LoggerWithContext(common.NewGlobalLoggerWrapper(), context)
 	protocal := NewTestSubnetProtocalHandler(acct, seeds, govs, logger)
 	resvFilter := protocal.GetReservedAddrFilter(len(reservedPeers) != 0)
 	return NewNode(seedId, listenAddr, info, protocal, net, reservedPeers, resvFilter, logger)

@@ -160,51 +160,51 @@ func (l *Logger) Outputf(level int, format string, v ...interface{}) error {
 }
 
 func (l *Logger) Trace(a ...interface{}) {
-	l.Output(TraceLog, a...)
+	_ = l.Output(TraceLog, a...)
 }
 
 func (l *Logger) Tracef(format string, a ...interface{}) {
-	l.Outputf(TraceLog, format, a...)
+	_ = l.Outputf(TraceLog, format, a...)
 }
 
 func (l *Logger) Debug(a ...interface{}) {
-	l.Output(DebugLog, a...)
+	_ = l.Output(DebugLog, a...)
 }
 
 func (l *Logger) Debugf(format string, a ...interface{}) {
-	l.Outputf(DebugLog, format, a...)
+	_ = l.Outputf(DebugLog, format, a...)
 }
 
 func (l *Logger) Info(a ...interface{}) {
-	l.Output(InfoLog, a...)
+	_ = l.Output(InfoLog, a...)
 }
 
 func (l *Logger) Infof(format string, a ...interface{}) {
-	l.Outputf(InfoLog, format, a...)
+	_ = l.Outputf(InfoLog, format, a...)
 }
 
 func (l *Logger) Warn(a ...interface{}) {
-	l.Output(WarnLog, a...)
+	_ = l.Output(WarnLog, a...)
 }
 
 func (l *Logger) Warnf(format string, a ...interface{}) {
-	l.Outputf(WarnLog, format, a...)
+	_ = l.Outputf(WarnLog, format, a...)
 }
 
 func (l *Logger) Error(a ...interface{}) {
-	l.Output(ErrorLog, a...)
+	_ = l.Output(ErrorLog, a...)
 }
 
 func (l *Logger) Errorf(format string, a ...interface{}) {
-	l.Outputf(ErrorLog, format, a...)
+	_ = l.Outputf(ErrorLog, format, a...)
 }
 
 func (l *Logger) Fatal(a ...interface{}) {
-	l.Output(FatalLog, a...)
+	_ = l.Output(FatalLog, a...)
 }
 
 func (l *Logger) Fatalf(format string, a ...interface{}) {
-	l.Outputf(FatalLog, format, a...)
+	_ = l.Outputf(FatalLog, format, a...)
 }
 
 func Trace(a ...interface{}) {
