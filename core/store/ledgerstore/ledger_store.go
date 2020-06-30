@@ -21,6 +21,7 @@ package ledgerstore
 import (
 	"bytes"
 	"crypto/sha256"
+	"encoding/json"
 	"fmt"
 	"hash"
 	"math"
@@ -229,6 +230,8 @@ func (this *LedgerStoreImp) InitLedgerStoreWithGenesisBlock(genesisBlock *types.
 			this.vbftPeerInfoblock[p.ID] = p.Index
 		}
 		this.lock.Unlock()
+		val, _ := json.Marshal(this.vbftPeerInfoblock)
+		log.Errorf("loading vbftPeerInfo at height: %s : %s", header.Height, string(val))
 	}
 	// check and fix imcompatible states
 	err = this.stateStore.CheckStorage()
@@ -461,7 +464,9 @@ func (this *LedgerStoreImp) verifyHeader(header *types.Header, vbftPeerInfo map[
 			_, present := vbftPeerInfo[pubkey]
 			if !present {
 				log.Errorf("invalid pubkey :%v,height:%d", pubkey, header.Height)
-				return vbftPeerInfo, fmt.Errorf("invalid pubkey :%v", pubkey)
+				val, _ := json.Marshal(vbftPeerInfo)
+				log.Errorf("current vbftPeerInfo :%s", string(val))
+				return vbftPeerInfo, fmt.Errorf("invalid pubkey : %v", pubkey)
 			}
 		}
 		hash := header.Hash()
@@ -956,6 +961,7 @@ func (this *LedgerStoreImp) saveBlock(block *types.Block, ccMsg *types.CrossChai
 
 	//empty block does not check stateMerkleRoot
 	if len(block.Transactions) != 0 && result.MerkleRoot != stateMerkleRoot {
+		log.Infof("state mismatch at block height: %d, changeset: %s", block.Header.Height, result.WriteSet.DumpToDot())
 		return fmt.Errorf("state merkle root mismatch. expected: %s, got: %s",
 			result.MerkleRoot.ToHexString(), stateMerkleRoot.ToHexString())
 	}
