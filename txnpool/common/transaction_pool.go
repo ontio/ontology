@@ -67,8 +67,7 @@ func (tp *TXPool) AddTxList(txEntry *TXEntry) bool {
 	defer tp.Unlock()
 	txHash := txEntry.Tx.Hash()
 	if _, ok := tp.txList[txHash]; ok {
-		log.Infof("AddTxList: transaction %x is already in the pool",
-			txHash)
+		log.Infof("AddTxList: transaction %x is already in the pool", txHash)
 		return false
 	}
 

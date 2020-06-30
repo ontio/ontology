@@ -82,6 +82,7 @@ type RecentPeer struct {
 
 func (this *PersistRecentPeerService) saveToFile() {
 	temp := make(map[uint32][]string)
+	this.lock.RLock()
 	for networkId, rps := range this.recentPeers {
 		temp[networkId] = make([]string, 0)
 		for _, rp := range rps {
@@ -91,6 +92,7 @@ func (this *PersistRecentPeerService) saveToFile() {
 			}
 		}
 	}
+	this.lock.RUnlock()
 	buf, err := json.Marshal(temp)
 	if err != nil {
 		log.Warn("[p2p]package recent peer fail: ", err)
@@ -104,8 +106,9 @@ func (this *PersistRecentPeerService) saveToFile() {
 
 func NewPersistRecentPeerService(net p2p.P2P) *PersistRecentPeerService {
 	return &PersistRecentPeerService{
-		net:  net,
-		quit: make(chan bool),
+		net:         net,
+		recentPeers: make(map[uint32][]*RecentPeer),
+		quit:        make(chan bool),
 	}
 }
 
@@ -114,7 +117,6 @@ func (self *PersistRecentPeerService) Stop() {
 }
 
 func (this *PersistRecentPeerService) loadRecentPeers() {
-	this.recentPeers = make(map[uint32][]*RecentPeer)
 	if common2.FileExisted(common.RECENT_FILE_NAME) {
 		buf, err := ioutil.ReadFile(common.RECENT_FILE_NAME)
 		if err != nil {
@@ -128,6 +130,8 @@ func (this *PersistRecentPeerService) loadRecentPeers() {
 			log.Warn("[p2p]parse recent peer file fail: ", err)
 			return
 		}
+		this.lock.Lock()
+		defer this.lock.Unlock()
 		for networkId, addrs := range temp {
 			for _, addr := range addrs {
 				this.recentPeers[networkId] = append(this.recentPeers[networkId], &RecentPeer{
@@ -148,6 +152,8 @@ func (this *PersistRecentPeerService) Start() {
 //tryRecentPeers try connect recent contact peer when service start
 func (this *PersistRecentPeerService) tryRecentPeers() {
 	netID := config.DefConfig.P2PNode.NetworkMagic
+	this.lock.RLock()
+	defer this.lock.RUnlock()
 	if len(this.recentPeers[netID]) > 0 {
 		log.Info("[p2p] try to connect recent peer")
 	}
