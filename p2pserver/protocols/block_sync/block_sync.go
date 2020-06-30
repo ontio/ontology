@@ -22,6 +22,7 @@ import (
 	"math"
 	"sort"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/ontio/ontology/common"
@@ -53,10 +54,12 @@ const (
 //NodeWeight record some params of node, using for sort
 type NodeWeight struct {
 	id           p2pComm.PeerId //NodeID
-	speed        []float32      //Record node request-response speed, using for calc the avg speed, unit kB/s
-	timeoutCnt   int            //Node response timeout count
-	errorRespCnt int            //Node response error data count
-	reqTime      []int64        //Record request time, using for calc the avg req time interval, unit millisecond
+	timeoutCnt   int64          //Node response timeout count
+	errorRespCnt int64          //Node response error data count
+
+	lock    sync.Mutex
+	speed   []float32 //Record node request-response speed, using for calc the avg speed, unit kB/s
+	reqTime []int64   //Record request time, using for calc the avg req time interval, unit millisecond
 }
 
 //NewNodeWeight new a nodeweight
@@ -81,33 +84,40 @@ func NewNodeWeight(id p2pComm.PeerId) *NodeWeight {
 
 //AddTimeoutCnt incre timeout count
 func (this *NodeWeight) AddTimeoutCnt() {
-	this.timeoutCnt++
+	atomic.AddInt64(&this.timeoutCnt, 1)
 }
 
 //AddErrorRespCnt incre receive error header/block count
 func (this *NodeWeight) AddErrorRespCnt() {
-	this.errorRespCnt++
+	atomic.AddInt64(&this.errorRespCnt, 1)
 }
 
 //GetErrorRespCnt get the error response count
-func (this *NodeWeight) GetErrorRespCnt() int {
-	return this.errorRespCnt
+func (this *NodeWeight) GetErrorRespCnt() int64 {
+	return atomic.LoadInt64(&this.errorRespCnt)
 }
 
 //AppendNewReqTime append new request time
 func (this *NodeWeight) AppendNewReqtime() {
+	this.lock.Lock()
+	defer this.lock.Unlock()
 	copy(this.reqTime[0:SYNC_NODE_RECORD_TIME_CNT-1], this.reqTime[1:])
 	this.reqTime[SYNC_NODE_RECORD_TIME_CNT-1] = time.Now().UnixNano() / int64(time.Millisecond)
 }
 
 //addNewSpeed apend the new speed to tail, remove the oldest one
 func (this *NodeWeight) AppendNewSpeed(s float32) {
+	this.lock.Lock()
+	defer this.lock.Unlock()
 	copy(this.speed[0:SYNC_NODE_RECORD_SPEED_CNT-1], this.speed[1:])
 	this.speed[SYNC_NODE_RECORD_SPEED_CNT-1] = s
 }
 
 //Weight calculate node's weight for sort. Highest weight node will be accessed first for next request.
 func (this *NodeWeight) Weight() float32 {
+	this.lock.Lock()
+	defer this.lock.Unlock()
+
 	avgSpeed := float32(0.0)
 	for _, s := range this.speed {
 		avgSpeed += s
@@ -137,7 +147,11 @@ func (nws NodeWeights) Swap(i, j int) {
 func (nws NodeWeights) Less(i, j int) bool {
 	ni := nws[i]
 	nj := nws[j]
-	return ni.Weight() < nj.Weight() && ni.errorRespCnt >= nj.errorRespCnt && ni.timeoutCnt >= nj.timeoutCnt
+	ti := atomic.LoadInt64(&ni.timeoutCnt)
+	tj := atomic.LoadInt64(&nj.timeoutCnt)
+	ei := atomic.LoadInt64(&ni.errorRespCnt)
+	ej := atomic.LoadInt64(&nj.errorRespCnt)
+	return ni.Weight() < nj.Weight() && ei >= ej && ti >= tj
 }
 
 //SyncFlightInfo record the info of fight object(header or block)

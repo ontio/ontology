@@ -139,12 +139,7 @@ func (this *NetServer) GetID() common.PeerId {
 
 // SetHeight sets the local's height
 func (this *NetServer) SetHeight(height uint64) {
-	this.base.Height = height
-}
-
-// GetHeight return peer's heigh
-func (this *NetServer) GetHeight() uint64 {
-	return this.base.Height
+	this.base.SetHeight(height)
 }
 
 // GetPeer returns a peer with the peer id

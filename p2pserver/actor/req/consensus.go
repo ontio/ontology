@@ -19,11 +19,18 @@
 package req
 
 import (
+	"sync/atomic"
+	"unsafe"
+
 	"github.com/ontio/ontology-eventbus/actor"
 )
 
-var ConsensusPid *actor.PID
+var consensusPid unsafe.Pointer
 
 func SetConsensusPid(conPid *actor.PID) {
-	ConsensusPid = conPid
+	atomic.StorePointer(&consensusPid, unsafe.Pointer(conPid))
+}
+
+func GetConsensusPid() *actor.PID {
+	return (*actor.PID)(atomic.LoadPointer(&consensusPid))
 }

@@ -182,7 +182,7 @@ func newVersion(peerInfo *peer.PeerInfo) *types.Version {
 		Nonce:        peerInfo.Id.ToUint64(),
 		IsConsensus:  false,
 		HttpInfoPort: peerInfo.HttpInfoPort,
-		StartHeight:  peerInfo.Height,
+		StartHeight:  peerInfo.Height(),
 		TimeStamp:    time.Now().UnixNano(),
 		SoftVersion:  peerInfo.SoftVersion,
 	}

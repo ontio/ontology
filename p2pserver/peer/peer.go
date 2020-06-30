@@ -25,6 +25,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	comm "github.com/ontio/ontology/common"
@@ -42,9 +43,10 @@ type PeerInfo struct {
 	Relay        bool
 	HttpInfoPort uint16
 	Port         uint16
-	Height       uint64
 	SoftVersion  string
 	Addr         string
+
+	height uint64
 }
 
 func NewPeerInfo(id common.PeerId, version uint32, services uint64, relay bool, httpInfoPort uint16,
@@ -56,7 +58,7 @@ func NewPeerInfo(id common.PeerId, version uint32, services uint64, relay bool, 
 		Relay:        relay,
 		HttpInfoPort: httpInfoPort,
 		Port:         port,
-		Height:       height,
+		height:       height,
 		SoftVersion:  softVersion,
 		Addr:         addr,
 	}
@@ -75,6 +77,14 @@ func (pi *PeerInfo) RemoteListenAddress() string {
 	sb.WriteString(strconv.Itoa(int(pi.Port)))
 
 	return sb.String()
+}
+
+func (self *PeerInfo) Height() uint64 {
+	return atomic.LoadUint64(&self.height)
+}
+
+func (self *PeerInfo) SetHeight(height uint64) {
+	atomic.StoreUint64(&self.height, height)
 }
 
 //Peer represent the node in p2p
@@ -116,12 +126,12 @@ func (this *Peer) GetVersion() uint32 {
 
 //GetHeight return peer`s block height
 func (this *Peer) GetHeight() uint64 {
-	return this.Info.Height
+	return this.Info.Height()
 }
 
 //SetHeight set height to peer
 func (this *Peer) SetHeight(height uint64) {
-	this.Info.Height = height
+	this.Info.SetHeight(height)
 }
 
 //GetPort return Peer`s sync port
@@ -204,23 +214,4 @@ func (this *Peer) Send(msg types.Message) error {
 //GetHttpInfoPort return peer`s httpinfo port
 func (this *Peer) GetHttpInfoPort() uint16 {
 	return this.Info.HttpInfoPort
-}
-
-//SetHttpInfoPort set peer`s httpinfo port
-func (this *Peer) SetHttpInfoPort(port uint16) {
-	this.Info.HttpInfoPort = port
-}
-
-//UpdateInfo update peer`s information
-func (this *Peer) UpdateInfo(t time.Time, version uint32, services uint64,
-	syncPort uint16, kid common.PeerId, relay uint8, height uint64, softVer string) {
-	this.Info.Id = kid
-	this.Info.Version = version
-	this.Info.Services = services
-	this.Info.Port = syncPort
-	this.Info.SoftVersion = softVer
-	this.Info.Relay = relay != 0
-	this.Info.Height = height
-
-	this.Link.UpdateRXTime(t)
 }
