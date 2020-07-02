@@ -463,10 +463,11 @@ func (this *LedgerStoreImp) verifyHeader(header *types.Header, vbftPeerInfo map[
 			pubkey := vconfig.PubkeyID(bookkeeper)
 			_, present := vbftPeerInfo[pubkey]
 			if !present {
-				log.Errorf("invalid pubkey :%v,height:%d", pubkey, header.Height)
 				val, _ := json.Marshal(vbftPeerInfo)
-				log.Errorf("current vbftPeerInfo :%s", string(val))
-				return vbftPeerInfo, fmt.Errorf("invalid pubkey : %v", pubkey)
+				log.Errorf("verify header error: invalid pubkey :%v, height:%d, current vbftPeerInfo :%s",
+					pubkey, header.Height, string(val))
+
+				return vbftPeerInfo, fmt.Errorf("verify header error: invalid pubkey : %v", pubkey)
 			}
 		}
 		hash := header.Hash()
