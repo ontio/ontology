@@ -17,7 +17,10 @@
  */
 package overlaydb
 
-import "fmt"
+import (
+	"encoding/hex"
+	"fmt"
+)
 
 func (db *MemDB) DumpToDot() string {
 	out := `digraph g {
@@ -79,7 +82,7 @@ func genNode(node int, k []byte, v []byte, h int) string {
 	for i := h; i > 0; i-- {
 		str += fmt.Sprintf("<f%d> %d | ", i, i)
 	}
-	str += fmt.Sprintf(`%s:%s"];`, k, v)
+	str += fmt.Sprintf(`%s:%s"];`, hex.EncodeToString(k), hex.EncodeToString(v))
 	str += "\n"
 
 	return str

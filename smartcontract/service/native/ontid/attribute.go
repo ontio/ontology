@@ -43,8 +43,8 @@ type attributeJson struct {
 
 type attribute struct {
 	key       []byte
-	value     []byte
 	valueType []byte
+	value     []byte
 }
 
 func (this *attribute) Value() []byte {
