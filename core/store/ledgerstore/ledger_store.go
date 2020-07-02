@@ -231,7 +231,7 @@ func (this *LedgerStoreImp) InitLedgerStoreWithGenesisBlock(genesisBlock *types.
 		}
 		this.lock.Unlock()
 		val, _ := json.Marshal(this.vbftPeerInfoblock)
-		log.Errorf("loading vbftPeerInfo at height: %s : %s", header.Height, string(val))
+		log.Infof("loading vbftPeerInfo at height: %s : %s", header.Height, string(val))
 	}
 	// check and fix imcompatible states
 	err = this.stateStore.CheckStorage()
