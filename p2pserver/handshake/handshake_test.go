@@ -24,9 +24,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ontio/ontology/p2pserver/common"
-	"github.com/ontio/ontology/p2pserver/message/types"
-	"github.com/ontio/ontology/p2pserver/peer"
+	"github.com/ontio/ontology/v2/p2pserver/common"
+	"github.com/ontio/ontology/v2/p2pserver/message/types"
+	"github.com/ontio/ontology/v2/p2pserver/peer"
 	"github.com/stretchr/testify/assert"
 )
 

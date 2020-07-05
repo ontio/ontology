@@ -21,9 +21,9 @@ package test
 import (
 	"testing"
 
-	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/core/types"
-	"github.com/ontio/ontology/smartcontract"
+	"github.com/ontio/ontology/v2/common"
+	"github.com/ontio/ontology/v2/core/types"
+	"github.com/ontio/ontology/v2/smartcontract"
 	"github.com/stretchr/testify/assert"
 )
 

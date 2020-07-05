@@ -23,13 +23,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/core/payload"
-	"github.com/ontio/ontology/core/types"
-	utils2 "github.com/ontio/ontology/core/utils"
-	"github.com/ontio/ontology/smartcontract"
-	"github.com/ontio/ontology/smartcontract/service/native"
-	"github.com/ontio/ontology/smartcontract/storage"
+	"github.com/ontio/ontology/v2/common"
+	"github.com/ontio/ontology/v2/core/payload"
+	"github.com/ontio/ontology/v2/core/types"
+	utils2 "github.com/ontio/ontology/v2/core/utils"
+	"github.com/ontio/ontology/v2/smartcontract"
+	"github.com/ontio/ontology/v2/smartcontract/service/native"
+	"github.com/ontio/ontology/v2/smartcontract/storage"
 	"github.com/stretchr/testify/assert"
 )
 

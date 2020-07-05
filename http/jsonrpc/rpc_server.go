@@ -24,9 +24,9 @@ import (
 	"net/http"
 	"strconv"
 
-	cfg "github.com/ontio/ontology/common/config"
-	"github.com/ontio/ontology/common/log"
-	"github.com/ontio/ontology/http/base/rpc"
+	cfg "github.com/ontio/ontology/v2/common/config"
+	"github.com/ontio/ontology/v2/common/log"
+	"github.com/ontio/ontology/v2/http/base/rpc"
 )
 
 func StartRPCServer() error {

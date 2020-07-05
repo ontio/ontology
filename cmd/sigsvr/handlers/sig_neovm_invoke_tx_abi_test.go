@@ -21,7 +21,7 @@ import (
 	"encoding/json"
 	"testing"
 
-	clisvrcom "github.com/ontio/ontology/cmd/sigsvr/common"
+	clisvrcom "github.com/ontio/ontology/v2/cmd/sigsvr/common"
 )
 
 var testNeovmAbi = `{

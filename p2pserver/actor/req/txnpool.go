@@ -20,9 +20,9 @@ package req
 
 import (
 	"github.com/ontio/ontology-eventbus/actor"
-	"github.com/ontio/ontology/common/log"
-	"github.com/ontio/ontology/core/types"
-	tc "github.com/ontio/ontology/txnpool/common"
+	"github.com/ontio/ontology/v2/common/log"
+	"github.com/ontio/ontology/v2/core/types"
+	tc "github.com/ontio/ontology/v2/txnpool/common"
 )
 
 var txnPoolPid *actor.PID

@@ -20,9 +20,9 @@ package ontid
 import (
 	"errors"
 
-	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/smartcontract/service/native"
-	"github.com/ontio/ontology/smartcontract/service/native/utils"
+	"github.com/ontio/ontology/v2/common"
+	"github.com/ontio/ontology/v2/smartcontract/service/native"
+	"github.com/ontio/ontology/v2/smartcontract/service/native/utils"
 )
 
 func addProof(srvc *native.NativeService) ([]byte, error) {

@@ -21,11 +21,11 @@ package nodeinfo
 import (
 	"time"
 
-	"github.com/ontio/ontology/common/config"
-	"github.com/ontio/ontology/core/ledger"
-	"github.com/ontio/ontology/p2pserver/net/netserver"
-	p2p "github.com/ontio/ontology/p2pserver/net/protocol"
-	"github.com/ontio/ontology/p2pserver/protocols"
+	"github.com/ontio/ontology/v2/common/config"
+	"github.com/ontio/ontology/v2/core/ledger"
+	"github.com/ontio/ontology/v2/p2pserver/net/netserver"
+	p2p "github.com/ontio/ontology/v2/p2pserver/net/protocol"
+	"github.com/ontio/ontology/v2/p2pserver/protocols"
 	prom "github.com/prometheus/client_golang/prometheus"
 )
 

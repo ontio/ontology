@@ -21,9 +21,9 @@ package neovm
 import (
 	"math/big"
 
-	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/errors"
-	vm "github.com/ontio/ontology/vm/neovm"
+	"github.com/ontio/ontology/v2/common"
+	"github.com/ontio/ontology/v2/errors"
+	vm "github.com/ontio/ontology/v2/vm/neovm"
 )
 
 // BlockChainGetHeight put blockchain's height to vm stack

@@ -19,8 +19,8 @@
 package neovm
 
 import (
-	"github.com/ontio/ontology/vm/neovm/interfaces"
-	"github.com/ontio/ontology/vm/neovm/types"
+	"github.com/ontio/ontology/v2/vm/neovm/interfaces"
+	"github.com/ontio/ontology/v2/vm/neovm/types"
 )
 
 func (self *ValueStack) PushBool(val bool) error {

@@ -23,10 +23,10 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/ontio/ontology/common"
-	storcomm "github.com/ontio/ontology/core/store/common"
-	leveldb "github.com/ontio/ontology/core/store/leveldbstore"
-	"github.com/ontio/ontology/core/types"
+	"github.com/ontio/ontology/v2/common"
+	storcomm "github.com/ontio/ontology/v2/core/store/common"
+	leveldb "github.com/ontio/ontology/v2/core/store/leveldbstore"
+	"github.com/ontio/ontology/v2/core/types"
 	pool "github.com/valyala/bytebufferpool"
 )
 

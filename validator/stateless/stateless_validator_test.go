@@ -23,14 +23,14 @@ import (
 
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology-eventbus/actor"
-	"github.com/ontio/ontology/account"
-	"github.com/ontio/ontology/common/log"
-	"github.com/ontio/ontology/core/payload"
-	"github.com/ontio/ontology/core/signature"
-	ctypes "github.com/ontio/ontology/core/types"
-	"github.com/ontio/ontology/core/utils"
-	"github.com/ontio/ontology/errors"
-	types2 "github.com/ontio/ontology/validator/types"
+	"github.com/ontio/ontology/v2/account"
+	"github.com/ontio/ontology/v2/common/log"
+	"github.com/ontio/ontology/v2/core/payload"
+	"github.com/ontio/ontology/v2/core/signature"
+	ctypes "github.com/ontio/ontology/v2/core/types"
+	"github.com/ontio/ontology/v2/core/utils"
+	"github.com/ontio/ontology/v2/errors"
+	types2 "github.com/ontio/ontology/v2/validator/types"
 	"github.com/stretchr/testify/assert"
 )
 

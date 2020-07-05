@@ -22,10 +22,10 @@ import (
 	"os"
 	"testing"
 
-	"github.com/ontio/ontology/account"
-	"github.com/ontio/ontology/cmd/utils"
-	"github.com/ontio/ontology/core/payload"
-	"github.com/ontio/ontology/core/store/ledgerstore"
+	"github.com/ontio/ontology/v2/account"
+	"github.com/ontio/ontology/v2/cmd/utils"
+	"github.com/ontio/ontology/v2/core/payload"
+	"github.com/ontio/ontology/v2/core/store/ledgerstore"
 	"github.com/stretchr/testify/assert"
 )
 

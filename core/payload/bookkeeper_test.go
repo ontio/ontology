@@ -23,7 +23,7 @@ import (
 	"testing"
 
 	"github.com/ontio/ontology-crypto/keypair"
-	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/v2/common"
 	"github.com/stretchr/testify/assert"
 )
 

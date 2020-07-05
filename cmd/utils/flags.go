@@ -21,9 +21,9 @@ package utils
 import (
 	"strings"
 
-	"github.com/ontio/ontology/common/config"
-	"github.com/ontio/ontology/common/log"
-	"github.com/ontio/ontology/smartcontract/service/neovm"
+	"github.com/ontio/ontology/v2/common/config"
+	"github.com/ontio/ontology/v2/common/log"
+	"github.com/ontio/ontology/v2/smartcontract/service/neovm"
 	"github.com/urfave/cli"
 )
 

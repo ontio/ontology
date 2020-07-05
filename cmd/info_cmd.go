@@ -23,9 +23,9 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/ontio/ontology/cmd/utils"
-	"github.com/ontio/ontology/core/types"
-	httpcom "github.com/ontio/ontology/http/base/common"
+	"github.com/ontio/ontology/v2/cmd/utils"
+	"github.com/ontio/ontology/v2/core/types"
+	httpcom "github.com/ontio/ontology/v2/http/base/common"
 	"github.com/urfave/cli"
 )
 

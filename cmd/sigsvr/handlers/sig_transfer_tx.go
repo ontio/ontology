@@ -23,10 +23,10 @@ import (
 	"encoding/json"
 	"strconv"
 
-	clisvrcom "github.com/ontio/ontology/cmd/sigsvr/common"
-	cliutil "github.com/ontio/ontology/cmd/utils"
-	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/common/log"
+	clisvrcom "github.com/ontio/ontology/v2/cmd/sigsvr/common"
+	cliutil "github.com/ontio/ontology/v2/cmd/utils"
+	"github.com/ontio/ontology/v2/common"
+	"github.com/ontio/ontology/v2/common/log"
 )
 
 type SigTransferTransactionReq struct {

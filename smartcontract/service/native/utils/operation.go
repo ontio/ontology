@@ -22,10 +22,10 @@ import (
 	"bytes"
 	"fmt"
 
-	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/common/serialization"
-	"github.com/ontio/ontology/errors"
-	"github.com/ontio/ontology/smartcontract/service/native"
+	"github.com/ontio/ontology/v2/common"
+	"github.com/ontio/ontology/v2/common/serialization"
+	"github.com/ontio/ontology/v2/errors"
+	"github.com/ontio/ontology/v2/smartcontract/service/native"
 )
 
 func ConcatKey(contract common.Address, args ...[]byte) []byte {

@@ -30,12 +30,12 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
-	"github.com/ontio/ontology/common"
-	cfg "github.com/ontio/ontology/common/config"
-	"github.com/ontio/ontology/common/log"
-	Err "github.com/ontio/ontology/http/base/error"
-	"github.com/ontio/ontology/http/base/rest"
-	"github.com/ontio/ontology/http/websocket/session"
+	"github.com/ontio/ontology/v2/common"
+	cfg "github.com/ontio/ontology/v2/common/config"
+	"github.com/ontio/ontology/v2/common/log"
+	Err "github.com/ontio/ontology/v2/http/base/error"
+	"github.com/ontio/ontology/v2/http/base/rest"
+	"github.com/ontio/ontology/v2/http/websocket/session"
 )
 
 const (

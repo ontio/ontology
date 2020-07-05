@@ -22,7 +22,7 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/v2/common"
 	"github.com/stretchr/testify/assert"
 )
 

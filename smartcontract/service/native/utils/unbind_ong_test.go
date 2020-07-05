@@ -22,8 +22,8 @@ import (
 	"math/rand"
 	"testing"
 
-	"github.com/ontio/ontology/common/config"
-	"github.com/ontio/ontology/common/constants"
+	"github.com/ontio/ontology/v2/common/config"
+	"github.com/ontio/ontology/v2/common/constants"
 	"github.com/stretchr/testify/assert"
 )
 

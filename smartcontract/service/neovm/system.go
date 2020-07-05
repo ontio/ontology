@@ -19,8 +19,8 @@
 package neovm
 
 import (
-	"github.com/ontio/ontology/errors"
-	vm "github.com/ontio/ontology/vm/neovm"
+	"github.com/ontio/ontology/v2/errors"
+	vm "github.com/ontio/ontology/v2/vm/neovm"
 )
 
 // GetCodeContainer push current transaction to vm stack

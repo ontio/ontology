@@ -21,7 +21,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/ontio/ontology/core/types"
+	"github.com/ontio/ontology/v2/core/types"
 	"github.com/stretchr/testify/assert"
 )
 

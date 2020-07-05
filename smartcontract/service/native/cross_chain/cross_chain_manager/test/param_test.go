@@ -21,8 +21,8 @@ package test
 import (
 	"testing"
 
-	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/smartcontract/service/native/cross_chain/cross_chain_manager"
+	"github.com/ontio/ontology/v2/common"
+	"github.com/ontio/ontology/v2/smartcontract/service/native/cross_chain/cross_chain_manager"
 	"github.com/stretchr/testify/assert"
 )
 
