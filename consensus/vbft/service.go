@@ -120,7 +120,7 @@ type Server struct {
 	stateMgr   *StateMgr
 	timer      *EventTimer
 
-	msgRecvC   map[uint32]chan *p2pMsgPayload
+	msgRecvC   *sync.Map // map[uint32]chan *p2pMsgPayload
 	msgC       chan ConsensusMsg
 	bftActionC chan *BftAction
 	msgSendC   chan *SendMsgEvent
@@ -206,23 +206,23 @@ func (self *Server) Halt() error {
 func (self *Server) handleBlockPersistCompleted(block *types.Block) {
 	log.Infof("persist block: %d, %x", block.Header.Height, block.Hash())
 
-	if block.Header.Height <= self.completedBlockNum {
+	if block.Header.Height <= self.GetCompletedBlockNum() {
 		log.Infof("server %d, persist block %d, vs completed %d",
-			self.Index, block.Header.Height, self.completedBlockNum)
+			self.Index, block.Header.Height, self.GetCompletedBlockNum())
 		return
 	}
-	self.completedBlockNum = block.Header.Height
+	self.SetCompletedBlockNum(block.Header.Height)
 	self.incrValidator.AddBlock(block)
 	if self.nonConsensusNode() {
-		self.chainStore.ReloadFromLedger()
+		self.blockPool.ReloadFromLedger()
 		self.metaLock.Lock()
-		if self.GetCommittedBlockNo() >= self.currentBlockNum {
-			self.currentBlockNum = self.GetCommittedBlockNo() + 1
+		if self.GetCommittedBlockNo() >= self.GetCurrentBlockNo() {
+			self.SetCurrentBlockNo(self.GetCommittedBlockNo() + 1)
 		}
 		self.metaLock.Unlock()
 	}
 
-	if self.checkNeedUpdateChainConfig(self.completedBlockNum) || self.checkUpdateChainConfig(self.completedBlockNum) {
+	if self.checkNeedUpdateChainConfig(self.GetCompletedBlockNum()) || self.checkUpdateChainConfig(self.GetCompletedBlockNum()) {
 		err := self.updateChainConfig()
 		if err != nil {
 			log.Errorf("updateChainConfig failed:%s", err)
@@ -243,7 +243,11 @@ func (self *Server) CheckSubmitBlock(blkNum uint32, stateRoot common.Uint256) bo
 			}
 		}
 	}
+
+	self.metaLock.RLock()
 	m := self.config.N - (self.config.N-1)/3
+	self.metaLock.RUnlock()
+
 	if stateRootCnt < uint32(m) {
 		return false
 	}
@@ -265,7 +269,7 @@ func (self *Server) NewConsensusPayload(payload *p2pmsg.ConsensusPayload) {
 		self.peerPool.addP2pId(peerIdx, payload.PeerId)
 	}
 
-	if C, present := self.msgRecvC[peerIdx]; present {
+	if C := self.GetPeerMsgChan(peerIdx); C != nil {
 		C <- &p2pMsgPayload{
 			fromPeer: peerIdx,
 			payload:  payload,
@@ -321,8 +325,8 @@ func (self *Server) LoadChainConfig(blkNum uint32) error {
 	// TODO: load sealed blocks from chainStore
 
 	// protected by server.metaLock
-	self.completedBlockNum = self.GetCommittedBlockNo()
-	self.currentBlockNum = self.GetCommittedBlockNo() + 1
+	self.SetCompletedBlockNum(self.GetCommittedBlockNo())
+	self.SetCurrentBlockNo(self.GetCommittedBlockNo() + 1)
 
 	log.Infof("committed: %d, current block no: %d", self.GetCommittedBlockNo(), self.GetCurrentBlockNo())
 
@@ -345,14 +349,14 @@ func (self *Server) nonConsensusNode() bool {
 
 //updateChainCofig
 func (self *Server) updateChainConfig() error {
-	block, _ := self.blockPool.getSealedBlock(self.completedBlockNum)
+	block, _ := self.blockPool.getSealedBlock(self.GetCompletedBlockNum())
 	if block == nil {
-		return fmt.Errorf("GetBlockInfo failed,block is nil:%d", self.completedBlockNum)
+		return fmt.Errorf("GetBlockInfo failed,block is nil:%d", self.GetCompletedBlockNum())
 	}
 	if block.Info.NewChainConfig == nil {
-		return fmt.Errorf("GetNewChainConfig nil,%d", self.completedBlockNum)
+		return fmt.Errorf("GetNewChainConfig nil,%d", self.GetCompletedBlockNum())
 	}
-	log.Infof("updateChainConfig blkNum:%d", self.completedBlockNum)
+	log.Infof("updateChainConfig blkNum:%d", self.GetCompletedBlockNum())
 	self.metaLock.Lock()
 	self.config = block.Info.NewChainConfig
 	self.LastConfigBlockNum = block.getLastConfigBlockNum()
@@ -392,9 +396,7 @@ func (self *Server) updateChainConfig() error {
 				return fmt.Errorf("Pubkey failed: %v", err)
 			}
 			peerIdx := p.Index
-			if _, present := self.msgRecvC[peerIdx]; !present {
-				self.msgRecvC[peerIdx] = make(chan *p2pMsgPayload, 1024)
-			}
+			self.CreatePeerMsgChan(peerIdx)
 			go func() {
 				if err := self.run(publickey); err != nil {
 					log.Errorf("server %d, processor on peer %d failed: %s",
@@ -411,7 +413,7 @@ func (self *Server) updateChainConfig() error {
 				self.Index = math.MaxUint32
 				log.Infof("updateChainConfig remove index :%d", index)
 			} else {
-				if C, present := self.msgRecvC[index]; present {
+				if C := self.GetPeerMsgChan(index); C != nil {
 					pubkey := vconfig.PubkeyID(peerPubKey)
 					self.peerPool.RemovePeerIndex(pubkey)
 					log.Infof("updateChainConfig remove consensus:index:%d,id:%v", index, pubkey)
@@ -448,7 +450,7 @@ func (self *Server) initialize() error {
 	self.timer = NewEventTimer(self)
 	self.syncer = newSyncer(self)
 
-	self.msgRecvC = make(map[uint32]chan *p2pMsgPayload)
+	self.msgRecvC = new(sync.Map)
 	self.msgC = make(chan ConsensusMsg, CAP_MESSAGE_CHANNEL)
 	self.bftActionC = make(chan *BftAction, CAP_ACTION_CHANNEL)
 	self.msgSendC = make(chan *SendMsgEvent, CAP_MSG_SEND_CHANNEL)
@@ -527,9 +529,7 @@ func (self *Server) start() error {
 	for _, p := range self.config.Peers {
 		peerIdx := p.Index
 		pk := self.peerPool.GetPeerPubKey(peerIdx)
-		if _, present := self.msgRecvC[peerIdx]; !present {
-			self.msgRecvC[peerIdx] = make(chan *p2pMsgPayload, 1024)
-		}
+		self.CreatePeerMsgChan(peerIdx)
 
 		go func() {
 			if err := self.run(pk); err != nil {
@@ -578,8 +578,7 @@ func (self *Server) run(peerPubKey keypair.PublicKey) error {
 	defer func() {
 		// TODO: handle peer disconnection here
 		log.Warnf("server %d: disconnected with peer %d", self.Index, peerIdx)
-		close(self.msgRecvC[peerIdx])
-		delete(self.msgRecvC, peerIdx)
+		self.ClosePeerMsgChan(peerIdx)
 
 		self.peerPool.peerDisconnected(peerIdx)
 		self.stateMgr.StateEventC <- &StateEvent{
@@ -1855,7 +1854,7 @@ func (self *Server) processTimerEvent(evt *TimerEvent) error {
 
 	case EventTxPool:
 		self.timer.stopTxTicker(evt.blockNum)
-		if self.completedBlockNum+1 == evt.blockNum {
+		if self.GetCompletedBlockNum()+1 == evt.blockNum {
 			validHeight := self.validHeight(evt.blockNum)
 			newProposal := false
 			for _, e := range self.poolActor.GetTxnPool(true, validHeight) {
@@ -2105,8 +2104,8 @@ func (self *Server) sealBlock(block *Block, empty bool, sigdata bool) error {
 	// TODO: block committed, update tx pool, notify block-listeners
 	{
 		self.metaLock.Lock()
-		if sealedBlkNum >= self.currentBlockNum {
-			self.currentBlockNum = sealedBlkNum + 1
+		if sealedBlkNum >= self.GetCurrentBlockNo() {
+			self.SetCurrentBlockNo(sealedBlkNum + 1)
 		}
 		self.metaLock.Unlock()
 	}

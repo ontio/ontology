@@ -21,6 +21,7 @@ package vbft
 import (
 	"fmt"
 	"math"
+	"sync/atomic"
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
@@ -30,8 +31,43 @@ import (
 	p2pmsg "github.com/ontio/ontology/p2pserver/message/types"
 )
 
+func (self *Server) GetCompletedBlockNum() uint32 {
+	return atomic.LoadUint32(&self.completedBlockNum)
+}
+
+func (self *Server) SetCompletedBlockNum(blknum uint32) {
+	atomic.StoreUint32(&self.completedBlockNum, blknum)
+}
+
 func (self *Server) GetCurrentBlockNo() uint32 {
-	return self.currentBlockNum
+	return atomic.LoadUint32(&self.currentBlockNum)
+}
+
+func (self *Server) SetCurrentBlockNo(blknum uint32) {
+	atomic.CompareAndSwapUint32(&self.currentBlockNum, self.currentBlockNum, blknum)
+}
+
+func (self *Server) GetPeerMsgChan(peerIdx uint32) chan *p2pMsgPayload {
+	if C, ok := self.msgRecvC.Load(peerIdx); ok {
+		return C.(chan *p2pMsgPayload)
+	}
+	return nil
+}
+
+func (self *Server) CreatePeerMsgChan(peerIdx uint32) {
+	newC := make(chan *p2pMsgPayload, 1024)
+	_, loaded := self.msgRecvC.LoadOrStore(peerIdx, newC)
+	if loaded {
+		close(newC)
+	}
+}
+
+func (self *Server) ClosePeerMsgChan(peerIdx uint32) {
+	C, loaded := self.msgRecvC.LoadOrStore(peerIdx, nil)
+	if loaded {
+		close(C.(chan *p2pMsgPayload))
+	}
+	self.msgRecvC.Delete(peerIdx)
 }
 
 func (self *Server) GetCommittedBlockNo() uint32 {
@@ -382,7 +418,7 @@ func (self *Server) heartbeat() {
 }
 
 func (self *Server) receiveFromPeer(peerIdx uint32) (uint32, []byte, error) {
-	if C, present := self.msgRecvC[peerIdx]; present {
+	if C := self.GetPeerMsgChan(peerIdx); C != nil {
 		select {
 		case payload := <-C:
 			if payload != nil {
