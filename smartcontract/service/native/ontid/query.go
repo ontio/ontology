@@ -339,7 +339,7 @@ func GetServiceJson(srvc *native.NativeService) ([]byte, error) {
 			service := new(serviceJson)
 			service.Id = fmt.Sprintf("%s#%s", string(params.OntId), string(params.ServiceId))
 			service.Type = string(services[i].Type)
-			service.ServiceEndpint = string(services[i].ServiceEndpint)
+			service.ServiceEndpoint = string(services[i].ServiceEndpint)
 			data, err := json.Marshal(service)
 			if err != nil {
 				return nil, errors.New("GetService error: json.Marshal error, " + err.Error())
