@@ -47,6 +47,29 @@ func (self *Server) SetCurrentBlockNo(blknum uint32) {
 	atomic.CompareAndSwapUint32(&self.currentBlockNum, self.currentBlockNum, blknum)
 }
 
+func (self *Server) GetPeerMsgChan(peerIdx uint32) chan *p2pMsgPayload {
+	if C, ok := self.msgRecvC.Load(peerIdx); ok {
+		return C.(chan *p2pMsgPayload)
+	}
+	return nil
+}
+
+func (self *Server) CreatePeerMsgChan(peerIdx uint32) {
+	newC := make(chan *p2pMsgPayload, 1024)
+	_, loaded := self.msgRecvC.LoadOrStore(peerIdx, newC)
+	if loaded {
+		close(newC)
+	}
+}
+
+func (self *Server) ClosePeerMsgChan(peerIdx uint32) {
+	C, loaded := self.msgRecvC.LoadOrStore(peerIdx, nil)
+	if loaded {
+		close(C.(chan *p2pMsgPayload))
+	}
+	self.msgRecvC.Delete(peerIdx)
+}
+
 func (self *Server) GetCommittedBlockNo() uint32 {
 	return self.chainStore.GetChainedBlockNum()
 }
@@ -395,7 +418,7 @@ func (self *Server) heartbeat() {
 }
 
 func (self *Server) receiveFromPeer(peerIdx uint32) (uint32, []byte, error) {
-	if C, present := self.msgRecvC[peerIdx]; present {
+	if C := self.GetPeerMsgChan(peerIdx); C != nil {
 		select {
 		case payload := <-C:
 			if payload != nil {

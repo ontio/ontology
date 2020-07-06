@@ -120,7 +120,7 @@ type Server struct {
 	stateMgr   *StateMgr
 	timer      *EventTimer
 
-	msgRecvC   map[uint32]chan *p2pMsgPayload
+	msgRecvC   *sync.Map // map[uint32]chan *p2pMsgPayload
 	msgC       chan ConsensusMsg
 	bftActionC chan *BftAction
 	msgSendC   chan *SendMsgEvent
@@ -269,7 +269,7 @@ func (self *Server) NewConsensusPayload(payload *p2pmsg.ConsensusPayload) {
 		self.peerPool.addP2pId(peerIdx, payload.PeerId)
 	}
 
-	if C, present := self.msgRecvC[peerIdx]; present {
+	if C := self.GetPeerMsgChan(peerIdx); C != nil {
 		C <- &p2pMsgPayload{
 			fromPeer: peerIdx,
 			payload:  payload,
@@ -396,9 +396,7 @@ func (self *Server) updateChainConfig() error {
 				return fmt.Errorf("Pubkey failed: %v", err)
 			}
 			peerIdx := p.Index
-			if _, present := self.msgRecvC[peerIdx]; !present {
-				self.msgRecvC[peerIdx] = make(chan *p2pMsgPayload, 1024)
-			}
+			self.CreatePeerMsgChan(peerIdx)
 			go func() {
 				if err := self.run(publickey); err != nil {
 					log.Errorf("server %d, processor on peer %d failed: %s",
@@ -415,7 +413,7 @@ func (self *Server) updateChainConfig() error {
 				self.Index = math.MaxUint32
 				log.Infof("updateChainConfig remove index :%d", index)
 			} else {
-				if C, present := self.msgRecvC[index]; present {
+				if C := self.GetPeerMsgChan(index); C != nil {
 					pubkey := vconfig.PubkeyID(peerPubKey)
 					self.peerPool.RemovePeerIndex(pubkey)
 					log.Infof("updateChainConfig remove consensus:index:%d,id:%v", index, pubkey)
@@ -452,7 +450,7 @@ func (self *Server) initialize() error {
 	self.timer = NewEventTimer(self)
 	self.syncer = newSyncer(self)
 
-	self.msgRecvC = make(map[uint32]chan *p2pMsgPayload)
+	self.msgRecvC = new(sync.Map)
 	self.msgC = make(chan ConsensusMsg, CAP_MESSAGE_CHANNEL)
 	self.bftActionC = make(chan *BftAction, CAP_ACTION_CHANNEL)
 	self.msgSendC = make(chan *SendMsgEvent, CAP_MSG_SEND_CHANNEL)
@@ -531,9 +529,7 @@ func (self *Server) start() error {
 	for _, p := range self.config.Peers {
 		peerIdx := p.Index
 		pk := self.peerPool.GetPeerPubKey(peerIdx)
-		if _, present := self.msgRecvC[peerIdx]; !present {
-			self.msgRecvC[peerIdx] = make(chan *p2pMsgPayload, 1024)
-		}
+		self.CreatePeerMsgChan(peerIdx)
 
 		go func() {
 			if err := self.run(pk); err != nil {
@@ -582,8 +578,7 @@ func (self *Server) run(peerPubKey keypair.PublicKey) error {
 	defer func() {
 		// TODO: handle peer disconnection here
 		log.Warnf("server %d: disconnected with peer %d", self.Index, peerIdx)
-		close(self.msgRecvC[peerIdx])
-		delete(self.msgRecvC, peerIdx)
+		self.ClosePeerMsgChan(peerIdx)
 
 		self.peerPool.peerDisconnected(peerIdx)
 		self.stateMgr.StateEventC <- &StateEvent{
