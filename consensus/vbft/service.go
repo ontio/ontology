@@ -206,12 +206,12 @@ func (self *Server) Halt() error {
 func (self *Server) handleBlockPersistCompleted(block *types.Block) {
 	log.Infof("persist block: %d, %x", block.Header.Height, block.Hash())
 
-	if block.Header.Height <= self.completedBlockNum {
+	if block.Header.Height <= self.GetCompletedBlockNum() {
 		log.Infof("server %d, persist block %d, vs completed %d",
-			self.Index, block.Header.Height, self.completedBlockNum)
+			self.Index, block.Header.Height, self.GetCompletedBlockNum())
 		return
 	}
-	self.completedBlockNum = block.Header.Height
+	self.SetCompletedBlockNum(block.Header.Height)
 	self.incrValidator.AddBlock(block)
 	if self.nonConsensusNode() {
 		self.chainStore.ReloadFromLedger()
@@ -222,7 +222,7 @@ func (self *Server) handleBlockPersistCompleted(block *types.Block) {
 		self.metaLock.Unlock()
 	}
 
-	if self.checkNeedUpdateChainConfig(self.completedBlockNum) || self.checkUpdateChainConfig(self.completedBlockNum) {
+	if self.checkNeedUpdateChainConfig(self.GetCompletedBlockNum()) || self.checkUpdateChainConfig(self.GetCompletedBlockNum()) {
 		err := self.updateChainConfig()
 		if err != nil {
 			log.Errorf("updateChainConfig failed:%s", err)
@@ -325,7 +325,7 @@ func (self *Server) LoadChainConfig(blkNum uint32) error {
 	// TODO: load sealed blocks from chainStore
 
 	// protected by server.metaLock
-	self.completedBlockNum = self.GetCommittedBlockNo()
+	self.SetCompletedBlockNum(self.GetCommittedBlockNo())
 	self.SetCurrentBlockNo(self.GetCommittedBlockNo() + 1)
 
 	log.Infof("committed: %d, current block no: %d", self.GetCommittedBlockNo(), self.GetCurrentBlockNo())
@@ -349,14 +349,14 @@ func (self *Server) nonConsensusNode() bool {
 
 //updateChainCofig
 func (self *Server) updateChainConfig() error {
-	block, _ := self.blockPool.getSealedBlock(self.completedBlockNum)
+	block, _ := self.blockPool.getSealedBlock(self.GetCompletedBlockNum())
 	if block == nil {
-		return fmt.Errorf("GetBlockInfo failed,block is nil:%d", self.completedBlockNum)
+		return fmt.Errorf("GetBlockInfo failed,block is nil:%d", self.GetCompletedBlockNum())
 	}
 	if block.Info.NewChainConfig == nil {
-		return fmt.Errorf("GetNewChainConfig nil,%d", self.completedBlockNum)
+		return fmt.Errorf("GetNewChainConfig nil,%d", self.GetCompletedBlockNum())
 	}
-	log.Infof("updateChainConfig blkNum:%d", self.completedBlockNum)
+	log.Infof("updateChainConfig blkNum:%d", self.GetCompletedBlockNum())
 	self.metaLock.Lock()
 	self.config = block.Info.NewChainConfig
 	self.LastConfigBlockNum = block.getLastConfigBlockNum()
@@ -1859,7 +1859,7 @@ func (self *Server) processTimerEvent(evt *TimerEvent) error {
 
 	case EventTxPool:
 		self.timer.stopTxTicker(evt.blockNum)
-		if self.completedBlockNum+1 == evt.blockNum {
+		if self.GetCompletedBlockNum()+1 == evt.blockNum {
 			validHeight := self.validHeight(evt.blockNum)
 			newProposal := false
 			for _, e := range self.poolActor.GetTxnPool(true, validHeight) {
