@@ -30,8 +30,8 @@ import (
 )
 
 type serviceJson struct {
-	Id             string `json:"id"`
-	Type           string `json:"type"`
+	Id              string `json:"id"`
+	Type            string `json:"type"`
 	ServiceEndpoint string `json:"serviceEndpoint"`
 }
 
@@ -221,7 +221,7 @@ func getServicesJson(srvc *native.NativeService, encId []byte) ([]*serviceJson, 
 		}
 		service.Id = fmt.Sprintf("%s#%s", string(ontId), string(p.ServiceId))
 		service.Type = string(p.Type)
-		service.ServiceEndpint = string(p.ServiceEndpint)
+		service.ServiceEndpoint = string(p.ServiceEndpint)
 		r = append(r, service)
 	}
 	return r, nil
