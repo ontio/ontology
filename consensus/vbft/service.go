@@ -243,7 +243,11 @@ func (self *Server) CheckSubmitBlock(blkNum uint32, stateRoot common.Uint256) bo
 			}
 		}
 	}
+
+	self.metaLock.RLock()
 	m := self.config.N - (self.config.N-1)/3
+	self.metaLock.RUnlock()
+
 	if stateRootCnt < uint32(m) {
 		return false
 	}
