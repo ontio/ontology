@@ -214,7 +214,7 @@ func (self *Server) handleBlockPersistCompleted(block *types.Block) {
 	self.SetCompletedBlockNum(block.Header.Height)
 	self.incrValidator.AddBlock(block)
 	if self.nonConsensusNode() {
-		self.chainStore.ReloadFromLedger()
+		self.blockPool.ReloadFromLedger()
 		self.metaLock.Lock()
 		if self.GetCommittedBlockNo() >= self.GetCurrentBlockNo() {
 			self.SetCurrentBlockNo(self.GetCommittedBlockNo() + 1)

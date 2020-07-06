@@ -808,3 +808,9 @@ func (pool *BlockPool) submitBlock(blkNum uint32) error {
 	defer pool.lock.Unlock()
 	return pool.chainStore.submitBlock(blkNum)
 }
+
+func (pool *BlockPool) ReloadFromLedger() {
+	pool.lock.Lock()
+	defer pool.lock.Unlock()
+	pool.chainStore.ReloadFromLedger()
+}
