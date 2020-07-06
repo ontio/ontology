@@ -21,6 +21,7 @@ package vbft
 import (
 	"fmt"
 	"math"
+	"sync/atomic"
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
@@ -31,7 +32,11 @@ import (
 )
 
 func (self *Server) GetCurrentBlockNo() uint32 {
-	return self.currentBlockNum
+	return atomic.LoadUint32(&self.currentBlockNum)
+}
+
+func (self *Server) SetCurrentBlockNo(blknum uint32) {
+	atomic.CompareAndSwapUint32(&self.currentBlockNum, self.currentBlockNum, blknum)
 }
 
 func (self *Server) GetCommittedBlockNo() uint32 {

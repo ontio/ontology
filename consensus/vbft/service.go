@@ -216,8 +216,8 @@ func (self *Server) handleBlockPersistCompleted(block *types.Block) {
 	if self.nonConsensusNode() {
 		self.chainStore.ReloadFromLedger()
 		self.metaLock.Lock()
-		if self.GetCommittedBlockNo() >= self.currentBlockNum {
-			self.currentBlockNum = self.GetCommittedBlockNo() + 1
+		if self.GetCommittedBlockNo() >= self.GetCurrentBlockNo() {
+			self.SetCurrentBlockNo(self.GetCommittedBlockNo() + 1)
 		}
 		self.metaLock.Unlock()
 	}
@@ -322,7 +322,7 @@ func (self *Server) LoadChainConfig(blkNum uint32) error {
 
 	// protected by server.metaLock
 	self.completedBlockNum = self.GetCommittedBlockNo()
-	self.currentBlockNum = self.GetCommittedBlockNo() + 1
+	self.SetCurrentBlockNo(self.GetCommittedBlockNo() + 1)
 
 	log.Infof("committed: %d, current block no: %d", self.GetCommittedBlockNo(), self.GetCurrentBlockNo())
 
@@ -2105,8 +2105,8 @@ func (self *Server) sealBlock(block *Block, empty bool, sigdata bool) error {
 	// TODO: block committed, update tx pool, notify block-listeners
 	{
 		self.metaLock.Lock()
-		if sealedBlkNum >= self.currentBlockNum {
-			self.currentBlockNum = sealedBlkNum + 1
+		if sealedBlkNum >= self.GetCurrentBlockNo() {
+			self.SetCurrentBlockNo(sealedBlkNum + 1)
 		}
 		self.metaLock.Unlock()
 	}
