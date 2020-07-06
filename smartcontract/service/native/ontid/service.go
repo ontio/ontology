@@ -32,7 +32,7 @@ import (
 type serviceJson struct {
 	Id             string `json:"id"`
 	Type           string `json:"type"`
-	ServiceEndpint string `json:"serviceEndpint"`
+	ServiceEndpoint string `json:"serviceEndpoint"`
 }
 
 func addService(srvc *native.NativeService) ([]byte, error) {
