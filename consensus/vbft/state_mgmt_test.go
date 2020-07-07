@@ -237,8 +237,8 @@ func TestPeerState_String(t *testing.T) {
 	peers := make(map[uint32]*PeerState)
 	for i := uint32(0); i < 10; i++ {
 		peers[i] = &PeerState{
-			peerIdx: i,
-			chainConfigView: i,
+			peerIdx:           i,
+			chainConfigView:   i,
 			committedBlockNum: i,
 		}
 	}
