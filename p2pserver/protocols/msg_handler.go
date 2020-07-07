@@ -218,13 +218,14 @@ func (self *MsgHandler) blockHandle(ctx *p2p.Context, block *msgTypes.Block) {
 
 // ConsensusHandle handles the consensus message from peer
 func ConsensusHandle(ctx *p2p.Context, consensus *msgTypes.Consensus) {
-	if actor.ConsensusPid != nil {
+	cpid := actor.GetConsensusPid()
+	if cpid != nil {
 		if err := consensus.Cons.Verify(); err != nil {
 			log.Warn(err)
 			return
 		}
 		consensus.Cons.PeerId = ctx.Sender().GetID()
-		actor.ConsensusPid.Tell(&consensus.Cons)
+		cpid.Tell(&consensus.Cons)
 	}
 }
 
