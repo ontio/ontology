@@ -113,6 +113,7 @@ func TestTransfer(t *testing.T) {
 		b := RandomAddress()
 		c := RandomAddress()
 		setOntBalance(native.CacheDB, a, 10000)
+		setOngBalance(native.CacheDB, utils.OntContractAddress, constants.ONG_TOTAL_SUPPLY)
 
 		assert.Equal(t, ontBalanceOf(native, a), 10000)
 		assert.Equal(t, ontBalanceOf(native, b), 0)
