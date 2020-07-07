@@ -232,3 +232,16 @@ func TestStateMgr_getConsensusedCommittedBlockNum(t *testing.T) {
 	maxcomit, flag := statemgr.getConsensusedCommittedBlockNum()
 	t.Logf("TestgetConsensusedCommittedBlockNum maxcommitted:%v, consensused:%v", maxcomit, flag)
 }
+
+func TestPeerState_String(t *testing.T) {
+	peers := make(map[uint32]*PeerState)
+	for i := uint32(0); i < 10; i++ {
+		peers[i] = &PeerState{
+			peerIdx:           i,
+			chainConfigView:   i,
+			committedBlockNum: i,
+		}
+	}
+
+	t.Logf("received peer states: %v", peers)
+}

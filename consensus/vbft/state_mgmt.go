@@ -19,6 +19,7 @@
 package vbft
 
 import (
+	"fmt"
 	"math"
 	"time"
 
@@ -75,6 +76,10 @@ type PeerState struct {
 	chainConfigView   uint32
 	committedBlockNum uint32
 	connected         bool
+}
+
+func (peer *PeerState) String() string {
+	return fmt.Sprintf("{%d: (%d, %d)},", peer.peerIdx, peer.chainConfigView, peer.committedBlockNum)
 }
 
 type StateMgr struct {
@@ -164,6 +169,8 @@ func (self *StateMgr) run() {
 				}
 
 			case LiveTick:
+				log.Infof("server %d peer update, current blk: %d, state: %d. received peer states: %v",
+					self.server.Index, self.server.GetCurrentBlockNo(), self.currentState, self.peers)
 				self.onLiveTick(evt)
 			}
 
@@ -181,8 +188,8 @@ func (self *StateMgr) onPeerUpdate(peerState *PeerState) {
 		newPeer = true
 	}
 
-	log.Infof("server %d peer update, current blk %d, state %d, from peer %d, committed %d",
-		self.server.Index, self.server.GetCurrentBlockNo(), self.currentState, peerState.peerIdx, peerState.committedBlockNum)
+	log.Debugf("server %d peer update, current blk %d, state %d, received peer state: %v",
+		self.server.Index, self.server.GetCurrentBlockNo(), self.currentState, peerState)
 
 	// update peer state
 	self.peers[peerIdx] = peerState
