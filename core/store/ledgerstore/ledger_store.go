@@ -473,10 +473,13 @@ func (this *LedgerStoreImp) verifyHeader(header *types.Header) error {
 		} else {
 			chainConfigHeight = blkInfo.LastConfigBlockNum
 		}
+		this.lock.RLock()
 		vbftPeerInfo, ok := this.vbftPeerInfoMap[chainConfigHeight]
 		if !ok {
+			this.lock.RUnlock()
 			return fmt.Errorf("chainconfig height:%d not found", chainConfigHeight)
 		}
+		this.lock.RUnlock()
 		m := len(vbftPeerInfo) - (len(vbftPeerInfo)*6)/7
 		if len(header.Bookkeepers) < m {
 			return fmt.Errorf("header Bookkeepers %d more than 6/7 len vbftPeerInfo%d", len(header.Bookkeepers), len(vbftPeerInfo))
