@@ -502,7 +502,9 @@ func (this *LedgerStoreImp) verifyHeader(header *types.Header) error {
 			for _, p := range blkInfo.NewChainConfig.Peers {
 				peerInfo[p.ID] = p.Index
 			}
+			this.lock.Lock()
 			this.vbftPeerInfoMap[header.Height] = peerInfo
+			this.lock.Unlock()
 		}
 	} else {
 		address, err := types.AddressFromBookkeepers(header.Bookkeepers)
