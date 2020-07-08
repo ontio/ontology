@@ -680,14 +680,14 @@ func getPeerAttributes(native *native.NativeService, contract common.Address, pe
 	return peerAttributes, nil
 }
 
-func getPeerCost(native *native.NativeService, contract common.Address, peerPubkey string) (uint64, error) {
+func getPeerCost(native *native.NativeService, contract common.Address, peerPubkey string) (uint64, uint64, error) {
 	//get peerAttributes
 	peerAttributes, err := getPeerAttributes(native, contract, peerPubkey)
 	if err != nil {
-		return 0, fmt.Errorf("getPeerAttributes error: %v", err)
+		return 0, 0, fmt.Errorf("getPeerAttributes error: %v", err)
 	}
 
-	return peerAttributes.TPeerCost, nil
+	return peerAttributes.TPeerCost, peerAttributes.TStakeCost, nil
 }
 
 func putPeerAttributes(native *native.NativeService, contract common.Address, peerAttributes *PeerAttributes) error {

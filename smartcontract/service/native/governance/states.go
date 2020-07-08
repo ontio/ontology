@@ -400,12 +400,12 @@ type CandidateSplitInfo struct {
 type PeerAttributes struct {
 	PeerPubkey   string
 	MaxAuthorize uint64 //max authorzie pos this peer can receive(number of ont), set by peer owner
-	T2PeerCost   uint64 //candidate or consensus node doesn't share income percent with authorize users, 100 means node will take all incomes, it will take effect in view T + 2
-	T1PeerCost   uint64 //candidate or consensus node doesn't share income percent with authorize users, 100 means node will take all incomes, it will take effect in view T + 1
-	TPeerCost    uint64 //candidate or consensus node doesn't share income percent with authorize users, 100 means node will take all incomes, it will take effect in view T
-	Field1       []byte //reserved field
-	Field2       []byte //reserved field
-	Field3       []byte //reserved field
+	T2PeerCost   uint64 //candidate or consensus node doesn't share initpos income percent with authorize users, 100 means node will take all incomes, it will take effect in view T + 2
+	T1PeerCost   uint64 //candidate or consensus node doesn't share initpos income percent with authorize users, 100 means node will take all incomes, it will take effect in view T + 1
+	TPeerCost    uint64 //candidate or consensus node doesn't share initpos income percent with authorize users, 100 means node will take all incomes, it will take effect in view T
+	T2StakeCost  uint64 //candidate or consensus node doesn't share stake income percent with authorize users, it will take effect in view T + 2, 101 means 0, 0 means null
+	T1StakeCost  uint64 //candidate or consensus node doesn't share stake income percent with authorize users, it will take effect in view T + 1, 101 means 0, 0 means null
+	TStakeCost   uint64 //candidate or consensus node doesn't share stake income percent with authorize users, it will take effect in view T, 101 means 0, 0 means null
 	Field4       []byte //reserved field
 }
 
@@ -415,57 +415,57 @@ func (this *PeerAttributes) Serialization(sink *common.ZeroCopySink) {
 	sink.WriteUint64(this.T2PeerCost)
 	sink.WriteUint64(this.T1PeerCost)
 	sink.WriteUint64(this.TPeerCost)
-	sink.WriteVarBytes(this.Field1)
-	sink.WriteVarBytes(this.Field2)
-	sink.WriteVarBytes(this.Field3)
+	utils.EncodeVarUint(sink, this.T2StakeCost)
+	utils.EncodeVarUint(sink, this.T1StakeCost)
+	utils.EncodeVarUint(sink, this.TStakeCost)
 	sink.WriteVarBytes(this.Field4)
 }
 
 func (this *PeerAttributes) Deserialization(source *common.ZeroCopySource) error {
 	peerPubkey, err := utils.DecodeString(source)
 	if err != nil {
-		return fmt.Errorf("serialization.ReadString, deserialize peerPubkey error: %v", err)
+		return fmt.Errorf("utils.DecodeString, deserialize peerPubkey error: %v", err)
 	}
 	maxAuthorize, eof := source.NextUint64()
 	if eof {
-		return fmt.Errorf("serialization.ReadBool, deserialize maxAuthorize error: %v", io.ErrUnexpectedEOF)
+		return fmt.Errorf("source.NextUint64, deserialize maxAuthorize error: %v", io.ErrUnexpectedEOF)
 	}
 	t2PeerCost, eof := source.NextUint64()
 	if eof {
-		return fmt.Errorf("serialization.ReadUint64, deserialize t2PeerCost error: %v", io.ErrUnexpectedEOF)
+		return fmt.Errorf("source.NextUint64, deserialize t2PeerCost error: %v", io.ErrUnexpectedEOF)
 	}
 	t1PeerCost, eof := source.NextUint64()
 	if eof {
-		return fmt.Errorf("serialization.ReadUint64, deserialize t1PeerCost error: %v", io.ErrUnexpectedEOF)
+		return fmt.Errorf("source.NextUint64, deserialize t1PeerCost error: %v", io.ErrUnexpectedEOF)
 	}
 	tPeerCost, eof := source.NextUint64()
 	if eof {
-		return fmt.Errorf("serialization.ReadUint64, deserialize tPeerCost error: %v", io.ErrUnexpectedEOF)
+		return fmt.Errorf("source.NextUint64, deserialize tPeerCost error: %v", io.ErrUnexpectedEOF)
 	}
-	field1, err := utils.DecodeVarBytes(source)
+	t2StakeCost, err := utils.DecodeVarUint(source)
 	if err != nil {
-		return fmt.Errorf("serialization.ReadVarBytes. deserialize field1 error: %v", err)
+		return fmt.Errorf("utils.DecodeVarUint, deserialize t2StakeCost error: %v", err)
 	}
-	field2, err := utils.DecodeVarBytes(source)
+	t1StakeCost, err := utils.DecodeVarUint(source)
 	if err != nil {
-		return fmt.Errorf("serialization.ReadVarBytes. deserialize field2 error: %v", err)
+		return fmt.Errorf("utils.DecodeVarUint, deserialize t1StakeCost error: %v", err)
 	}
-	field3, err := utils.DecodeVarBytes(source)
+	tStakeCost, err := utils.DecodeVarUint(source)
 	if err != nil {
-		return fmt.Errorf("serialization.ReadVarBytes, deserialize field3 error: %v", err)
+		return fmt.Errorf("utils.DecodeVarUint, deserialize tStakeCost error: %v", err)
 	}
 	field4, err := utils.DecodeVarBytes(source)
 	if err != nil {
-		return fmt.Errorf("serialization.ReadVarBytes. deserialize field4 error: %v", err)
+		return fmt.Errorf("utils.DecodeVarBytes, deserialize field4 error: %v", err)
 	}
 	this.PeerPubkey = peerPubkey
 	this.MaxAuthorize = maxAuthorize
 	this.T2PeerCost = t2PeerCost
 	this.T1PeerCost = t1PeerCost
 	this.TPeerCost = tPeerCost
-	this.Field1 = field1
-	this.Field2 = field2
-	this.Field3 = field3
+	this.T2StakeCost = t2StakeCost
+	this.T1StakeCost = t1StakeCost
+	this.TStakeCost = tStakeCost
 	this.Field4 = field4
 	return nil
 }
