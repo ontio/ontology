@@ -208,11 +208,12 @@ func (self *SubNet) OnMembersRequest(ctx *p2p.Context, msg *types.SubnetMembersR
 }
 
 func (self *SubNet) OnMembersResponse(ctx *p2p.Context, msg *types.SubnetMembers) {
+	sender := ctx.Sender()
 	self.lock.Lock()
 	defer self.lock.Unlock()
-	self.logger.Debugf("[subnet] receive members: %s ", msg.String())
+	self.logger.Debugf("[subnet] receive members from peer %s, value: %s ", sender.Info.Id.ToHexString(), msg.String())
 
-	listen := ctx.Sender().Info.RemoteListenAddress()
+	listen := sender.Info.RemoteListenAddress()
 	if self.connected[listen] == nil {
 		self.logger.Info("[subnet] receive members response from unkown node: %s", listen)
 		return
@@ -283,11 +284,7 @@ func (self *SubNet) sendMembersRequestToRandNodes(net p2p.P2P) {
 	self.lock.RUnlock()
 
 	for _, peerId := range peerIds {
-		request := self.newMembersRequest(net.GetID(), peerId)
-		if request == nil {
-			return
-		}
-		net.SendTo(peerId, request)
+		self.sendMembersRequest(net, peerId)
 	}
 }
 
@@ -297,6 +294,8 @@ func (self *SubNet) sendMembersRequest(net p2p.P2P, peer common.PeerId) {
 		return
 	}
 
+	self.logger.Infof("[subnet] send member request from %s to %s as role %s",
+		request.From, request.To, request.Role())
 	net.SendTo(peer, request)
 }
 

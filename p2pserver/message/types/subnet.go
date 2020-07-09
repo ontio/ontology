@@ -61,6 +61,14 @@ func (self *SubnetMembersRequest) FromSeed() bool {
 	return self.Timestamp == 0
 }
 
+func (self *SubnetMembersRequest) Role() string {
+	if self.FromSeed() {
+		return "seed"
+	}
+
+	return "gov"
+}
+
 func NewMembersRequest(from, to common.PeerId, acc *account.Account) (*SubnetMembersRequest, error) {
 	request := &SubnetMembersRequest{
 		From:      from,

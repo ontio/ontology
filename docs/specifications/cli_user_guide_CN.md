@@ -129,16 +129,11 @@ max-tx-in-block 参数用于设置区块最大的交易数量。默认值是5000
 #### 1.1.4 P2P网络参数
 
 --networkid
-networkid 参数用于指定网络ID，networkid不同将无法连接到区块链网络中。1:主网, 2:polaris测试网络, 3:testmode测试网, 其他的是用户自定义网络。
+networkid 参数用于指定网络ID，networkid不同将无法连接到区块链网络中。1:主网, 2:polaris测试网络, 3:testmode测试网, 其他的是用户自定义网络。默认值为1。
 
 --nodeport
 nodeport 参数用于指定P2P网络端口号，默认值为20338。
 
---consensus-port
-consensus-port 参数用于指定共识网络端口号。默认情况下，共识网络复用P2P网络，因此不需要指定共识网络端口，在通过--dual-port参数启动双网络后，则需要单独设置共识网络端口号。默认值为20339。
-
---dual-port
-dual-port 参数启动双网络，即用于处理交易消息的P2P网络，和用于共识消息的共识网络。默认不开启。
 
 --httpinfo-port
 httpinfo-port 参数用于指定查看节点信息的http server端口。默认为0，表示不开启。

@@ -229,21 +229,21 @@ func initAccount(ctx *cli.Context) (*account.Account, error) {
 	}
 	walletFile := ctx.GlobalString(utils.GetFlagName(utils.WalletFileFlag))
 	if walletFile == "" {
-		return nil, fmt.Errorf("Please config wallet file using --wallet flag")
+		return nil, fmt.Errorf("please config wallet file using --wallet flag")
 	}
 	if !common.FileExisted(walletFile) {
-		return nil, fmt.Errorf("Cannot find wallet file: %s. Please create a wallet first", walletFile)
+		return nil, fmt.Errorf("cannot find wallet file: %s. Please create a wallet first", walletFile)
 	}
 
 	acc, err := cmdcom.GetAccount(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("get account error: %s", err)
 	}
-	log.Infof("Using account: %s", acc.Address.ToBase58())
+	pubKey := hex.EncodeToString(keypair.SerializePublicKey(acc.PublicKey))
+	log.Infof("Using account: %s, pubkey: %s", acc.Address.ToBase58(), pubKey)
 
 	if config.DefConfig.Genesis.ConsensusType == config.CONSENSUS_TYPE_SOLO {
-		curPk := hex.EncodeToString(keypair.SerializePublicKey(acc.PublicKey))
-		config.DefConfig.Genesis.SOLO.Bookkeepers = []string{curPk}
+		config.DefConfig.Genesis.SOLO.Bookkeepers = []string{pubKey}
 	}
 
 	log.Infof("Account init success")
@@ -270,7 +270,7 @@ func initLedger(ctx *cli.Context, stateHashHeight uint32) (*ledger.Ledger, error
 	}
 	err = ledger.DefLedger.Init(bookKeepers, genesisBlock)
 	if err != nil {
-		return nil, fmt.Errorf("Init ledger error: %s", err)
+		return nil, fmt.Errorf("init ledger error: %s", err)
 	}
 
 	log.Infof("Ledger init success")
@@ -283,7 +283,7 @@ func initTxPool(ctx *cli.Context) (*proc.TXPoolServer, error) {
 	disableBroadcastNetTx := ctx.GlobalBool(utils.GetFlagName(utils.DisableBroadcastNetTxFlag))
 	txPoolServer, err := txnpool.StartTxnPoolServer(disablePreExec, disableBroadcastNetTx)
 	if err != nil {
-		return nil, fmt.Errorf("Init txpool error: %s", err)
+		return nil, fmt.Errorf("init txpool error: %s", err)
 	}
 	stlValidator, _ := stateless.NewValidator("stateless_validator")
 	stlValidator.Register(txPoolServer.GetPID(tc.VerifyRspActor))
