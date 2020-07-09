@@ -123,16 +123,10 @@ The max-tx-in-block parameter is used to set the maximum transaction number of a
 #### 1.1.4 P2P Network Parameters
 
 --networkid
-The networkid parameter is used to specify the network ID. Different networkids cannot connect to the blockchain network. 1=main net, 2=polaris test net, 3=testmode, and other for custom network.
+The networkid parameter is used to specify the network ID. Different networkids cannot connect to the blockchain network. 1=main net, 2=polaris test net, 3=testmode, and other for custom network. The default value is 1.
 
 --nodeport
 The nodeport parameter is used to specify the P2P network port number. The default value is 20338.
-
---consensusport
-The consensusport parameter specifies the consensus network port number. By default, the consensus network reuses the P2P network, so it is not necessary to specify a consensus network port. After the dual network is enabled with the --dual-port parameter, the consensus network port number must be set separately. The default is 20339.
-
---dual-port
-The dual-port parameter initiates a dual network, i.e. a P2P network for processing transaction messages and a consensus network for consensus messages. The parameter disables by default.
 
 --httpinfo-port
 httpinfo-port parameter specifies the http server port of viewing node information. The default value is 0 which means closes the http server.
