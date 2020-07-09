@@ -26,6 +26,7 @@ import (
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/ledger"
+	"sync/atomic"
 )
 
 type SyncCheckReq struct {
@@ -417,7 +418,7 @@ func (self *PeerSyncer) requestBlock(blkNum uint32) (*Block, error) {
 		Msg:    msg,
 	}
 
-	t := time.NewTimer(makeProposalTimeout * 2)
+	t := time.NewTimer(time.Duration(atomic.LoadInt64(&makeProposalTimeout) * 2))
 	defer t.Stop()
 
 	select {
@@ -448,7 +449,7 @@ func (self *PeerSyncer) requestBlockInfo(startBlkNum uint32) ([]*BlockInfo_, err
 		Msg:    msg,
 	}
 
-	t := time.NewTimer(makeProposalTimeout * 2)
+	t := time.NewTimer(time.Duration(atomic.LoadInt64(&makeProposalTimeout) * 2))
 	defer t.Stop()
 
 	select {

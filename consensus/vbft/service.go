@@ -315,14 +315,9 @@ func (self *Server) LoadChainConfig(blkNum uint32) error {
 	if self.config.View == 0 || self.config.MaxBlockChangeView == 0 {
 		panic("invalid view or maxblockchangeview ")
 	}
-	// update msg delays
-	makeProposalTimeout = time.Duration(self.config.BlockMsgDelay * 2)
-	make2ndProposalTimeout = time.Duration(self.config.BlockMsgDelay)
-	endorseBlockTimeout = time.Duration(self.config.HashMsgDelay * 2)
-	commitBlockTimeout = time.Duration(self.config.HashMsgDelay * 3)
-	peerHandshakeTimeout = time.Duration(self.config.PeerHandshakeTimeout)
-	zeroTxBlockTimeout = time.Duration(self.config.BlockMsgDelay * 3)
-	// TODO: load sealed blocks from chainStore
+
+	// update timer params
+	self.updateTimerParams(self.config)
 
 	// protected by server.metaLock
 	self.SetCompletedBlockNum(self.GetCommittedBlockNo())
@@ -365,11 +360,13 @@ func (self *Server) updateChainConfig() error {
 	self.metaLock.RLock()
 	defer self.metaLock.RUnlock()
 
-	// TODO
-	// 1. update peer pool
-	// 2. remove nonparticipation consensus node
-	// 3. update statemgr peers
-	// 4. reset remove peer connections, create new connections with new peers
+	// . update timer param
+	// . update peer pool
+	// . remove nonparticipation consensus node
+	// . update statemgr peers
+	// . reset remove peer connections, create new connections with new peers
+	self.updateTimerParams(self.config)
+
 	pubkey := vconfig.PubkeyID(self.account.PublicKey)
 	peermap := make(map[uint32]string)
 	for _, p := range self.config.Peers {
@@ -1216,11 +1213,6 @@ func (self *Server) processMsgEvent() error {
 		switch msg.Type() {
 		case BlockProposalMessage:
 			pMsg := msg.(*blockProposalMsg)
-
-			if err := self.validateTxsInProposal(pMsg); err != nil {
-				// TODO: report faulty proposal
-				return fmt.Errorf("failed to validate tx in proposal: %s", err)
-			}
 
 			msgBlkNum := pMsg.GetBlockNum()
 			if msgBlkNum == self.GetCurrentBlockNo() {
