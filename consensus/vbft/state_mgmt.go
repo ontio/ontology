@@ -139,7 +139,7 @@ func (self *StateMgr) run() {
 				}
 			case SyncReadyTimeout:
 				if self.getState() == SyncReady {
-					self.getState() = Synced
+					self.setState(Synced)
 					if evt.blockNum == self.server.GetCurrentBlockNo() {
 						self.server.startNewRound()
 					}
