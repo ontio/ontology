@@ -145,10 +145,10 @@ func (self *StateMgr) run() {
 
 				if self.currentState >= LocalConfigured {
 					v := self.getSyncedChainConfigView()
-					if v == self.server.config.View && self.currentState < Syncing {
+					if v == self.server.GetChainConfig().View && self.currentState < Syncing {
 						log.Infof("server %d, start syncing", self.server.Index)
 						self.currentState = Syncing
-					} else if v > self.server.config.View {
+					} else if v > self.server.GetChainConfig().View {
 						// update ChainConfig
 						log.Errorf("todo: chain config changed, need update chain config from peers")
 						// TODO: fetch config from neighbours, update chain config
@@ -210,9 +210,9 @@ func (self *StateMgr) onPeerUpdate(peerState *PeerState) {
 	case LocalConfigured:
 		v := self.getSyncedChainConfigView()
 		log.Infof("server %d statemgr update, current state: %d, from peer: %d, peercnt: %d, v1: %d, v2: %d",
-			self.server.Index, self.currentState, peerIdx, len(self.peers), v, self.server.config.View)
+			self.server.Index, self.currentState, peerIdx, len(self.peers), v, self.server.GetChainConfig().View)
 
-		if v == self.server.config.View {
+		if v == self.server.GetChainConfig().View {
 			self.currentState = Syncing
 		}
 	case Configured:
@@ -311,7 +311,7 @@ func (self *StateMgr) onLiveTick(evt *StateEvent) {
 }
 
 func (self *StateMgr) getMinActivePeerCount() int {
-	n := int(self.server.config.C) * 2 // plus self
+	n := int(self.server.GetChainConfig().C) * 2 // plus self
 	if n > MAX_PEER_CONNECTIONS {
 		// FIXME: C vs. maxConnections
 		return MAX_PEER_CONNECTIONS
@@ -393,7 +393,7 @@ func (self *StateMgr) checkStartSyncing(startBlkNum uint32, forceSync bool) {
 					peers[k] = append(peers[k], p.peerIdx)
 				}
 			}
-			if len(peers[n]) > int(self.server.config.C) {
+			if len(peers[n]) > int(self.server.GetChainConfig().C) {
 				maxCommitted = n
 			}
 		}
@@ -421,7 +421,7 @@ func (self *StateMgr) checkStartSyncing(startBlkNum uint32, forceSync bool) {
 
 // return 0 if consensus not reached yet
 func (self *StateMgr) getConsensusedCommittedBlockNum() (uint32, bool) {
-	C := int(self.server.config.C)
+	C := int(self.server.GetChainConfig().C)
 
 	consensused := false
 	var maxCommitted uint32
@@ -453,8 +453,9 @@ func (self *StateMgr) canFastForward(targetBlkNum uint32) bool {
 		return false
 	}
 
-	C := int(self.server.config.C)
-	N := int(self.server.config.N)
+	chainCfg := self.server.GetChainConfig()
+	C := int(chainCfg.C)
+	N := int(chainCfg.N)
 	// one block less than targetBlkNum is also acceptable for fastforward
 	for blkNum := self.server.GetCurrentBlockNo(); blkNum <= targetBlkNum; blkNum++ {
 		// check if pending messages for targetBlkNum reached consensus

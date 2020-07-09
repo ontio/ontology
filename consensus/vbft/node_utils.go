@@ -47,6 +47,14 @@ func (self *Server) SetCurrentBlockNo(blknum uint32) {
 	atomic.CompareAndSwapUint32(&self.currentBlockNum, self.currentBlockNum, blknum)
 }
 
+func (self *Server) GetChainConfig() vconfig.ChainConfig {
+	self.metaLock.RLock()
+	defer self.metaLock.RUnlock()
+	// shallow copy
+	cfg := *self.config
+	return cfg
+}
+
 func (self *Server) GetPeerMsgChan(peerIdx uint32) chan *p2pMsgPayload {
 	if C, ok := self.msgRecvC.Load(peerIdx); ok {
 		return C.(chan *p2pMsgPayload)
@@ -127,7 +135,7 @@ func (self *Server) isProposer(blockNum uint32, peerIdx uint32) bool {
 
 func (self *Server) is2ndProposer(blockNum uint32, peerIdx uint32) bool {
 	rank := self.getProposerRank(blockNum, peerIdx)
-	return rank > 0 && rank <= int(self.config.C)
+	return rank > 0 && rank <= int(self.GetChainConfig().C)
 }
 
 func (self *Server) getProposerRank(blockNum uint32, peerIdx uint32) int {
@@ -150,7 +158,7 @@ func (self *Server) isEndorser(blockNum uint32, peerIdx uint32) bool {
 			}
 			if self.isPeerActive(id, blockNum) {
 				activeN++
-				if activeN > self.config.C*2 {
+				if activeN > self.GetChainConfig().C*2 {
 					break
 				}
 			}
@@ -173,7 +181,7 @@ func (self *Server) isCommitter(blockNum uint32, peerIdx uint32) bool {
 			}
 			if self.isPeerActive(id, blockNum) {
 				activeN++
-				if activeN > self.config.C*2 {
+				if activeN > self.GetChainConfig().C*2 {
 					break
 				}
 			}

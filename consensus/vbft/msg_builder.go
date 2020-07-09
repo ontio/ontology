@@ -141,11 +141,12 @@ func (self *Server) constructHandshakeMsg() (*peerHandshakeMsg, error) {
 	if block == nil {
 		return nil, fmt.Errorf("failed to get sealed block, current block: %d", self.GetCurrentBlockNo())
 	}
+	cfg := self.GetChainConfig()
 	msg := &peerHandshakeMsg{
 		CommittedBlockNumber: blkNum,
 		CommittedBlockHash:   blockhash,
 		CommittedBlockLeader: block.getProposer(),
-		ChainConfig:          self.config,
+		ChainConfig:          &cfg,
 	}
 
 	return msg, nil
@@ -177,7 +178,7 @@ func (self *Server) constructHeartbeatMsg() (*peerHeartbeatMsg, error) {
 		CommittedBlockLeader: block.getProposer(),
 		Endorsers:            bookkeepers,
 		EndorsersSig:         sigData,
-		ChainConfigView:      self.config.View,
+		ChainConfigView:      self.GetChainConfig().View,
 	}
 
 	return msg, nil
