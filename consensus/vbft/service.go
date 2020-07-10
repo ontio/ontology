@@ -215,11 +215,9 @@ func (self *Server) handleBlockPersistCompleted(block *types.Block) {
 	self.incrValidator.AddBlock(block)
 	if self.nonConsensusNode() {
 		self.blockPool.ReloadFromLedger()
-		self.metaLock.Lock()
 		if self.GetCommittedBlockNo() >= self.GetCurrentBlockNo() {
 			self.SetCurrentBlockNo(self.GetCommittedBlockNo() + 1)
 		}
-		self.metaLock.Unlock()
 	}
 
 	if self.checkNeedUpdateChainConfig(self.GetCompletedBlockNum()) || self.checkUpdateChainConfig(self.GetCompletedBlockNum()) {
@@ -2103,11 +2101,9 @@ func (self *Server) sealBlock(block *Block, empty bool, sigdata bool) error {
 	// broadcast to other modules
 	// TODO: block committed, update tx pool, notify block-listeners
 	{
-		self.metaLock.Lock()
 		if sealedBlkNum >= self.GetCurrentBlockNo() {
 			self.SetCurrentBlockNo(sealedBlkNum + 1)
 		}
-		self.metaLock.Unlock()
 	}
 	return nil
 }
