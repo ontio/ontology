@@ -640,17 +640,20 @@ func (self *Server) updateParticipantConfig() error {
 		return fmt.Errorf("failed to get sealed block (%d)", blkNum-1)
 	}
 
-	self.metaLock.Lock()
-	defer self.metaLock.Unlock()
-	chainconfig := self.config
-	if block.Info.NewChainConfig != nil {
-		chainconfig = block.Info.NewChainConfig
+	chainconfig := block.Info.NewChainConfig
+	if chainconfig == nil {
+		chainCfg := self.GetChainConfig()
+		chainconfig = &chainCfg
 	}
 	cfg, err := self.buildParticipantConfig(blkNum, block, chainconfig)
 	if err != nil {
 		return fmt.Errorf("failed to build participant config (%d): %s", blkNum, err)
 	}
+
+	self.metaLock.Lock()
 	self.currentParticipantConfig = cfg
+	self.metaLock.Unlock()
+
 	return nil
 }
 
