@@ -157,7 +157,8 @@ func (self *ChainStore) AddBlock(block *Block) error {
 		log.Errorf("chainstore AddBlock GetBlockExecResult: %s", err)
 		return fmt.Errorf("chainstore AddBlock GetBlockExecResult: %s", err)
 	}
-	log.Debugf("execResult:%+v, AddBlock execResult height:%d \n", execResult, block.Block.Header.Height)
+	log.Debugf("execResult:%+v, AddBlock execResult height:%d, hash: %s \n",
+		execResult, block.Block.Header.Height, block.Block.Hash().ToHexString())
 	log.Debugf("chainstore addblock pendingBlocks height:%d,block height:%d", blkNum, block.getBlockNum())
 	self.pendingBlocks[blkNum] = &PendingBlock{block: block, execResult: &execResult, hasSubmitted: false}
 
