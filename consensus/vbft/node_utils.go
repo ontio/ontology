@@ -158,7 +158,7 @@ func (self *Server) isEndorser(blockNum uint32, peerIdx uint32) bool {
 			}
 			if self.isPeerActive(id, blockNum) {
 				activeN++
-				if activeN > self.GetChainConfig().C*2 {
+				if activeN > self.config.C*2 {
 					break
 				}
 			}
@@ -181,7 +181,7 @@ func (self *Server) isCommitter(blockNum uint32, peerIdx uint32) bool {
 			}
 			if self.isPeerActive(id, blockNum) {
 				activeN++
-				if activeN > self.GetChainConfig().C*2 {
+				if activeN > self.config.C*2 {
 					break
 				}
 			}
