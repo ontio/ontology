@@ -22,8 +22,8 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/ontio/ontology/account"
-	clisvrcom "github.com/ontio/ontology/cmd/sigsvr/common"
+	"github.com/ontio/ontology/v2/account"
+	clisvrcom "github.com/ontio/ontology/v2/cmd/sigsvr/common"
 )
 
 func TestSigTransferTransaction(t *testing.T) {

@@ -20,13 +20,13 @@ package heatbeat
 import (
 	"time"
 
-	"github.com/ontio/ontology/common/config"
-	"github.com/ontio/ontology/common/log"
-	"github.com/ontio/ontology/core/ledger"
-	"github.com/ontio/ontology/p2pserver/common"
-	msgpack "github.com/ontio/ontology/p2pserver/message/msg_pack"
-	"github.com/ontio/ontology/p2pserver/message/types"
-	p2p "github.com/ontio/ontology/p2pserver/net/protocol"
+	"github.com/ontio/ontology/v2/common/config"
+	"github.com/ontio/ontology/v2/common/log"
+	"github.com/ontio/ontology/v2/core/ledger"
+	"github.com/ontio/ontology/v2/p2pserver/common"
+	msgpack "github.com/ontio/ontology/v2/p2pserver/message/msg_pack"
+	"github.com/ontio/ontology/v2/p2pserver/message/types"
+	p2p "github.com/ontio/ontology/v2/p2pserver/net/protocol"
 )
 
 type HeartBeat struct {

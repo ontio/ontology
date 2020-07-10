@@ -20,7 +20,7 @@ package connect_controller
 import (
 	"net"
 
-	"github.com/ontio/ontology/p2pserver/common"
+	"github.com/ontio/ontology/v2/p2pserver/common"
 )
 
 // Conn is a net.Conn wrapper to do some clean up when Close.

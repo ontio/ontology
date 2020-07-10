@@ -26,7 +26,7 @@ import (
 	"os"
 
 	"github.com/ontio/ontology-crypto/keypair"
-	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/v2/common"
 )
 
 /** AccountData - for wallet read and save, no crypto object included **/

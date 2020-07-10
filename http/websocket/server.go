@@ -20,17 +20,17 @@
 package websocket
 
 import (
-	"github.com/ontio/ontology/common"
-	cfg "github.com/ontio/ontology/common/config"
-	"github.com/ontio/ontology/common/log"
-	"github.com/ontio/ontology/core/types"
-	"github.com/ontio/ontology/events/message"
-	bactor "github.com/ontio/ontology/http/base/actor"
-	bcomn "github.com/ontio/ontology/http/base/common"
-	Err "github.com/ontio/ontology/http/base/error"
-	"github.com/ontio/ontology/http/base/rest"
-	"github.com/ontio/ontology/http/websocket/websocket"
-	"github.com/ontio/ontology/smartcontract/event"
+	"github.com/ontio/ontology/v2/common"
+	cfg "github.com/ontio/ontology/v2/common/config"
+	"github.com/ontio/ontology/v2/common/log"
+	"github.com/ontio/ontology/v2/core/types"
+	"github.com/ontio/ontology/v2/events/message"
+	bactor "github.com/ontio/ontology/v2/http/base/actor"
+	bcomn "github.com/ontio/ontology/v2/http/base/common"
+	Err "github.com/ontio/ontology/v2/http/base/error"
+	"github.com/ontio/ontology/v2/http/base/rest"
+	"github.com/ontio/ontology/v2/http/websocket/websocket"
+	"github.com/ontio/ontology/v2/smartcontract/event"
 )
 
 var ws *websocket.WsServer

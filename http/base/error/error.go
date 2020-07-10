@@ -19,7 +19,7 @@
 // Package error privides error code for http
 package error
 
-import ontErrors "github.com/ontio/ontology/errors"
+import ontErrors "github.com/ontio/ontology/v2/errors"
 
 const (
 	SUCCESS            int64 = 0

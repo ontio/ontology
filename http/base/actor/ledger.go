@@ -19,12 +19,12 @@
 package actor
 
 import (
-	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/core/ledger"
-	"github.com/ontio/ontology/core/payload"
-	"github.com/ontio/ontology/core/types"
-	"github.com/ontio/ontology/smartcontract/event"
-	cstate "github.com/ontio/ontology/smartcontract/states"
+	"github.com/ontio/ontology/v2/common"
+	"github.com/ontio/ontology/v2/core/ledger"
+	"github.com/ontio/ontology/v2/core/payload"
+	"github.com/ontio/ontology/v2/core/types"
+	"github.com/ontio/ontology/v2/smartcontract/event"
+	cstate "github.com/ontio/ontology/v2/smartcontract/states"
 )
 
 const (

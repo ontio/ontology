@@ -25,17 +25,17 @@ import (
 
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology-eventbus/actor"
-	"github.com/ontio/ontology/account"
-	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/common/config"
-	"github.com/ontio/ontology/common/log"
-	actorTypes "github.com/ontio/ontology/consensus/actor"
-	"github.com/ontio/ontology/core/ledger"
-	"github.com/ontio/ontology/core/signature"
-	"github.com/ontio/ontology/core/types"
-	"github.com/ontio/ontology/events"
-	"github.com/ontio/ontology/events/message"
-	"github.com/ontio/ontology/validator/increment"
+	"github.com/ontio/ontology/v2/account"
+	"github.com/ontio/ontology/v2/common"
+	"github.com/ontio/ontology/v2/common/config"
+	"github.com/ontio/ontology/v2/common/log"
+	actorTypes "github.com/ontio/ontology/v2/consensus/actor"
+	"github.com/ontio/ontology/v2/core/ledger"
+	"github.com/ontio/ontology/v2/core/signature"
+	"github.com/ontio/ontology/v2/core/types"
+	"github.com/ontio/ontology/v2/events"
+	"github.com/ontio/ontology/v2/events/message"
+	"github.com/ontio/ontology/v2/validator/increment"
 )
 
 /*

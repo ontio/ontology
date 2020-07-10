@@ -24,10 +24,10 @@ import (
 	"time"
 
 	"github.com/ontio/ontology-crypto/keypair"
-	"github.com/ontio/ontology/account"
-	comm "github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/core/signature"
-	"github.com/ontio/ontology/p2pserver/common"
+	"github.com/ontio/ontology/v2/account"
+	comm "github.com/ontio/ontology/v2/common"
+	"github.com/ontio/ontology/v2/core/signature"
+	"github.com/ontio/ontology/v2/p2pserver/common"
 )
 
 type SubnetMembersRequest struct {

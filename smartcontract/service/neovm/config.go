@@ -21,7 +21,7 @@ package neovm
 import (
 	"sync"
 
-	"github.com/ontio/ontology/common/config"
+	"github.com/ontio/ontology/v2/common/config"
 )
 
 var (

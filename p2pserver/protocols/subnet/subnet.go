@@ -25,13 +25,13 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/ontio/ontology/account"
-	vconfig "github.com/ontio/ontology/consensus/vbft/config"
-	"github.com/ontio/ontology/p2pserver/common"
-	"github.com/ontio/ontology/p2pserver/message/types"
-	p2p "github.com/ontio/ontology/p2pserver/net/protocol"
-	"github.com/ontio/ontology/p2pserver/peer"
-	"github.com/ontio/ontology/p2pserver/protocols/utils"
+	"github.com/ontio/ontology/v2/account"
+	vconfig "github.com/ontio/ontology/v2/consensus/vbft/config"
+	"github.com/ontio/ontology/v2/p2pserver/common"
+	"github.com/ontio/ontology/v2/p2pserver/message/types"
+	p2p "github.com/ontio/ontology/v2/p2pserver/net/protocol"
+	"github.com/ontio/ontology/v2/p2pserver/peer"
+	"github.com/ontio/ontology/v2/p2pserver/protocols/utils"
 )
 
 const MaxMemberRequests = 3

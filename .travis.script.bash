@@ -17,6 +17,6 @@ elif [ $TRAVIS_OS_NAME == 'osx' ]; then
 	env GO111MODULE=on make all
 else
 	echo "win sys"
-	env GO111MODULE=on CGO_ENABLED=1 go build  -ldflags "-X github.com/ontio/ontology/common/config.Version=${VERSION}" -o ontology-windows-amd64 main.go
-	env GO111MODULE=on go build  -ldflags "-X github.com/ontio/ontology/common/config.Version=${VERSION}" -o sigsvr-windows-amd64 sigsvr.go
+	env GO111MODULE=on CGO_ENABLED=1 go build  -ldflags "-X github.com/ontio/ontology/v2/common/config.Version=${VERSION}" -o ontology-windows-amd64 main.go
+	env GO111MODULE=on go build  -ldflags "-X github.com/ontio/ontology/v2/common/config.Version=${VERSION}" -o sigsvr-windows-amd64 sigsvr.go
 fi

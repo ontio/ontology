@@ -21,15 +21,15 @@ import (
 	"bytes"
 	"encoding/json"
 
-	utils2 "github.com/ontio/ontology/cmd/utils"
-	"github.com/ontio/ontology/core/payload"
-	"github.com/ontio/ontology/core/utils"
-	common2 "github.com/ontio/ontology/http/base/common"
-	"github.com/ontio/ontology/smartcontract/states"
+	utils2 "github.com/ontio/ontology/v2/cmd/utils"
+	"github.com/ontio/ontology/v2/core/payload"
+	"github.com/ontio/ontology/v2/core/utils"
+	common2 "github.com/ontio/ontology/v2/http/base/common"
+	"github.com/ontio/ontology/v2/smartcontract/states"
 
-	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/core/types"
-	"github.com/ontio/ontology/vm/neovm"
+	"github.com/ontio/ontology/v2/common"
+	"github.com/ontio/ontology/v2/core/types"
+	"github.com/ontio/ontology/v2/vm/neovm"
 )
 
 type TestEnv struct {

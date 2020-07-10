@@ -25,10 +25,10 @@ import (
 	"testing"
 
 	"github.com/ontio/ontology-crypto/keypair"
-	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/core/types"
-	"github.com/ontio/ontology/merkle"
-	"github.com/ontio/ontology/vm/neovm"
+	"github.com/ontio/ontology/v2/common"
+	"github.com/ontio/ontology/v2/core/types"
+	"github.com/ontio/ontology/v2/merkle"
+	"github.com/ontio/ontology/v2/vm/neovm"
 	"github.com/stretchr/testify/assert"
 )
 

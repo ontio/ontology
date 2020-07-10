@@ -25,14 +25,14 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/common/log"
-	"github.com/ontio/ontology/core/ledger"
-	"github.com/ontio/ontology/core/types"
-	p2pComm "github.com/ontio/ontology/p2pserver/common"
-	msgpack "github.com/ontio/ontology/p2pserver/message/msg_pack"
-	p2p "github.com/ontio/ontology/p2pserver/net/protocol"
-	"github.com/ontio/ontology/p2pserver/peer"
+	"github.com/ontio/ontology/v2/common"
+	"github.com/ontio/ontology/v2/common/log"
+	"github.com/ontio/ontology/v2/core/ledger"
+	"github.com/ontio/ontology/v2/core/types"
+	p2pComm "github.com/ontio/ontology/v2/p2pserver/common"
+	msgpack "github.com/ontio/ontology/v2/p2pserver/message/msg_pack"
+	p2p "github.com/ontio/ontology/v2/p2pserver/net/protocol"
+	"github.com/ontio/ontology/v2/p2pserver/peer"
 )
 
 const (

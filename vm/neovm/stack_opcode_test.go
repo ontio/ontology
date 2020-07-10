@@ -29,8 +29,8 @@ import (
 
 	"github.com/ontio/ontology-crypto/keypair"
 	s "github.com/ontio/ontology-crypto/signature"
-	"github.com/ontio/ontology/vm/neovm/interfaces"
-	"github.com/ontio/ontology/vm/neovm/types"
+	"github.com/ontio/ontology/v2/vm/neovm/interfaces"
+	"github.com/ontio/ontology/v2/vm/neovm/types"
 	"github.com/stretchr/testify/assert"
 	"golang.org/x/crypto/ripemd160"
 )

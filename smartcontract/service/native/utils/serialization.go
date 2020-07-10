@@ -23,7 +23,7 @@ import (
 	"io"
 	"math/big"
 
-	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/v2/common"
 )
 
 func EncodeAddress(sink *common.ZeroCopySink, addr common.Address) (size uint64) {

@@ -18,8 +18,8 @@
 package testsuite
 
 import (
-	"github.com/ontio/ontology/core/store/leveldbstore"
-	"github.com/ontio/ontology/core/store/overlaydb"
+	"github.com/ontio/ontology/v2/core/store/leveldbstore"
+	"github.com/ontio/ontology/v2/core/store/overlaydb"
 )
 
 func NewOverlayDB() *overlaydb.OverlayDB {

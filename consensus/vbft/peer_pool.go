@@ -24,8 +24,8 @@ import (
 	"time"
 
 	"github.com/ontio/ontology-crypto/keypair"
-	vconfig "github.com/ontio/ontology/consensus/vbft/config"
-	"github.com/ontio/ontology/p2pserver/common"
+	vconfig "github.com/ontio/ontology/v2/consensus/vbft/config"
+	"github.com/ontio/ontology/v2/p2pserver/common"
 )
 
 type Peer struct {

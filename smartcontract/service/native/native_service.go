@@ -21,16 +21,16 @@ package native
 import (
 	"fmt"
 
-	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/core/store"
-	"github.com/ontio/ontology/core/types"
-	"github.com/ontio/ontology/errors"
-	"github.com/ontio/ontology/merkle"
-	"github.com/ontio/ontology/smartcontract/context"
-	"github.com/ontio/ontology/smartcontract/event"
-	"github.com/ontio/ontology/smartcontract/states"
-	sstates "github.com/ontio/ontology/smartcontract/states"
-	"github.com/ontio/ontology/smartcontract/storage"
+	"github.com/ontio/ontology/v2/common"
+	"github.com/ontio/ontology/v2/core/store"
+	"github.com/ontio/ontology/v2/core/types"
+	"github.com/ontio/ontology/v2/errors"
+	"github.com/ontio/ontology/v2/merkle"
+	"github.com/ontio/ontology/v2/smartcontract/context"
+	"github.com/ontio/ontology/v2/smartcontract/event"
+	"github.com/ontio/ontology/v2/smartcontract/states"
+	sstates "github.com/ontio/ontology/v2/smartcontract/states"
+	"github.com/ontio/ontology/v2/smartcontract/storage"
 )
 
 type (

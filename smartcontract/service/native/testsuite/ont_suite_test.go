@@ -18,15 +18,15 @@
 package testsuite
 
 import (
-	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/common/config"
-	"github.com/ontio/ontology/common/constants"
-	"github.com/ontio/ontology/smartcontract/service/native"
-	_ "github.com/ontio/ontology/smartcontract/service/native/init"
-	"github.com/ontio/ontology/smartcontract/service/native/ong"
-	"github.com/ontio/ontology/smartcontract/service/native/ont"
-	"github.com/ontio/ontology/smartcontract/service/native/utils"
-	"github.com/ontio/ontology/smartcontract/storage"
+	"github.com/ontio/ontology/v2/common"
+	"github.com/ontio/ontology/v2/common/config"
+	"github.com/ontio/ontology/v2/common/constants"
+	"github.com/ontio/ontology/v2/smartcontract/service/native"
+	_ "github.com/ontio/ontology/v2/smartcontract/service/native/init"
+	"github.com/ontio/ontology/v2/smartcontract/service/native/ong"
+	"github.com/ontio/ontology/v2/smartcontract/service/native/ont"
+	"github.com/ontio/ontology/v2/smartcontract/service/native/utils"
+	"github.com/ontio/ontology/v2/smartcontract/storage"
 	"github.com/stretchr/testify/assert"
 
 	"testing"

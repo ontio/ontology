@@ -19,7 +19,7 @@
 package account
 
 import (
-	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/v2/common"
 )
 
 type ClientStore interface {

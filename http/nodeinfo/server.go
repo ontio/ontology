@@ -26,9 +26,9 @@ import (
 	"sort"
 	"strconv"
 
-	"github.com/ontio/ontology/common/config"
-	"github.com/ontio/ontology/core/ledger"
-	p2p "github.com/ontio/ontology/p2pserver/net/protocol"
+	"github.com/ontio/ontology/v2/common/config"
+	"github.com/ontio/ontology/v2/core/ledger"
+	p2p "github.com/ontio/ontology/v2/p2pserver/net/protocol"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
