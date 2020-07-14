@@ -177,7 +177,7 @@ func (self *EventTimer) getEventTimeout(evtType TimerEventType) time.Duration {
 		d := (rand.Int63n(100) + 50) * atomic.LoadInt64(&endorseBlockTimeout) / 10
 		return time.Duration(d)
 	case EventTxPool:
-		return time.Duration(atomic.LoadInt64(&txPooltimeout))
+		return time.Duration(txPooltimeout)
 	case EventTxBlockTimeout:
 		return time.Duration(atomic.LoadInt64(&zeroTxBlockTimeout))
 	}

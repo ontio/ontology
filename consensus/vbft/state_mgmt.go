@@ -21,6 +21,7 @@ package vbft
 import (
 	"fmt"
 	"math"
+	"sync/atomic"
 	"time"
 
 	"github.com/ontio/ontology/common/log"
@@ -109,12 +110,14 @@ func (self *StateMgr) getState() ServerState {
 }
 
 func (self *StateMgr) run() {
-	self.liveTicker = time.AfterFunc(peerHandshakeTimeout*5, func() {
+	liveTimeout := time.Duration(atomic.LoadInt64(&peerHandshakeTimeout) * 5)
+	self.liveTicker = time.AfterFunc(liveTimeout, func() {
 		self.StateEventC <- &StateEvent{
 			Type:     LiveTick,
 			blockNum: self.server.GetCommittedBlockNo(),
 		}
-		self.liveTicker.Reset(peerHandshakeTimeout * 3)
+		liveTimeout = time.Duration(atomic.LoadInt64(&peerHandshakeTimeout) * 3)
+		self.liveTicker.Reset(liveTimeout)
 	})
 
 	// wait config done

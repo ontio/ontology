@@ -21,12 +21,12 @@ package vbft
 import (
 	"fmt"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/ledger"
-	"sync/atomic"
 )
 
 type SyncCheckReq struct {
