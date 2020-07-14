@@ -87,6 +87,9 @@ func (self *Block) Deserialization(source *common.ZeroCopySource) error {
 		return errors.New("mismatched transaction root")
 	}
 
+	// pre-compute block hash to avoid data racing on hash computation
+	_ = self.Hash()
+
 	return nil
 }
 
