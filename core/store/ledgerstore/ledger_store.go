@@ -96,7 +96,7 @@ type LedgerStoreImp struct {
 	vbftPeerInfoMap      map[uint32]map[string]uint32     //key:block height,value:peerInfo
 	lock                 sync.RWMutex
 	stateHashCheckHeight uint32
-	stateTree           *iavl.MutableTree
+	stateTree            *iavl.MutableTree
 
 	savingBlockSemaphore       chan bool
 	closing                    bool
@@ -346,7 +346,7 @@ func (this *LedgerStoreImp) recoverStore() error {
 		if err != nil {
 			return fmt.Errorf("stateTree.SaveVersion height:%d error %s", i, err)
 		}
-		log.Infof("state tree save version, root hash: %v, version: %d", rootHash, version)
+		log.Infof("state tree save version, root hash: %s, version: %d", hex.EncodeToString(rootHash), version)
 		result.StateRoot, err = common.Uint256ParseFromBytes(rootHash)
 		if err != nil {
 			return fmt.Errorf("common.Uint256ParseFromBytes height:%d error %s", i, err)
@@ -862,6 +862,11 @@ func (this *LedgerStoreImp) saveBlockToStateStore(block *types.Block, result sto
 		return fmt.Errorf("AddBlockMerkleTreeRoot error %s", err)
 	}
 
+	err = this.stateStore.AddGlobalStateRoot(blockHeight, result.StateRoot)
+	if err != nil {
+		return fmt.Errorf("AddGlobalStateRoot error %s", err)
+	}
+
 	err = this.stateStore.SaveCurrentBlock(blockHeight, blockHash)
 	if err != nil {
 		return fmt.Errorf("SaveCurrentBlock error %s", err)
@@ -975,7 +980,7 @@ func (this *LedgerStoreImp) submitBlock(block *types.Block, crossChainMsg *types
 	if err != nil {
 		return fmt.Errorf("stateTree.SaveVersion height:%d err %s", blockHeight, err)
 	}
-	log.Infof("state tree save version, root hash: %v, version: %d", rootHash, version)
+	log.Infof("state tree save version, root hash: %s, version: %d", hex.EncodeToString(rootHash), version)
 	result.StateRoot, err = common.Uint256ParseFromBytes(rootHash)
 	if err != nil {
 		return fmt.Errorf("common.Uint256ParseFromBytes height:%d err %s", blockHeight, err)
@@ -1097,7 +1102,7 @@ func (this *LedgerStoreImp) updateStateToTree(overlay *overlaydb.OverlayDB) {
 		key := iter.Key()
 		val := iter.Value()
 		this.stateTree.Set(key, val)
-		log.Debugf("update state to tree, key: %s", hex.EncodeToString(key))
+		log.Infof("update state to tree, key: %s", hex.EncodeToString(key))
 	}
 }
 
