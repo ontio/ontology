@@ -183,6 +183,11 @@ func (self *SoloService) makeBlock() (*types.Block, error) {
 	}
 	prevHash := ledger.DefLedger.GetCurrentBlockHash()
 	height := ledger.DefLedger.GetCurrentBlockHeight()
+	stateRoot, err := ledger.DefLedger.GetGlobalStateRoot(height)
+	if err != nil {
+		return nil, fmt.Errorf("GetGlobalStateRoot error:%s", err)
+	}
+	log.Debugf("global state root, height: %d, %v", height, stateRoot)
 
 	validHeight := height
 
@@ -219,6 +224,7 @@ func (self *SoloService) makeBlock() (*types.Block, error) {
 		PrevBlockHash:    prevHash,
 		TransactionsRoot: txRoot,
 		BlockRoot:        blockRoot,
+		StateRoot:        stateRoot,
 		Timestamp:        uint32(time.Now().Unix()),
 		Height:           height + 1,
 		ConsensusData:    common.GetNonce(),

@@ -64,6 +64,8 @@ func StartRPCServer() error {
 	rpc.HandleFunc("getcrosschainmsg", rpc.GetCrossChainMsg)
 	rpc.HandleFunc("getcrossstatesproof", rpc.GetCrossStatesProof)
 
+	rpc.HandleFunc("getstoreproof", rpc.GetStoreProof)
+
 	err := http.ListenAndServe(":"+strconv.Itoa(int(cfg.DefConfig.Rpc.HttpJsonPort)), nil)
 	if err != nil {
 		return fmt.Errorf("ListenAndServe error:%s", err)

@@ -647,3 +647,23 @@ func GetCrossStatesProof(params []interface{}) map[string]interface{} {
 	}
 	return responseSuccess(bcomn.CrossStatesProof{"CrossStatesProof", hex.EncodeToString(proof)})
 }
+
+func GetStoreProof(params []interface{}) map[string]interface{} {
+	if len(params) < 1 {
+		return responsePack(berr.INVALID_PARAMS, nil)
+	}
+	str, ok := params[0].(string)
+	if !ok {
+		return responsePack(berr.INVALID_PARAMS, "")
+	}
+	key, err := hex.DecodeString(str)
+	if err != nil {
+		return responsePack(berr.INVALID_PARAMS, "")
+	}
+	value, proof, err := bactor.GetStoreProof(key)
+	if err != nil {
+		log.Errorf("GetStoreProof, bactor.GetStoreProof error:%s", err)
+		return responsePack(berr.INTERNAL_ERROR, "")
+	}
+	return responseSuccess(bcomn.StoreProof{"StoreProof", hex.EncodeToString(value), hex.EncodeToString(proof)})
+}

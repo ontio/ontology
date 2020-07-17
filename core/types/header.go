@@ -119,6 +119,7 @@ type Header struct {
 	PrevBlockHash    common.Uint256
 	TransactionsRoot common.Uint256
 	BlockRoot        common.Uint256
+	StateRoot        common.Uint256
 	Timestamp        uint32
 	Height           uint32
 	ConsensusData    uint64
@@ -152,6 +153,7 @@ func (bd *Header) serializationUnsigned(sink *common.ZeroCopySink) {
 	sink.WriteBytes(bd.PrevBlockHash[:])
 	sink.WriteBytes(bd.TransactionsRoot[:])
 	sink.WriteBytes(bd.BlockRoot[:])
+	sink.WriteBytes(bd.StateRoot[:])
 	sink.WriteUint32(bd.Timestamp)
 	sink.WriteUint32(bd.Height)
 	sink.WriteUint64(bd.ConsensusData)
@@ -227,6 +229,7 @@ func (bd *Header) deserializationUnsigned(source *common.ZeroCopySource) error {
 	bd.PrevBlockHash, eof = source.NextHash()
 	bd.TransactionsRoot, eof = source.NextHash()
 	bd.BlockRoot, eof = source.NextHash()
+	bd.StateRoot, eof = source.NextHash()
 	bd.Timestamp, eof = source.NextUint32()
 	bd.Height, eof = source.NextUint32()
 	bd.ConsensusData, eof = source.NextUint64()

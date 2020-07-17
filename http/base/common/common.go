@@ -114,6 +114,12 @@ type CrossStatesProof struct {
 	AuditPath string
 }
 
+type StoreProof struct {
+	Type      string
+	Value     string
+	Proof     string
+}
+
 type Transactions struct {
 	Version    byte
 	Nonce      uint32

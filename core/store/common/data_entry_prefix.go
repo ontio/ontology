@@ -42,6 +42,7 @@ const (
 	SYS_BLOCK_MERKLE_TREE    DataEntryPrefix = 0x13 // Block merkle tree root key prefix
 	SYS_STATE_MERKLE_TREE    DataEntryPrefix = 0x20 // state merkle tree root key prefix
 	SYS_CROSS_CHAIN_MSG      DataEntryPrefix = 0x22 // state merkle tree root key prefix
+	SYS_GLOBAL_STATE_TREE    DataEntryPrefix = 0x24
 
 	EVENT_NOTIFY DataEntryPrefix = 0x14 //Event notify key prefix
 

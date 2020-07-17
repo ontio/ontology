@@ -85,6 +85,10 @@ func (self *Ledger) GetStateMerkleRoot(height uint32) (result common.Uint256, er
 	return self.ldgStore.GetStateMerkleRoot(height)
 }
 
+func (self *Ledger) GetGlobalStateRoot(height uint32) (result common.Uint256, err error) {
+	return self.ldgStore.GetGlobalStateRoot(height)
+}
+
 func (self *Ledger) GetCrossStatesRoot(height uint32) (common.Uint256, error) {
 	return self.ldgStore.GetCrossStatesRoot(height)
 }
