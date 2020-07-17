@@ -204,6 +204,10 @@ func (self *Ledger) GetCrossStatesProof(height uint32, key []byte) ([]byte, erro
 	return self.ldgStore.GetCrossStatesProof(height, key)
 }
 
+func (self *Ledger) GetStoreProof(key []byte) ([]byte, []byte, error) {
+	return self.ldgStore.GetStoreProof(key)
+}
+
 func (self *Ledger) Close() error {
 	return self.ldgStore.Close()
 }
