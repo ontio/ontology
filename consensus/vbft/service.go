@@ -619,7 +619,7 @@ func (self *Server) run(peerPubKey keypair.PublicKey) error {
 					continue
 				}
 
-				if msg.Type() < 4 {
+				if msg.Type() <= BlockCommitMessage || msg.Type() == BlockSubmitMessage {
 					log.Infof("server %d received consensus msg, blk %d, type: %d from %d",
 						self.Index, msg.GetBlockNum(), msg.Type(), fromPeer)
 				}
