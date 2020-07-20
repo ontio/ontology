@@ -389,10 +389,20 @@ func (self *SubNet) GetMembersInfo() []common.SubnetMemberInfo {
 
 	var members []common.SubnetMemberInfo
 	for addr, mem := range self.members {
+		connected := self.selfAddr == addr
+		height := uint64(0)
+		version := ""
+		if p := self.connected[addr]; p != nil {
+			connected = true
+			height = p.Height()
+			version = p.SoftVersion
+		}
 		members = append(members, common.SubnetMemberInfo{
 			PubKey:     mem.PubKey,
 			ListenAddr: addr,
-			Connected:  self.connected[addr] != nil || self.selfAddr == addr,
+			Connected:  connected,
+			Height:     height,
+			Version:    version,
 		})
 	}
 
