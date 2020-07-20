@@ -652,7 +652,7 @@ func GetStoreProof(params []interface{}) map[string]interface{} {
 	if len(params) < 1 {
 		return responsePack(berr.INVALID_PARAMS, nil)
 	}
-	str, ok := params[0].(string)
+	str, ok := params[1].(string)
 	if !ok {
 		return responsePack(berr.INVALID_PARAMS, "")
 	}
@@ -660,10 +660,10 @@ func GetStoreProof(params []interface{}) map[string]interface{} {
 	if err != nil {
 		return responsePack(berr.INVALID_PARAMS, "")
 	}
-	value, proof, err := bactor.GetStoreProof(key)
+	value, proof, height, err := bactor.GetStoreProof(key)
 	if err != nil {
 		log.Errorf("GetStoreProof, bactor.GetStoreProof error:%s", err)
 		return responsePack(berr.INTERNAL_ERROR, "")
 	}
-	return responseSuccess(bcomn.StoreProof{"StoreProof", hex.EncodeToString(value), hex.EncodeToString(proof)})
+	return responseSuccess(bcomn.StoreProof{"StoreProof", hex.EncodeToString(value), hex.EncodeToString(proof), height})
 }

@@ -78,5 +78,5 @@ type LedgerStore interface {
 	GetCrossStatesProof(height uint32, key []byte) ([]byte, error)
 	EnableBlockPrune(numBeforeCurr uint32)
 
-	GetStoreProof(key []byte) ([]byte, []byte, error)
+	GetStoreProof(key []byte) ([]byte, []byte, uint32, error)
 }

@@ -116,6 +116,6 @@ func GetCrossStatesProof(height uint32, key []byte) ([]byte, error) {
 	return ledger.DefLedger.GetCrossStatesProof(height, key)
 }
 
-func GetStoreProof(key []byte) ([]byte, []byte, error) {
+func GetStoreProof(key []byte) ([]byte, []byte, uint32, error) {
 	return ledger.DefLedger.GetStoreProof(key)
 }

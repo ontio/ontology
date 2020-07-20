@@ -614,15 +614,15 @@ func (this *LedgerStoreImp) GetGlobalStateRoot(height uint32) (common.Uint256, e
 	return this.stateStore.GetGlobalStateRoot(height)
 }
 
-func (this *LedgerStoreImp) GetStoreProof(key []byte) ([]byte, []byte, error) {
+func (this *LedgerStoreImp) GetStoreProof(key []byte) ([]byte, []byte, uint32, error) {
 	value, proof, err := this.stateTree.GetWithProof(key)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, 0, err
 	}
 	data := common.NewZeroCopySink(nil)
 	storeProof := types.StoreProof(*proof)
 	storeProof.Serialization(data)
-	return value, data.Bytes(), err
+	return value, data.Bytes(), uint32(this.stateTree.Version()), err
 }
 
 func (this *LedgerStoreImp) ExecuteBlock(block *types.Block) (result store.ExecuteResult, err error) {
