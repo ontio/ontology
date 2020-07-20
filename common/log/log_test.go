@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"sync"
 	"testing"
 	"time"
 
@@ -50,10 +51,10 @@ func TestLog(t *testing.T) {
 	}()
 
 	InitLog(InfoLog, PATH, Stdout)
-	Log.SetDebugLevel(DebugLog)
+	Log().SetDebugLevel(DebugLog)
 	logPrint()
 
-	Log.SetDebugLevel(WarnLog)
+	Log().SetDebugLevel(WarnLog)
 
 	logPrint()
 
@@ -72,8 +73,6 @@ func TestNewLogFile(t *testing.T) {
 		return
 	}
 	logPrint()
-	isNeedNewFile := CheckIfNeedNewFile()
-	assert.NotEqual(t, isNeedNewFile, true)
 	ClosePrintLog()
 	time.Sleep(time.Second * 2)
 	InitLog(InfoLog, PATH, Stdout)
@@ -83,4 +82,21 @@ func TestNewLogFile(t *testing.T) {
 		return
 	}
 	assert.Equal(t, len(logfileNum1), len(logfileNum2)-1)
+}
+
+func TestDataRace(t *testing.T) {
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		for i := 0; i < 1000; i++ {
+			InitLog(DebugLog)
+		}
+	}()
+
+	for i := 0; i < 10; i++ {
+		Debug("aaaa")
+	}
+
+	wg.Wait()
 }

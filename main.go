@@ -423,11 +423,7 @@ func logCurrBlockHeight() {
 		select {
 		case <-ticker.C:
 			log.Infof("CurrentBlockHeight = %d", ledger.DefLedger.GetCurrentBlockHeight())
-			isNeedNewFile := log.CheckIfNeedNewFile()
-			if isNeedNewFile {
-				log.ClosePrintLog()
-				log.InitLog(int(config.DefConfig.Common.LogLevel), log.PATH, log.Stdout)
-			}
+			log.CheckRotateLogFile()
 		}
 	}
 }

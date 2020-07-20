@@ -36,19 +36,19 @@ import (
 )
 
 const (
-	SYNC_MAX_HEADER_FORWARD_SIZE = 5000       //keep CurrentHeaderHeight - CurrentBlockHeight <= SYNC_MAX_HEADER_FORWARD_SIZE
-	SYNC_MAX_FLIGHT_HEADER_SIZE  = 1          //Number of headers on flight
-	SYNC_MAX_FLIGHT_BLOCK_SIZE   = 50         //Number of blocks on flight
-	SYNC_MAX_BLOCK_CACHE_SIZE    = 500        //Cache size of block wait to commit to ledger
-	SYNC_HEADER_REQUEST_TIMEOUT  = 2          //s, Request header timeout time. If header haven't receive after SYNC_HEADER_REQUEST_TIMEOUT second, retry
-	SYNC_BLOCK_REQUEST_TIMEOUT   = 2          //s, Request block timeout time. If block haven't received after SYNC_BLOCK_REQUEST_TIMEOUT second, retry
-	SYNC_NEXT_BLOCK_TIMES        = 3          //Request times of next height block
-	SYNC_NEXT_BLOCKS_HEIGHT      = 2          //for current block height plus next
-	SYNC_NODE_RECORD_SPEED_CNT   = 3          //Record speed count for accuracy
-	SYNC_NODE_RECORD_TIME_CNT    = 3          //Record request time  for accuracy
-	SYNC_NODE_SPEED_INIT         = 100 * 1024 //Init a big speed (100MB/s) for every node in first round
-	SYNC_MAX_ERROR_RESP_TIMES    = 5          //Max error headers/blocks response times, if reaches, delete it
-	SYNC_MAX_HEIGHT_OFFSET       = 5          //Offset of the max height and current height
+	SYNC_MAX_HEADER_FORWARD_SIZE = 5000            //keep CurrentHeaderHeight - CurrentBlockHeight <= SYNC_MAX_HEADER_FORWARD_SIZE
+	SYNC_MAX_FLIGHT_HEADER_SIZE  = 1               //Number of headers on flight
+	SYNC_MAX_FLIGHT_BLOCK_SIZE   = 50              //Number of blocks on flight
+	SYNC_MAX_BLOCK_CACHE_SIZE    = 500             //Cache size of block wait to commit to ledger
+	SYNC_HEADER_REQUEST_TIMEOUT  = 2 * time.Second //s, Request header timeout time. If header haven't receive after SYNC_HEADER_REQUEST_TIMEOUT second, retry
+	SYNC_BLOCK_REQUEST_TIMEOUT   = 2 * time.Second //s, Request block timeout time. If block haven't received after SYNC_BLOCK_REQUEST_TIMEOUT second, retry
+	SYNC_NEXT_BLOCK_TIMES        = 3               //Request times of next height block
+	SYNC_NEXT_BLOCKS_HEIGHT      = 2               //for current block height plus next
+	SYNC_NODE_RECORD_SPEED_CNT   = 3               //Record speed count for accuracy
+	SYNC_NODE_RECORD_TIME_CNT    = 3               //Record request time  for accuracy
+	SYNC_NODE_SPEED_INIT         = 100 * 1024      //Init a big speed (100MB/s) for every node in first round
+	SYNC_MAX_ERROR_RESP_TIMES    = 5               //Max error headers/blocks response times, if reaches, delete it
+	SYNC_MAX_HEIGHT_OFFSET       = 5               //Offset of the max height and current height
 )
 
 //NodeWeight record some params of node, using for sort
@@ -158,7 +158,7 @@ func (nws NodeWeights) Less(i, j int) bool {
 type SyncFlightInfo struct {
 	Height      uint32                 //BlockHeight of HeaderHeight
 	nodeId      p2pComm.PeerId         //The current node to send msg
-	startTime   time.Time              //Request start time
+	startTime   int64                  //Request start time in nanoseconds
 	failedNodes map[p2pComm.PeerId]int //Map nodeId => timeout times
 	totalFailed int                    //Total timeout times
 	lock        sync.RWMutex
@@ -169,7 +169,7 @@ func NewSyncFlightInfo(height uint32, nodeId p2pComm.PeerId) *SyncFlightInfo {
 	return &SyncFlightInfo{
 		Height:      height,
 		nodeId:      nodeId,
-		startTime:   time.Now(),
+		startTime:   time.Now().UnixNano(),
 		failedNodes: make(map[p2pComm.PeerId]int),
 	}
 }
@@ -218,11 +218,11 @@ func (this *SyncFlightInfo) GetTotalFailedTimes() int {
 func (this *SyncFlightInfo) ResetStartTime() {
 	this.lock.Lock()
 	defer this.lock.Unlock()
-	this.startTime = time.Now()
+	this.startTime = time.Now().UnixNano()
 }
 
 //GetStartTime return the start time of request
-func (this *SyncFlightInfo) GetStartTime() time.Time {
+func (this *SyncFlightInfo) GetStartTime() int64 {
 	this.lock.RLock()
 	defer this.lock.RUnlock()
 	return this.startTime
@@ -356,19 +356,24 @@ func (this *BlockSyncMgr) Start() {
 	}
 }
 
+// now prev is nanosecond
+func timeDiff(now, prev int64) time.Duration {
+	return time.Duration((now - prev) * time.Nanosecond.Nanoseconds())
+}
+
 func (this *BlockSyncMgr) checkTimeout() {
-	now := time.Now()
+	now := time.Now().UnixNano()
 	headerTimeoutFlights := make(map[uint32]*SyncFlightInfo)
 	blockTimeoutFlights := make(map[common.Uint256][]*SyncFlightInfo)
 	this.lock.RLock()
 	for height, flightInfo := range this.flightHeaders {
-		if int(now.Sub(flightInfo.startTime).Seconds()) >= SYNC_HEADER_REQUEST_TIMEOUT {
+		if timeDiff(now, flightInfo.GetStartTime()) >= SYNC_HEADER_REQUEST_TIMEOUT {
 			headerTimeoutFlights[height] = flightInfo
 		}
 	}
 	for blockHash, flightInfos := range this.flightBlocks {
 		for _, flightInfo := range flightInfos {
-			if int(now.Sub(flightInfo.startTime).Seconds()) >= SYNC_BLOCK_REQUEST_TIMEOUT {
+			if timeDiff(now, flightInfo.GetStartTime()) >= SYNC_BLOCK_REQUEST_TIMEOUT {
 				blockTimeoutFlights[blockHash] = append(blockTimeoutFlights[blockHash], flightInfo)
 			}
 		}
@@ -386,7 +391,8 @@ func (this *BlockSyncMgr) checkTimeout() {
 		}
 		flightInfo.ResetStartTime()
 		flightInfo.MarkFailedNode()
-		log.Tracef("[block-sync] checkTimeout sync headers from id:%d :%d timeout after:%d s Times:%d", flightInfo.GetNodeId(), height, SYNC_HEADER_REQUEST_TIMEOUT, flightInfo.GetTotalFailedTimes())
+		log.Tracef("[block-sync] checkTimeout sync headers from id:%d :%d timeout after:%d s Times:%d",
+			flightInfo.GetNodeId(), height, SYNC_HEADER_REQUEST_TIMEOUT/time.Second, flightInfo.GetTotalFailedTimes())
 		reqNode := this.getNodeWithMinFailedTimes(flightInfo, curBlockHeight)
 		if reqNode == nil {
 			break
@@ -411,7 +417,7 @@ func (this *BlockSyncMgr) checkTimeout() {
 			}
 			flightInfo.ResetStartTime()
 			flightInfo.MarkFailedNode()
-			log.Tracef("[block-sync] checkTimeout sync height:%d block:0x%x timeout after:%d s times:%d", flightInfo.Height, blockHash, SYNC_BLOCK_REQUEST_TIMEOUT, flightInfo.GetTotalFailedTimes())
+			log.Tracef("[block-sync] checkTimeout sync height:%d block:0x%x timeout after:%d s times:%d", flightInfo.Height, blockHash, SYNC_BLOCK_REQUEST_TIMEOUT/time.Second, flightInfo.GetTotalFailedTimes())
 			reqNode := this.getNodeWithMinFailedTimes(flightInfo, curBlockHeight)
 			if reqNode == nil {
 				break
@@ -614,7 +620,7 @@ func (this *BlockSyncMgr) OnBlockReceive(fromID p2pComm.PeerId, blockSize uint32
 	log.Tracef("[block-sync] OnBlockReceive Height:%d", height)
 	flightInfo := this.getFlightBlock(blockHash, fromID)
 	if flightInfo != nil {
-		t := (time.Now().UnixNano() - flightInfo.GetStartTime().UnixNano()) / int64(time.Millisecond)
+		t := (time.Now().UnixNano() - flightInfo.GetStartTime()) / int64(time.Millisecond)
 		s := float32(blockSize) / float32(t) * 1000.0 / 1024.0
 		this.addNewSpeed(fromID, s)
 	}
