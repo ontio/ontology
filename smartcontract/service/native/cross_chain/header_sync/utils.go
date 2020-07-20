@@ -273,7 +273,7 @@ func findKeyHeight(native *native.NativeService, height uint32, chainID uint64) 
 		return 0, fmt.Errorf("findKeyHeight, GetKeyHeights error: %v", err)
 	}
 	for _, v := range keyHeights.HeightList {
-		if (height - v) > 0 {
+		if height > v {
 			return v, nil
 		}
 	}
