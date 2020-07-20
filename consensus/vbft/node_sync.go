@@ -21,6 +21,7 @@ package vbft
 import (
 	"fmt"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/ontio/ontology/common"
@@ -417,7 +418,7 @@ func (self *PeerSyncer) requestBlock(blkNum uint32) (*Block, error) {
 		Msg:    msg,
 	}
 
-	t := time.NewTimer(makeProposalTimeout * 2)
+	t := time.NewTimer(time.Duration(atomic.LoadInt64(&makeProposalTimeout) * 2))
 	defer t.Stop()
 
 	select {
@@ -448,7 +449,7 @@ func (self *PeerSyncer) requestBlockInfo(startBlkNum uint32) ([]*BlockInfo_, err
 		Msg:    msg,
 	}
 
-	t := time.NewTimer(makeProposalTimeout * 2)
+	t := time.NewTimer(time.Duration(atomic.LoadInt64(&makeProposalTimeout) * 2))
 	defer t.Stop()
 
 	select {

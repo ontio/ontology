@@ -518,11 +518,10 @@ func (pool *BlockPool) commitDone(blkNum uint32, C uint32, N uint32) (uint32, bo
 	// check consensus with commit msgs
 	proposer, forEmpty := getCommitConsensus(candidate.CommitMsgs, int(C), int(N))
 
-	// enforce signature quorum if checking commit-consensus base on signature count
-	// if C <= (N-1)/3, N-1-C >= 2*C
-	C = N - 1 - C
 	if proposer == math.MaxUint32 {
 		// check consensus with endorse sigs
+		// enforce signature quorum if checking commit-consensus base on signature count
+		C = N - (N-1)/3 - 1
 		var emptyCnt uint32
 		endorseCnt := make(map[uint32]uint32) // proposer -> endorsed-cnt
 		for endorser, eSigs := range candidate.EndorseSigs {

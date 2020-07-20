@@ -224,6 +224,15 @@ func (self *Server) getHighestRankProposal(blockNum uint32, proposals []*blockPr
 	return proposal
 }
 
+func (self *Server) updateTimerParams(config *vconfig.ChainConfig) {
+	atomic.StoreInt64(&makeProposalTimeout, int64(config.BlockMsgDelay*2))
+	atomic.StoreInt64(&make2ndProposalTimeout, int64(config.BlockMsgDelay))
+	atomic.StoreInt64(&endorseBlockTimeout, int64(config.HashMsgDelay*2))
+	atomic.StoreInt64(&commitBlockTimeout, int64(config.HashMsgDelay*3))
+	atomic.StoreInt64(&peerHandshakeTimeout, int64(config.PeerHandshakeTimeout))
+	atomic.StoreInt64(&zeroTxBlockTimeout, int64(config.BlockMsgDelay*3))
+}
+
 //
 //  call this method with metaLock locked
 //
@@ -394,11 +403,6 @@ func (self *Server) findBlockProposal(blkNum uint32, proposer uint32, forEmpty b
 		}
 	}
 
-	return nil
-}
-
-func (self *Server) validateTxsInProposal(proposal *blockProposalMsg) error {
-	// TODO: add VBFT specific verifications
 	return nil
 }
 

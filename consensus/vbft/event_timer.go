@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"math/rand"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/ontio/ontology/common/log"
@@ -45,13 +46,13 @@ const (
 )
 
 var (
-	makeProposalTimeout    = 300 * time.Millisecond
-	make2ndProposalTimeout = 300 * time.Millisecond
-	endorseBlockTimeout    = 100 * time.Millisecond
-	commitBlockTimeout     = 200 * time.Millisecond
-	peerHandshakeTimeout   = 10 * time.Second
-	txPooltimeout          = 1 * time.Second
-	zeroTxBlockTimeout     = 10 * time.Second
+	makeProposalTimeout    = int64(300 * time.Millisecond)
+	make2ndProposalTimeout = int64(300 * time.Millisecond)
+	endorseBlockTimeout    = int64(100 * time.Millisecond)
+	commitBlockTimeout     = int64(200 * time.Millisecond)
+	peerHandshakeTimeout   = int64(10 * time.Second)
+	txPooltimeout          = int64(1 * time.Second)
+	zeroTxBlockTimeout     = int64(10 * time.Second)
 )
 
 type SendMsgEvent struct {
@@ -154,31 +155,31 @@ func (self *EventTimer) CancelTimer(idx uint32) {
 func (self *EventTimer) getEventTimeout(evtType TimerEventType) time.Duration {
 	switch evtType {
 	case EventProposeBlockTimeout:
-		return makeProposalTimeout
+		return time.Duration(atomic.LoadInt64(&makeProposalTimeout))
 	case EventPropose2ndBlockTimeout:
-		return make2ndProposalTimeout
+		return time.Duration(atomic.LoadInt64(&make2ndProposalTimeout))
 	case EventEndorseBlockTimeout:
-		return endorseBlockTimeout
+		return time.Duration(atomic.LoadInt64(&endorseBlockTimeout))
 	case EventEndorseEmptyBlockTimeout:
-		return endorseBlockTimeout
+		return time.Duration(atomic.LoadInt64(&endorseBlockTimeout))
 	case EventCommitBlockTimeout:
-		return commitBlockTimeout
+		return time.Duration(atomic.LoadInt64(&commitBlockTimeout))
 	case EventPeerHeartbeat:
-		return peerHandshakeTimeout
+		return time.Duration(atomic.LoadInt64(&peerHandshakeTimeout))
 	case EventProposalBackoff:
 		rank := self.server.getProposerRank(self.server.GetCurrentBlockNo(), self.server.Index)
 		if rank >= 0 {
-			d := int64(rank+1) * int64(make2ndProposalTimeout) / 3
+			d := int64(rank+1) * atomic.LoadInt64(&make2ndProposalTimeout) / 3
 			return time.Duration(d)
 		}
 		return time.Duration(100 * time.Second)
 	case EventRandomBackoff:
-		d := (rand.Int63n(100) + 50) * int64(endorseBlockTimeout) / 10
+		d := (rand.Int63n(100) + 50) * atomic.LoadInt64(&endorseBlockTimeout) / 10
 		return time.Duration(d)
 	case EventTxPool:
-		return txPooltimeout
+		return time.Duration(txPooltimeout)
 	case EventTxBlockTimeout:
-		return zeroTxBlockTimeout
+		return time.Duration(atomic.LoadInt64(&zeroTxBlockTimeout))
 	}
 
 	return 0
