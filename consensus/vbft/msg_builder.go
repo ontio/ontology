@@ -316,7 +316,7 @@ func (self *Server) constructEndorseMsg(proposal *blockProposalMsg, forEmpty boo
 	var blkHash common.Uint256
 	var err error
 	if !forEmpty {
-		proposerSig = proposal.Block.Block.Header.SigData[0]
+		proposerSig = proposal.BlockProposerSig
 		blkHash = proposal.Block.Block.Hash()
 
 	} else {
@@ -325,7 +325,7 @@ func (self *Server) constructEndorseMsg(proposal *blockProposalMsg, forEmpty boo
 				proposal.GetBlockNum(), proposal.Block.getProposer())
 		}
 
-		proposerSig = proposal.Block.EmptyBlock.Header.SigData[0]
+		proposerSig = proposal.EmptyBlockProposerSig
 		blkHash = proposal.Block.EmptyBlock.Hash()
 	}
 	endorserSig, err = signature.Sign(self.account, blkHash[:])
@@ -363,7 +363,7 @@ func (self *Server) constructCommitMsg(proposal *blockProposalMsg, endorses []*b
 	var err error
 
 	if !forEmpty {
-		proposerSig = proposal.Block.Block.Header.SigData[0]
+		proposerSig = proposal.BlockProposerSig
 		blkHash = proposal.Block.Block.Hash()
 	} else {
 		if proposal.Block.EmptyBlock == nil {
@@ -371,7 +371,7 @@ func (self *Server) constructCommitMsg(proposal *blockProposalMsg, endorses []*b
 				proposal.GetBlockNum(), proposal.Block.getProposer())
 		}
 
-		proposerSig = proposal.Block.EmptyBlock.Header.SigData[0]
+		proposerSig = proposal.EmptyBlockProposerSig
 		blkHash = proposal.Block.EmptyBlock.Hash()
 	}
 	committerSig, err = signature.Sign(self.account, blkHash[:])
