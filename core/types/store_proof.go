@@ -1,4 +1,4 @@
-package ledgerstore
+package types
 
 import (
 	"github.com/ontio/ontology/common"

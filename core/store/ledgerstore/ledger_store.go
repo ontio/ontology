@@ -620,7 +620,7 @@ func (this *LedgerStoreImp) GetStoreProof(key []byte) ([]byte, []byte, error) {
 		return nil, nil, err
 	}
 	data := common.NewZeroCopySink(nil)
-	storeProof := StoreProof(*proof)
+	storeProof := types.StoreProof(*proof)
 	storeProof.Serialization(data)
 	return value, data.Bytes(), err
 }
