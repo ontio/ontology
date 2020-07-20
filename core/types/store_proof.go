@@ -38,34 +38,34 @@ func (this *StoreProof) Serialization(sink *common.ZeroCopySink) {
 func (this *StoreProof) Deserialization(source *common.ZeroCopySource) error {
 	leftPathLen, _ := source.NextUint32()
 	this.LeftPath = make([]iavl.ProofInnerNode, leftPathLen)
-	for _, item := range this.LeftPath {
+	for i := 0;i < int(leftPathLen);i ++ {
 		height, _ := source.NextUint8()
-		item.Height = int8(height)
-		item.Size, _ = source.NextInt64()
-		item.Version, _ = source.NextInt64()
-		item.Left, _ = source.ReadVarBytes()
-		item.Right, _ = source.ReadVarBytes()
+		this.LeftPath[i].Height = int8(height)
+		this.LeftPath[i].Size, _ = source.NextInt64()
+		this.LeftPath[i].Version, _ = source.NextInt64()
+		this.LeftPath[i].Left, _ = source.ReadVarBytes()
+		this.LeftPath[i].Right, _ = source.ReadVarBytes()
 	}
 	innerNodesLen, _ := source.NextUint32()
 	this.InnerNodes = make([]iavl.PathToLeaf, innerNodesLen)
 	for i, _ := range this.InnerNodes {
 		pathToLeafLen, _ := source.NextUint32()
 		this.InnerNodes[i] = make([]iavl.ProofInnerNode, pathToLeafLen)
-		for _, item := range this.InnerNodes[i] {
+		for j := 0;j < int(pathToLeafLen);j ++ {
 			height, _ := source.NextUint8()
-			item.Height = int8(height)
-			item.Size, _ = source.NextInt64()
-			item.Version, _ = source.NextInt64()
-			item.Left, _ = source.ReadVarBytes()
-			item.Right, _ = source.ReadVarBytes()
+			this.InnerNodes[i][j].Height = int8(height)
+			this.InnerNodes[i][j].Size, _ = source.NextInt64()
+			this.InnerNodes[i][j].Version, _ = source.NextInt64()
+			this.InnerNodes[i][j].Left, _ = source.ReadVarBytes()
+			this.InnerNodes[i][j].Right, _ = source.ReadVarBytes()
 		}
 	}
 	leavesLen, _ := source.NextUint32()
 	this.Leaves = make([]iavl.ProofLeafNode, leavesLen)
-	for _, item := range this.Leaves {
-		item.Key, _ = source.ReadVarBytes()
-		item.ValueHash, _ = source.ReadVarBytes()
-		item.Version, _ = source.NextInt64()
+	for i := 0;i < int(leavesLen);i ++ {
+		this.Leaves[i].Key, _ = source.ReadVarBytes()
+		this.Leaves[i].ValueHash, _ = source.ReadVarBytes()
+		this.Leaves[i].Version, _ = source.NextInt64()
 	}
 	return nil
 }
