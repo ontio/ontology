@@ -87,7 +87,7 @@ func (self *RawHeader) Deserialization(source *common.ZeroCopySource) error {
 
 func (self *RawHeader) deserializationUnsigned(source *common.ZeroCopySource) error {
 	// version + preHash + tx root + block root + timestamp
-	source.Skip(4 + 32*3 + 4)
+	source.Skip(4 + 32*4 + 4)
 	self.Height, _ = source.NextUint32()
 	//ConsensusData    uint64
 	source.Skip(8)
