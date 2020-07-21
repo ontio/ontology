@@ -57,7 +57,9 @@ type ConsensusMsg interface {
 }
 
 type blockProposalMsg struct {
-	Block *Block `json:"block"`
+	Block                 *Block `json:"block"`
+	BlockProposerSig      []byte
+	EmptyBlockProposerSig []byte
 }
 
 func (msg *blockProposalMsg) Type() MsgType {
@@ -127,6 +129,12 @@ func (msg *blockProposalMsg) UnmarshalJSON(data []byte) error {
 	}
 
 	msg.Block = blk
+	if blk.Block != nil {
+		msg.BlockProposerSig = blk.Block.Header.SigData[0]
+	}
+	if blk.EmptyBlock != nil {
+		msg.EmptyBlockProposerSig = blk.EmptyBlock.Header.SigData[0]
+	}
 	return nil
 }
 

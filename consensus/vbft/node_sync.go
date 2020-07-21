@@ -241,8 +241,10 @@ func (self *Syncer) blockConsensusDone(blks BlockFromPeers) *Block {
 	for _, blk := range blks {
 		proposers[blk.getProposer()] += 1
 	}
+
+	chainCfg := self.server.GetChainConfig()
 	for proposerId, cnt := range proposers {
-		if cnt > int(self.server.config.C) {
+		if cnt > int(chainCfg.C) {
 			// find the block
 			for _, blk := range blks {
 				if blk.getProposer() == proposerId {
@@ -263,8 +265,10 @@ func (self *Syncer) blockCheckMerkleRoot(blks BlockFromPeers) *Block {
 	for _, blk := range blks {
 		merkleRoot[blk.getPrevExecMerkleRoot()] += 1
 	}
+
+	chainCfg := self.server.GetChainConfig()
 	for merklerootvalue, cnt := range merkleRoot {
-		if cnt > int(self.server.config.C) {
+		if cnt > int(chainCfg.C) {
 			// find the block
 			for _, blk := range blks {
 				if blk.getPrevExecMerkleRoot() == merklerootvalue {
