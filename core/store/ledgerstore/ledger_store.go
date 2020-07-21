@@ -1097,7 +1097,7 @@ func (this *LedgerStoreImp) saveHeaderIndexList() error {
 }
 
 func (this *LedgerStoreImp) updateStateToTree(overlay *overlaydb.OverlayDB) {
-	iter := overlay.NewIterator([]byte{byte(scom.ST_CONTRACT)})
+	iter := overlay.NewIterator([]byte{byte(scom.ST_STORAGE)})
 	for has := iter.First(); has; has = iter.Next() {
 		key := iter.Key()
 		val := iter.Value()
