@@ -135,6 +135,7 @@ func setCommonConfig(ctx *cli.Context, cfg *config.CommonConfig) {
 	cfg.EnableEventLog = !ctx.Bool(utils.GetFlagName(utils.DisableEventLogFlag))
 	cfg.GasLimit = ctx.Uint64(utils.GetFlagName(utils.GasLimitFlag))
 	cfg.GasPrice = ctx.Uint64(utils.GetFlagName(utils.GasPriceFlag))
+	cfg.MinOngLimit = ctx.Uint64(utils.GetFlagName(utils.MinOngLimitFlag))
 	cfg.DataDir = ctx.String(utils.GetFlagName(utils.DataDirFlag))
 }
 

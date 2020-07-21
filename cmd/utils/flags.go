@@ -104,6 +104,12 @@ var (
 		Value: config.DEFAULT_GAS_PRICE,
 	}
 
+	MinOngLimitFlag = cli.Uint64Flag{
+		Name:  "minonglimit",
+		Usage: "Min withdraw and transfer Ong `<value>`.",
+		Value: config.DEFAULT_MIN_ONG_LIMIT,
+	}
+
 	//Test Mode setting
 	EnableTestModeFlag = cli.BoolFlag{
 		Name:  "testmode",

@@ -73,18 +73,35 @@ func GenBalanceKey(contract, addr common.Address) []byte {
 }
 
 func Transfer(native *native.NativeService, contract common.Address, state *State) (uint64, uint64, error) {
-	if !native.ContextRef.CheckWitness(state.From) {
-		return 0, 0, errors.NewErr("authentication failed!")
+	// this is layer2 tx
+	isLayer2Deposit := IsLayer2Addr(state.From)
+	if isLayer2Deposit {
+		if native.Operator == false {
+			return 0, 0, errors.NewErr("only operator can use layer2 deposit!")
+		}
+	} else {
+		if !native.ContextRef.CheckWitness(state.From) {
+			return 0, 0, errors.NewErr("authentication failed!")
+		}
 	}
 
-	fromBalance, err := fromTransfer(native, GenBalanceKey(contract, state.From), state.Value)
-	if err != nil {
-		return 0, 0, err
+	//
+	isLayer2Withdraw := IsLayer2Addr(state.To)
+	fromBalance := uint64(0)
+	toBalance := uint64(0)
+	var err error
+	if isLayer2Deposit != true {
+		fromBalance, err = fromTransfer(native, GenBalanceKey(contract, state.From), state.Value)
+		if err != nil {
+			return 0, 0, err
+		}
 	}
 
-	toBalance, err := toTransfer(native, GenBalanceKey(contract, state.To), state.Value)
-	if err != nil {
-		return 0, 0, err
+	if isLayer2Withdraw != true {
+		toBalance, err = toTransfer(native, GenBalanceKey(contract, state.To), state.Value)
+		if err != nil {
+			return 0, 0, err
+		}
 	}
 	return fromBalance, toBalance, nil
 }
@@ -95,28 +112,44 @@ func GenApproveKey(contract, from, to common.Address) []byte {
 }
 
 func TransferedFrom(native *native.NativeService, currentContract common.Address, state *TransferFrom) (uint64, uint64, error) {
-	if native.Time <= config.GetOntHolderUnboundDeadline()+constants.GENESIS_BLOCK_TIMESTAMP {
-		if !native.ContextRef.CheckWitness(state.Sender) {
-			return 0, 0, errors.NewErr("authentication failed!")
+	isLayer2Deposit := IsLayer2Addr(state.From)
+	if isLayer2Deposit {
+		if native.Operator == false {
+			return 0, 0, errors.NewErr("only operator can use layer2 deposit!")
 		}
 	} else {
-		if state.Sender != state.To && !native.ContextRef.CheckWitness(state.Sender) {
-			return 0, 0, errors.NewErr("authentication failed!")
+		if native.Time <= config.GetOntHolderUnboundDeadline()+constants.GENESIS_BLOCK_TIMESTAMP {
+			if !native.ContextRef.CheckWitness(state.Sender) {
+				return 0, 0, errors.NewErr("authentication failed!")
+			}
+		} else {
+			if state.Sender != state.To && !native.ContextRef.CheckWitness(state.Sender) {
+				return 0, 0, errors.NewErr("authentication failed!")
+			}
 		}
 	}
 
-	if err := fromApprove(native, genTransferFromKey(currentContract, state), state.Value); err != nil {
-		return 0, 0, err
+	isLayer2Withdraw := IsLayer2Addr(state.To)
+
+	var fromBalance uint64
+	var toBalance uint64
+	var err error
+	if !isLayer2Deposit {
+		if err := fromApprove(native, genTransferFromKey(currentContract, state), state.Value); err != nil {
+			return 0, 0, err
+		}
+
+		fromBalance, err = fromTransfer(native, GenBalanceKey(currentContract, state.From), state.Value)
+		if err != nil {
+			return 0, 0, err
+		}
 	}
 
-	fromBalance, err := fromTransfer(native, GenBalanceKey(currentContract, state.From), state.Value)
-	if err != nil {
-		return 0, 0, err
-	}
-
-	toBalance, err := toTransfer(native, GenBalanceKey(currentContract, state.To), state.Value)
-	if err != nil {
-		return 0, 0, err
+	if !isLayer2Withdraw {
+		toBalance, err = toTransfer(native, GenBalanceKey(currentContract, state.To), state.Value)
+		if err != nil {
+			return 0, 0, err
+		}
 	}
 	return fromBalance, toBalance, nil
 }
@@ -181,6 +214,14 @@ func toTransfer(native *native.NativeService, toKey []byte, value uint64) (uint6
 	}
 	native.CacheDB.Put(toKey, GetToUInt64StorageItem(toBalance, value).ToArray())
 	return toBalance, nil
+}
+
+func IsLayer2Addr(addr common.Address) bool {
+	if addr.ToHexString() == common.ADDRESS_EMPTY.ToHexString() {
+		return true
+	} else {
+		return false
+	}
 }
 
 func genAddressUnboundOffsetKey(contract, address common.Address) []byte {

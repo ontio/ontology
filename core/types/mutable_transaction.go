@@ -28,6 +28,7 @@ import (
 type MutableTransaction struct {
 	Version  byte
 	TxType   TransactionType
+	SystemId uint32
 	Nonce    uint32
 	GasPrice uint64
 	GasLimit uint64
@@ -97,6 +98,7 @@ func (tx *MutableTransaction) serialize(sink *common.ZeroCopySink) error {
 func (tx *MutableTransaction) serializeUnsigned(sink *common.ZeroCopySink) error {
 	sink.WriteByte(byte(tx.Version))
 	sink.WriteByte(byte(tx.TxType))
+	sink.WriteUint32(tx.SystemId)
 	sink.WriteUint32(tx.Nonce)
 	sink.WriteUint64(tx.GasPrice)
 	sink.WriteUint64(tx.GasLimit)

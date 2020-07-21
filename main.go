@@ -100,6 +100,7 @@ func setupAPP() *cli.App {
 		//txpool setting
 		utils.GasPriceFlag,
 		utils.GasLimitFlag,
+		utils.MinOngLimitFlag,
 		utils.TxpoolPreExecDisableFlag,
 		utils.DisableSyncVerifyTxFlag,
 		utils.DisableBroadcastNetTxFlag,

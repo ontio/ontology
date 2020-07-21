@@ -51,6 +51,8 @@ type SoloService struct {
 	genBlockInterval time.Duration
 	pid              *actor.PID
 	sub              *events.ActorSubscriber
+	counter          int
+	genEmptyBlock    int
 }
 
 func NewSoloService(bkAccount *account.Account, txpool *actor.PID) (*SoloService, error) {
@@ -59,6 +61,8 @@ func NewSoloService(bkAccount *account.Account, txpool *actor.PID) (*SoloService
 		poolActor:        &actorTypes.TxPoolActor{Pool: txpool},
 		incrValidator:    increment.NewIncrementValidator(20),
 		genBlockInterval: time.Duration(config.DefConfig.Genesis.SOLO.GenBlockTime) * time.Second,
+		counter: 0,
+		genEmptyBlock: 0,
 	}
 
 	props := actor.FromProducer(func() actor.Actor {
@@ -203,7 +207,21 @@ func (self *SoloService) makeBlock() (*types.Block, error) {
 	log.Infof("current block height %v, increment validator block cache range: [%d, %d)", height, start, end)
 
 	txs := self.poolActor.GetTxnPool(true, validHeight)
-
+	// todo
+	if len(txs) == 0 && self.counter < 3600 && self.genEmptyBlock == 0 {
+		self.counter ++
+		log.Infof("The count of tx is too small or timer is not out")
+		return nil, nil
+	} else if len(txs) > 0 {
+		self.genEmptyBlock = 3
+		self.counter = 0
+	} else if self.genEmptyBlock > 0 {
+		self.genEmptyBlock --
+		self.counter = 0
+	} else {
+		self.counter = 0
+	}
+	log.Infof("counter: %d", self.counter)
 	transactions := make([]*types.Transaction, 0, len(txs))
 	for _, txEntry := range txs {
 		// TODO optimize to use height in txentry
