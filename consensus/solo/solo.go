@@ -150,6 +150,9 @@ func (self *SoloService) genBlock() error {
 	if err != nil {
 		return fmt.Errorf("makeBlock error %s", err)
 	}
+	if block == nil {
+		return nil
+	}
 
 	result, err := ledger.DefLedger.ExecuteBlock(block)
 	if err != nil {
