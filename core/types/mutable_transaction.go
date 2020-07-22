@@ -50,8 +50,26 @@ func (self *MutableTransaction) IntoImmutable() (*Transaction, error) {
 	return TransactionFromRawBytes(sink.Bytes())
 }
 
+func (self *MutableTransaction) IntoImmutable1() (*Transaction, error) {
+	sink := common.NewZeroCopySink(nil)
+	err := self.serialize1(sink)
+	if err != nil {
+		return nil, err
+	}
+
+	return TransactionFromRawBytes1(sink.Bytes())
+}
+
 func (self *MutableTransaction) Hash() common.Uint256 {
 	tx, err := self.IntoImmutable()
+	if err != nil {
+		return common.UINT256_EMPTY
+	}
+	return tx.Hash()
+}
+
+func (self *MutableTransaction) Hash1() common.Uint256 {
+	tx, err := self.IntoImmutable1()
 	if err != nil {
 		return common.UINT256_EMPTY
 	}
@@ -91,6 +109,48 @@ func (tx *MutableTransaction) serialize(sink *common.ZeroCopySink) error {
 			return err
 		}
 	}
+
+	return nil
+}
+
+func (tx *MutableTransaction) serialize1(sink *common.ZeroCopySink) error {
+	err := tx.serializeUnsigned1(sink)
+	if err != nil {
+		return err
+	}
+
+	sink.WriteVarUint(uint64(len(tx.Sigs)))
+	for _, sig := range tx.Sigs {
+		err = sig.Serialization(sink)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (tx *MutableTransaction) serializeUnsigned1(sink *common.ZeroCopySink) error {
+	sink.WriteByte(byte(tx.Version))
+	sink.WriteByte(byte(tx.TxType))
+	sink.WriteUint32(tx.Nonce)
+	sink.WriteUint64(tx.GasPrice)
+	sink.WriteUint64(tx.GasLimit)
+	sink.WriteBytes(tx.Payer[:])
+
+	//Payload
+	if tx.Payload == nil {
+		return errors.New("transaction payload is nil")
+	}
+	switch pl := tx.Payload.(type) {
+	case *payload.DeployCode:
+		pl.Serialization(sink)
+	case *payload.InvokeCode:
+		pl.Serialization(sink)
+	default:
+		return errors.New("wrong transaction payload type")
+	}
+	sink.WriteVarUint(uint64(tx.attributes))
 
 	return nil
 }

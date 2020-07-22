@@ -68,6 +68,67 @@ func TransactionFromRawBytes(raw []byte) (*Transaction, error) {
 	return tx, nil
 }
 
+func TransactionFromRawBytes1(raw []byte) (*Transaction, error) {
+	if len(raw) > MAX_TX_SIZE {
+		return nil, errors.New("execced max transaction size")
+	}
+	source := common.NewZeroCopySource(raw)
+	tx := &Transaction{Raw: raw}
+	err := tx.Deserialization1(source)
+	if err != nil {
+		return nil, err
+	}
+	return tx, nil
+}
+
+func (tx *Transaction) Deserialization1(source *common.ZeroCopySource) error {
+	pstart := source.Pos()
+	err := tx.deserializationUnsigned1(source)
+	if err != nil {
+		return err
+	}
+	pos := source.Pos()
+	lenUnsigned := pos - pstart
+	source.BackUp(lenUnsigned)
+	rawUnsigned, _ := source.NextBytes(lenUnsigned)
+	temp := sha256.Sum256(rawUnsigned)
+	tx.hash = common.Uint256(sha256.Sum256(temp[:]))
+
+	// tx sigs
+	length, _, irregular, eof := source.NextVarUint()
+	if irregular {
+		return common.ErrIrregularData
+	}
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
+	if length > constants.TX_MAX_SIG_SIZE {
+		return fmt.Errorf("transaction signature number %d execced %d", length, constants.TX_MAX_SIG_SIZE)
+	}
+
+	for i := 0; i < int(length); i++ {
+		var sig RawSig
+		err := sig.Deserialization(source)
+		if err != nil {
+			return err
+		}
+
+		tx.Sigs = append(tx.Sigs, sig)
+	}
+
+	pend := source.Pos()
+	lenAll := pend - pstart
+	if lenAll > MAX_TX_SIZE {
+		return fmt.Errorf("execced max transaction size:%d", lenAll)
+	}
+	source.BackUp(lenAll)
+	tx.Raw, _ = source.NextBytes(lenAll)
+
+	tx.nonDirectConstracted = true
+
+	return nil
+}
+
 // Transaction has internal reference of param `source`
 func (tx *Transaction) Deserialization(source *common.ZeroCopySource) error {
 	pstart := source.Pos()
@@ -139,6 +200,58 @@ func (tx *Transaction) IntoMutable() (*MutableTransaction, error) {
 	}
 
 	return mutable, nil
+}
+
+func (tx *Transaction) deserializationUnsigned1(source *common.ZeroCopySource) error {
+	var irregular, eof bool
+	tx.Version, eof = source.NextByte()
+	var txtype byte
+	txtype, eof = source.NextByte()
+	tx.TxType = TransactionType(txtype)
+	tx.Nonce, eof = source.NextUint32()
+	tx.GasPrice, eof = source.NextUint64()
+	tx.GasLimit, eof = source.NextUint64()
+	var buf []byte
+	buf, eof = source.NextBytes(common.ADDR_LEN)
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
+	copy(tx.Payer[:], buf)
+
+	switch tx.TxType {
+	case InvokeNeo, InvokeWasm:
+		pl := new(payload.InvokeCode)
+		err := pl.Deserialization(source)
+		if err != nil {
+			return err
+		}
+		tx.Payload = pl
+	case Deploy:
+		pl := new(payload.DeployCode)
+		err := pl.Deserialization(source)
+		if err != nil {
+			return err
+		}
+		tx.Payload = pl
+	default:
+		return fmt.Errorf("unsupported tx type %v", tx.TxType)
+	}
+
+	var length uint64
+	length, _, irregular, eof = source.NextVarUint()
+	if irregular {
+		return common.ErrIrregularData
+	}
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
+
+	if length != 0 {
+		return fmt.Errorf("transaction attribute must be 0, got %d", length)
+	}
+	tx.attributes = 0
+
+	return nil
 }
 
 func (tx *Transaction) deserializationUnsigned(source *common.ZeroCopySource) error {
