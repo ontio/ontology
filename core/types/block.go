@@ -120,7 +120,7 @@ func (self *Block) Deserialization1(source *common.ZeroCopySource) error {
 	for i := uint32(0); i < length; i++ {
 		transaction := new(Transaction)
 		// note currently all transaction in the block shared the same source
-		err := transaction.Deserialization(source)
+		err := transaction.Deserialization1(source)
 		if err != nil {
 			return err
 		}
