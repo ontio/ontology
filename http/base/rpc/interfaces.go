@@ -652,7 +652,7 @@ func GetStoreProof(params []interface{}) map[string]interface{} {
 	if len(params) < 1 {
 		return responsePack(berr.INVALID_PARAMS, nil)
 	}
-	str, ok := params[1].(string)
+	str, ok := params[0].(string)
 	if !ok {
 		return responsePack(berr.INVALID_PARAMS, "")
 	}
