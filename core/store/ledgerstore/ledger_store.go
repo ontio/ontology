@@ -615,19 +615,19 @@ func (this *LedgerStoreImp) GetGlobalStateRoot(height uint32) (common.Uint256, e
 }
 
 func (this *LedgerStoreImp) GetStoreProof(key []byte) ([]byte, []byte, uint32, error) {
-	value, proof, err := this.stateTree.GetWithProof(key)
+	version := this.stateTree.Version() - 1
+	latestTree, err := this.stateTree.GetImmutable(version)
+	if err == nil {
+		return nil, nil, 0, err
+	}
+	value, proof, err := latestTree.GetWithProof(key)
 	if err != nil {
 		return nil, nil, 0, err
 	}
 	data := common.NewZeroCopySink(nil)
 	storeProof := types.StoreProof(*proof)
 	storeProof.Serialization(data)
-	proofHeight := this.stateTree.Version()
-	preStateTree, err := this.stateTree.GetImmutable(proofHeight - 1)
-	if err == nil && preStateTree != nil && bytes.Equal(preStateTree.Hash(), this.stateTree.Hash()) {
-		proofHeight -= 1
-	}
-	return value, data.Bytes(), uint32(proofHeight), err
+	return value, data.Bytes(), uint32(version), err
 }
 
 func (this *LedgerStoreImp) ExecuteBlock(block *types.Block) (result store.ExecuteResult, err error) {
@@ -1102,15 +1102,6 @@ func (this *LedgerStoreImp) saveHeaderIndexList() error {
 }
 
 func (this *LedgerStoreImp) updateStateToTree(overlay *overlaydb.OverlayDB) {
-	/*
-	iter := overlay.NewIterator([]byte{byte(scom.ST_STORAGE)})
-	for has := iter.First(); has; has = iter.Next() {
-		key := iter.Key()
-		val := iter.Value()
-		this.stateTree.Set(key, val)
-		log.Infof("update state to tree, key: %s", hex.EncodeToString(key))
-	}
-	*/
 	writeSet := overlay.GetWriteSet()
 	writeSet.ForEach(func(key, val []byte) {
 		this.stateTree.Set(key, val)
