@@ -617,7 +617,7 @@ func (this *LedgerStoreImp) GetGlobalStateRoot(height uint32) (common.Uint256, e
 func (this *LedgerStoreImp) GetStoreProof(key []byte) ([]byte, []byte, uint32, error) {
 	version := this.stateTree.Version() - 1
 	latestTree, err := this.stateTree.GetImmutable(version)
-	if err == nil {
+	if err != nil {
 		return nil, nil, 0, err
 	}
 	value, proof, err := latestTree.GetWithProof(key)
