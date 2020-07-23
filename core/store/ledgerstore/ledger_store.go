@@ -622,7 +622,12 @@ func (this *LedgerStoreImp) GetStoreProof(key []byte) ([]byte, []byte, uint32, e
 	data := common.NewZeroCopySink(nil)
 	storeProof := types.StoreProof(*proof)
 	storeProof.Serialization(data)
-	return value, data.Bytes(), uint32(this.stateTree.Version()), err
+	proofHeight := this.stateTree.Version()
+	preStateTree, err := this.stateTree.GetImmutable(proofHeight - 1)
+	if err == nil && preStateTree != nil && bytes.Equal(preStateTree.Hash(), this.stateTree.Hash()) {
+		proofHeight -= 1
+	}
+	return value, data.Bytes(), uint32(proofHeight), err
 }
 
 func (this *LedgerStoreImp) ExecuteBlock(block *types.Block) (result store.ExecuteResult, err error) {
