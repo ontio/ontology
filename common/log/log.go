@@ -354,6 +354,10 @@ func createLog(logLevel int, a ...interface{}) *Logger {
 		for _, o := range a {
 			switch o.(type) {
 			case string:
+				if logFile != nil {
+					fmt.Println("warn: only support one log file")
+					continue
+				}
 				logFile, err = FileOpen(o.(string))
 				if err != nil {
 					fmt.Println("error: open log file failed")
@@ -378,7 +382,10 @@ func createLog(logLevel int, a ...interface{}) *Logger {
 func InitLog(logLevel int, a ...interface{}) {
 	logger := createLog(logLevel, a...)
 
-	swapGlobalLogger(logger)
+	old := swapGlobalLogger(logger)
+	if old != nil {
+		_ = old.logFile.Close()
+	}
 }
 
 func GetLogFileSize() (int64, error) {
