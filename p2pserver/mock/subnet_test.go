@@ -93,7 +93,7 @@ func TestSubnetAllGovAreSeed(t *testing.T) {
 }
 
 func TestSubnet(t *testing.T) {
-	subnet.RefreshDuration = time.Millisecond * 1000
+	subnet.RefreshDuration = time.Millisecond * 500
 	log.Info("test subnet start")
 	//topo
 	/**

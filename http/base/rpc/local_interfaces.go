@@ -92,7 +92,7 @@ func SetDebugInfo(params []interface{}) map[string]interface{} {
 	switch params[0].(type) {
 	case float64:
 		level := params[0].(float64)
-		if err := log.Log.SetDebugLevel(int(level)); err != nil {
+		if err := log.Log().SetDebugLevel(int(level)); err != nil {
 			return responsePack(berr.INVALID_PARAMS, "")
 		}
 	default:

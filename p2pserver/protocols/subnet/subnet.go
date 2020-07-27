@@ -295,7 +295,7 @@ func (self *SubNet) sendMembersRequest(net p2p.P2P, peer common.PeerId) {
 	}
 
 	self.logger.Infof("[subnet] send member request from %s to %s as role %s",
-		request.From, request.To, request.Role())
+		request.From.ToHexString(), request.To.ToHexString(), request.Role())
 	net.SendTo(peer, request)
 }
 
