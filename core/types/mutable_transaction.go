@@ -40,14 +40,14 @@ type MutableTransaction struct {
 }
 
 // output has no reference to self
-func (self *MutableTransaction) IntoImmutable_layer2() (*Transaction, error) {
+func (self *MutableTransaction) IntoImmutable() (*Transaction, error) {
 	sink := common.NewZeroCopySink(nil)
-	err := self.serialize_layer2(sink)
+	err := self.serialize(sink)
 	if err != nil {
 		return nil, err
 	}
 
-	return TransactionFromRawBytes_layer2(sink.Bytes())
+	return TransactionFromRawBytes(sink.Bytes())
 }
 
 func (self *MutableTransaction) IntoImmutable_ont() (*Transaction, error) {
@@ -60,8 +60,8 @@ func (self *MutableTransaction) IntoImmutable_ont() (*Transaction, error) {
 	return TransactionFromRawBytes_ont(sink.Bytes())
 }
 
-func (self *MutableTransaction) Hash_layer2() common.Uint256 {
-	tx, err := self.IntoImmutable_layer2()
+func (self *MutableTransaction) Hash() common.Uint256 {
+	tx, err := self.IntoImmutable()
 	if err != nil {
 		return common.UINT256_EMPTY
 	}
@@ -96,8 +96,8 @@ func (self *MutableTransaction) GetSignatureAddresses() []common.Address {
 }
 
 // Serialize the Transaction
-func (tx *MutableTransaction) serialize_layer2(sink *common.ZeroCopySink) error {
-	err := tx.serializeUnsigned_layer2(sink)
+func (tx *MutableTransaction) serialize(sink *common.ZeroCopySink) error {
+	err := tx.serializeUnsigned(sink)
 	if err != nil {
 		return err
 	}
@@ -155,7 +155,7 @@ func (tx *MutableTransaction) serializeUnsigned_ont(sink *common.ZeroCopySink) e
 	return nil
 }
 
-func (tx *MutableTransaction) serializeUnsigned_layer2(sink *common.ZeroCopySink) error {
+func (tx *MutableTransaction) serializeUnsigned(sink *common.ZeroCopySink) error {
 	sink.WriteByte(byte(tx.Version))
 	sink.WriteByte(byte(tx.TxType))
 	sink.WriteUint32(tx.SystemId)

@@ -55,13 +55,13 @@ type Transaction struct {
 }
 
 // if no error, ownership of param raw is transfered to Transaction
-func TransactionFromRawBytes_layer2(raw []byte) (*Transaction, error) {
+func TransactionFromRawBytes(raw []byte) (*Transaction, error) {
 	if len(raw) > MAX_TX_SIZE {
 		return nil, errors.New("execced max transaction size")
 	}
 	source := common.NewZeroCopySource(raw)
 	tx := &Transaction{Raw: raw}
-	err := tx.Deserialization_layer2(source)
+	err := tx.Deserialization(source)
 	if err != nil {
 		return nil, err
 	}
@@ -130,9 +130,9 @@ func (tx *Transaction) Deserialization_ont(source *common.ZeroCopySource) error 
 }
 
 // Transaction has internal reference of param `source`
-func (tx *Transaction) Deserialization_layer2(source *common.ZeroCopySource) error {
+func (tx *Transaction) Deserialization(source *common.ZeroCopySource) error {
 	pstart := source.Pos()
-	err := tx.deserializationUnsigned_layer2(source)
+	err := tx.deserializationUnsigned(source)
 	if err != nil {
 		return err
 	}
@@ -254,7 +254,7 @@ func (tx *Transaction) deserializationUnsigned_ont(source *common.ZeroCopySource
 	return nil
 }
 
-func (tx *Transaction) deserializationUnsigned_layer2(source *common.ZeroCopySource) error {
+func (tx *Transaction) deserializationUnsigned(source *common.ZeroCopySource) error {
 	var irregular, eof bool
 	tx.Version, eof = source.NextByte()
 	var txtype byte

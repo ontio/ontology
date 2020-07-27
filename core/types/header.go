@@ -164,15 +164,15 @@ func (bd *Header) serializationUnsigned(sink *common.ZeroCopySink) {
 func HeaderFromRawBytes(raw []byte) (*Header, error) {
 	source := common.NewZeroCopySource(raw)
 	header := &Header{}
-	err := header.Deserialization_layer2(source)
+	err := header.Deserialization(source)
 	if err != nil {
 		return nil, err
 	}
 	return header, nil
 
 }
-func (bd *Header) Deserialization_layer2(source *common.ZeroCopySource) error {
-	err := bd.deserializationUnsigned_layer2(source)
+func (bd *Header) Deserialization(source *common.ZeroCopySource) error {
+	err := bd.deserializationUnsigned(source)
 	if err != nil {
 		return err
 	}
@@ -222,7 +222,7 @@ func (bd *Header) Deserialization_layer2(source *common.ZeroCopySource) error {
 	return nil
 }
 
-func (bd *Header) deserializationUnsigned_layer2(source *common.ZeroCopySource) error {
+func (bd *Header) deserializationUnsigned(source *common.ZeroCopySource) error {
 	var irregular, eof bool
 
 	bd.Version, eof = source.NextUint32()
