@@ -113,6 +113,9 @@ func setupAPP() *cli.App {
 		utils.MaxConnInBoundFlag,
 		utils.MaxConnOutBoundFlag,
 		utils.MaxConnInBoundForSingleIPFlag,
+		//layer2 mode
+		utils.EnableLayer2ModeFlag,
+		utils.Layer2ModeGenBlockTimeFlag,
 		//test mode setting
 		utils.EnableTestModeFlag,
 		utils.TestModeGenBlockTimeFlag,

@@ -81,6 +81,15 @@ func setGenesis(ctx *cli.Context, cfg *config.OntologyConfig) error {
 		cfg.Genesis = config.PolarisConfig
 	}
 
+	if ctx.Bool(utils.GetFlagName(utils.EnableLayer2ModeFlag)) {
+		cfg.Genesis.ConsensusType = config.CONSENSUS_TYPE_SOLO
+		cfg.Genesis.SOLO.GenBlockTime = ctx.Uint(utils.GetFlagName(utils.Layer2ModeGenBlockTimeFlag))
+		if cfg.Genesis.SOLO.GenBlockTime <= 1 {
+			cfg.Genesis.SOLO.GenBlockTime = config.DEFAULT_GEN_BLOCK_TIME
+		}
+		return nil
+	}
+
 	if ctx.Bool(utils.GetFlagName(utils.EnableTestModeFlag)) {
 		cfg.Genesis.ConsensusType = config.CONSENSUS_TYPE_SOLO
 		cfg.Genesis.SOLO.GenBlockTime = ctx.Uint(utils.GetFlagName(utils.TestModeGenBlockTimeFlag))

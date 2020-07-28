@@ -110,6 +110,17 @@ var (
 		Value: config.DEFAULT_MIN_ONG_LIMIT,
 	}
 
+	EnableLayer2ModeFlag = cli.BoolFlag{
+		Name:  "layer2mode",
+		Usage: "Single node for layer2. In layer2 mode, will start rpc, rest, web socket server, and set default gasprice to 0",
+	}
+
+	Layer2ModeGenBlockTimeFlag = cli.UintFlag{
+		Name:  "layer2mode-gen-block-time",
+		Usage: "Block-out `<time>`(s) in layer2 mode.",
+		Value: config.DEFAULT_GEN_BLOCK_TIME,
+	}
+
 	//Test Mode setting
 	EnableTestModeFlag = cli.BoolFlag{
 		Name:  "testmode",
