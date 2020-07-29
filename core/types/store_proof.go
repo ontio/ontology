@@ -59,7 +59,7 @@ func (this *StoreProof) Deserialization(source *common.ZeroCopySource) error {
 	this.LeftPath = make([]iavl.ProofInnerNode, leftPathLen)
 	var eof bool
 	var err error
-	for i := 0; i < int(leftPathLen); i ++ {
+	for i := 0; i < int(leftPathLen); i++ {
 		height, eof := source.NextUint8()
 		this.LeftPath[i].Height = int8(height)
 		this.LeftPath[i].Size, eof = source.NextInt64()
@@ -87,7 +87,7 @@ func (this *StoreProof) Deserialization(source *common.ZeroCopySource) error {
 			return io.ErrUnexpectedEOF
 		}
 		this.InnerNodes[i] = make([]iavl.ProofInnerNode, pathToLeafLen)
-		for j := 0; j < int(pathToLeafLen); j ++ {
+		for j := 0; j < int(pathToLeafLen); j++ {
 			height, eof := source.NextUint8()
 			this.InnerNodes[i][j].Height = int8(height)
 			this.InnerNodes[i][j].Size, eof = source.NextInt64()
@@ -110,7 +110,7 @@ func (this *StoreProof) Deserialization(source *common.ZeroCopySource) error {
 		return io.ErrUnexpectedEOF
 	}
 	this.Leaves = make([]iavl.ProofLeafNode, leavesLen)
-	for i := 0; i < int(leavesLen); i ++ {
+	for i := 0; i < int(leavesLen); i++ {
 		this.Leaves[i].Key, err = source.ReadVarBytes()
 		if err != nil {
 			return io.ErrUnexpectedEOF

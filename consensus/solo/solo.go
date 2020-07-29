@@ -61,8 +61,8 @@ func NewSoloService(bkAccount *account.Account, txpool *actor.PID) (*SoloService
 		poolActor:        &actorTypes.TxPoolActor{Pool: txpool},
 		incrValidator:    increment.NewIncrementValidator(20),
 		genBlockInterval: time.Duration(config.DefConfig.Genesis.SOLO.GenBlockTime) * time.Second,
-		counter: 0,
-		genEmptyBlock: 0,
+		counter:          0,
+		genEmptyBlock:    0,
 	}
 
 	props := actor.FromProducer(func() actor.Actor {
@@ -212,14 +212,14 @@ func (self *SoloService) makeBlock() (*types.Block, error) {
 	txs := self.poolActor.GetTxnPool(true, validHeight)
 	//
 	if len(txs) == 0 && self.counter < 3600 && self.genEmptyBlock == 0 {
-		self.counter ++
+		self.counter++
 		log.Infof("The number of tx is too small or timer is not out, counter: %d", self.counter)
 		return nil, nil
 	} else if len(txs) > 0 {
 		self.genEmptyBlock = 1
 		self.counter = 0
 	} else if self.genEmptyBlock > 0 {
-		self.genEmptyBlock --
+		self.genEmptyBlock--
 		self.counter = 0
 	} else {
 		self.counter = 0

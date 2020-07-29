@@ -44,9 +44,9 @@ func NewDeployTransaction(code []byte, name, version, author, email, desp string
 		return nil, err
 	}
 	return &types.MutableTransaction{
-		TxType:  types.Deploy,
+		TxType:   types.Deploy,
 		SystemId: constants.SYSTEM_ID,
-		Payload: depCode,
+		Payload:  depCode,
 	}, nil
 }
 
@@ -58,9 +58,9 @@ func NewInvokeTransaction(code []byte) *types.MutableTransaction {
 	}
 
 	return &types.MutableTransaction{
-		TxType:  types.InvokeNeo,
+		TxType:   types.InvokeNeo,
 		SystemId: constants.SYSTEM_ID,
-		Payload: invokeCodePayload,
+		Payload:  invokeCodePayload,
 	}
 }
 

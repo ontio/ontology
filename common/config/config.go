@@ -73,7 +73,7 @@ const (
 	DEFAULT_CLI_RPC_PORT                    = uint(20000)
 	DEFUALT_CLI_RPC_ADDRESS                 = "127.0.0.1"
 	DEFAULT_GAS_LIMIT                       = 20000
-	DEFAULT_MIN_ONG_LIMIT                  = 100000000
+	DEFAULT_MIN_ONG_LIMIT                   = 100000000
 	DEFAULT_GAS_PRICE                       = 500
 	DEFAULT_WASM_GAS_FACTOR                 = uint64(10)
 	DEFAULT_WASM_MAX_STEPCOUNT              = uint64(8000000)

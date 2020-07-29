@@ -76,8 +76,8 @@ func (this *NativeService) Invoke() ([]byte, error) {
 		return BYTE_FALSE, fmt.Errorf("Native contract address %x haven't been registered.", contract.Address)
 	}
 
-	operatorPublicKeyBytes,_ := hex.DecodeString(config.DefConfig.Genesis.SOLO.Bookkeepers[0])
-	operatorPublicKey,_ := keypair.DeserializePublicKey(operatorPublicKeyBytes)
+	operatorPublicKeyBytes, _ := hex.DecodeString(config.DefConfig.Genesis.SOLO.Bookkeepers[0])
+	operatorPublicKey, _ := keypair.DeserializePublicKey(operatorPublicKeyBytes)
 	operatorAddress := types.AddressFromPubKey(operatorPublicKey)
 	player := this.Tx.Payer.ToBase58()
 	if player == operatorAddress.ToBase58() {

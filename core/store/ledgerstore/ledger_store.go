@@ -64,7 +64,7 @@ import (
 const (
 	SYSTEM_VERSION          = byte(1)      //Version of ledger store
 	HEADER_INDEX_BATCH_SIZE = uint32(2000) //Bath size of saving header index
-	defaultIAVLCacheSize = 10000
+	defaultIAVLCacheSize    = 10000
 )
 
 var (
@@ -1108,7 +1108,6 @@ func (this *LedgerStoreImp) updateStateToTree(overlay *overlaydb.OverlayDB) {
 		log.Infof("update state to tree, key: %s", hex.EncodeToString(key))
 	})
 }
-
 
 //IsContainBlock return whether the block is in store
 func (this *LedgerStoreImp) IsContainBlock(blockHash common.Uint256) (bool, error) {
