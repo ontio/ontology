@@ -21,6 +21,7 @@ package utils
 import (
 	"bytes"
 	"fmt"
+	"github.com/ontio/ontology/common/constants"
 	"math"
 	"math/big"
 	"reflect"
@@ -44,7 +45,7 @@ func NewDeployTransaction(code []byte, name, version, author, email, desp string
 	}
 	return &types.MutableTransaction{
 		TxType:  types.Deploy,
-		SystemId: 1,
+		SystemId: constants.SYSTEM_ID,
 		Payload: depCode,
 	}, nil
 }
@@ -58,7 +59,7 @@ func NewInvokeTransaction(code []byte) *types.MutableTransaction {
 
 	return &types.MutableTransaction{
 		TxType:  types.InvokeNeo,
-		SystemId: 1,
+		SystemId: constants.SYSTEM_ID,
 		Payload: invokeCodePayload,
 	}
 }

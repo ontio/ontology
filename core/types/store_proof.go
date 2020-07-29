@@ -21,6 +21,7 @@ package types
 import (
 	"github.com/ontio/ontology/common"
 	"github.com/tendermint/iavl"
+	"io"
 )
 
 type StoreProof iavl.RangeProof
@@ -56,34 +57,69 @@ func (this *StoreProof) Serialization(sink *common.ZeroCopySink) {
 func (this *StoreProof) Deserialization(source *common.ZeroCopySource) error {
 	leftPathLen, _ := source.NextUint32()
 	this.LeftPath = make([]iavl.ProofInnerNode, leftPathLen)
-	for i := 0;i < int(leftPathLen);i ++ {
-		height, _ := source.NextUint8()
+	var eof bool
+	var err error
+	for i := 0; i < int(leftPathLen); i ++ {
+		height, eof := source.NextUint8()
 		this.LeftPath[i].Height = int8(height)
-		this.LeftPath[i].Size, _ = source.NextInt64()
-		this.LeftPath[i].Version, _ = source.NextInt64()
-		this.LeftPath[i].Left, _ = source.ReadVarBytes()
-		this.LeftPath[i].Right, _ = source.ReadVarBytes()
-	}
-	innerNodesLen, _ := source.NextUint32()
-	this.InnerNodes = make([]iavl.PathToLeaf, innerNodesLen)
-	for i, _ := range this.InnerNodes {
-		pathToLeafLen, _ := source.NextUint32()
-		this.InnerNodes[i] = make([]iavl.ProofInnerNode, pathToLeafLen)
-		for j := 0;j < int(pathToLeafLen);j ++ {
-			height, _ := source.NextUint8()
-			this.InnerNodes[i][j].Height = int8(height)
-			this.InnerNodes[i][j].Size, _ = source.NextInt64()
-			this.InnerNodes[i][j].Version, _ = source.NextInt64()
-			this.InnerNodes[i][j].Left, _ = source.ReadVarBytes()
-			this.InnerNodes[i][j].Right, _ = source.ReadVarBytes()
+		this.LeftPath[i].Size, eof = source.NextInt64()
+		this.LeftPath[i].Version, eof = source.NextInt64()
+		if eof {
+			return io.ErrUnexpectedEOF
+		}
+		this.LeftPath[i].Left, err = source.ReadVarBytes()
+		if err != nil {
+			return io.ErrUnexpectedEOF
+		}
+		this.LeftPath[i].Right, err = source.ReadVarBytes()
+		if err != nil {
+			return io.ErrUnexpectedEOF
 		}
 	}
-	leavesLen, _ := source.NextUint32()
+	innerNodesLen, eof := source.NextUint32()
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
+	this.InnerNodes = make([]iavl.PathToLeaf, innerNodesLen)
+	for i, _ := range this.InnerNodes {
+		pathToLeafLen, eof := source.NextUint32()
+		if eof {
+			return io.ErrUnexpectedEOF
+		}
+		this.InnerNodes[i] = make([]iavl.ProofInnerNode, pathToLeafLen)
+		for j := 0; j < int(pathToLeafLen); j ++ {
+			height, eof := source.NextUint8()
+			this.InnerNodes[i][j].Height = int8(height)
+			this.InnerNodes[i][j].Size, eof = source.NextInt64()
+			this.InnerNodes[i][j].Version, eof = source.NextInt64()
+			if eof {
+				return io.ErrUnexpectedEOF
+			}
+			this.InnerNodes[i][j].Left, err = source.ReadVarBytes()
+			if err != nil {
+				return io.ErrUnexpectedEOF
+			}
+			this.InnerNodes[i][j].Right, err = source.ReadVarBytes()
+			if err != nil {
+				return io.ErrUnexpectedEOF
+			}
+		}
+	}
+	leavesLen, eof := source.NextUint32()
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
 	this.Leaves = make([]iavl.ProofLeafNode, leavesLen)
-	for i := 0;i < int(leavesLen);i ++ {
-		this.Leaves[i].Key, _ = source.ReadVarBytes()
-		this.Leaves[i].ValueHash, _ = source.ReadVarBytes()
-		this.Leaves[i].Version, _ = source.NextInt64()
+	for i := 0; i < int(leavesLen); i ++ {
+		this.Leaves[i].Key, err = source.ReadVarBytes()
+		if err != nil {
+			return io.ErrUnexpectedEOF
+		}
+		this.Leaves[i].ValueHash, err = source.ReadVarBytes()
+		if err != nil {
+			return io.ErrUnexpectedEOF
+		}
+		this.Leaves[i].Version, eof = source.NextInt64()
 	}
 	return nil
 }
