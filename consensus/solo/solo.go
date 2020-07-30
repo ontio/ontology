@@ -51,6 +51,8 @@ type SoloService struct {
 	genBlockInterval time.Duration
 	pid              *actor.PID
 	sub              *events.ActorSubscriber
+	counter          int
+	genEmptyBlock    int
 }
 
 func NewSoloService(bkAccount *account.Account, txpool *actor.PID) (*SoloService, error) {
@@ -59,6 +61,8 @@ func NewSoloService(bkAccount *account.Account, txpool *actor.PID) (*SoloService
 		poolActor:        &actorTypes.TxPoolActor{Pool: txpool},
 		incrValidator:    increment.NewIncrementValidator(20),
 		genBlockInterval: time.Duration(config.DefConfig.Genesis.SOLO.GenBlockTime) * time.Second,
+		counter:          0,
+		genEmptyBlock:    0,
 	}
 
 	props := actor.FromProducer(func() actor.Actor {
@@ -146,6 +150,9 @@ func (self *SoloService) genBlock() error {
 	if err != nil {
 		return fmt.Errorf("makeBlock error %s", err)
 	}
+	if block == nil {
+		return nil
+	}
 
 	result, err := ledger.DefLedger.ExecuteBlock(block)
 	if err != nil {
@@ -183,6 +190,11 @@ func (self *SoloService) makeBlock() (*types.Block, error) {
 	}
 	prevHash := ledger.DefLedger.GetCurrentBlockHash()
 	height := ledger.DefLedger.GetCurrentBlockHeight()
+	stateRoot, err := ledger.DefLedger.GetGlobalStateRoot(height)
+	if err != nil {
+		return nil, fmt.Errorf("GetGlobalStateRoot error:%s", err)
+	}
+	log.Debugf("global state root, height: %d, %v", height, stateRoot)
 
 	validHeight := height
 
@@ -198,7 +210,20 @@ func (self *SoloService) makeBlock() (*types.Block, error) {
 	log.Infof("current block height %v, increment validator block cache range: [%d, %d)", height, start, end)
 
 	txs := self.poolActor.GetTxnPool(true, validHeight)
-
+	//
+	if len(txs) == 0 && self.counter < 3600 && self.genEmptyBlock == 0 {
+		self.counter++
+		log.Infof("The number of tx is too small or timer is not out, counter: %d", self.counter)
+		return nil, nil
+	} else if len(txs) > 0 {
+		self.genEmptyBlock = 1
+		self.counter = 0
+	} else if self.genEmptyBlock > 0 {
+		self.genEmptyBlock--
+		self.counter = 0
+	} else {
+		self.counter = 0
+	}
 	transactions := make([]*types.Transaction, 0, len(txs))
 	for _, txEntry := range txs {
 		// TODO optimize to use height in txentry
@@ -219,6 +244,7 @@ func (self *SoloService) makeBlock() (*types.Block, error) {
 		PrevBlockHash:    prevHash,
 		TransactionsRoot: txRoot,
 		BlockRoot:        blockRoot,
+		StateRoot:        stateRoot,
 		Timestamp:        uint32(time.Now().Unix()),
 		Height:           height + 1,
 		ConsensusData:    common.GetNonce(),

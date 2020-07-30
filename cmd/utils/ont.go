@@ -292,6 +292,7 @@ func NewInvokeTransaction(gasPrice, gasLimit uint64, invokeCode []byte) *types.M
 		GasPrice: gasPrice,
 		GasLimit: gasLimit,
 		TxType:   types.InvokeNeo,
+		SystemId: constants.SYSTEM_ID,
 		Nonce:    rand.Uint32(),
 		Payload:  invokePayload,
 		Sigs:     make([]types.Sig, 0, 0),
@@ -786,6 +787,7 @@ func NewDeployCodeTransaction(gasPrice, gasLimit uint64, code []byte, vmType pay
 	tx := &types.MutableTransaction{
 		Version:  VERSION_TRANSACTION,
 		TxType:   types.Deploy,
+		SystemId: constants.SYSTEM_ID,
 		Nonce:    uint32(time.Now().Unix()),
 		Payload:  deployPayload,
 		GasPrice: gasPrice,

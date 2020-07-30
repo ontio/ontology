@@ -185,6 +185,13 @@ var AppHelpFlagGroups = []flagGroup{
 		},
 	},
 	{
+		Name: "LAYER2 MODE",
+		Flags: []cli.Flag{
+			utils.EnableLayer2ModeFlag,
+			utils.Layer2ModeGenBlockTimeFlag,
+		},
+	},
+	{
 		Name: "TEST MODE",
 		Flags: []cli.Flag{
 			utils.EnableTestModeFlag,

@@ -100,6 +100,7 @@ func setupAPP() *cli.App {
 		//txpool setting
 		utils.GasPriceFlag,
 		utils.GasLimitFlag,
+		utils.MinOngLimitFlag,
 		utils.TxpoolPreExecDisableFlag,
 		utils.DisableSyncVerifyTxFlag,
 		utils.DisableBroadcastNetTxFlag,
@@ -112,6 +113,9 @@ func setupAPP() *cli.App {
 		utils.MaxConnInBoundFlag,
 		utils.MaxConnOutBoundFlag,
 		utils.MaxConnInBoundForSingleIPFlag,
+		//layer2 mode
+		utils.EnableLayer2ModeFlag,
+		utils.Layer2ModeGenBlockTimeFlag,
 		//test mode setting
 		utils.EnableTestModeFlag,
 		utils.TestModeGenBlockTimeFlag,

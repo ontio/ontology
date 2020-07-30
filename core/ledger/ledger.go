@@ -85,6 +85,10 @@ func (self *Ledger) GetStateMerkleRoot(height uint32) (result common.Uint256, er
 	return self.ldgStore.GetStateMerkleRoot(height)
 }
 
+func (self *Ledger) GetGlobalStateRoot(height uint32) (result common.Uint256, err error) {
+	return self.ldgStore.GetGlobalStateRoot(height)
+}
+
 func (self *Ledger) GetCrossStatesRoot(height uint32) (common.Uint256, error) {
 	return self.ldgStore.GetCrossStatesRoot(height)
 }
@@ -198,6 +202,10 @@ func (self *Ledger) GetCrossChainMsg(height uint32) (*types.CrossChainMsg, error
 
 func (self *Ledger) GetCrossStatesProof(height uint32, key []byte) ([]byte, error) {
 	return self.ldgStore.GetCrossStatesProof(height, key)
+}
+
+func (self *Ledger) GetStoreProof(key []byte) ([]byte, []byte, uint32, error) {
+	return self.ldgStore.GetStoreProof(key)
 }
 
 func (self *Ledger) Close() error {

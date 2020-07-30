@@ -4,7 +4,6 @@ go 1.12
 
 require (
 	github.com/JohnCGriffin/overflow v0.0.0-20170615021017-4d914c927216
-	github.com/Workiva/go-datastructures v1.0.50 // indirect
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/emirpasic/gods v1.12.0 // indirect
 	github.com/ethereum/go-ethereum v1.9.13
@@ -21,10 +20,12 @@ require (
 	github.com/ontio/wagon v0.4.1
 	github.com/orcaman/concurrent-map v0.0.0-20190826125027-8c72a8bb44f6 // indirect
 	github.com/pborman/uuid v1.2.0
-	github.com/prometheus/client_golang v0.9.1
+	github.com/prometheus/client_golang v1.5.0
 	github.com/scylladb/go-set v1.0.2
-	github.com/stretchr/testify v1.4.0
+	github.com/stretchr/testify v1.5.1
 	github.com/syndtr/goleveldb v1.0.1-0.20190923125748-758128399b1d
+	github.com/tendermint/iavl v0.13.2
+	github.com/tendermint/tm-db v0.5.0
 	github.com/urfave/cli v1.22.1
 	github.com/valyala/bytebufferpool v1.0.0
 	golang.org/x/crypto v0.0.0-20200311171314-f7b00557c8c4

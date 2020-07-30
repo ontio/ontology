@@ -114,6 +114,13 @@ type CrossStatesProof struct {
 	AuditPath string
 }
 
+type StoreProof struct {
+	Type   string
+	Value  string
+	Proof  string
+	Height uint32
+}
+
 type Transactions struct {
 	Version    byte
 	Nonce      uint32
@@ -491,6 +498,7 @@ func NewSmartContractTransaction(gasPrice, gasLimit uint64, invokeCode []byte) (
 		GasPrice: gasPrice,
 		GasLimit: gasLimit,
 		TxType:   types.InvokeNeo,
+		SystemId: constants.SYSTEM_ID,
 		Nonce:    uint32(time.Now().Unix()),
 		Payload:  invokePayload,
 		Sigs:     nil,

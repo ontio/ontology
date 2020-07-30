@@ -19,7 +19,11 @@
 package native
 
 import (
+	"encoding/hex"
 	"fmt"
+
+	"github.com/ontio/ontology-crypto/keypair"
+	"github.com/ontio/ontology/common/config"
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/store"
@@ -54,10 +58,12 @@ type NativeService struct {
 	Tx            *types.Transaction
 	Height        uint32
 	Time          uint32
+	MinOngLimit   uint64
 	BlockHash     common.Uint256
 	ContextRef    context.ContextRef
 	PreExec       bool
 	CrossHashes   []common.Uint256
+	Operator      bool
 }
 
 func (this *NativeService) Register(methodName string, handler Handler) {
@@ -69,6 +75,21 @@ func (this *NativeService) Invoke() ([]byte, error) {
 	services, ok := Contracts[contract.Address]
 	if !ok {
 		return BYTE_FALSE, fmt.Errorf("Native contract address %x haven't been registered.", contract.Address)
+	}
+	if config.DefConfig.Genesis.ConsensusType == config.CONSENSUS_TYPE_SOLO {
+		operatorPublicKeyBytes, _ := hex.DecodeString(config.DefConfig.Genesis.SOLO.Bookkeepers[0])
+		operatorPublicKey, _ := keypair.DeserializePublicKey(operatorPublicKeyBytes)
+		operatorAddress := types.AddressFromPubKey(operatorPublicKey)
+		player := this.Tx.Payer.ToBase58()
+		if player == operatorAddress.ToBase58() {
+			this.Operator = true
+		} else {
+			this.Operator = false
+		}
+		this.MinOngLimit = config.DefConfig.Common.MinOngLimit
+	} else {
+		this.Operator = false
+		this.MinOngLimit = 1
 	}
 	services(this)
 	service, ok := this.ServiceMap[contract.Method]

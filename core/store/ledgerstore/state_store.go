@@ -231,6 +231,30 @@ func (self *StateStore) GetMerkleProof(proofHeight, rootHeight uint32) ([]common
 	return self.merkleTree.InclusionProof(proofHeight, rootHeight+1)
 }
 
+//AddBlockMerkleTreeRoot add a new tree root
+func (self *StateStore) AddGlobalStateRoot(height uint32, stateRoot common.Uint256) error {
+	key := self.genGlobalStateKey(height)
+	value := common.NewZeroCopySink(make([]byte, 0, common.UINT256_SIZE))
+	value.WriteHash(stateRoot)
+	self.store.BatchPut(key, value.Bytes())
+	return nil
+}
+
+func (self *StateStore) GetGlobalStateRoot(height uint32) (result common.Uint256, err error) {
+	key := self.genGlobalStateKey(height)
+	var value []byte
+	value, err = self.store.Get(key)
+	if err != nil {
+		return common.UINT256_EMPTY, err
+	}
+	source := common.NewZeroCopySource(value)
+	result, eof := source.NextHash()
+	if eof {
+		return common.UINT256_EMPTY, io.ErrUnexpectedEOF
+	}
+	return result, nil
+}
+
 func (self *StateStore) NewOverlayDB() *overlaydb.OverlayDB {
 	return overlaydb.NewOverlayDB(self.store)
 }
@@ -439,6 +463,13 @@ func (self *StateStore) genStateMerkleTreeKey() []byte {
 func (self *StateStore) genStateMerkleRootKey(height uint32) []byte {
 	key := make([]byte, 5, 5)
 	key[0] = byte(scom.DATA_STATE_MERKLE_ROOT)
+	binary.LittleEndian.PutUint32(key[1:], height)
+	return key
+}
+
+func (self *StateStore) genGlobalStateKey(height uint32) []byte {
+	key := make([]byte, 5)
+	key[0] = byte(scom.SYS_GLOBAL_STATE_TREE)
 	binary.LittleEndian.PutUint32(key[1:], height)
 	return key
 }

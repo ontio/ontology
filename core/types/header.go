@@ -87,7 +87,7 @@ func (self *RawHeader) Deserialization(source *common.ZeroCopySource) error {
 
 func (self *RawHeader) deserializationUnsigned(source *common.ZeroCopySource) error {
 	// version + preHash + tx root + block root + timestamp
-	source.Skip(4 + 32*3 + 4)
+	source.Skip(4 + 32*4 + 4)
 	self.Height, _ = source.NextUint32()
 	//ConsensusData    uint64
 	source.Skip(8)
@@ -119,6 +119,7 @@ type Header struct {
 	PrevBlockHash    common.Uint256
 	TransactionsRoot common.Uint256
 	BlockRoot        common.Uint256
+	StateRoot        common.Uint256
 	Timestamp        uint32
 	Height           uint32
 	ConsensusData    uint64
@@ -152,6 +153,7 @@ func (bd *Header) serializationUnsigned(sink *common.ZeroCopySink) {
 	sink.WriteBytes(bd.PrevBlockHash[:])
 	sink.WriteBytes(bd.TransactionsRoot[:])
 	sink.WriteBytes(bd.BlockRoot[:])
+	sink.WriteBytes(bd.StateRoot[:])
 	sink.WriteUint32(bd.Timestamp)
 	sink.WriteUint32(bd.Height)
 	sink.WriteUint64(bd.ConsensusData)
@@ -221,6 +223,81 @@ func (bd *Header) Deserialization(source *common.ZeroCopySource) error {
 }
 
 func (bd *Header) deserializationUnsigned(source *common.ZeroCopySource) error {
+	var irregular, eof bool
+
+	bd.Version, eof = source.NextUint32()
+	bd.PrevBlockHash, eof = source.NextHash()
+	bd.TransactionsRoot, eof = source.NextHash()
+	bd.BlockRoot, eof = source.NextHash()
+	bd.StateRoot, eof = source.NextHash()
+	bd.Timestamp, eof = source.NextUint32()
+	bd.Height, eof = source.NextUint32()
+	bd.ConsensusData, eof = source.NextUint64()
+
+	bd.ConsensusPayload, _, irregular, eof = source.NextVarBytes()
+	if irregular {
+		return common.ErrIrregularData
+	}
+
+	bd.NextBookkeeper, eof = source.NextAddress()
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (bd *Header) Deserialization_ont(source *common.ZeroCopySource) error {
+	err := bd.deserializationUnsigned_ont(source)
+	if err != nil {
+		return err
+	}
+
+	n, _, irregular, eof := source.NextVarUint()
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
+	if irregular {
+		return common.ErrIrregularData
+	}
+
+	for i := 0; i < int(n); i++ {
+		buf, _, irregular, eof := source.NextVarBytes()
+		if eof {
+			return io.ErrUnexpectedEOF
+		}
+		if irregular {
+			return common.ErrIrregularData
+		}
+		pubkey, err := keypair.DeserializePublicKey(buf)
+		if err != nil {
+			return err
+		}
+		bd.Bookkeepers = append(bd.Bookkeepers, pubkey)
+	}
+
+	m, _, irregular, eof := source.NextVarUint()
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
+	if irregular {
+		return common.ErrIrregularData
+	}
+
+	for i := 0; i < int(m); i++ {
+		sig, _, irregular, eof := source.NextVarBytes()
+		if eof {
+			return io.ErrUnexpectedEOF
+		}
+		if irregular {
+			return common.ErrIrregularData
+		}
+		bd.SigData = append(bd.SigData, sig)
+	}
+
+	return nil
+}
+
+func (bd *Header) deserializationUnsigned_ont(source *common.ZeroCopySource) error {
 	var irregular, eof bool
 
 	bd.Version, eof = source.NextUint32()

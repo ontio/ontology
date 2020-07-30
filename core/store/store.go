@@ -36,6 +36,7 @@ type ExecuteResult struct {
 	CrossStates     []common.Uint256
 	CrossStatesRoot common.Uint256
 	Notify          []*event.ExecuteNotify
+	StateRoot       common.Uint256
 }
 
 // LedgerStore provides func with store package.
@@ -47,6 +48,7 @@ type LedgerStore interface {
 	ExecuteBlock(b *types.Block) (ExecuteResult, error)                                       // called by consensus
 	SubmitBlock(b *types.Block, crossChainMsg *types.CrossChainMsg, exec ExecuteResult) error // called by consensus
 	GetStateMerkleRoot(height uint32) (result common.Uint256, err error)
+	GetGlobalStateRoot(height uint32) (result common.Uint256, err error)
 	GetCurrentBlockHash() common.Uint256
 	GetCurrentBlockHeight() uint32
 	GetCurrentHeaderHeight() uint32
@@ -75,4 +77,6 @@ type LedgerStore interface {
 	GetCrossChainMsg(height uint32) (*types.CrossChainMsg, error)
 	GetCrossStatesProof(height uint32, key []byte) ([]byte, error)
 	EnableBlockPrune(numBeforeCurr uint32)
+
+	GetStoreProof(key []byte) ([]byte, []byte, uint32, error)
 }

@@ -21,6 +21,7 @@ package ledgerstore
 import (
 	"bytes"
 	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"hash"
@@ -55,11 +56,15 @@ import (
 	sstate "github.com/ontio/ontology/smartcontract/states"
 	"github.com/ontio/ontology/smartcontract/storage"
 	types2 "github.com/ontio/ontology/vm/neovm/types"
+
+	"github.com/tendermint/iavl"
+	tmdb "github.com/tendermint/tm-db"
 )
 
 const (
 	SYSTEM_VERSION          = byte(1)      //Version of ledger store
 	HEADER_INDEX_BATCH_SIZE = uint32(2000) //Bath size of saving header index
+	defaultIAVLCacheSize    = 10000
 )
 
 var (
@@ -68,6 +73,7 @@ var (
 	DBDirBlock          = "block"
 	DBDirState          = "states"
 	MerkleTreeStorePath = "merkle_tree.db"
+	StateTreeDb         = "state_avl"
 )
 
 type PrexecuteParam struct {
@@ -90,6 +96,7 @@ type LedgerStoreImp struct {
 	vbftPeerInfoMap      map[uint32]map[string]uint32     //key:block height,value:peerInfo
 	lock                 sync.RWMutex
 	stateHashCheckHeight uint32
+	stateTree            *iavl.MutableTree
 
 	savingBlockSemaphore       chan bool
 	closing                    bool
@@ -131,6 +138,16 @@ func NewLedgerStore(dataDir string, stateHashHeight uint32) (*LedgerStoreImp, er
 		return nil, fmt.Errorf("NewEventStore error %s", err)
 	}
 	ledgerStore.eventStore = eventState
+
+	stateDb, err := tmdb.NewGoLevelDB(StateTreeDb, dataDir)
+	if err != nil {
+		return nil, fmt.Errorf("NewGoLevelDB err %s", err)
+	}
+	stateTree, err := iavl.NewMutableTree(stateDb, defaultIAVLCacheSize)
+	if err != nil {
+		return nil, fmt.Errorf("NewMutableTree err %s", err)
+	}
+	ledgerStore.stateTree = stateTree
 
 	return ledgerStore, nil
 }
@@ -309,6 +326,7 @@ func (this *LedgerStoreImp) recoverStore() error {
 	if err != nil {
 		return fmt.Errorf("stateStore.GetCurrentBlock error %s", err)
 	}
+	this.stateTree.LoadVersion(int64(stateHeight + 1))
 	for i := stateHeight; i < blockHeight; i++ {
 		blockHash, err := this.blockStore.GetBlockHash(i)
 		if err != nil {
@@ -323,6 +341,15 @@ func (this *LedgerStoreImp) recoverStore() error {
 		result, err := this.executeBlock(block)
 		if err != nil {
 			return err
+		}
+		rootHash, version, err := this.stateTree.SaveVersion()
+		if err != nil {
+			return fmt.Errorf("stateTree.SaveVersion height:%d error %s", i, err)
+		}
+		log.Infof("state tree save version, root hash: %s, version: %d", hex.EncodeToString(rootHash), version)
+		result.StateRoot, err = common.Uint256ParseFromBytes(rootHash)
+		if err != nil {
+			return fmt.Errorf("common.Uint256ParseFromBytes height:%d error %s", i, err)
 		}
 		err = this.saveBlockToStateStore(block, result)
 		if err != nil {
@@ -583,6 +610,26 @@ func (this *LedgerStoreImp) GetStateMerkleRoot(height uint32) (common.Uint256, e
 	return this.stateStore.GetStateMerkleRoot(height)
 }
 
+func (this *LedgerStoreImp) GetGlobalStateRoot(height uint32) (common.Uint256, error) {
+	return this.stateStore.GetGlobalStateRoot(height)
+}
+
+func (this *LedgerStoreImp) GetStoreProof(key []byte) ([]byte, []byte, uint32, error) {
+	version := this.stateTree.Version() - 1
+	latestTree, err := this.stateTree.GetImmutable(version)
+	if err != nil {
+		return nil, nil, 0, err
+	}
+	value, proof, err := latestTree.GetWithProof(key)
+	if err != nil {
+		return nil, nil, 0, err
+	}
+	data := common.NewZeroCopySink(nil)
+	storeProof := types.StoreProof(*proof)
+	storeProof.Serialization(data)
+	return value, data.Bytes(), uint32(version), err
+}
+
 func (this *LedgerStoreImp) ExecuteBlock(block *types.Block) (result store.ExecuteResult, err error) {
 	this.getSavingBlockLock()
 	defer this.releaseSavingBlockLock()
@@ -768,7 +815,6 @@ func (this *LedgerStoreImp) executeBlock(block *types.Block) (result store.Execu
 	} else {
 		result.MerkleRoot = this.stateStore.GetStateMerkleRootWithNewHash(result.Hash)
 	}
-
 	return
 }
 
@@ -818,6 +864,11 @@ func (this *LedgerStoreImp) saveBlockToStateStore(block *types.Block, result sto
 	err = this.stateStore.AddBlockMerkleTreeRoot(block.Header.TransactionsRoot)
 	if err != nil {
 		return fmt.Errorf("AddBlockMerkleTreeRoot error %s", err)
+	}
+
+	err = this.stateStore.AddGlobalStateRoot(blockHeight, result.StateRoot)
+	if err != nil {
+		return fmt.Errorf("AddGlobalStateRoot error %s", err)
 	}
 
 	err = this.stateStore.SaveCurrentBlock(blockHeight, blockHash)
@@ -929,6 +980,16 @@ func (this *LedgerStoreImp) submitBlock(block *types.Block, crossChainMsg *types
 	if err != nil {
 		return fmt.Errorf("save to msg cross chain store height:%d error:%s", blockHeight, err)
 	}
+	this.updateStateToTree(result.WriteSet)
+	rootHash, version, err := this.stateTree.SaveVersion()
+	if err != nil {
+		return fmt.Errorf("stateTree.SaveVersion height:%d err %s", blockHeight, err)
+	}
+	log.Infof("state tree save version, root hash: %s, version: %d", hex.EncodeToString(rootHash), version)
+	result.StateRoot, err = common.Uint256ParseFromBytes(rootHash)
+	if err != nil {
+		return fmt.Errorf("common.Uint256ParseFromBytes height:%d err %s", blockHeight, err)
+	}
 	err = this.saveBlockToStateStore(block, result)
 	if err != nil {
 		return fmt.Errorf("save to state store height:%d error:%s", blockHeight, err)
@@ -1038,6 +1099,13 @@ func (this *LedgerStoreImp) saveHeaderIndexList() error {
 	this.storedIndexCount += HEADER_INDEX_BATCH_SIZE
 	this.lock.Unlock()
 	return nil
+}
+
+func (this *LedgerStoreImp) updateStateToTree(writeSet *overlaydb.MemDB) {
+	writeSet.ForEach(func(key, val []byte) {
+		this.stateTree.Set(key, val)
+		log.Infof("update state to tree, key: %s", hex.EncodeToString(key))
+	})
 }
 
 //IsContainBlock return whether the block is in store
