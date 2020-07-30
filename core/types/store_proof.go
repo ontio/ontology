@@ -19,9 +19,10 @@
 package types
 
 import (
+	"io"
+
 	"github.com/ontio/ontology/common"
 	"github.com/tendermint/iavl"
-	"io"
 )
 
 type StoreProof iavl.RangeProof

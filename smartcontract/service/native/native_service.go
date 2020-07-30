@@ -21,6 +21,7 @@ package native
 import (
 	"encoding/hex"
 	"fmt"
+
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common/config"
 

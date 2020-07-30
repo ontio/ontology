@@ -21,12 +21,12 @@ package utils
 import (
 	"bytes"
 	"fmt"
-	"github.com/ontio/ontology/common/constants"
 	"math"
 	"math/big"
 	"reflect"
 	"time"
 
+	"github.com/ontio/ontology/common/constants"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/types"
