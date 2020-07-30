@@ -815,7 +815,6 @@ func (this *LedgerStoreImp) executeBlock(block *types.Block) (result store.Execu
 	} else {
 		result.MerkleRoot = this.stateStore.GetStateMerkleRootWithNewHash(result.Hash)
 	}
-	this.updateStateToTree(overlay)
 	return
 }
 
@@ -981,6 +980,7 @@ func (this *LedgerStoreImp) submitBlock(block *types.Block, crossChainMsg *types
 	if err != nil {
 		return fmt.Errorf("save to msg cross chain store height:%d error:%s", blockHeight, err)
 	}
+	this.updateStateToTree(result.WriteSet)
 	rootHash, version, err := this.stateTree.SaveVersion()
 	if err != nil {
 		return fmt.Errorf("stateTree.SaveVersion height:%d err %s", blockHeight, err)
@@ -1101,8 +1101,7 @@ func (this *LedgerStoreImp) saveHeaderIndexList() error {
 	return nil
 }
 
-func (this *LedgerStoreImp) updateStateToTree(overlay *overlaydb.OverlayDB) {
-	writeSet := overlay.GetWriteSet()
+func (this *LedgerStoreImp) updateStateToTree(writeSet *overlaydb.MemDB) {
 	writeSet.ForEach(func(key, val []byte) {
 		this.stateTree.Set(key, val)
 		log.Infof("update state to tree, key: %s", hex.EncodeToString(key))
