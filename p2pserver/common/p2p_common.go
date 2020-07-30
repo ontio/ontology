@@ -117,6 +117,7 @@ const (
 
 	GET_SUBNET_MEMBERS_TYPE = "getmembers" // request subnet members
 	SUBNET_MEMBERS_TYPE     = "members"    // response subnet members
+	SUBNET_OFFLINE_TYPE     = "offline"    // response subnet members
 )
 
 //ParseIPAddr return ip address
