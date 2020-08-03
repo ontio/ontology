@@ -25,4 +25,3 @@ type SubnetMemberInfo struct {
 	Height     uint64 `json:"height"`
 	Version    string `json:"version"`
 }
-

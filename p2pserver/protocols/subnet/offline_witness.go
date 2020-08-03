@@ -6,13 +6,11 @@ import (
 	"time"
 
 	common2 "github.com/ontio/ontology/common"
-
+	"github.com/ontio/ontology/common/log"
+	vconfig "github.com/ontio/ontology/consensus/vbft/config"
 	"github.com/ontio/ontology/p2pserver/common"
-
 	"github.com/ontio/ontology/p2pserver/message/types"
 	p2p "github.com/ontio/ontology/p2pserver/net/protocol"
-
-	vconfig "github.com/ontio/ontology/consensus/vbft/config"
 	"github.com/ontio/ontology/p2pserver/protocols/utils"
 )
 
@@ -45,11 +43,16 @@ func (self *SubNet) ProposeOffline(nodes []string) error {
 			leftNodes = append(leftNodes, node)
 		}
 	}
+
+	if len(leftNodes) == 0 {
+		log.Info("do not send offline witness proposal since all nodes are online")
+		return nil
+	}
 	msg := &types.OfflineWitnessMsg{
 		Timestamp:   now,
 		View:        view,
 		NodePubKeys: leftNodes,
-		Proposor:    key,
+		Proposer:    key,
 	}
 	err := msg.AddProposeSig(self.acct)
 	if err != nil {
@@ -128,7 +131,7 @@ func (self *SubNet) processOfflineWitnessMsg(ctx *p2p.Context, msg *types.Offlin
 		self.logger.Infof("receive expired witness msg: %s", hash.ToHexString())
 		return UnchangedStatus
 	}
-	role, view := self.gov.GetNodeRoleAndView(msg.Proposor)
+	role, view := self.gov.GetNodeRoleAndView(msg.Proposer)
 	if role != utils.ConsensusNode || view != msg.View {
 		self.logger.Infof("receive expired witness msg: %s, {role: %d, view: %d}, current view: %d",
 			hash.ToHexString(), role, msg.View, view)
@@ -194,11 +197,24 @@ func (self *SubNet) addProposol(msg *types.OfflineWitnessMsg) error {
 	defer self.lock.Unlock()
 	for _, m := range self.offlineWitness {
 		propose := m.Msg
-		if propose.Proposor == msg.Proposor && (msg.Timestamp < propose.Timestamp+MinProposeDuration) {
+		if propose.Proposer == msg.Proposer && (msg.Timestamp < propose.Timestamp+MinProposeDuration) {
 			return errors.New("have already propose offline witness recently")
 		}
 	}
 
 	self.offlineWitness[msg.Hash()] = &Offline{Status: NewStatus, Msg: msg}
 	return nil
+}
+
+func (self *SubNet) GetOfflineVotes() []*types.OfflineWitnessMsg {
+	self.lock.RLock()
+	defer self.lock.RUnlock()
+
+	var voters []*types.OfflineWitnessMsg
+	for _, m := range self.offlineWitness {
+		msg := *m.Msg
+		voters = append(voters, &msg)
+	}
+
+	return voters
 }

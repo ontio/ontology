@@ -13,20 +13,20 @@ import (
 )
 
 type OfflineWitnessMsg struct {
-	Timestamp   uint32
-	View        uint32
-	NodePubKeys []string
-	Proposor    string
+	Timestamp   uint32   `json:"timestamp"`
+	View        uint32   `json:"view"`
+	NodePubKeys []string `json:"nodePubKeys"`
+	Proposer    string   `json:"proposer"`
 
-	ProposerSig []byte
+	ProposerSig []byte `json:"proposerSig"`
 
-	Voters []VoterMsg
+	Voters []VoterMsg `json:"voters"`
 }
 
 type VoterMsg struct {
-	offlineIndex []uint8
-	PubKey       string
-	Sig          []byte
+	OfflineIndex []uint8 `json:"offlineIndex"`
+	PubKey       string  `json:"pubKey"`
+	Sig          []byte  `json:"sig"`
 }
 
 func (this *OfflineWitnessMsg) CmdType() string {
@@ -39,7 +39,7 @@ func (self *OfflineWitnessMsg) Serialization(sink *common.ZeroCopySink) {
 
 	sink.WriteUint32(uint32(len(self.Voters)))
 	for _, val := range self.Voters {
-		sink.WriteVarBytes(val.offlineIndex)
+		sink.WriteVarBytes(val.OfflineIndex)
 		sink.WriteString(val.PubKey)
 		sink.WriteVarBytes(val.Sig)
 	}
@@ -69,7 +69,7 @@ func (self *OfflineWitnessMsg) Deserialization(source *common.ZeroCopySource) (e
 		self.NodePubKeys = append(self.NodePubKeys, key)
 	}
 
-	self.Proposor, err = source.ReadString()
+	self.Proposer, err = source.ReadString()
 	if err != nil {
 		return err
 	}
@@ -95,11 +95,7 @@ func (self *OfflineWitnessMsg) Deserialization(source *common.ZeroCopySource) (e
 		}
 		sig, err := source.ReadVarBytes()
 
-		self.Voters = append(self.Voters, struct {
-			offlineIndex []uint8
-			PubKey       string
-			Sig          []byte
-		}{offlineIndex: index, PubKey: pubKey, Sig: sig})
+		self.Voters = append(self.Voters, VoterMsg{OfflineIndex: index, PubKey: pubKey, Sig: sig})
 	}
 
 	return self.VerifySigs()
@@ -112,7 +108,7 @@ func (self *OfflineWitnessMsg) serializeUnsigned(sink *common.ZeroCopySink) {
 	for _, key := range self.NodePubKeys {
 		sink.WriteString(key)
 	}
-	sink.WriteString(self.Proposor)
+	sink.WriteString(self.Proposer)
 }
 
 func (self *OfflineWitnessMsg) Hash() common.Uint256 {
@@ -144,11 +140,7 @@ func (self *OfflineWitnessMsg) VoteFor(acct *account.Account, index []uint8) err
 		return err
 	}
 	pubkey := vconfig.PubkeyID(acct.PublicKey)
-	self.Voters = append(self.Voters, struct {
-		offlineIndex []uint8
-		PubKey       string
-		Sig          []byte
-	}{offlineIndex: index, PubKey: pubkey, Sig: sig})
+	self.Voters = append(self.Voters, VoterMsg{OfflineIndex: index, PubKey: pubkey, Sig: sig})
 
 	return nil
 }
@@ -158,7 +150,7 @@ func (self *OfflineWitnessMsg) VerifySigs() error {
 	self.serializeUnsigned(sink)
 	unsign := sink.Bytes()
 	data := sha256.Sum256(unsign)
-	prop, err := vconfig.Pubkey(self.Proposor)
+	prop, err := vconfig.Pubkey(self.Proposer)
 	if err != nil {
 		return err
 	}
@@ -170,7 +162,7 @@ func (self *OfflineWitnessMsg) VerifySigs() error {
 
 	for _, vote := range self.Voters {
 		sink = common.NewZeroCopySink(unsign)
-		sink.WriteVarBytes(vote.offlineIndex)
+		sink.WriteVarBytes(vote.OfflineIndex)
 		data = sha256.Sum256(sink.Bytes())
 		key, err := vconfig.Pubkey(vote.PubKey)
 		if err != nil {

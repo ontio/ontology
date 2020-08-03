@@ -25,9 +25,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	common2 "github.com/ontio/ontology/common"
-
 	"github.com/ontio/ontology/account"
+	common2 "github.com/ontio/ontology/common"
 	vconfig "github.com/ontio/ontology/consensus/vbft/config"
 	"github.com/ontio/ontology/p2pserver/common"
 	"github.com/ontio/ontology/p2pserver/message/types"
@@ -377,6 +376,11 @@ func (self *SubNet) maintainLoop(net p2p.P2P) {
 			members := self.GetMembersInfo()
 			buf, _ := json.Marshal(members)
 			self.logger.Infof("[subnet] current members: %s", string(buf))
+			votes := self.GetOfflineVotes()
+			if len(votes) != 0 {
+				buf, _ = json.Marshal(members)
+				self.logger.Infof("[subnet] current offline votes: %s", string(buf))
+			}
 		}
 
 		parker.ParkTimeout(RefreshDuration)
@@ -406,7 +410,7 @@ func (self *SubNet) GetMembersInfo() []common.SubnetMemberInfo {
 	return self.getMembersInfoLocked()
 }
 
-func (self *SubNet)getMembersInfoLocked() []common.SubnetMemberInfo {
+func (self *SubNet) getMembersInfoLocked() []common.SubnetMemberInfo {
 	var members []common.SubnetMemberInfo
 	for addr, mem := range self.members {
 		connected := self.selfAddr == addr
