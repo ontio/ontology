@@ -1413,6 +1413,7 @@ func SetPeerCost(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("getPeerAttributes error: %v", err)
 	}
 	peerAttributes.T2PeerCost = uint64(params.PeerCost)
+	peerAttributes.T2StakeCost = 0
 
 	err = putPeerAttributes(native, contract, peerAttributes)
 	if err != nil {
