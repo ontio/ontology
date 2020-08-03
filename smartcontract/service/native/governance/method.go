@@ -1012,7 +1012,7 @@ func executeSplit2(native *native.NativeService, contract common.Address, view u
 		err = splitNodeFee(native, contract, peersCandidate[i].PeerPubkey, peersCandidate[i].Address,
 			peerPoolMap.PeerPoolMap[peersCandidate[i].PeerPubkey].Status == ConsensusStatus,
 			currentPeerPoolMap.PeerPoolMap[peersCandidate[i].PeerPubkey].Status == ConsensusStatus,
-			peerPoolMap.PeerPoolMap[peersCandidate[i].PeerPubkey].TotalPos, nodeAmount.Uint64())
+			peerPoolMap.PeerPoolMap[peersCandidate[i].PeerPubkey].InitPos, peerPoolMap.PeerPoolMap[peersCandidate[i].PeerPubkey].TotalPos, nodeAmount.Uint64())
 		if err != nil {
 			return splitSum, fmt.Errorf("executeSplit2, splitNodeFee error: %v", err)
 		}
@@ -1048,7 +1048,7 @@ func executeSplit2(native *native.NativeService, contract common.Address, view u
 		err = splitNodeFee(native, contract, peersCandidate[i].PeerPubkey, peersCandidate[i].Address,
 			peerPoolMap.PeerPoolMap[peersCandidate[i].PeerPubkey].Status == ConsensusStatus,
 			currentPeerPoolMap.PeerPoolMap[peersCandidate[i].PeerPubkey].Status == ConsensusStatus,
-			peerPoolMap.PeerPoolMap[peersCandidate[i].PeerPubkey].TotalPos, nodeAmount.Uint64())
+			peerPoolMap.PeerPoolMap[peersCandidate[i].PeerPubkey].InitPos, peerPoolMap.PeerPoolMap[peersCandidate[i].PeerPubkey].TotalPos, nodeAmount.Uint64())
 		if err != nil {
 			return splitSum, fmt.Errorf("executeSplit2, splitNodeFee error: %v", err)
 		}
@@ -1275,10 +1275,10 @@ func executeCommitDpos2(native *native.NativeService, contract common.Address) e
 		if err != nil {
 			return fmt.Errorf("getPeerAttributes error: %v", err)
 		}
-		t2PeerCost := peerAttributes.T2PeerCost
-		t1PeerCost := peerAttributes.T1PeerCost
-		peerAttributes.TPeerCost = t1PeerCost
-		peerAttributes.T1PeerCost = t2PeerCost
+		peerAttributes.TPeerCost = peerAttributes.T1PeerCost
+		peerAttributes.T1PeerCost = peerAttributes.T2PeerCost
+		peerAttributes.TStakeCost = peerAttributes.T1StakeCost
+		peerAttributes.T1StakeCost = peerAttributes.T2StakeCost
 		err = putPeerAttributes(native, contract, peerAttributes)
 		if err != nil {
 			return fmt.Errorf("putPeerAttributes error: %v", err)
@@ -1396,18 +1396,34 @@ func executeCommitDpos2(native *native.NativeService, contract common.Address) e
 	return nil
 }
 
-func splitNodeFee(native *native.NativeService, contract common.Address, peerPubkey string, peerAddress common.Address, preIfConsensus, ifConsensus bool, totalPos uint64, nodeAmount uint64) error {
+func splitNodeFee(native *native.NativeService, contract common.Address, peerPubkey string, peerAddress common.Address,
+	preIfConsensus, ifConsensus bool, initPos, totalPos uint64, nodeAmount uint64) error {
 	peerPubkeyPrefix, err := hex.DecodeString(peerPubkey)
 	if err != nil {
 		return fmt.Errorf("hex.DecodeString, peerPubkey format error: %v", err)
 	}
 	//fee split of address
 	//get peerCost
-	peerCost, err := getPeerCost(native, contract, peerPubkey)
+	peerCost, stakeCost, err := getPeerCost(native, contract, peerPubkey)
 	if err != nil {
 		return fmt.Errorf("getPeerCost, getPeerCost error: %v", err)
 	}
-	amount := nodeAmount * (100 - peerCost) / 100
+	if stakeCost == 0 {
+		stakeCost = peerCost
+	}
+	if stakeCost == 101 { // in storage, 101 means 0, 0 means null
+		stakeCost = 0
+	}
+	var amount uint64
+	if native.Height > config.GetNewPeerCostHeight() {
+		stakeFee := new(big.Int).Sub(
+			new(big.Int).Mul(new(big.Int).SetUint64(nodeAmount), new(big.Int).SetUint64(totalPos)),
+			new(big.Int).Add(new(big.Int).SetUint64(initPos), new(big.Int).SetUint64(totalPos))).Uint64()
+		nodeFee := nodeAmount - stakeFee
+		amount = stakeFee*(100-stakeCost)/100 + nodeFee*(100-peerCost)/100
+	} else {
+		amount = nodeAmount * (100 - peerCost) / 100
+	}
 	var sumAmount uint64 = 0
 	iter := native.CacheDB.NewIterator(utils.ConcatKey(contract, AUTHORIZE_INFO_POOL, peerPubkeyPrefix))
 	defer iter.Release()

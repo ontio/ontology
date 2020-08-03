@@ -780,6 +780,51 @@ func (this *SetPeerCostParam) Deserialization(source *common.ZeroCopySource) err
 	return nil
 }
 
+type SetFeePercentageParam struct {
+	PeerPubkey string
+	Address    common.Address
+	PeerCost   uint32
+	StakeCost  uint32
+}
+
+func (this *SetFeePercentageParam) Serialization(sink *common.ZeroCopySink) error {
+	sink.WriteString(this.PeerPubkey)
+	sink.WriteVarBytes(this.Address[:])
+	utils.EncodeVarUint(sink, uint64(this.PeerCost))
+	utils.EncodeVarUint(sink, uint64(this.StakeCost))
+	return nil
+}
+
+func (this *SetFeePercentageParam) Deserialization(source *common.ZeroCopySource) error {
+	peerPubkey, err := utils.DecodeString(source)
+	if err != nil {
+		return fmt.Errorf("serialization.ReadString, deserialize peerPubkey error: %v", err)
+	}
+	address, err := utils.DecodeAddress(source)
+	if err != nil {
+		return fmt.Errorf("utils.ReadAddress, deserialize address error: %v", err)
+	}
+	peerCost, err := utils.DecodeVarUint(source)
+	if err != nil {
+		return fmt.Errorf("serialization.ReadBool, deserialize peerCost error: %v", err)
+	}
+	stakeCost, err := utils.DecodeVarUint(source)
+	if err != nil {
+		return fmt.Errorf("serialization.ReadBool, deserialize stakeCost error: %v", err)
+	}
+	if peerCost > math.MaxUint32 {
+		return fmt.Errorf("peerCost larger than max of uint32")
+	}
+	if stakeCost > math.MaxUint32 {
+		return fmt.Errorf("stakeCost larger than max of uint32")
+	}
+	this.PeerPubkey = peerPubkey
+	this.Address = address
+	this.PeerCost = uint32(peerCost)
+	this.StakeCost = uint32(stakeCost)
+	return nil
+}
+
 type WithdrawFeeParam struct {
 	Address common.Address
 }

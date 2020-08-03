@@ -73,6 +73,7 @@ const (
 	TRANSFER_PENALTY                 = "transferPenalty"
 	CHANGE_MAX_AUTHORIZATION         = "changeMaxAuthorization"
 	SET_PEER_COST                    = "setPeerCost"
+	SET_FEE_PERCENTAGE               = "setFeePercentage"
 	ADD_INIT_POS                     = "addInitPos"
 	REDUCE_INIT_POS                  = "reduceInitPos"
 	SET_PROMISE_POS                  = "setPromisePos"
@@ -139,6 +140,7 @@ func RegisterGovernanceContract(native *native.NativeService) {
 	native.Register(WITHDRAW_ONG, WithdrawOng)
 	native.Register(CHANGE_MAX_AUTHORIZATION, ChangeMaxAuthorization)
 	native.Register(SET_PEER_COST, SetPeerCost)
+	native.Register(SET_FEE_PERCENTAGE, SetFeePercentage)
 	native.Register(WITHDRAW_FEE, WithdrawFee)
 	native.Register(ADD_INIT_POS, AddInitPos)
 	native.Register(REDUCE_INIT_POS, ReduceInitPos)
@@ -1411,6 +1413,69 @@ func SetPeerCost(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("getPeerAttributes error: %v", err)
 	}
 	peerAttributes.T2PeerCost = uint64(params.PeerCost)
+	peerAttributes.T2StakeCost = 0
+
+	err = putPeerAttributes(native, contract, peerAttributes)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("putPeerAttributes error: %v", err)
+	}
+
+	return utils.BYTE_TRUE, nil
+}
+
+//Set node cost, node can take some percentage of fee before split
+func SetFeePercentage(native *native.NativeService) ([]byte, error) {
+	if native.Height < config.GetNewPeerCostHeight() {
+		return utils.BYTE_FALSE, fmt.Errorf("block num is not reached for this func")
+	}
+	params := new(SetFeePercentageParam)
+	if err := params.Deserialization(common.NewZeroCopySource(native.Input)); err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("deserialize, deserialize setPeerCostParam error: %v", err)
+	}
+	if params.PeerCost > 100 {
+		return utils.BYTE_FALSE, fmt.Errorf("peerCost must >= 0 and <= 100")
+	}
+	if params.StakeCost > 100 {
+		return utils.BYTE_FALSE, fmt.Errorf("stakeCost must >= 0 and <= 100")
+	}
+	stakeCost := uint64(params.StakeCost)
+	if params.StakeCost == 0 {
+		stakeCost = 101 // in storage, 101 means 0, 0 means null
+	}
+
+	//check witness
+	err := utils.ValidateOwner(native, params.Address)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("validateOwner, checkWitness error: %v", err)
+	}
+	contract := native.ContextRef.CurrentContext().ContractAddress
+
+	//check if is peer owner
+	//get current view
+	view, err := GetView(native, contract)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("getView, get view error: %v", err)
+	}
+
+	//get peerPoolMap
+	peerPoolMap, err := GetPeerPoolMap(native, contract, view)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("getPeerPoolMap, get peerPoolMap error: %v", err)
+	}
+	peerPoolItem, ok := peerPoolMap.PeerPoolMap[params.PeerPubkey]
+	if !ok {
+		return utils.BYTE_FALSE, fmt.Errorf("setPeerCost, peerPubkey is not in peerPoolMap")
+	}
+	if peerPoolItem.Address != params.Address {
+		return utils.BYTE_FALSE, fmt.Errorf("address is not peer owner")
+	}
+
+	peerAttributes, err := getPeerAttributes(native, contract, params.PeerPubkey)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("getPeerAttributes error: %v", err)
+	}
+	peerAttributes.T2PeerCost = uint64(params.PeerCost)
+	peerAttributes.T2StakeCost = stakeCost
 
 	err = putPeerAttributes(native, contract, peerAttributes)
 	if err != nil {
