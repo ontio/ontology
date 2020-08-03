@@ -22,7 +22,7 @@ const DelayUpdateMsgTime = 5 * time.Second
 
 func (self *SubNet) ProposeOffline(nodes []string) error {
 	if self.acct == nil {
-		return errors.New("non gov node can not propose offline witness")
+		return errors.New("only consensus node can propose offline witness")
 	}
 	key := vconfig.PubkeyID(self.acct.PublicKey)
 	role, view := self.gov.GetNodeRoleAndView(key)
