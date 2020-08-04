@@ -378,7 +378,7 @@ func (self *SubNet) maintainLoop(net p2p.P2P) {
 			self.logger.Infof("[subnet] current members: %s", string(buf))
 			votes := self.GetOfflineVotes()
 			if len(votes) != 0 {
-				buf, _ = json.Marshal(members)
+				buf, _ = json.Marshal(votes)
 				self.logger.Infof("[subnet] current offline votes: %s", string(buf))
 			}
 		}

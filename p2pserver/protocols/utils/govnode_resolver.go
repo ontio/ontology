@@ -39,9 +39,11 @@ const GovNodeCacheTime = time.Minute * 10
 
 type NodeRole byte
 
-const SyncNode NodeRole = 0
-const CandidateNode NodeRole = 1
-const ConsensusNode NodeRole = 2
+const (
+	SyncNode      NodeRole = iota
+	CandidateNode          = iota
+	ConsensusNode          = iota
+)
 
 type GovNodeResolver interface {
 	IsGovNodePubKey(key keypair.PublicKey) bool
