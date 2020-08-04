@@ -169,10 +169,13 @@ func (self *SubNet) processOfflineWitnessMsg(ctx *p2p.Context, msg *types.Offlin
 	defer self.lock.Unlock()
 	offline := self.offlineWitness[msg.Hash()]
 	if offline == nil {
-		err := msg.VoteFor(self.acct, self.collectOfflineIndexLocked(msg.NodePubKeys))
-		if err != nil {
-			self.logger.Infof("vote for witness msg error: %s", err)
-			return UnchangedStatus
+		govNode := self.acct != nil && self.gov.IsGovNodePubKey(self.acct.PublicKey)
+		if govNode {
+			err := msg.VoteFor(self.acct, self.collectOfflineIndexLocked(msg.NodePubKeys))
+			if err != nil {
+				self.logger.Infof("vote for witness msg error: %s", err)
+				return UnchangedStatus
+			}
 		}
 		offline = &Offline{Status: NewStatus, Msg: msg}
 		self.offlineWitness[msg.Hash()] = offline
