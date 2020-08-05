@@ -37,9 +37,18 @@ import (
 
 const GovNodeCacheTime = time.Minute * 10
 
+type NodeRole byte
+
+const (
+	SyncNode      NodeRole = iota
+	CandidateNode          = iota
+	ConsensusNode          = iota
+)
+
 type GovNodeResolver interface {
 	IsGovNodePubKey(key keypair.PublicKey) bool
 	IsGovNode(key string) bool
+	GetNodeRoleAndView(key string) (NodeRole, uint32)
 }
 
 type GovNodeMockResolver struct {
@@ -61,6 +70,15 @@ func (self *GovNodeMockResolver) IsGovNode(key string) bool {
 	return ok
 }
 
+func (self *GovNodeMockResolver) GetNodeRoleAndView(key string) (NodeRole, uint32) {
+	_, ok := self.govNode[key]
+	if ok {
+		return CandidateNode, 0
+	}
+
+	return SyncNode, 0
+}
+
 func (self *GovNodeMockResolver) IsGovNodePubKey(key keypair.PublicKey) bool {
 	pubKey := vconfig.PubkeyID(key)
 	_, ok := self.govNode[pubKey]
@@ -78,13 +96,13 @@ type GovCache struct {
 	view        uint32
 	refreshTime time.Time
 	govNodeNum  uint32
-	pubkeys     map[string]struct{}
+	pubkeys     map[string]bool
 }
 
 func NewGovNodeResolver(db *ledger.Ledger) *GovNodeLedgerResolver {
 	return &GovNodeLedgerResolver{
 		db:    db,
-		cache: unsafe.Pointer(&GovCache{pubkeys: make(map[string]struct{})}),
+		cache: unsafe.Pointer(&GovCache{pubkeys: make(map[string]bool)}),
 	}
 }
 
@@ -94,29 +112,46 @@ func (self *GovNodeLedgerResolver) IsGovNodePubKey(key keypair.PublicKey) bool {
 }
 
 func (self *GovNodeLedgerResolver) IsGovNode(pubKey string) bool {
+	role, _ := self.GetNodeRoleAndView(pubKey)
+
+	return role != SyncNode
+}
+
+func (self *GovNodeLedgerResolver) GetNodeRoleAndView(pubKey string) (NodeRole, uint32) {
 	view, err := GetGovernanceView(self.db)
 	if err != nil {
 		log.Warnf("[subnet] gov node resolver failed to load view from ledger, err: %v", err)
-		return false
+		return SyncNode, 0
 	}
 	cached := (*GovCache)(atomic.LoadPointer(&self.cache))
 	if cached != nil && view.View == cached.view && cached.refreshTime.Add(GovNodeCacheTime).After(time.Now()) {
-		_, ok := cached.pubkeys[pubKey]
-		return ok
+		cons, ok := cached.pubkeys[pubKey]
+		if !ok {
+			return SyncNode, 0
+		}
+		if cons {
+			return ConsensusNode, view.View
+		}
+
+		return CandidateNode, view.View
 	}
 
-	govNode := false
+	nodeRole := SyncNode
 	peers, count, err := GetPeersConfig(self.db, view.View)
 	if err != nil {
 		log.Warnf("[subnet] gov node resolver failed to load peers from ledger, err: %v", err)
-		return false
+		return SyncNode, view.View
 	}
 
-	pubkeys := make(map[string]struct{}, len(peers))
+	pubkeys := make(map[string]bool, len(peers))
 	for _, peer := range peers {
-		pubkeys[peer.PeerPubkey] = struct{}{}
+		pubkeys[peer.PeerPubkey] = peer.ConsNode
 		if peer.PeerPubkey == pubKey {
-			govNode = true
+			if peer.ConsNode {
+				nodeRole = ConsensusNode
+			} else {
+				nodeRole = CandidateNode
+			}
 		}
 	}
 
@@ -130,7 +165,7 @@ func (self *GovNodeLedgerResolver) IsGovNode(pubKey string) bool {
 		view:        view.View,
 	}))
 
-	return govNode
+	return nodeRole, view.View
 }
 
 func GetGovernanceView(backend *ledger.Ledger) (*governance.GovernanceView, error) {
@@ -146,7 +181,12 @@ func GetGovernanceView(backend *ledger.Ledger) (*governance.GovernanceView, erro
 	return governanceView, nil
 }
 
-func GetPeersConfig(backend *ledger.Ledger, view uint32) ([]*config.VBFTPeerStakeInfo, uint32, error) {
+type GovNodeInfo struct {
+	ConsNode bool
+	*config.VBFTPeerStakeInfo
+}
+
+func GetPeersConfig(backend *ledger.Ledger, view uint32) ([]*GovNodeInfo, uint32, error) {
 	viewBytes := governance.GetUint32Bytes(view)
 	key := append([]byte(governance.PEER_POOL), viewBytes...)
 	data, err := backend.GetStorageItem(utils.GovernanceContractAddress, key)
@@ -162,8 +202,9 @@ func GetPeersConfig(backend *ledger.Ledger, view uint32) ([]*config.VBFTPeerStak
 	}
 
 	govCount := uint32(0)
-	var peerstakes []*config.VBFTPeerStakeInfo
+	var peerstakes []*GovNodeInfo
 	for _, id := range peerMap.PeerPoolMap {
+		isConsensus := id.Status == governance.ConsensusStatus || id.Status == governance.QuitConsensusStatus
 		switch id.Status {
 		case governance.CandidateStatus, governance.ConsensusStatus, governance.QuitConsensusStatus:
 			conf := &config.VBFTPeerStakeInfo{
@@ -171,9 +212,12 @@ func GetPeersConfig(backend *ledger.Ledger, view uint32) ([]*config.VBFTPeerStak
 				PeerPubkey: id.PeerPubkey,
 				InitPos:    id.InitPos + id.TotalPos,
 			}
-			peerstakes = append(peerstakes, conf)
+			peerstakes = append(peerstakes, &GovNodeInfo{
+				ConsNode:          isConsensus,
+				VBFTPeerStakeInfo: conf,
+			})
 		}
-		if id.Status == governance.ConsensusStatus || id.Status == governance.QuitConsensusStatus {
+		if isConsensus {
 			govCount += 1
 		}
 	}

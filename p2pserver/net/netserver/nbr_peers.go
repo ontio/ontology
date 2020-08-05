@@ -92,7 +92,7 @@ func (this *NbrPeers) Broadcast(msg types.Message) {
 	defer this.RUnlock()
 	for _, node := range this.List {
 		if node.Peer.GetRelay() {
-			go node.Peer.SendRaw(msg.CmdType(), sink.Bytes())
+			go node.Peer.SendRaw(sink.Bytes())
 		}
 	}
 }

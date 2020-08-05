@@ -103,6 +103,8 @@ func (self *MsgHandler) start(net p2p.P2P) {
 	go self.heatBeat.Start()
 	go self.bootstrap.Start()
 	go self.subnet.Start(net)
+
+	RegisterProposeOfflineVote(self.subnet)
 }
 
 func (self *MsgHandler) stop() {
@@ -173,6 +175,8 @@ func (self *MsgHandler) HandlePeerMessage(ctx *p2p.Context, msg msgTypes.Message
 		self.subnet.OnMembersRequest(ctx, m)
 	case *msgTypes.SubnetMembers:
 		self.subnet.OnMembersResponse(ctx, m)
+	case *msgTypes.OfflineWitnessMsg:
+		self.subnet.OnOfflineWitnessMsg(ctx, m)
 	case *msgTypes.NotFound:
 		log.Debug("[p2p]receive notFound message, hash is ", m.Hash)
 	default:

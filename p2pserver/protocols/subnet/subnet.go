@@ -26,6 +26,7 @@ import (
 	"time"
 
 	"github.com/ontio/ontology/account"
+	common2 "github.com/ontio/ontology/common"
 	vconfig "github.com/ontio/ontology/consensus/vbft/config"
 	"github.com/ontio/ontology/p2pserver/common"
 	"github.com/ontio/ontology/p2pserver/message/types"
@@ -39,6 +40,17 @@ const MaxInactiveTime = 10 * time.Minute
 
 var RefreshDuration = 1 * time.Minute
 
+type WitnessStatus = byte
+
+const NewStatus WitnessStatus = 0
+const UpdatedStatus WitnessStatus = 1
+const UnchangedStatus WitnessStatus = 2
+
+type Offline struct {
+	Status WitnessStatus
+	Msg    *types.OfflineWitnessMsg
+}
+
 type SubNet struct {
 	acct     *account.Account // nil if conenesus is not enabled
 	seeds    *utils.HostsResolver
@@ -50,9 +62,10 @@ type SubNet struct {
 	seedNode uint32 // bool acturally
 	closed   bool
 
-	connected map[string]*peer.PeerInfo // connected seed or gov node, listen address --> PeerInfo
-	members   map[string]*MemberStatus  // gov node info, listen address --> pubkey hex string
-	logger    common.Logger
+	connected      map[string]*peer.PeerInfo    // connected seed/gov node, listenAddr --> PeerInfo
+	members        map[string]*MemberStatus     // gov node info, listenAddr --> pubkey hex string
+	offlineWitness map[common2.Uint256]*Offline // hash -> msg
+	logger         common.Logger
 }
 
 func NewSubNet(acc *account.Account, seeds *utils.HostsResolver,
@@ -64,8 +77,9 @@ func NewSubNet(acc *account.Account, seeds *utils.HostsResolver,
 		unparker: utils.NewParker(),
 		logger:   logger,
 
-		connected: make(map[string]*peer.PeerInfo),
-		members:   make(map[string]*MemberStatus),
+		connected:      make(map[string]*peer.PeerInfo),
+		members:        make(map[string]*MemberStatus),
+		offlineWitness: make(map[common2.Uint256]*Offline),
 	}
 }
 
@@ -356,10 +370,17 @@ func (self *SubNet) maintainLoop(net p2p.P2P) {
 		self.cleanInactiveGovNode()
 
 		if seedOrGov {
+			self.sendOfflineWitness(net)
+
 			self.sendMembersRequestToRandNodes(net)
 			members := self.GetMembersInfo()
 			buf, _ := json.Marshal(members)
 			self.logger.Infof("[subnet] current members: %s", string(buf))
+			votes := self.GetOfflineVotes()
+			if len(votes) != 0 {
+				buf, _ = json.Marshal(votes)
+				self.logger.Infof("[subnet] current offline votes: %s", string(buf))
+			}
 		}
 
 		parker.ParkTimeout(RefreshDuration)
@@ -386,7 +407,10 @@ func (self *SubNet) GetMaskAddrFilter() p2p.AddressFilter {
 func (self *SubNet) GetMembersInfo() []common.SubnetMemberInfo {
 	self.lock.RLock()
 	defer self.lock.RUnlock()
+	return self.getMembersInfoLocked()
+}
 
+func (self *SubNet) getMembersInfoLocked() []common.SubnetMemberInfo {
 	var members []common.SubnetMemberInfo
 	for addr, mem := range self.members {
 		connected := self.selfAddr == addr

@@ -22,10 +22,10 @@ import (
 	Err "github.com/ontio/ontology/http/base/error"
 )
 
-func responseSuccess(result interface{}) map[string]interface{} {
-	return responsePack(Err.SUCCESS, result)
+func ResponseSuccess(result interface{}) map[string]interface{} {
+	return ResponsePack(Err.SUCCESS, result)
 }
-func responsePack(errcode int64, result interface{}) map[string]interface{} {
+func ResponsePack(errcode int64, result interface{}) map[string]interface{} {
 	resp := map[string]interface{}{
 		"error":  errcode,
 		"desc":   Err.ErrMap[errcode],
