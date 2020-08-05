@@ -38,11 +38,11 @@ func StartLocalServer() error {
 	log.Debug()
 	http.HandleFunc(LOCAL_DIR, rpc.Handle)
 
-	rpc.HandleFunc("getneighbor", rpc.GetNeighbor)
-	rpc.HandleFunc("getnodestate", rpc.GetNodeState)
-	rpc.HandleFunc("startconsensus", rpc.StartConsensus)
-	rpc.HandleFunc("stopconsensus", rpc.StopConsensus)
-	rpc.HandleFunc("setdebuginfo", rpc.SetDebugInfo)
+	rpc.HandleFunc("getneighbor", GetNeighbor)
+	rpc.HandleFunc("getnodestate", GetNodeState)
+	rpc.HandleFunc("startconsensus", StartConsensus)
+	rpc.HandleFunc("stopconsensus", StopConsensus)
+	rpc.HandleFunc("setdebuginfo", SetDebugInfo)
 
 	// TODO: only listen to local host
 	err := http.ListenAndServe(LOCAL_HOST+":"+strconv.Itoa(int(cfg.DefConfig.Rpc.HttpLocalPort)), nil)

@@ -201,6 +201,8 @@ func makeEmptyMessage(cmdType string) Message {
 		return &SubnetMembersRequest{}
 	case common.SUBNET_MEMBERS_TYPE:
 		return &SubnetMembers{}
+	case common.SUBNET_OFFLINE_TYPE:
+		return &OfflineWitnessMsg{}
 	default:
 		return &UnknownMessage{Cmd: cmdType}
 	}

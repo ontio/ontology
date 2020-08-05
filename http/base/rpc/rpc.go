@@ -30,9 +30,10 @@ import (
 	"sync"
 
 	"github.com/ontio/ontology/common/log"
-	"github.com/ontio/ontology/http/base/common"
 	berr "github.com/ontio/ontology/http/base/error"
 )
+
+const MAX_REQUEST_BODY_SIZE = 1 << 20
 
 func init() {
 	mainMux.m = make(map[string]func([]interface{}) map[string]interface{})
@@ -95,7 +96,7 @@ func Handle(w http.ResponseWriter, r *http.Request) {
 	}
 	request := make(map[string]interface{})
 	defer r.Body.Close()
-	decoder := json.NewDecoder(io.LimitReader(r.Body, common.MAX_REQUEST_BODY_SIZE))
+	decoder := json.NewDecoder(io.LimitReader(r.Body, MAX_REQUEST_BODY_SIZE))
 	err := decoder.Decode(&request)
 	if err != nil {
 		log.Error("HTTP JSON RPC Handle - json.Unmarshal: ", err)
