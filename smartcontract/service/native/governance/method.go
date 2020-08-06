@@ -1416,7 +1416,7 @@ func splitNodeFee(native *native.NativeService, contract common.Address, peerPub
 	}
 	var amount uint64
 	if native.Height > config.GetNewPeerCostHeight() {
-		stakeFee := new(big.Int).Sub(
+		stakeFee := new(big.Int).Div(
 			new(big.Int).Mul(new(big.Int).SetUint64(nodeAmount), new(big.Int).SetUint64(totalPos)),
 			new(big.Int).Add(new(big.Int).SetUint64(initPos), new(big.Int).SetUint64(totalPos))).Uint64()
 		nodeFee := nodeAmount - stakeFee
