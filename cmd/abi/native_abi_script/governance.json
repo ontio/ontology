@@ -444,6 +444,29 @@
       "returnType":"Bool"
     },
     {
+      "name":"setFeePercentage",
+      "parameters":
+      [
+        {
+          "name":"PeerPubkey",
+          "type":"String"
+        },
+        {
+          "name":"Address",
+          "type":"Address"
+        },
+        {
+          "name":"PeerCost",
+          "type":"Int"
+        },
+        {
+          "name":"StakeCost",
+          "type":"Int"
+        }
+      ],
+      "returnType":"Bool"
+    },
+    {
       "name":"withdrawFee",
       "parameters":
       [
@@ -556,35 +579,6 @@
         }
       ],
       "returnType":"Bool"
-    },
-    {
-      "name":"getPeerPool",
-      "parameters":
-      [
-      ],
-      "returnType":"ByteArray"
-    },
-    {
-      "name":"getPeerInfo",
-      "parameters":
-      [
-        {
-          "name":"PeerPublicKey",
-          "type":"String"
-        }
-      ],
-      "returnType":"ByteArray"
-    },
-    {
-      "name":"getPeerPoolByAddress",
-      "parameters":
-      [
-        {
-          "name":"Address",
-          "type":"Address"
-        }
-      ],
-      "returnType":"ByteArray"
     }
   ],
   "events":
