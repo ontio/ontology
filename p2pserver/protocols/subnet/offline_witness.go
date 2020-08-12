@@ -198,7 +198,7 @@ func (self *SubNet) processOfflineWitnessMsg(ctx *p2p.Context, msg *types.Offlin
 
 func (self *SubNet) collectOfflineIndexLocked(nodes []string) []uint8 {
 	connected := make(map[string]bool)
-	for _, val := range self.getMembersInfoLocked() {
+	for _, val := range self.cleanAndGetMembersInfoLocked() {
 		if val.Connected {
 			connected[val.PubKey] = true
 		}
