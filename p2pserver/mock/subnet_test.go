@@ -65,7 +65,7 @@ func TestSubnetAllGovAreSeed(t *testing.T) {
 	net := NewNetwork()
 	var nodes []*netserver.NetServer
 	for i := 0; i < SG; i++ {
-		seedNode := NewSubnetNode(acct[0], seedList[i], seedList, gov, net, nil, "seedgov")
+		seedNode := NewSubnetNode(acct[i], seedList[i], seedList, gov, net, nil, "seedgov")
 		go seedNode.Start()
 		nodes = append(nodes, seedNode)
 	}
@@ -85,7 +85,7 @@ func TestSubnetAllGovAreSeed(t *testing.T) {
 	//need some time for seed node detected it's identity
 	time.Sleep(time.Second * 20)
 	for i := 0; i < SG; i++ {
-		assert.Equal(t, len(getSubnetMemberInfo(nodes[i].Protocol())), SG, i)
+		assert.Equal(t, SG, len(getSubnetMemberInfo(nodes[i].Protocol())), i)
 	}
 	for i := 0; i < T; i++ {
 		assert.Equal(t, uint32(T)-1, nodes[i].GetConnectionCnt(), i)
@@ -123,7 +123,7 @@ func TestSubnet(t *testing.T) {
 	net := NewNetwork()
 	var nodes []*netserver.NetServer
 	for i := 0; i < S; i++ {
-		seedNode := NewSubnetNode(acct[0], seedList[i], seedList, gov, net, nil, "seed")
+		seedNode := NewSubnetNode(acct[i], seedList[i], seedList, gov, net, nil, "seed")
 		go seedNode.Start()
 		nodes = append(nodes, seedNode)
 	}
