@@ -57,7 +57,7 @@ import (
 	"github.com/ontio/ontology/smartcontract/storage"
 	types2 "github.com/ontio/ontology/vm/neovm/types"
 
-	"github.com/cosmos/iavl"
+	"github.com/tendermint/iavl"
 	tmdb "github.com/tendermint/tm-db"
 )
 

@@ -24,7 +24,7 @@ require (
 	github.com/scylladb/go-set v1.0.2
 	github.com/stretchr/testify v1.5.1
 	github.com/syndtr/goleveldb v1.0.1-0.20190923125748-758128399b1d
-	github.com/cosmos/iavl v0.14.0
+	github.com/tendermint/iavl v0.14.0
 	github.com/tendermint/tm-db v0.6.1
 	github.com/urfave/cli v1.22.1
 	github.com/valyala/bytebufferpool v1.0.0
