@@ -22,7 +22,7 @@ import (
 	"io"
 
 	"github.com/ontio/ontology/common"
-	"github.com/tendermint/iavl"
+	"github.com/cosmos/iavl"
 )
 
 type StoreProof iavl.RangeProof
