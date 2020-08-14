@@ -28,7 +28,6 @@ import (
 type MutableTransaction struct {
 	Version  byte
 	TxType   TransactionType
-	SystemId uint32
 	Nonce    uint32
 	GasPrice uint64
 	GasLimit uint64
@@ -50,26 +49,8 @@ func (self *MutableTransaction) IntoImmutable() (*Transaction, error) {
 	return TransactionFromRawBytes(sink.Bytes())
 }
 
-func (self *MutableTransaction) IntoImmutable_ont() (*Transaction, error) {
-	sink := common.NewZeroCopySink(nil)
-	err := self.serialize_ont(sink)
-	if err != nil {
-		return nil, err
-	}
-
-	return TransactionFromRawBytes_ont(sink.Bytes())
-}
-
 func (self *MutableTransaction) Hash() common.Uint256 {
 	tx, err := self.IntoImmutable()
-	if err != nil {
-		return common.UINT256_EMPTY
-	}
-	return tx.Hash()
-}
-
-func (self *MutableTransaction) Hash_ont() common.Uint256 {
-	tx, err := self.IntoImmutable_ont()
 	if err != nil {
 		return common.UINT256_EMPTY
 	}
@@ -113,52 +94,9 @@ func (tx *MutableTransaction) serialize(sink *common.ZeroCopySink) error {
 	return nil
 }
 
-func (tx *MutableTransaction) serialize_ont(sink *common.ZeroCopySink) error {
-	err := tx.serializeUnsigned_ont(sink)
-	if err != nil {
-		return err
-	}
-
-	sink.WriteVarUint(uint64(len(tx.Sigs)))
-	for _, sig := range tx.Sigs {
-		err = sig.Serialization(sink)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func (tx *MutableTransaction) serializeUnsigned_ont(sink *common.ZeroCopySink) error {
-	sink.WriteByte(byte(tx.Version))
-	sink.WriteByte(byte(tx.TxType))
-	sink.WriteUint32(tx.Nonce)
-	sink.WriteUint64(tx.GasPrice)
-	sink.WriteUint64(tx.GasLimit)
-	sink.WriteBytes(tx.Payer[:])
-
-	//Payload
-	if tx.Payload == nil {
-		return errors.New("transaction payload is nil")
-	}
-	switch pl := tx.Payload.(type) {
-	case *payload.DeployCode:
-		pl.Serialization(sink)
-	case *payload.InvokeCode:
-		pl.Serialization(sink)
-	default:
-		return errors.New("wrong transaction payload type")
-	}
-	sink.WriteVarUint(uint64(tx.attributes))
-
-	return nil
-}
-
 func (tx *MutableTransaction) serializeUnsigned(sink *common.ZeroCopySink) error {
 	sink.WriteByte(byte(tx.Version))
 	sink.WriteByte(byte(tx.TxType))
-	sink.WriteUint32(tx.SystemId)
 	sink.WriteUint32(tx.Nonce)
 	sink.WriteUint64(tx.GasPrice)
 	sink.WriteUint64(tx.GasLimit)
