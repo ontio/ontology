@@ -19,10 +19,11 @@ package stateless
 
 import (
 	"crypto/sha256"
-	"github.com/ontio/ontology/common"
 	"testing"
 	"time"
 
+	"github.com/ontio/ontology/common"
+	
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology-eventbus/actor"
 	"github.com/ontio/ontology/account"
