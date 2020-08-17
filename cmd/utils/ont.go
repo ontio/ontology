@@ -797,7 +797,6 @@ func NewDeployCodeTransaction(gasPrice, gasLimit uint64, code []byte, vmType pay
 	tx := &types.MutableTransaction{
 		Version:  VERSION_TRANSACTION,
 		TxType:   types.Deploy,
-		SystemId: constants.SYSTEM_ID,
 		Nonce:    uint32(time.Now().Unix()),
 		Payload:  deployPayload,
 		GasPrice: gasPrice,
