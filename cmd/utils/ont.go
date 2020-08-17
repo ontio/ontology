@@ -20,7 +20,6 @@ package utils
 
 import (
 	"bytes"
-	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -305,12 +304,7 @@ func SignTransaction(signer *account.Account, tx *types.MutableTransaction) erro
 		tx.Payer = signer.Address
 	}
 	txHash := tx.Hash()
-	sink := common.NewZeroCopySink(nil)
-	sink.WriteBytes(txHash.ToArray())
-	sink.WriteUint32(constants.SYSTEM_ID)
-	temp := sha256.Sum256(sink.Bytes())
-	layer2Hash := common.Uint256(sha256.Sum256(temp[:]))
-	sigData, err := Sign(layer2Hash.ToArray(), signer)
+	sigData, err := Sign(txHash.ToArray(), signer)
 	if err != nil {
 		return fmt.Errorf("sign error:%s", err)
 	}
@@ -364,12 +358,7 @@ func MultiSigTransaction(mutTx *types.MutableTransaction, m uint16, pubKeys []ke
 	}
 
 	txHash := mutTx.Hash()
-	sink := common.NewZeroCopySink(nil)
-	sink.WriteBytes(txHash.ToArray())
-	sink.WriteUint32(constants.SYSTEM_ID)
-	temp := sha256.Sum256(sink.Bytes())
-	layer2Hash := common.Uint256(sha256.Sum256(temp[:]))
-	sigData, err := Sign(layer2Hash.ToArray(), signer)
+	sigData, err := Sign(txHash.ToArray(), signer)
 	if err != nil {
 		return fmt.Errorf("sign error:%s", err)
 	}

@@ -19,7 +19,6 @@
 package validation
 
 import (
-	"crypto/sha256"
 	"errors"
 	"fmt"
 
@@ -57,12 +56,6 @@ func VerifyTransactionWithLedger(tx *types.Transaction, ledger *ledger.Ledger) o
 
 func checkTransactionSignatures(tx *types.Transaction) error {
 	hash := tx.Hash()
-	sink := common.NewZeroCopySink(nil)
-	sink.WriteBytes(hash.ToArray())
-	sink.WriteUint32(constants.SYSTEM_ID)
-	temp := sha256.Sum256(sink.Bytes())
-	layer2Hash := common.Uint256(sha256.Sum256(temp[:]))
-
 	lensig := len(tx.Sigs)
 	if lensig > constants.TX_MAX_SIG_SIZE {
 		return fmt.Errorf("transaction signature number %d execced %d", lensig, constants.TX_MAX_SIG_SIZE)
@@ -84,14 +77,14 @@ func checkTransactionSignatures(tx *types.Transaction) error {
 		}
 
 		if kn == 1 {
-			err := signature.Verify(sig.PubKeys[0], layer2Hash[:], sig.SigData[0])
+			err := signature.Verify(sig.PubKeys[0], hash[:], sig.SigData[0])
 			if err != nil {
 				return errors.New("signature verification failed")
 			}
 
 			address[types.AddressFromPubKey(sig.PubKeys[0])] = true
 		} else {
-			if err := signature.VerifyMultiSignature(layer2Hash[:], sig.PubKeys, m, sig.SigData); err != nil {
+			if err := signature.VerifyMultiSignature(hash[:], sig.PubKeys, m, sig.SigData); err != nil {
 				return err
 			}
 

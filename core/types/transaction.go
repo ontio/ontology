@@ -79,7 +79,12 @@ func (tx *Transaction) Deserialization(source *common.ZeroCopySource) error {
 	source.BackUp(lenUnsigned)
 	rawUnsigned, _ := source.NextBytes(lenUnsigned)
 	temp := sha256.Sum256(rawUnsigned)
-	tx.hash = common.Uint256(sha256.Sum256(temp[:]))
+
+	sink := common.NewZeroCopySink(nil)
+	sink.WriteHash(temp)
+	sink.WriteUint32(constants.SYSTEM_ID)
+
+	tx.hash = common.Uint256(sha256.Sum256(sink.Bytes()))
 
 	// tx sigs
 	length, _, irregular, eof := source.NextVarUint()
