@@ -18,6 +18,8 @@
 package stateless
 
 import (
+	"crypto/sha256"
+	"github.com/ontio/ontology/common"
 	"testing"
 	"time"
 
@@ -36,7 +38,12 @@ import (
 
 func signTransaction(signer *account.Account, tx *ctypes.MutableTransaction) error {
 	hash := tx.Hash()
-	sign, _ := signature.Sign(signer, hash[:])
+	sink := common.NewZeroCopySink(nil)
+	sink.WriteBytes(hash.ToArray())
+	sink.WriteUint32(uint32(1))
+	temp := sha256.Sum256(sink.Bytes())
+	layer2Hash := common.Uint256(sha256.Sum256(temp[:]))
+	sign, _ := signature.Sign(signer, layer2Hash[:])
 	tx.Sigs = append(tx.Sigs, ctypes.Sig{
 		PubKeys: []keypair.PublicKey{signer.PublicKey},
 		M:       1,
