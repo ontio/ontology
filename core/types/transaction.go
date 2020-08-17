@@ -47,8 +47,9 @@ type Transaction struct {
 
 	Raw []byte // raw transaction data
 
-	hash       common.Uint256
-	SignedAddr []common.Address // this is assigned when passed signature verification
+	hashUnsigned common.Uint256
+	hash         common.Uint256
+	SignedAddr   []common.Address // this is assigned when passed signature verification
 
 	nonDirectConstracted bool // used to check literal construction like `tx := &Transaction{...}`
 }
@@ -78,8 +79,8 @@ func (tx *Transaction) Deserialization(source *common.ZeroCopySource) error {
 	lenUnsigned := pos - pstart
 	source.BackUp(lenUnsigned)
 	rawUnsigned, _ := source.NextBytes(lenUnsigned)
-	temp := sha256.Sum256(rawUnsigned)
-	tx.hash = common.Uint256(sha256.Sum256(temp[:]))
+	tx.hashUnsigned = sha256.Sum256(rawUnsigned)
+	tx.hash = common.Uint256(sha256.Sum256(tx.hashUnsigned[:]))
 
 	// tx sigs
 	length, _, irregular, eof := source.NextVarUint()
@@ -321,7 +322,14 @@ func (tx *Transaction) Hash() common.Uint256 {
 	return tx.hash
 }
 
-func (tx *Transaction) Verify() error {
-	panic("unimplemented ")
-	return nil
+// calculate a hash for another chain to sign.
+// and take the chain id of ontology as 0.
+func (tx *Transaction) SigHashForChain(id uint32) common.Uint256 {
+	sink := common.NewZeroCopySink(nil)
+	sink.WriteHash(tx.hashUnsigned)
+	if id != 0 {
+		sink.WriteUint32(id)
+	}
+
+	return common.Uint256(sha256.Sum256(sink.Bytes()))
 }
