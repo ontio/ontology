@@ -303,7 +303,11 @@ func SignTransaction(signer *account.Account, tx *types.MutableTransaction) erro
 	if tx.Payer == common.ADDRESS_EMPTY {
 		tx.Payer = signer.Address
 	}
-	txHash := tx.Hash()
+	txTemp, err := tx.IntoImmutable()
+	if err != nil {
+		return err
+	}
+	txHash := txTemp.SigHashForChain(uint32(1))
 	sigData, err := Sign(txHash.ToArray(), signer)
 	if err != nil {
 		return fmt.Errorf("sign error:%s", err)
@@ -357,7 +361,11 @@ func MultiSigTransaction(mutTx *types.MutableTransaction, m uint16, pubKeys []ke
 		mutTx.Sigs = make([]types.Sig, 0)
 	}
 
-	txHash := mutTx.Hash()
+	txTemp, err := mutTx.IntoImmutable()
+	if err != nil {
+		return err
+	}
+	txHash := txTemp.SigHashForChain(uint32(1))
 	sigData, err := Sign(txHash.ToArray(), signer)
 	if err != nil {
 		return fmt.Errorf("sign error:%s", err)

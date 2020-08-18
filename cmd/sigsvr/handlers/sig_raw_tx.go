@@ -74,7 +74,7 @@ func SigRawTransaction(req *clisvrcom.CliRpcRequest, resp *clisvrcom.CliRpcRespo
 		mutable.Payer = signer.Address
 	}
 
-	txHash := mutable.Hash()
+	txHash := tmpTx.SigHashForChain(uint32(1))
 	sigData, err := cliutil.Sign(txHash.ToArray(), signer)
 	if err != nil {
 		log.Infof("Cli Qid:%s SigRawTransaction Sign error:%s", req.Qid, err)
