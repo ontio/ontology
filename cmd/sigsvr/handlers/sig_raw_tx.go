@@ -26,6 +26,7 @@ import (
 	clisvrcom "github.com/ontio/ontology/cmd/sigsvr/common"
 	cliutil "github.com/ontio/ontology/cmd/utils"
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/constants"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/types"
 )
@@ -74,7 +75,7 @@ func SigRawTransaction(req *clisvrcom.CliRpcRequest, resp *clisvrcom.CliRpcRespo
 		mutable.Payer = signer.Address
 	}
 
-	txHash := tmpTx.SigHashForChain(uint32(1))
+	txHash := tmpTx.SigHashForChain(constants.SYSTEM_ID)
 	sigData, err := cliutil.Sign(txHash.ToArray(), signer)
 	if err != nil {
 		log.Infof("Cli Qid:%s SigRawTransaction Sign error:%s", req.Qid, err)

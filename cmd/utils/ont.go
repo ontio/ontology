@@ -307,7 +307,7 @@ func SignTransaction(signer *account.Account, tx *types.MutableTransaction) erro
 	if err != nil {
 		return err
 	}
-	txHash := txTemp.SigHashForChain(uint32(1))
+	txHash := txTemp.SigHashForChain(uint32(constants.SYSTEM_ID))
 	sigData, err := Sign(txHash.ToArray(), signer)
 	if err != nil {
 		return fmt.Errorf("sign error:%s", err)
@@ -365,7 +365,7 @@ func MultiSigTransaction(mutTx *types.MutableTransaction, m uint16, pubKeys []ke
 	if err != nil {
 		return err
 	}
-	txHash := txTemp.SigHashForChain(uint32(1))
+	txHash := txTemp.SigHashForChain(constants.SYSTEM_ID)
 	sigData, err := Sign(txHash.ToArray(), signer)
 	if err != nil {
 		return fmt.Errorf("sign error:%s", err)
