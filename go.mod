@@ -8,7 +8,7 @@ require (
 	github.com/emirpasic/gods v1.12.0 // indirect
 	github.com/ethereum/go-ethereum v1.9.13
 	github.com/gogo/protobuf v1.3.1 // indirect
-	github.com/gorilla/websocket v1.4.1
+	github.com/gorilla/websocket v1.4.2
 	github.com/gosuri/uilive v0.0.3 // indirect
 	github.com/gosuri/uiprogress v0.0.1
 	github.com/hashicorp/golang-lru v0.5.3
@@ -20,16 +20,16 @@ require (
 	github.com/ontio/wagon v0.4.1
 	github.com/orcaman/concurrent-map v0.0.0-20190826125027-8c72a8bb44f6 // indirect
 	github.com/pborman/uuid v1.2.0
-	github.com/prometheus/client_golang v1.5.0
+	github.com/prometheus/client_golang v1.5.1
 	github.com/scylladb/go-set v1.0.2
-	github.com/stretchr/testify v1.5.1
+	github.com/stretchr/testify v1.6.1
 	github.com/syndtr/goleveldb v1.0.1-0.20190923125748-758128399b1d
-	github.com/tendermint/iavl v0.13.2
-	github.com/tendermint/tm-db v0.5.0
+	github.com/tendermint/iavl v0.14.0
+	github.com/tendermint/tm-db v0.6.1
 	github.com/urfave/cli v1.22.1
 	github.com/valyala/bytebufferpool v1.0.0
-	golang.org/x/crypto v0.0.0-20200311171314-f7b00557c8c4
-	golang.org/x/net v0.0.0-20200301022130-244492dfa37a
+	golang.org/x/crypto v0.0.0-20200429183012-4b2356b1ed79
+	golang.org/x/net v0.0.0-20200324143707-d3edc9973b7e
 )
 
 replace (

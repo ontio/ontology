@@ -292,7 +292,6 @@ func NewInvokeTransaction(gasPrice, gasLimit uint64, invokeCode []byte) *types.M
 		GasPrice: gasPrice,
 		GasLimit: gasLimit,
 		TxType:   types.InvokeNeo,
-		SystemId: constants.SYSTEM_ID,
 		Nonce:    rand.Uint32(),
 		Payload:  invokePayload,
 		Sigs:     make([]types.Sig, 0, 0),
@@ -304,7 +303,11 @@ func SignTransaction(signer *account.Account, tx *types.MutableTransaction) erro
 	if tx.Payer == common.ADDRESS_EMPTY {
 		tx.Payer = signer.Address
 	}
-	txHash := tx.Hash()
+	txTemp, err := tx.IntoImmutable()
+	if err != nil {
+		return err
+	}
+	txHash := txTemp.SigHashForChain(uint32(constants.SYSTEM_ID))
 	sigData, err := Sign(txHash.ToArray(), signer)
 	if err != nil {
 		return fmt.Errorf("sign error:%s", err)
@@ -358,7 +361,11 @@ func MultiSigTransaction(mutTx *types.MutableTransaction, m uint16, pubKeys []ke
 		mutTx.Sigs = make([]types.Sig, 0)
 	}
 
-	txHash := mutTx.Hash()
+	txTemp, err := mutTx.IntoImmutable()
+	if err != nil {
+		return err
+	}
+	txHash := txTemp.SigHashForChain(constants.SYSTEM_ID)
 	sigData, err := Sign(txHash.ToArray(), signer)
 	if err != nil {
 		return fmt.Errorf("sign error:%s", err)
@@ -787,7 +794,6 @@ func NewDeployCodeTransaction(gasPrice, gasLimit uint64, code []byte, vmType pay
 	tx := &types.MutableTransaction{
 		Version:  VERSION_TRANSACTION,
 		TxType:   types.Deploy,
-		SystemId: constants.SYSTEM_ID,
 		Nonce:    uint32(time.Now().Unix()),
 		Payload:  deployPayload,
 		GasPrice: gasPrice,

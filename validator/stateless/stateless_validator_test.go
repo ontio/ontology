@@ -24,6 +24,7 @@ import (
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology-eventbus/actor"
 	"github.com/ontio/ontology/account"
+	"github.com/ontio/ontology/common/constants"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/signature"
@@ -35,7 +36,11 @@ import (
 )
 
 func signTransaction(signer *account.Account, tx *ctypes.MutableTransaction) error {
-	hash := tx.Hash()
+	txTemp, err := tx.IntoImmutable()
+	if err != nil {
+		return err
+	}
+	hash := txTemp.SigHashForChain(constants.SYSTEM_ID)
 	sign, _ := signature.Sign(signer, hash[:])
 	tx.Sigs = append(tx.Sigs, ctypes.Sig{
 		PubKeys: []keypair.PublicKey{signer.PublicKey},

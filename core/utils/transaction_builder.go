@@ -27,7 +27,6 @@ import (
 	"time"
 
 	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/common/constants"
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract/states"
@@ -44,9 +43,8 @@ func NewDeployTransaction(code []byte, name, version, author, email, desp string
 		return nil, err
 	}
 	return &types.MutableTransaction{
-		TxType:   types.Deploy,
-		SystemId: constants.SYSTEM_ID,
-		Payload:  depCode,
+		TxType:  types.Deploy,
+		Payload: depCode,
 	}, nil
 }
 
@@ -58,9 +56,8 @@ func NewInvokeTransaction(code []byte) *types.MutableTransaction {
 	}
 
 	return &types.MutableTransaction{
-		TxType:   types.InvokeNeo,
-		SystemId: constants.SYSTEM_ID,
-		Payload:  invokeCodePayload,
+		TxType:  types.InvokeNeo,
+		Payload: invokeCodePayload,
 	}
 }
 
