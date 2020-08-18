@@ -35,7 +35,11 @@ import (
 )
 
 func signTransaction(signer *account.Account, tx *ctypes.MutableTransaction) error {
-	hash := tx.Hash()
+	txTemp, err := tx.IntoImmutable()
+	if err != nil {
+		return err
+	}
+	hash := txTemp.SigHashForChain(uint32(1))
 	sign, _ := signature.Sign(signer, hash[:])
 	tx.Sigs = append(tx.Sigs, ctypes.Sig{
 		PubKeys: []keypair.PublicKey{signer.PublicKey},
