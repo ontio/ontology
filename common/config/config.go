@@ -60,9 +60,10 @@ const (
 	DEFAULT_NODE_PORT                       = 20338
 	DEFAULT_RPC_PORT                        = 20336
 	DEFAULT_RPC_LOCAL_PORT                  = 20337
+	DEFAULT_GRAPHQL_PORT                    = 20333
 	DEFAULT_REST_PORT                       = 20334
 	DEFAULT_WS_PORT                         = 20335
-	DEFAULT_REST_MAX_CONN                   = 1024
+	DEFAULT_HTTP_MAX_CONN                   = 1024
 	DEFAULT_MAX_CONN_IN_BOUND               = 1024
 	DEFAULT_MAX_CONN_OUT_BOUND              = 1024
 	DEFAULT_MAX_CONN_IN_BOUND_FOR_SINGLE_IP = 16
@@ -648,6 +649,12 @@ type RestfulConfig struct {
 	HttpKeyPath        string
 }
 
+type GraphQLConfig struct {
+	EnableGraphQL  bool
+	GraphQLPort    uint
+	MaxConnections uint
+}
+
 type WebSocketConfig struct {
 	EnableHttpWs bool
 	HttpWsPort   uint
@@ -662,6 +669,7 @@ type OntologyConfig struct {
 	P2PNode   *P2PNodeConfig
 	Rpc       *RpcConfig
 	Restful   *RestfulConfig
+	GraphQL   *GraphQLConfig
 	Ws        *WebSocketConfig
 }
 
@@ -705,6 +713,10 @@ func NewOntologyConfig() *OntologyConfig {
 		Restful: &RestfulConfig{
 			EnableHttpRestful: true,
 			HttpRestPort:      DEFAULT_REST_PORT,
+		},
+		GraphQL: &GraphQLConfig{
+			EnableGraphQL: false,
+			GraphQLPort:   DEFAULT_GRAPHQL_PORT,
 		},
 		Ws: &WebSocketConfig{
 			EnableHttpWs: true,

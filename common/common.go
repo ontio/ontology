@@ -20,8 +20,11 @@ package common
 
 import (
 	"encoding/hex"
+	"fmt"
 	"math/rand"
 	"os"
+
+	"github.com/ontio/ontology-crypto/keypair"
 )
 
 // GetNonce returns random nonce
@@ -54,4 +57,21 @@ func ToArrayReverse(arr []byte) []byte {
 func FileExisted(filename string) bool {
 	_, err := os.Stat(filename)
 	return err == nil || os.IsExist(err)
+}
+
+func PubKeyToHex(pub keypair.PublicKey) string {
+	nodeid := hex.EncodeToString(keypair.SerializePublicKey(pub))
+	return nodeid
+}
+
+func PubKeyFromHex(nodeid string) (keypair.PublicKey, error) {
+	pubKey, err := hex.DecodeString(nodeid)
+	if err != nil {
+		return nil, err
+	}
+	pk, err := keypair.DeserializePublicKey(pubKey)
+	if err != nil {
+		return nil, fmt.Errorf("deserialize failed: %s", err)
+	}
+	return pk, err
 }

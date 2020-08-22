@@ -40,10 +40,12 @@ func SetOntologyConfig(ctx *cli.Context) (*config.OntologyConfig, error) {
 	setP2PNodeConfig(ctx, cfg.P2PNode)
 	setRpcConfig(ctx, cfg.Rpc)
 	setRestfulConfig(ctx, cfg.Restful)
+	setGraphQLConfig(ctx, cfg.GraphQL)
 	setWebSocketConfig(ctx, cfg.Ws)
 	if cfg.Genesis.ConsensusType == config.CONSENSUS_TYPE_SOLO {
 		cfg.Ws.EnableHttpWs = true
 		cfg.Restful.EnableHttpRestful = true
+		cfg.GraphQL.EnableGraphQL = true
 		cfg.Consensus.EnableConsensus = true
 		cfg.P2PNode.NetworkId = config.NETWORK_ID_SOLO_NET
 		cfg.P2PNode.NetworkName = config.GetNetworkName(cfg.P2PNode.NetworkId)
@@ -185,6 +187,12 @@ func setRestfulConfig(ctx *cli.Context, cfg *config.RestfulConfig) {
 	cfg.EnableHttpRestful = ctx.Bool(utils.GetFlagName(utils.RestfulEnableFlag))
 	cfg.HttpRestPort = ctx.Uint(utils.GetFlagName(utils.RestfulPortFlag))
 	cfg.HttpMaxConnections = ctx.Uint(utils.GetFlagName(utils.RestfulMaxConnsFlag))
+}
+
+func setGraphQLConfig(ctx *cli.Context, cfg *config.GraphQLConfig) {
+	cfg.EnableGraphQL = ctx.Bool(utils.GetFlagName(utils.GraphQLEnableFlag))
+	cfg.GraphQLPort = ctx.Uint(utils.GetFlagName(utils.GraphQLPortFlag))
+	cfg.MaxConnections = ctx.Uint(utils.GetFlagName(utils.GraphQLMaxConnsFlag))
 }
 
 func setWebSocketConfig(ctx *cli.Context, cfg *config.WebSocketConfig) {
