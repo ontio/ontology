@@ -44,7 +44,6 @@ import (
 	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/events"
 	bactor "github.com/ontio/ontology/http/base/actor"
-	hserver "github.com/ontio/ontology/http/base/actor"
 	"github.com/ontio/ontology/http/jsonrpc"
 	"github.com/ontio/ontology/http/localrpc"
 	"github.com/ontio/ontology/http/nodeinfo"
@@ -292,8 +291,8 @@ func initTxPool(ctx *cli.Context) (*proc.TXPoolServer, error) {
 	stfValidator, _ := stateful.NewValidator("stateful_validator")
 	stfValidator.Register(txPoolServer.GetPID(tc.VerifyRspActor))
 
-	hserver.SetTxnPoolPid(txPoolServer.GetPID(tc.TxPoolActor))
-	hserver.SetTxPid(txPoolServer.GetPID(tc.TxActor))
+	bactor.SetTxnPoolPid(txPoolServer.GetPID(tc.TxPoolActor))
+	bactor.SetTxPid(txPoolServer.GetPID(tc.TxActor))
 
 	log.Infof("TxPool init success")
 	return txPoolServer, nil
@@ -314,7 +313,7 @@ func initP2PNode(ctx *cli.Context, txpoolSvr *proc.TXPoolServer, acct *account.A
 	}
 	netreqactor.SetTxnPoolPid(txpoolSvr.GetPID(tc.TxActor))
 	txpoolSvr.Net = p2p.GetNetwork()
-	hserver.SetNetServer(p2p.GetNetwork())
+	bactor.SetNetServer(p2p.GetNetwork())
 	p2p.WaitForPeersStart()
 	log.Infof("P2P init success")
 	return p2p, p2p.GetNetwork(), nil
@@ -334,7 +333,7 @@ func initConsensus(ctx *cli.Context, net p2p.P2P, txpoolSvr *proc.TXPoolServer, 
 	consensusService.Start()
 
 	netreqactor.SetConsensusPid(consensusService.GetPID())
-	hserver.SetConsensusPid(consensusService.GetPID())
+	bactor.SetConsensusPid(consensusService.GetPID())
 
 	log.Infof("Consensus init success")
 	return consensusService, nil
