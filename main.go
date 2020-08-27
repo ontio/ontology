@@ -408,7 +408,7 @@ func initWs(ctx *cli.Context) {
 }
 
 func initNodeInfo(ctx *cli.Context, p2pSvr *p2pserver.P2PServer) {
-	if config.DefConfig.P2PNode.HttpInfoPort == 0 {
+	if ctx.Bool(utils.GetFlagName(utils.EnableTestModeFlag)) || config.DefConfig.P2PNode.HttpInfoPort == 0 {
 		return
 	}
 	go nodeinfo.StartServer(p2pSvr.GetNetwork())
