@@ -408,6 +408,7 @@ func initWs(ctx *cli.Context) {
 }
 
 func initNodeInfo(ctx *cli.Context, p2pSvr *p2pserver.P2PServer) {
+	// testmode has no p2pserver(see function initP2PNode for detail), simply ignore httpInfoPort in testmode
 	if ctx.Bool(utils.GetFlagName(utils.EnableTestModeFlag)) || config.DefConfig.P2PNode.HttpInfoPort == 0 {
 		return
 	}
