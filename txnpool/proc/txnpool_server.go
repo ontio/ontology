@@ -611,9 +611,8 @@ func (s *TXPoolServer) getStats() []uint64 {
 	s.stats.RLock()
 	defer s.stats.RUnlock()
 	ret := make([]uint64, 0, len(s.stats.count))
-	for _, v := range s.stats.count {
-		ret = append(ret, v)
-	}
+	ret = append(ret, s.stats.count...)
+
 	return ret
 }
 
