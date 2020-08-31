@@ -62,9 +62,16 @@ func (pr *PrepareRequest) Deserialization(source *common.ZeroCopySource) error {
 	}
 	pr.Nonce = nonce
 	pr.NextBookkeeper, eof = source.NextAddress()
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
 
 	var length uint64
 	length, _, irregular, eof = source.NextVarUint()
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
+
 	if irregular {
 		return common.ErrIrregularData
 	}

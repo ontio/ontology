@@ -143,12 +143,27 @@ func (tx *Transaction) IntoMutable() (*MutableTransaction, error) {
 func (tx *Transaction) deserializationUnsigned(source *common.ZeroCopySource) error {
 	var irregular, eof bool
 	tx.Version, eof = source.NextByte()
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
 	var txtype byte
 	txtype, eof = source.NextByte()
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
 	tx.TxType = TransactionType(txtype)
 	tx.Nonce, eof = source.NextUint32()
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
 	tx.GasPrice, eof = source.NextUint64()
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
 	tx.GasLimit, eof = source.NextUint64()
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
 	var buf []byte
 	buf, eof = source.NextBytes(common.ADDR_LEN)
 	if eof {
@@ -206,10 +221,16 @@ func (self *RawSig) Serialization(sink *common.ZeroCopySink) error {
 func (self *RawSig) Deserialization(source *common.ZeroCopySource) error {
 	var eof, irregular bool
 	self.Invoke, _, irregular, eof = source.NextVarBytes()
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
 	if irregular {
 		return common.ErrIrregularData
 	}
 	self.Verify, _, irregular, eof = source.NextVarBytes()
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
 	if irregular {
 		return common.ErrIrregularData
 	}

@@ -98,6 +98,10 @@ func (cd *ConsensusMessageData) Deserialization(source *common.ZeroCopySource) e
 	var eof bool
 	var temp byte
 	temp, eof = source.NextByte()
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
+
 	cd.Type = ConsensusMessageType(temp)
 	cd.ViewNumber, eof = source.NextByte()
 	if eof {

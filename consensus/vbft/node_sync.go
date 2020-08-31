@@ -312,12 +312,12 @@ func (self *Syncer) onNewBlockSyncReq(req *BlockSyncReq) {
 		self.nextReqBlkNum = req.startBlockNum
 	}
 	self.targetBlkNum = req.targetBlockNum
-	peers := req.targetPeers
-	if len(peers) == 0 {
-		for p := range self.peers {
-			peers = append(peers, p)
-		}
-	}
+	// peers := req.targetPeers
+	// if len(peers) == 0 {
+	// 	for p := range self.peers {
+	// 		peers = append(peers, p)
+	// 	}
+	// }
 
 	for _, peerIdx := range req.targetPeers {
 		if p, present := self.peers[peerIdx]; !present || !p.active {
@@ -434,7 +434,7 @@ func (self *PeerSyncer) requestBlock(blkNum uint32) (*Block, error) {
 		case BlockFetchRespMessage:
 			pMsg, ok := msg.(*BlockFetchRespMsg)
 			if !ok {
-				// log error
+				return nil, fmt.Errorf("expect request type: BlockFetchMessage")
 			}
 			return pMsg.BlockData, nil
 		}
@@ -465,7 +465,7 @@ func (self *PeerSyncer) requestBlockInfo(startBlkNum uint32) ([]*BlockInfo_, err
 		case BlockInfoFetchRespMessage:
 			pMsg, ok := msg.(*BlockInfoFetchRespMsg)
 			if !ok {
-				// log error
+				return nil, fmt.Errorf("expect request type: BlockInfoFetchRespMessage")
 			}
 			return pMsg.Blocks, nil
 		}

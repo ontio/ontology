@@ -93,6 +93,9 @@ func genMultiSigAddress(ctx *cli.Context) error {
 			continue
 		}
 		data, err := hex.DecodeString(pk)
+		if err != nil {
+			return err
+		}
 		pubKey, err := keypair.DeserializePublicKey(data)
 		if err != nil {
 			return fmt.Errorf("invalid pub key:%s", pk)
@@ -141,6 +144,9 @@ func multiSigToTx(ctx *cli.Context) error {
 			continue
 		}
 		data, err := hex.DecodeString(pk)
+		if err != nil {
+			return err
+		}
 		pubKey, err := keypair.DeserializePublicKey(data)
 		if err != nil {
 			return fmt.Errorf("invalid pub key:%s", pk)

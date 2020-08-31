@@ -2212,8 +2212,7 @@ func (self *Server) makeProposal(blkNum uint32, forEmpty bool) error {
 	userTxs := make([]*types.Transaction, 0)
 
 	//check need upate chainconfig
-	cfg := &vconfig.ChainConfig{}
-	cfg = nil
+	var cfg *vconfig.ChainConfig
 	if self.checkNeedUpdateChainConfig(blkNum) || self.checkUpdateChainConfig(blkNum) {
 		chainconfig, err := getChainConfig(self.blockPool.getExecWriteSet(blkNum-1), blkNum)
 		if err != nil {
