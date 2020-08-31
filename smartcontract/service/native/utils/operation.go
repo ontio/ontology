@@ -45,7 +45,7 @@ func ConcatBytes(args ...[]byte) []byte {
 }
 
 func ValidateOwner(native *native.NativeService, address common.Address) error {
-	if native.ContextRef.CheckWitness(address) == false {
+	if !native.ContextRef.CheckWitness(address) {
 		return errors.NewErr("validateOwner, authentication failed!")
 	}
 	return nil

@@ -274,7 +274,7 @@ func (self *CompactMerkleTree) subproof(m, n uint32, b bool) []common.Uint256 {
 	}
 
 	//assert m == n
-	if b == false {
+	if !b {
 		pos := getSubTreePos(n)
 		//assert len(pos) == 1
 		if len(pos) != 1 {

@@ -48,7 +48,7 @@ func (this *Router) Try(path string, method string) (http.HandlerFunc, paramsMap
 	for _, route := range this.routes {
 		if route.Method == method {
 			match := route.Path.MatchString(path)
-			if match == false {
+			if !match {
 				continue
 			}
 			params := paramsMap{}

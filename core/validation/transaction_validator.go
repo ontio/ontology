@@ -98,7 +98,7 @@ func checkTransactionSignatures(tx *types.Transaction) error {
 	}
 
 	// check payer in address
-	if address[tx.Payer] == false {
+	if !address[tx.Payer] {
 		return errors.New("signature missing for payer: " + tx.Payer.ToBase58())
 	}
 

@@ -96,7 +96,7 @@ func NewDbftService(bkAccount *account.Account, txpool *actor.PID, p2p p2p.P2P) 
 }
 
 func (this *DbftService) Receive(context actor.Context) {
-	if _, ok := context.Message().(*actorTypes.StartConsensus); this.started == false && ok == false {
+	if _, ok := context.Message().(*actorTypes.StartConsensus); !this.started && !ok {
 		return
 	}
 

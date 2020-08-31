@@ -55,7 +55,7 @@ func checkOntoWasm(m *wasm.Module) error {
 	}
 
 	entry, ok := m.Export.Entries["invoke"]
-	if ok == false {
+	if !ok {
 		return errors.New("[Validate] invoke entry function does not export.")
 	}
 

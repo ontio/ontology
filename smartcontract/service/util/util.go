@@ -52,7 +52,7 @@ func GenerateNeoVMParamEvalStack(input []byte) (*neovm.ValueStack, error) {
 	}
 
 	list, ok := params.([]interface{})
-	if ok == false {
+	if !ok {
 		return nil, errors.New("invoke neovm param is not list type")
 	}
 
@@ -66,7 +66,7 @@ func GenerateNeoVMParamEvalStack(input []byte) (*neovm.ValueStack, error) {
 
 func SetNeoServiceParamAndEngine(addr common.Address, engine context.Engine, stack *neovm.ValueStack) error {
 	service, ok := engine.(*neovms.NeoVmService)
-	if ok == false {
+	if !ok {
 		return errors.New("engine should be NeoVmService")
 	}
 

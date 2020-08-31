@@ -308,7 +308,7 @@ type Payload interface {
 }
 
 func (tx *Transaction) Serialization(sink *common.ZeroCopySink) {
-	if tx.nonDirectConstracted == false || len(tx.Raw) == 0 {
+	if !tx.nonDirectConstracted || len(tx.Raw) == 0 {
 		panic("wrong constructed transaction")
 	}
 	sink.WriteBytes(tx.Raw)
