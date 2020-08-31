@@ -30,7 +30,6 @@ func newEvent(srvc *native.NativeService, st interface{}) {
 	e.ContractAddress = srvc.ContextRef.CurrentContext().ContractAddress
 	e.States = st
 	srvc.Notifications = append(srvc.Notifications, &e)
-	return
 }
 
 func triggerRegisterEvent(srvc *native.NativeService, id []byte) {

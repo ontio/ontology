@@ -287,7 +287,6 @@ func (pool *BlockPool) addBlockEndorsementLocked(blkNum uint32, endorser uint32,
 	} else {
 		candidate.EndorseSigs[endorser] = []*CandidateEndorseSigInfo{eSig}
 	}
-	return
 }
 
 //

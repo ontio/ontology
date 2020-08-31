@@ -217,15 +217,12 @@ func checkCurve(ctx *cli.Context, reader *bufio.Reader, t *string) string {
 		} else {
 			c = chooseCurve(reader)
 		}
-		break
 	case "sm2":
 		fmt.Println("Use curve sm2p256v1 with key length of 256 bits.")
 		c = "SM2P256V1"
-		break
 	case "ed25519":
 		fmt.Println("Use curve 25519 with key length of 256 bits.")
 		c = "ED25519"
-		break
 	default:
 		return ""
 	}
@@ -247,15 +244,12 @@ func checkScheme(ctx *cli.Context, reader *bufio.Reader, t *string) string {
 		} else {
 			sch = chooseScheme(reader)
 		}
-		break
 	case "sm2":
 		fmt.Println("Use SM3withSM2 as the signature scheme.")
 		sch = "SM3withSM2"
-		break
 	case "ed25519":
 		fmt.Println("Use SHA512withEdDSA as the signature scheme.")
 		sch = "SHA512withEdDSA"
-		break
 	default:
 		return ""
 	}
