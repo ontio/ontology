@@ -108,7 +108,7 @@ var schemeMap = map[string]schemeInfo{
 // wait for user to choose options
 func chooseKeyType(reader *bufio.Reader) string {
 	common.PrintNotice("key type")
-	for true {
+	for {
 		tmp, _ := reader.ReadString('\n')
 		tmp = strings.TrimSpace(tmp)
 		_, ok := keyTypeMap[tmp]
@@ -123,7 +123,7 @@ func chooseKeyType(reader *bufio.Reader) string {
 }
 func chooseScheme(reader *bufio.Reader) string {
 	common.PrintNotice("signature-scheme")
-	for true {
+	for {
 		tmp, _ := reader.ReadString('\n')
 		tmp = strings.TrimSpace(tmp)
 
@@ -139,7 +139,7 @@ func chooseScheme(reader *bufio.Reader) string {
 }
 func chooseCurve(reader *bufio.Reader) string {
 	common.PrintNotice("curve")
-	for true {
+	for {
 		tmp, _ := reader.ReadString('\n')
 		tmp = strings.TrimSpace(tmp)
 		_, ok := curveMap[tmp]
