@@ -153,9 +153,9 @@ func (self *Syncer) run() {
 					// report err
 					p.msgC <- nil
 				}
-			} else {
-				// report error
-			}
+			} //  else {
+			// 	// report error
+			// }
 
 		case blkMsgFromPeer := <-self.blockFromPeerC:
 			blkNum := blkMsgFromPeer.block.getBlockNum()
