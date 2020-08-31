@@ -485,8 +485,8 @@ func (self *Server) initialize() error {
 	go self.msgSendLoop()
 	go self.timerLoop()
 	go self.actionLoop()
+	self.quitWg.Add(1)
 	go func() {
-		self.quitWg.Add(1)
 		defer self.quitWg.Done()
 
 		for {
