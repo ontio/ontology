@@ -41,7 +41,6 @@ import (
 	"github.com/ontio/ontology/core/types"
 	cutils "github.com/ontio/ontology/core/utils"
 	httpcom "github.com/ontio/ontology/http/base/common"
-	rpccommon "github.com/ontio/ontology/http/base/common"
 	"github.com/ontio/ontology/smartcontract/service/native/ont"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
@@ -454,12 +453,12 @@ func SendRawTransactionData(txData string) (string, error) {
 	return hexHash, nil
 }
 
-func PrepareSendRawTransaction(txData string) (*rpccommon.PreExecuteResult, error) {
+func PrepareSendRawTransaction(txData string) (*httpcom.PreExecuteResult, error) {
 	data, ontErr := sendRpcRequest("sendrawtransaction", []interface{}{txData, 1})
 	if ontErr != nil {
 		return nil, ontErr.Error
 	}
-	preResult := &rpccommon.PreExecuteResult{}
+	preResult := &httpcom.PreExecuteResult{}
 	err := json.Unmarshal(data, &preResult)
 	if err != nil {
 		return nil, fmt.Errorf("json.Unmarshal PreExecResult:%s error:%s", data, err)
@@ -468,7 +467,7 @@ func PrepareSendRawTransaction(txData string) (*rpccommon.PreExecuteResult, erro
 }
 
 //GetSmartContractEvent return smart contract event execute by invoke transaction by hex string code
-func GetSmartContractEvent(txHash string) (*rpccommon.ExecuteNotify, error) {
+func GetSmartContractEvent(txHash string) (*httpcom.ExecuteNotify, error) {
 	data, ontErr := sendRpcRequest("getsmartcodeevent", []interface{}{txHash})
 	if ontErr != nil {
 		switch ontErr.ErrorCode {
@@ -477,7 +476,7 @@ func GetSmartContractEvent(txHash string) (*rpccommon.ExecuteNotify, error) {
 		}
 		return nil, ontErr.Error
 	}
-	notifies := &rpccommon.ExecuteNotify{}
+	notifies := &httpcom.ExecuteNotify{}
 	err := json.Unmarshal(data, &notifies)
 	if err != nil {
 		return nil, fmt.Errorf("json.Unmarshal SmartContactEvent:%s error:%s", data, err)
@@ -714,7 +713,7 @@ func InvokeSmartContract(signer *account.Account, tx *types.MutableTransaction) 
 func PrepareInvokeNeoVMContract(
 	contractAddress common.Address,
 	params []interface{},
-) (*rpccommon.PreExecuteResult, error) {
+) (*httpcom.PreExecuteResult, error) {
 	mutable, err := httpcom.NewNeovmInvokeTransaction(0, 0, contractAddress, params)
 	if err != nil {
 		return nil, err
@@ -729,7 +728,7 @@ func PrepareInvokeNeoVMContract(
 	return PrepareSendRawTransaction(txData)
 }
 
-func PrepareInvokeCodeNeoVMContract(code []byte) (*rpccommon.PreExecuteResult, error) {
+func PrepareInvokeCodeNeoVMContract(code []byte) (*httpcom.PreExecuteResult, error) {
 	mutable, err := httpcom.NewSmartContractTransaction(0, 0, code)
 	if err != nil {
 		return nil, err
@@ -743,7 +742,7 @@ func PrepareInvokeCodeNeoVMContract(code []byte) (*rpccommon.PreExecuteResult, e
 }
 
 //prepare invoke wasm
-func PrepareInvokeWasmVMContract(contractAddress common.Address, params []interface{}) (*rpccommon.PreExecuteResult, error) {
+func PrepareInvokeWasmVMContract(contractAddress common.Address, params []interface{}) (*httpcom.PreExecuteResult, error) {
 	mutable, err := cutils.NewWasmVMInvokeTransaction(0, 0, contractAddress, params)
 	if err != nil {
 		return nil, err
