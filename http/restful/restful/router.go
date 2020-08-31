@@ -71,11 +71,9 @@ func (this *Router) add(method string, path string, handler http.HandlerFunc) {
 
 	if strings.Contains(path, ":") {
 		matches := regexp.MustCompile(`:(\w+)`).FindAllStringSubmatch(path, -1)
-		if matches != nil {
-			for _, v := range matches {
-				route.Params = append(route.Params, v[1])
-				path = strings.Replace(path, v[0], `(\w+)`, 1)
-			}
+		for _, v := range matches {
+			route.Params = append(route.Params, v[1])
+			path = strings.Replace(path, v[0], `(\w+)`, 1)
 		}
 	}
 	compiledPath, err := regexp.Compile(path)
@@ -138,6 +136,6 @@ func parseParams(route *Route, path string) paramsMap {
 func getParam(r *http.Request, key string) string {
 	ctx := r.Context()
 	params := ctx.Value("params").(paramsMap)
-	val, _ := params[key]
+	val := params[key]
 	return val
 }
