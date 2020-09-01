@@ -312,11 +312,6 @@ func (self *Syncer) onNewBlockSyncReq(req *BlockSyncReq) {
 		self.nextReqBlkNum = req.startBlockNum
 	}
 	self.targetBlkNum = req.targetBlockNum
-	// peers := req.targetPeers
-	// if len(peers) == 0 {
-	// 	for p := range self.peers {
-	// 		peers = append(peers, p)
-	// 	}
 	// }
 
 	for _, peerIdx := range req.targetPeers {
