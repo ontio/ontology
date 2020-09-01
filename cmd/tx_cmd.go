@@ -363,7 +363,6 @@ func transferFromTx(ctx *cli.Context) error {
 	switch strings.ToLower(asset) {
 	case "ont":
 		amount = utils.ParseOnt(amountStr)
-		// amountStr = utils.FormatOnt(amount)
 	case "ong":
 		amount = utils.ParseOng(amountStr)
 		// amountStr = utils.FormatOng(amount)
