@@ -48,9 +48,18 @@ func (this *ContractInvokeParam) Serialization(sink *common.ZeroCopySink) {
 func (this *ContractInvokeParam) Deserialization(source *common.ZeroCopySource) error {
 	var irregular, eof bool
 	this.Version, eof = source.NextByte()
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
 	this.Address, eof = source.NextAddress()
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
 	var method []byte
 	method, _, irregular, eof = source.NextVarBytes()
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
 	if irregular {
 		return common.ErrIrregularData
 	}

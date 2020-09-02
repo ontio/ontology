@@ -146,7 +146,7 @@ func GetVbftConfigInfo(memdb *overlaydb.MemDB) (*config.VBFTConfig, error) {
 		}
 	}
 
-	chainconfig := new(config.VBFTConfig)
+	var chainconfig *config.VBFTConfig
 	if preCfg.SetView == goveranceview.View {
 		chainconfig = &config.VBFTConfig{
 			N:                    uint32(preCfg.Configuration.N),

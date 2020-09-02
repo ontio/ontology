@@ -176,6 +176,9 @@ func (self *StateStore) GetStateMerkleRoot(height uint32) (result common.Uint256
 	}
 	source := common.NewZeroCopySource(value)
 	_, eof := source.NextHash()
+	if eof {
+		err = io.ErrUnexpectedEOF
+	}
 	result, eof = source.NextHash()
 	if eof {
 		err = io.ErrUnexpectedEOF

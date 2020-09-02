@@ -198,7 +198,7 @@ func invokeInterpreter(this *WasmVmService, contract *states.WasmContractParam, 
 
 	entry, ok := compiled.RawModule.Export.Entries[entryName]
 
-	if ok == false {
+	if !ok {
 		return nil, errors.NewErr("[Call]Method:" + entryName + " does not exist!")
 	}
 

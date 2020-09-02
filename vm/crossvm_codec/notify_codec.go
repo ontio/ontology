@@ -65,7 +65,7 @@ func stringify(notify interface{}) interface{} {
 // input byte array should be the following format
 // evt\0(4byte) + type(1byte) + usize( bytearray or list) (4 bytes) + data...
 func parseNotify(input []byte) (interface{}, error) {
-	if bytes.HasPrefix(input, []byte("evt\x00")) == false {
+	if !bytes.HasPrefix(input, []byte("evt\x00")) {
 		return nil, ERROR_PARAM_FORMAT
 	}
 

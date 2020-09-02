@@ -385,7 +385,6 @@ func (this *LedgerStoreImp) setCurrentBlock(height uint32, blockHash common.Uint
 	defer this.lock.Unlock()
 	this.currBlockHash = blockHash
 	this.currBlockHeight = height
-	return
 }
 
 //GetCurrentBlock return the current block height, and block hash.

@@ -183,7 +183,7 @@ func OntApprove(native *native.NativeService) ([]byte, error) {
 	if state.Value > constants.ONT_TOTAL_SUPPLY {
 		return utils.BYTE_FALSE, fmt.Errorf("approve ont amount:%d over totalSupply:%d", state.Value, constants.ONT_TOTAL_SUPPLY)
 	}
-	if native.ContextRef.CheckWitness(state.From) == false {
+	if !native.ContextRef.CheckWitness(state.From) {
 		return utils.BYTE_FALSE, errors.NewErr("authentication failed!")
 	}
 	contract := native.ContextRef.CurrentContext().ContractAddress
