@@ -36,14 +36,14 @@ type IntValue struct {
 
 func (self IntValue) Rsh(other IntValue) (result IntValue, err error) {
 	var val uint64
-	if other.isbig == false {
+	if !other.isbig {
 		if other.integer < 0 {
 			err = errors.ERR_SHIFT_BY_NEG
 			return
 		}
 		val = uint64(other.integer)
 	} else {
-		if other.bigint.IsUint64() == false {
+		if !other.bigint.IsUint64() {
 			return IntValue{}, errors.ERR_SHIFT_BY_NEG
 		}
 		val = other.bigint.Uint64()
@@ -71,14 +71,14 @@ func (self IntValue) Rsh(other IntValue) (result IntValue, err error) {
 
 func (self IntValue) Lsh(other IntValue) (result IntValue, err error) {
 	var val uint64
-	if other.isbig == false {
+	if !other.isbig {
 		if other.integer < 0 {
 			err = errors.ERR_SHIFT_BY_NEG
 			return
 		}
 		val = uint64(other.integer)
 	} else {
-		if other.bigint.IsUint64() == false {
+		if !other.bigint.IsUint64() {
 			return IntValue{}, errors.ERR_SHIFT_BY_NEG
 		}
 		val = other.bigint.Uint64()
@@ -127,7 +127,7 @@ func IntValFromNeoBytes(val []byte) (IntValue, error) {
 
 func (self *IntValue) ToNeoBytes() []byte {
 	val := self.bigint
-	if self.isbig == false {
+	if !self.isbig {
 		val = big.NewInt(self.integer)
 	}
 	value := common.BigIntToNeoBytes(val)
@@ -221,7 +221,7 @@ func (self IntValue) Or(other IntValue) (IntValue, error) {
 }
 
 func (self IntValue) Cmp(other IntValue) int {
-	if self.isbig == false && other.isbig == false {
+	if !self.isbig && !other.isbig {
 		if self.integer < other.integer {
 			return -1
 		} else if self.integer == other.integer {
@@ -231,12 +231,12 @@ func (self IntValue) Cmp(other IntValue) int {
 		}
 	}
 	var left, right *big.Int
-	if self.isbig == false {
+	if !self.isbig {
 		left = big.NewInt(self.integer)
 	} else {
 		left = self.bigint
 	}
-	if other.isbig == false {
+	if !other.isbig {
 		right = big.NewInt(other.integer)
 	} else {
 		right = other.bigint
@@ -321,19 +321,19 @@ type overflowFn func(a, b int64) (result int64, ok bool)
 type bigintFn func(a, b *big.Int) (IntValue, error)
 
 func (self IntValue) intOp(other IntValue, littleintFunc overflowFn, bigintFunc bigintFn) (IntValue, error) {
-	if self.isbig == false && other.isbig == false {
+	if !self.isbig && !other.isbig {
 		val, ok := littleintFunc(self.integer, other.integer)
 		if ok {
 			return IntValFromInt(val), nil
 		}
 	}
 	var left, right *big.Int
-	if self.isbig == false {
+	if !self.isbig {
 		left = big.NewInt(self.integer)
 	} else {
 		left = self.bigint
 	}
-	if other.isbig == false {
+	if !other.isbig {
 		right = big.NewInt(other.integer)
 	} else {
 		right = other.bigint

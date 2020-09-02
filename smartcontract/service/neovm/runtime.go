@@ -155,6 +155,9 @@ func RuntimeNotify(service *NeoVmService, engine *vm.Executor) error {
 // RuntimeLog push smart contract execute event log to client
 func RuntimeLog(service *NeoVmService, engine *vm.Executor) error {
 	sitem, err := engine.EvalStack.Peek(0)
+	if err != nil {
+		return err
+	}
 	item, err := engine.EvalStack.PopAsBytes()
 	if err != nil {
 		return err

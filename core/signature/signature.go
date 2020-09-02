@@ -76,7 +76,7 @@ func VerifyMultiSignature(data []byte, keys []keypair.PublicKey, m int, sigs [][
 			}
 		}
 
-		if valid == false {
+		if !valid {
 			return errors.New("multi-signature verification failed")
 		}
 	}

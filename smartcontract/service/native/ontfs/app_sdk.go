@@ -859,7 +859,7 @@ func FsTransferFiles(native *native.NativeService) ([]byte, error) {
 	}
 
 	for _, fileTransfer := range fileTransferList.FilesTransfer {
-		if native.ContextRef.CheckWitness(fileTransfer.OriOwner) == false {
+		if !native.ContextRef.CheckWitness(fileTransfer.OriOwner) {
 			errInfos.AddObjectError(string(fileTransfer.FileHash), "[APP SDK] FsTransferFiles CheckFileOwner failed!")
 			continue
 		}

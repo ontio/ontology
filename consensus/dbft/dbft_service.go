@@ -96,7 +96,7 @@ func NewDbftService(bkAccount *account.Account, txpool *actor.PID, p2p p2p.P2P) 
 }
 
 func (this *DbftService) Receive(context actor.Context) {
-	if _, ok := context.Message().(*actorTypes.StartConsensus); this.started == false && ok == false {
+	if _, ok := context.Message().(*actorTypes.StartConsensus); !this.started && !ok {
 		return
 	}
 
@@ -359,22 +359,18 @@ func (ds *DbftService) NewConsensusPayload(payload *p2pmsg.ConsensusPayload) {
 		if cv, ok := message.(*ChangeView); ok {
 			ds.ChangeViewReceived(payload, cv)
 		}
-		break
 	case PrepareRequestMsg:
 		if pr, ok := message.(*PrepareRequest); ok {
 			ds.PrepareRequestReceived(payload, pr)
 		}
-		break
 	case PrepareResponseMsg:
 		if pres, ok := message.(*PrepareResponse); ok {
 			ds.PrepareResponseReceived(payload, pres)
 		}
-		break
 	case BlockSignaturesMsg:
 		if blockSigs, ok := message.(*BlockSignatures); ok {
 			ds.BlockSignaturesReceived(payload, blockSigs)
 		}
-		break
 	default:
 		log.Warn("unknown consensus message type")
 	}

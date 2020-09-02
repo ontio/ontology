@@ -93,6 +93,10 @@ func (self *RawHeader) deserializationUnsigned(source *common.ZeroCopySource) er
 	source.Skip(8)
 	// ConsensusPayload
 	_, _, irregular, eof := source.NextVarBytes()
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
+
 	if irregular {
 		return common.ErrIrregularData
 	}
@@ -224,14 +228,43 @@ func (bd *Header) deserializationUnsigned(source *common.ZeroCopySource) error {
 	var irregular, eof bool
 
 	bd.Version, eof = source.NextUint32()
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
 	bd.PrevBlockHash, eof = source.NextHash()
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
 	bd.TransactionsRoot, eof = source.NextHash()
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
+
 	bd.BlockRoot, eof = source.NextHash()
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
+
 	bd.Timestamp, eof = source.NextUint32()
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
+
 	bd.Height, eof = source.NextUint32()
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
+
 	bd.ConsensusData, eof = source.NextUint64()
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
 
 	bd.ConsensusPayload, _, irregular, eof = source.NextVarBytes()
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
+
 	if irregular {
 		return common.ErrIrregularData
 	}

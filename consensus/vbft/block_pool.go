@@ -111,9 +111,9 @@ func (pool *BlockPool) clean() {
 
 func (pool *BlockPool) getCandidateInfoLocked(blkNum uint32) *CandidateInfo {
 	// NOTE: call this function only when pool.lock locked
-	if candidate, present := pool.candidateBlocks[blkNum]; !present {
+	if _, present := pool.candidateBlocks[blkNum]; !present {
 		// new candiateInfo for blockNum
-		candidate = &CandidateInfo{
+		candidate := &CandidateInfo{
 			Proposals:   make([]*blockProposalMsg, 0),
 			CommitMsgs:  make([]*blockCommitMsg, 0),
 			EndorseSigs: make(map[uint32][]*CandidateEndorseSigInfo),
@@ -137,7 +137,7 @@ func (pool *BlockPool) newBlockProposal(msg *blockProposalMsg) error {
 	// check dup-proposal from same proposer
 	for _, p := range candidate.Proposals {
 		if p.Block.getProposer() == msg.Block.getProposer() {
-			if bytes.Compare(p.BlockProposerSig, msg.BlockProposerSig) == 0 {
+			if bytes.Equal(p.BlockProposerSig, msg.BlockProposerSig) {
 				return nil
 			}
 			return errDupProposal
@@ -287,7 +287,6 @@ func (pool *BlockPool) addBlockEndorsementLocked(blkNum uint32, endorser uint32,
 	} else {
 		candidate.EndorseSigs[endorser] = []*CandidateEndorseSigInfo{eSig}
 	}
-	return
 }
 
 //

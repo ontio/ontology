@@ -312,7 +312,6 @@ func (p *MemDB) Put(key []byte, value []byte) {
 
 	p.kvSize += len(key) + len(value)
 	p.n++
-	return
 }
 
 // Delete deletes the value for the given key.

@@ -136,6 +136,9 @@ func ContractCreate(proc *exec.Process,
 	self.Service.CacheDB.PutContract(dep)
 
 	length, err := proc.WriteAt(contractAddr[:], int64(newAddressPtr))
+	if err != nil {
+		panic(err)
+	}
 	return uint32(length)
 
 }

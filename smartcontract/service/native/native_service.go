@@ -29,7 +29,6 @@ import (
 	"github.com/ontio/ontology/smartcontract/context"
 	"github.com/ontio/ontology/smartcontract/event"
 	"github.com/ontio/ontology/smartcontract/states"
-	sstates "github.com/ontio/ontology/smartcontract/states"
 	"github.com/ontio/ontology/smartcontract/storage"
 )
 
@@ -49,7 +48,7 @@ type NativeService struct {
 	CacheDB       *storage.CacheDB
 	ServiceMap    map[string]Handler
 	Notifications []*event.NotifyEventInfo
-	InvokeParam   sstates.ContractInvokeParam
+	InvokeParam   states.ContractInvokeParam
 	Input         []byte
 	Tx            *types.Transaction
 	Height        uint32

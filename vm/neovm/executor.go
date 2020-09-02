@@ -877,7 +877,7 @@ func (self *Executor) ExecuteOp(opcode OpCode, context *ExecutionContext) (VMSta
 			value, ok, err := mapVal.Get(index)
 			if err != nil {
 				return FAULT, err
-			} else if ok == false {
+			} else if !ok {
 				// todo: suply a nil value in vm?
 				return FAULT, errors.ERR_MAP_NOT_EXIST
 			}

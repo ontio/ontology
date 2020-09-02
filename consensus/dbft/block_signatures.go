@@ -62,6 +62,10 @@ func (self *BlockSignatures) Deserialization(source *common.ZeroCopySource) erro
 		sig := SignaturesData{}
 
 		sig.Signature, _, irregular, eof = source.NextVarBytes()
+		if eof {
+			return io.ErrUnexpectedEOF
+		}
+
 		if irregular {
 			return common.ErrIrregularData
 		}

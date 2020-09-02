@@ -315,6 +315,9 @@ func removeKey(srvc *native.NativeService) ([]byte, error) {
 	}
 	var auth = false
 	rec, err := getOldRecovery(srvc, key)
+	if err != nil {
+		return utils.BYTE_FALSE, err
+	}
 	if len(rec) > 0 {
 		auth = bytes.Equal(rec, arg2)
 	}

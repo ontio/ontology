@@ -38,6 +38,9 @@ func (this *WasmContractParam) Serialization(sink *common.ZeroCopySink) {
 func (this *WasmContractParam) Deserialization(source *common.ZeroCopySource) error {
 	var irregular, eof bool
 	this.Address, eof = source.NextAddress()
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
 
 	this.Args, _, irregular, eof = source.NextVarBytes()
 	if irregular {

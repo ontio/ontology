@@ -156,7 +156,7 @@ func deployContract(ctx *cli.Context) error {
 		gasPrice = 0
 	}
 
-	cversion := fmt.Sprintf("%s", version)
+	cversion := version
 
 	if ctx.IsSet(utils.GetFlagName(utils.ContractPrepareDeployFlag)) {
 		preResult, err := utils.PrepareDeployContract(vmtype, code, name, cversion, author, email, desc)
