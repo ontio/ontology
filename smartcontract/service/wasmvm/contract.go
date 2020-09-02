@@ -80,6 +80,9 @@ func ContractCreate(proc *exec.Process,
 	if err != nil {
 		panic(err)
 	}
+	if err != nil {
+		panic(err)
+	}
 	return uint32(length)
 }
 

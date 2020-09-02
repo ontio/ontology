@@ -112,6 +112,9 @@ func (self *OfflineWitnessMsg) Deserialization(source *common.ZeroCopySource) (e
 			return err
 		}
 		sig, err := source.ReadVarBytes()
+		if err != nil {
+			return err
+		}
 
 		self.Voters = append(self.Voters, VoterMsg{OfflineIndex: index, PubKey: pubKey, Sig: sig})
 	}
