@@ -140,27 +140,51 @@ func (dc *DeployCode) Serialization(sink *common.ZeroCopySink) {
 func (dc *DeployCode) Deserialization(source *common.ZeroCopySource) error {
 	var eof, irregular bool
 	dc.code, _, irregular, eof = source.NextVarBytes()
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
+
 	if irregular {
 		return common.ErrIrregularData
 	}
 
 	dc.vmFlags, eof = source.NextByte()
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
+
 	dc.Name, _, irregular, eof = source.NextString()
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
+
 	if irregular {
 		return common.ErrIrregularData
 	}
 
 	dc.Version, _, irregular, eof = source.NextString()
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
+
 	if irregular {
 		return common.ErrIrregularData
 	}
 
 	dc.Author, _, irregular, eof = source.NextString()
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
+
 	if irregular {
 		return common.ErrIrregularData
 	}
 
 	dc.Email, _, irregular, eof = source.NextString()
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
+
 	if irregular {
 		return common.ErrIrregularData
 	}

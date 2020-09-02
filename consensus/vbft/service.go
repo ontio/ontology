@@ -485,8 +485,8 @@ func (self *Server) initialize() error {
 	go self.msgSendLoop()
 	go self.timerLoop()
 	go self.actionLoop()
+	self.quitWg.Add(1)
 	go func() {
-		self.quitWg.Add(1)
 		defer self.quitWg.Done()
 
 		for {
@@ -1226,9 +1226,9 @@ func (self *Server) processMsgEvent() error {
 			if msgBlkNum == self.GetCurrentBlockNo() {
 				// add proposal to block-pool
 				if err := self.blockPool.newBlockProposal(pMsg); err != nil {
-					if err == errDupProposal {
-						// TODO: faulty proposer detected
-					}
+					// if err == errDupProposal {
+					// 	// TODO: faulty proposer detected
+					// }
 					log.Errorf("failed to add block proposal (%d): %s", msgBlkNum, err)
 					return nil
 				}
@@ -1263,13 +1263,13 @@ func (self *Server) processMsgEvent() error {
 					}
 					// makeProposalTimeout handles non-leader proposals
 				}
-			} else {
-				// process new proposal when
-				// 1. we have endorsed for current BlockNum
-				// 2. proposal is from next potential-leader
+			} //  else {
+			// 	// process new proposal when
+			// 	// 1. we have endorsed for current BlockNum
+			// 	// 2. proposal is from next potential-leader
 
-				// TODO
-			}
+			// 	// TODO
+			// }
 
 		case BlockEndorseMessage:
 			pMsg := msg.(*blockEndorseMsg)
@@ -1314,12 +1314,12 @@ func (self *Server) processMsgEvent() error {
 								return nil
 							}
 						}
-					} else {
-						// wait until endorse timeout
-					}
-				} else {
-					// makeEndorsementTimeout handles non-endorser endorsements
-				}
+					} // else {
+					// 	// wait until endorse timeout
+					// }
+				} // else {
+				// 	// makeEndorsementTimeout handles non-endorser endorsements
+				// }
 				if self.blockPool.endorseFailed(msgBlkNum, self.GetChainConfig().C) {
 					// endorse failed, start empty endorsing
 					self.timer.C <- &TimerEvent{
@@ -1327,11 +1327,11 @@ func (self *Server) processMsgEvent() error {
 						blockNum: msgBlkNum,
 					}
 				}
-			} else {
-				// process new endorsement when
-				// 1. we have committed for current BlockNum
-				// 2. endorsed proposal is from next potential-leader
-			}
+			} // else {
+			// 	// process new endorsement when
+			// 	// 1. we have committed for current BlockNum
+			// 	// 2. endorsed proposal is from next potential-leader
+			// }
 
 		case BlockCommitMessage:
 			pMsg := msg.(*blockCommitMsg)
@@ -1376,15 +1376,15 @@ func (self *Server) processMsgEvent() error {
 					if err := self.makeSealed(proposal, forEmpty); err != nil {
 						log.Errorf("failed to seal block %d, err: %s", msgBlkNum, err)
 					}
-				} else {
-					// wait commit timeout, nothing to do
-				}
+				} // else {
+				// 	// wait commit timeout, nothing to do
+				// }
 
-			} else {
-				// nothing to do besides adding to msg pool
+			} //  else {
+			// 	// nothing to do besides adding to msg pool
 
-				// FIXME: add msg from msg-pool to block-pool when starting new block-round
-			}
+			// 	// FIXME: add msg from msg-pool to block-pool when starting new block-round
+			// }
 		}
 
 	case <-self.quitC:
@@ -2212,8 +2212,7 @@ func (self *Server) makeProposal(blkNum uint32, forEmpty bool) error {
 	userTxs := make([]*types.Transaction, 0)
 
 	//check need upate chainconfig
-	cfg := &vconfig.ChainConfig{}
-	cfg = nil
+	var cfg *vconfig.ChainConfig
 	if self.checkNeedUpdateChainConfig(blkNum) || self.checkUpdateChainConfig(blkNum) {
 		chainconfig, err := getChainConfig(self.blockPool.getExecWriteSet(blkNum-1), blkNum)
 		if err != nil {

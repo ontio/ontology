@@ -108,7 +108,7 @@ var schemeMap = map[string]schemeInfo{
 // wait for user to choose options
 func chooseKeyType(reader *bufio.Reader) string {
 	common.PrintNotice("key type")
-	for true {
+	for {
 		tmp, _ := reader.ReadString('\n')
 		tmp = strings.TrimSpace(tmp)
 		_, ok := keyTypeMap[tmp]
@@ -123,7 +123,7 @@ func chooseKeyType(reader *bufio.Reader) string {
 }
 func chooseScheme(reader *bufio.Reader) string {
 	common.PrintNotice("signature-scheme")
-	for true {
+	for {
 		tmp, _ := reader.ReadString('\n')
 		tmp = strings.TrimSpace(tmp)
 
@@ -139,7 +139,7 @@ func chooseScheme(reader *bufio.Reader) string {
 }
 func chooseCurve(reader *bufio.Reader) string {
 	common.PrintNotice("curve")
-	for true {
+	for {
 		tmp, _ := reader.ReadString('\n')
 		tmp = strings.TrimSpace(tmp)
 		_, ok := curveMap[tmp]
@@ -217,15 +217,12 @@ func checkCurve(ctx *cli.Context, reader *bufio.Reader, t *string) string {
 		} else {
 			c = chooseCurve(reader)
 		}
-		break
 	case "sm2":
 		fmt.Println("Use curve sm2p256v1 with key length of 256 bits.")
 		c = "SM2P256V1"
-		break
 	case "ed25519":
 		fmt.Println("Use curve 25519 with key length of 256 bits.")
 		c = "ED25519"
-		break
 	default:
 		return ""
 	}
@@ -247,15 +244,12 @@ func checkScheme(ctx *cli.Context, reader *bufio.Reader, t *string) string {
 		} else {
 			sch = chooseScheme(reader)
 		}
-		break
 	case "sm2":
 		fmt.Println("Use SM3withSM2 as the signature scheme.")
 		sch = "SM3withSM2"
-		break
 	case "ed25519":
 		fmt.Println("Use SHA512withEdDSA as the signature scheme.")
 		sch = "SHA512withEdDSA"
-		break
 	default:
 		return ""
 	}

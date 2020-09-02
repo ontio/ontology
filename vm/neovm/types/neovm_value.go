@@ -556,7 +556,7 @@ func (self *VmValue) AsInt64() (int64, error) {
 		return 0, err
 	}
 	if val.isbig {
-		if val.bigint.IsInt64() == false {
+		if !val.bigint.IsInt64() {
 			return 0, errors.ERR_INTEGER_UNDERFLOW
 		}
 		return val.bigint.Int64(), nil

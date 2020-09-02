@@ -63,7 +63,7 @@ func WASMInvoke(service *NeoVmService, engine *vm.Executor) error {
 	}
 
 	params, ok := list.([]interface{})
-	if ok == false {
+	if !ok {
 		return fmt.Errorf("wasm invoke error: wrong param type:%s", reflect.TypeOf(list).String())
 	}
 

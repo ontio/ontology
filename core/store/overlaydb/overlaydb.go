@@ -58,7 +58,7 @@ func (self *OverlayDB) SetError(err error) {
 func (self *OverlayDB) Get(key []byte) (value []byte, err error) {
 	var unknown bool
 	value, unknown = self.memdb.Get(key)
-	if unknown == false {
+	if !unknown {
 		return value, nil
 	}
 

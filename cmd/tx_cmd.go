@@ -205,10 +205,10 @@ func transferTx(ctx *cli.Context) error {
 	switch strings.ToLower(asset) {
 	case "ont":
 		amount = utils.ParseOnt(amountStr)
-		amountStr = utils.FormatOnt(amount)
+		// amountStr = utils.FormatOnt(amount)
 	case "ong":
 		amount = utils.ParseOng(amountStr)
-		amountStr = utils.FormatOng(amount)
+		// amountStr = utils.FormatOng(amount)
 	default:
 		return fmt.Errorf("unsupport asset:%s", asset)
 	}
@@ -277,10 +277,10 @@ func approveTx(ctx *cli.Context) error {
 	switch strings.ToLower(asset) {
 	case "ont":
 		amount = utils.ParseOnt(amountStr)
-		amountStr = utils.FormatOnt(amount)
+		// amountStr = utils.FormatOnt(amount)
 	case "ong":
 		amount = utils.ParseOng(amountStr)
-		amountStr = utils.FormatOng(amount)
+		// amountStr = utils.FormatOng(amount)
 	default:
 		return fmt.Errorf("unsupport asset:%s", asset)
 	}
@@ -363,10 +363,9 @@ func transferFromTx(ctx *cli.Context) error {
 	switch strings.ToLower(asset) {
 	case "ont":
 		amount = utils.ParseOnt(amountStr)
-		amountStr = utils.FormatOnt(amount)
 	case "ong":
 		amount = utils.ParseOng(amountStr)
-		amountStr = utils.FormatOng(amount)
+		// amountStr = utils.FormatOng(amount)
 	default:
 		return fmt.Errorf("unsupport asset:%s", asset)
 	}
@@ -425,13 +424,13 @@ func withdrawONGTx(ctx *cli.Context) error {
 		if amount <= 0 {
 			return fmt.Errorf("haven't unbound ong")
 		}
-		amountStr = utils.FormatOng(amount)
+		// amountStr = utils.FormatOng(amount)
 	} else {
 		amount = utils.ParseOng(amountStr)
 		if amount <= 0 {
 			return fmt.Errorf("haven't unbound ong")
 		}
-		amountStr = utils.FormatOng(amount)
+		// amountStr = utils.FormatOng(amount)
 	}
 
 	var payer common.Address

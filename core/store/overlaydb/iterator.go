@@ -50,11 +50,11 @@ func NewJoinIter(memIter, backendIter common.StoreIterator) *JoinIter {
 
 func (iter *JoinIter) First() bool {
 	f := iter.first()
-	if f == false {
+	if !f {
 		return false
 	}
 	for len(iter.value) == 0 {
-		if iter.next() == false {
+		if !iter.next() {
 			return false
 		}
 	}
@@ -73,7 +73,7 @@ func (iter *JoinIter) first() bool {
 	if back {
 		bkey = iter.backend.Key()
 		bval = iter.backend.Value()
-		if mem == false {
+		if !mem {
 			iter.key = bkey
 			iter.value = bval
 			iter.keyOrigin = FromBack
@@ -117,12 +117,12 @@ func (iter *JoinIter) Value() []byte {
 
 func (iter *JoinIter) Next() bool {
 	f := iter.next()
-	if f == false {
+	if !f {
 		return false
 	}
 
 	for len(iter.value) == 0 {
-		if iter.next() == false {
+		if !iter.next() {
 			return false
 		}
 	}
@@ -131,10 +131,10 @@ func (iter *JoinIter) Next() bool {
 }
 
 func (iter *JoinIter) next() bool {
-	if (iter.keyOrigin == FromMem || iter.keyOrigin == FromBoth) && iter.nextMemEnd == false {
+	if (iter.keyOrigin == FromMem || iter.keyOrigin == FromBoth) && !iter.nextMemEnd {
 		iter.nextMemEnd = !iter.memdb.Next()
 	}
-	if (iter.keyOrigin == FromBack || iter.keyOrigin == FromBoth) && iter.nextBackEnd == false {
+	if (iter.keyOrigin == FromBack || iter.keyOrigin == FromBoth) && !iter.nextBackEnd {
 		iter.nextBackEnd = !iter.backend.Next()
 	}
 

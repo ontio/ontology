@@ -83,5 +83,4 @@ func RegisterIDContract(srvc *native.NativeService) {
 	srvc.Register("getServiceJson", GetServiceJson)
 	srvc.Register("getControllerJson", GetControllerJson)
 	srvc.Register("getDocumentJson", GetDocumentJson)
-	return
 }

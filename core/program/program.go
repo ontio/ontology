@@ -356,7 +356,7 @@ func GetParamInfo(program []byte) ([][]byte, error) {
 	parser := programParser{source: common.NewZeroCopySource(program)}
 
 	var signatures [][]byte
-	for parser.IsEOF() == false {
+	for !parser.IsEOF() {
 		sig, err := parser.ReadBytes()
 		if err != nil {
 			return nil, err

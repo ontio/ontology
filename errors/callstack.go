@@ -42,7 +42,7 @@ func GetCallStacks(err error) *CallStack {
 func CallStacksString(call *CallStack) string {
 	buf := bytes.Buffer{}
 	if call == nil {
-		return fmt.Sprintf("No call stack available")
+		return "No call stack available"
 	}
 
 	for _, stack := range call.Stacks {
