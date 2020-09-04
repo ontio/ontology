@@ -63,32 +63,13 @@ all-cross: ontology-cross tools-cross abi
 format:
 	$(GOFMT) -w main.go
 
-docker/payload: docker/build/bin/ontology docker/Dockerfile
-	@echo "Building ontology payload"
-	@mkdir -p $@
-	@cp docker/Dockerfile $@
-	@cp docker/build/bin/ontology $@
-	@touch $@
 
-docker/build/bin/%: Makefile
-	@echo "Building ontology in docker"
-	@mkdir -p docker/build/bin docker/build/pkg
-	@$(DRUN) --rm \
-		-v $(abspath docker/build/bin):/go/bin \
-		-v $(abspath docker/build/pkg):/go/pkg \
-		-v $(GOPATH)/src:/go/src \
-		-w /go/src/github.com/ontio/ontology \
-		golang:1.9.5-stretch \
-		$(GC)  $(BUILD_NODE_PAR) -o docker/build/bin/ontology main.go
-	@touch $@
-
-docker: Makefile docker/payload docker/Dockerfile 
+docker: Makefile
 	@echo "Building ontology docker"
-	@$(DBUILD) -t $(DOCKER_NS)/ontology docker/payload
-	@docker tag $(DOCKER_NS)/ontology $(DOCKER_NS)/ontology:$(DOCKER_TAG)
+	@$(DBUILD) --no-cache -t $(DOCKER_NS)/ontology:$(DOCKER_TAG) - < docker/Dockerfile 
 	@touch $@
 
 clean:
 	rm -rf *.8 *.o *.out *.6 *exe coverage
-	rm -rf ontology ontology-* tools docker/payload docker/build
+	rm -rf ontology ontology-* tools
 
