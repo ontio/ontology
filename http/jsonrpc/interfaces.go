@@ -459,6 +459,43 @@ func GetBalance(params []interface{}) map[string]interface{} {
 	return rpc.ResponseSuccess(rsp)
 }
 
+//get balance of address
+func GetOep4Balance(params []interface{}) map[string]interface{} {
+	if len(params) < 2 {
+		return rpc.ResponsePack(berr.INVALID_PARAMS, "")
+	}
+
+	contractAddrHex, ok := params[0].(string)
+	if !ok {
+		return rpc.ResponsePack(berr.INVALID_PARAMS, "")
+	}
+	contractAddr, err := common.AddressFromHexString(contractAddrHex)
+	if err != nil {
+		return rpc.ResponsePack(berr.INVALID_PARAMS, "")
+	}
+	addrs, err := parseAddressParam(params[1].([]interface{}))
+	if err != nil {
+		return rpc.ResponsePack(berr.INVALID_PARAMS, "")
+	}
+	rsp, err := bcomn.GetOep4Balance(contractAddr, addrs)
+	if err != nil {
+		return rpc.ResponsePack(berr.INVALID_PARAMS, "")
+	}
+	return rpc.ResponseSuccess(rsp)
+}
+
+func parseAddressParam(params []interface{}) ([]common.Address, error) {
+	res := make([]common.Address, len(params))
+	var err error
+	for i, param := range params {
+		res[i], err = common.AddressFromBase58(param.(string))
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
+}
+
 //get allowance
 func GetAllowance(params []interface{}) map[string]interface{} {
 	if len(params) < 3 {
