@@ -61,7 +61,7 @@ type Oep4BalanceOfRsp struct {
 
 type Oep4Balance struct {
 	Addr    string `json:"addr"`
-	Balance uint64 `json:"balance"`
+	Balance string `json:"balance"`
 }
 
 type MerkleProof struct {
@@ -331,7 +331,7 @@ func GetOep4Balance(contractAddress common.Address, addrs []common.Address) (*Oe
 	for i, addr := range addrs {
 		res[i] = Oep4Balance{
 			Addr:    addr.ToBase58(),
-			Balance: balances[i],
+			Balance: fmt.Sprintf("%d", balances[i]),
 		}
 	}
 	return &Oep4BalanceOfRsp{
