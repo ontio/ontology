@@ -461,7 +461,7 @@ func GetBalance(params []interface{}) map[string]interface{} {
 
 //get balance of address
 func GetOep4Balance(params []interface{}) map[string]interface{} {
-	if len(params) < 1 {
+	if len(params) < 2 {
 		return rpc.ResponsePack(berr.INVALID_PARAMS, "")
 	}
 
