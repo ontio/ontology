@@ -331,7 +331,7 @@ func GetOep4Balance(contractAddress common.Address, addrs []common.Address) (*Oe
 	for i, addr := range addrs {
 		res[i] = Oep4Balance{
 			Addr:    addr.ToBase58(),
-			Balance: fmt.Sprintf("%d", balances[i]),
+			Balance: balances[i],
 		}
 	}
 	return &Oep4BalanceOfRsp{
@@ -413,7 +413,7 @@ func GetContractBalance(cVersion byte, contractAddres []common.Address, accAddr 
 	return balances, height, nil
 }
 
-func GetOep4ContractBalance(contractAddr common.Address, accAddr []common.Address, atomic bool) ([]uint64, uint32, error) {
+func GetOep4ContractBalance(contractAddr common.Address, accAddr []common.Address, atomic bool) ([]string, uint32, error) {
 	txes := make([]*types.Transaction, 0, len(accAddr))
 	var mutable *types.MutableTransaction
 	var err error
@@ -435,7 +435,7 @@ func GetOep4ContractBalance(contractAddr common.Address, accAddr []common.Addres
 	if err != nil {
 		return nil, 0, fmt.Errorf("PrepareInvokeContract error:%s", err)
 	}
-	balances := make([]uint64, 0, len(contractAddr))
+	balances := make([]string, 0, len(contractAddr))
 	for _, result := range results {
 		if result.State == 0 {
 			return nil, 0, fmt.Errorf("prepare invoke failed")
@@ -446,7 +446,7 @@ func GetOep4ContractBalance(contractAddr common.Address, accAddr []common.Addres
 		}
 
 		balance := common.BigIntFromNeoBytes(data)
-		balances = append(balances, balance.Uint64())
+		balances = append(balances, balance.String())
 	}
 
 	return balances, height, nil
