@@ -473,7 +473,7 @@ func GetOep4Balance(params []interface{}) map[string]interface{} {
 	if err != nil {
 		return rpc.ResponsePack(berr.INVALID_PARAMS, "")
 	}
-	addrs, err := parseAddressParam(params[1:])
+	addrs, err := parseAddressParam(params[1].([]interface{}))
 	if err != nil {
 		return rpc.ResponsePack(berr.INVALID_PARAMS, "")
 	}
