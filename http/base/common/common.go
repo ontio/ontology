@@ -54,6 +54,16 @@ type BalanceOfRsp struct {
 	Height string `json:"height"`
 }
 
+type Oep4BalanceOfRsp struct {
+	Oep4   []Oep4Balance `json:"oep4"`
+	Height string        `json:"height"`
+}
+
+type Oep4Balance struct {
+	Addr    string `json:"addr"`
+	Balance uint64 `json:"balance"`
+}
+
 type MerkleProof struct {
 	Type             string
 	TransactionsRoot string
@@ -312,6 +322,24 @@ func GetBalance(address common.Address) (*BalanceOfRsp, error) {
 	}, nil
 }
 
+func GetOep4Balance(contractAddress common.Address, addrs []common.Address) (*Oep4BalanceOfRsp, error) {
+	balances, height, err := GetOep4ContractBalance(contractAddress, addrs, true)
+	if err != nil {
+		return nil, fmt.Errorf("get ont balance error:%s", err)
+	}
+	res := make([]Oep4Balance, len(addrs))
+	for i, addr := range addrs {
+		res[i] = Oep4Balance{
+			Addr:    addr.ToBase58(),
+			Balance: balances[i],
+		}
+	}
+	return &Oep4BalanceOfRsp{
+		Oep4:   res,
+		Height: fmt.Sprintf("%d", height),
+	}, nil
+}
+
 func GetGrantOng(addr common.Address) (string, error) {
 	key := append([]byte(ont.UNBOUND_TIME_OFFSET), addr[:]...)
 	value, err := ledger.DefLedger.GetStorageItem(utils.OntContractAddress, key)
@@ -350,11 +378,14 @@ func GetAllowance(asset string, from, to common.Address) (string, error) {
 
 func GetContractBalance(cVersion byte, contractAddres []common.Address, accAddr common.Address, atomic bool) ([]uint64, uint32, error) {
 	txes := make([]*types.Transaction, 0, len(contractAddres))
+	var mutable *types.MutableTransaction
+	var err error
 	for _, contractAddr := range contractAddres {
-		mutable, err := NewNativeInvokeTransaction(0, 0, contractAddr, cVersion, "balanceOf", []interface{}{accAddr[:]})
+		mutable, err = NewNativeInvokeTransaction(0, 0, contractAddr, cVersion, "balanceOf", []interface{}{accAddr[:]})
 		if err != nil {
 			return nil, 0, fmt.Errorf("NewNativeInvokeTransaction error:%s", err)
 		}
+
 		tx, err := mutable.IntoImmutable()
 		if err != nil {
 			return nil, 0, err
@@ -368,6 +399,45 @@ func GetContractBalance(cVersion byte, contractAddres []common.Address, accAddr 
 		return nil, 0, fmt.Errorf("PrepareInvokeContract error:%s", err)
 	}
 	balances := make([]uint64, 0, len(contractAddres))
+	for _, result := range results {
+		if result.State == 0 {
+			return nil, 0, fmt.Errorf("prepare invoke failed")
+		}
+		data, err := hex.DecodeString(result.Result.(string))
+		if err != nil {
+			return nil, 0, fmt.Errorf("hex.DecodeString error:%s", err)
+		}
+
+		balance := common.BigIntFromNeoBytes(data)
+		balances = append(balances, balance.Uint64())
+	}
+
+	return balances, height, nil
+}
+
+func GetOep4ContractBalance(contractAddr common.Address, accAddr []common.Address, atomic bool) ([]uint64, uint32, error) {
+	txes := make([]*types.Transaction, 0, len(accAddr))
+	var mutable *types.MutableTransaction
+	var err error
+	for _, userAcc := range accAddr {
+		mutable, err = NewNeovmInvokeTransaction(0, 0, contractAddr, []interface{}{"balanceOf", []interface{}{userAcc}})
+		if err != nil {
+			return nil, 0, fmt.Errorf("NewNeovmInvokeTransaction error:%s", err)
+		}
+
+		tx, err := mutable.IntoImmutable()
+		if err != nil {
+			return nil, 0, err
+		}
+
+		txes = append(txes, tx)
+	}
+
+	results, height, err := bactor.PreExecuteContractBatch(txes, atomic)
+	if err != nil {
+		return nil, 0, fmt.Errorf("PrepareInvokeContract error:%s", err)
+	}
+	balances := make([]uint64, 0, len(contractAddr))
 	for _, result := range results {
 		if result.State == 0 {
 			return nil, 0, fmt.Errorf("prepare invoke failed")
