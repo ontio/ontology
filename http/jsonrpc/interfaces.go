@@ -465,11 +465,11 @@ func GetOep4Balance(params []interface{}) map[string]interface{} {
 		return rpc.ResponsePack(berr.INVALID_PARAMS, "")
 	}
 
-	contractAddrBase58, ok := params[0].(string)
+	contractAddrHex, ok := params[0].(string)
 	if !ok {
 		return rpc.ResponsePack(berr.INVALID_PARAMS, "")
 	}
-	contractAddr, err := common.AddressFromBase58(contractAddrBase58)
+	contractAddr, err := common.AddressFromHexString(contractAddrHex)
 	if err != nil {
 		return rpc.ResponsePack(berr.INVALID_PARAMS, "")
 	}
