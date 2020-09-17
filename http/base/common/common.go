@@ -378,10 +378,8 @@ func GetAllowance(asset string, from, to common.Address) (string, error) {
 
 func GetContractBalance(cVersion byte, contractAddres []common.Address, accAddr common.Address, atomic bool) ([]uint64, uint32, error) {
 	txes := make([]*types.Transaction, 0, len(contractAddres))
-	var mutable *types.MutableTransaction
-	var err error
 	for _, contractAddr := range contractAddres {
-		mutable, err = NewNativeInvokeTransaction(0, 0, contractAddr, cVersion, "balanceOf", []interface{}{accAddr[:]})
+		mutable, err := NewNativeInvokeTransaction(0, 0, contractAddr, cVersion, "balanceOf", []interface{}{accAddr[:]})
 		if err != nil {
 			return nil, 0, fmt.Errorf("NewNativeInvokeTransaction error:%s", err)
 		}
