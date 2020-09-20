@@ -604,7 +604,7 @@ func getContractTypeInner(service *WasmVmService, addr common.Address) (Contract
 		return UNKOWN_CONTRACT, err
 	}
 	if dep == nil {
-		return UNKOWN_CONTRACT, errors.NewErr("contract is not exist.")
+		return UNKOWN_CONTRACT, fmt.Errorf("contract %s is not exist", addr.ToHexString())
 	}
 	if dep.VmType() == payload.WASMVM_TYPE {
 		return WASMVM_CONTRACT, nil
