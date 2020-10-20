@@ -242,55 +242,25 @@ func TestStateMgr_getConsensusedCommittedBlockNum_contrived(t *testing.T) {
 		var maxCommitted uint32
 		myCommitted := uint32(10)
 		peersOrdered := []*PeerState{&PeerState{
-			peerIdx:           1,
-			chainConfigView:   0,
 			committedBlockNum: 89,
-			connected:         true,
 		}, &PeerState{
-			peerIdx:           2,
-			chainConfigView:   0,
 			committedBlockNum: 23,
-			connected:         true,
 		}, &PeerState{
-			peerIdx:           3,
-			chainConfigView:   0,
 			committedBlockNum: 25,
-			connected:         true,
 		}, &PeerState{
-			peerIdx:           4,
-			chainConfigView:   0,
 			committedBlockNum: 79,
-			connected:         true,
 		}, &PeerState{
-			peerIdx:           5,
-			chainConfigView:   0,
 			committedBlockNum: 56,
-			connected:         true,
 		}, &PeerState{
-			peerIdx:           6,
-			chainConfigView:   0,
 			committedBlockNum: 49,
-			connected:         true,
 		}, &PeerState{
-			peerIdx:           7,
-			chainConfigView:   0,
 			committedBlockNum: 22,
-			connected:         true,
 		}, &PeerState{
-			peerIdx:           8,
-			chainConfigView:   0,
 			committedBlockNum: 91,
-			connected:         true,
 		}, &PeerState{
-			peerIdx:           9,
-			chainConfigView:   0,
 			committedBlockNum: 74,
-			connected:         true,
 		}, &PeerState{
-			peerIdx:           10,
-			chainConfigView:   0,
 			committedBlockNum: 13,
-			connected:         true,
 		}}
 		for _, p := range peersOrdered {
 			n := p.committedBlockNum
