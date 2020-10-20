@@ -236,44 +236,76 @@ func TestStateMgr_getConsensusedCommittedBlockNum(t *testing.T) {
 func TestStateMgr_getConsensusedCommittedBlockNum_contrived(t *testing.T) {
 
 	f := func() (uint32, bool) {
-		C := 2
+		C := 3
 
 		consensused := false
 		var maxCommitted uint32
-		myCommitted := uint32(3)
+		myCommitted := uint32(10)
 		peersOrdered := []*PeerState{&PeerState{
 			peerIdx:           1,
 			chainConfigView:   0,
-			committedBlockNum: 4,
+			committedBlockNum: 89,
 			connected:         true,
 		}, &PeerState{
 			peerIdx:           2,
 			chainConfigView:   0,
-			committedBlockNum: 4,
+			committedBlockNum: 23,
 			connected:         true,
 		}, &PeerState{
-			peerIdx:           1,
+			peerIdx:           3,
 			chainConfigView:   0,
-			committedBlockNum: 5,
+			committedBlockNum: 25,
+			connected:         true,
+		}, &PeerState{
+			peerIdx:           4,
+			chainConfigView:   0,
+			committedBlockNum: 79,
+			connected:         true,
+		}, &PeerState{
+			peerIdx:           5,
+			chainConfigView:   0,
+			committedBlockNum: 56,
+			connected:         true,
+		}, &PeerState{
+			peerIdx:           6,
+			chainConfigView:   0,
+			committedBlockNum: 49,
+			connected:         true,
+		}, &PeerState{
+			peerIdx:           7,
+			chainConfigView:   0,
+			committedBlockNum: 22,
+			connected:         true,
+		}, &PeerState{
+			peerIdx:           8,
+			chainConfigView:   0,
+			committedBlockNum: 91,
+			connected:         true,
+		}, &PeerState{
+			peerIdx:           9,
+			chainConfigView:   0,
+			committedBlockNum: 74,
+			connected:         true,
+		}, &PeerState{
+			peerIdx:           10,
+			chainConfigView:   0,
+			committedBlockNum: 13,
 			connected:         true,
 		}}
-		peers := make(map[uint32] /*block number*/ []uint32 /*peer index*/)
 		for _, p := range peersOrdered {
 			n := p.committedBlockNum
 			if n >= myCommitted {
-				if _, present := peers[n]; !present {
-					peers[n] = make([]uint32, 0)
-				}
-				for k := range peers {
-					if n >= k {
-						peers[k] = append(peers[k], p.peerIdx)
-						if len(peers[k]) > C {
-							if k > maxCommitted {
-								maxCommitted = k
-							}
-							consensused = true
-						}
+				peerCount := 0
+				for _, k := range peersOrdered {
+					if k.committedBlockNum >= n {
+						peerCount++
 					}
+				}
+				if peerCount > C {
+					if n > maxCommitted {
+						maxCommitted = n
+					}
+					consensused = true
 				}
 			}
 		}
@@ -282,7 +314,7 @@ func TestStateMgr_getConsensusedCommittedBlockNum_contrived(t *testing.T) {
 	}
 
 	maxCommitted, consensused := f()
-	if !(consensused && maxCommitted == 4) {
+	if !(consensused && maxCommitted == 74) {
 		t.Fail()
 	}
 }

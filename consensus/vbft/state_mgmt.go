@@ -431,23 +431,21 @@ func (self *StateMgr) getConsensusedCommittedBlockNum() (uint32, bool) {
 	consensused := false
 	var maxCommitted uint32
 	myCommitted := self.server.GetCommittedBlockNo()
-	peers := make(map[uint32] /*block number*/ []uint32 /*peer index*/)
 	for _, p := range self.peers {
 		n := p.committedBlockNum
 		if n >= myCommitted {
-			if _, present := peers[n]; !present {
-				peers[n] = make([]uint32, 0)
-			}
-			for k := range peers {
-				if n >= k {
-					peers[k] = append(peers[k], p.peerIdx)
-					if len(peers[k]) > C {
-						if k > maxCommitted {
-							maxCommitted = k
-						}
-						consensused = true
-					}
+
+			peerCount := 0
+			for _, k := range self.peers {
+				if k.committedBlockNum >= n {
+					peerCount++
 				}
+			}
+			if peerCount > C {
+				if n > maxCommitted {
+					maxCommitted = n
+				}
+				consensused = true
 			}
 		}
 	}
