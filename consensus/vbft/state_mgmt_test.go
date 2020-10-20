@@ -233,6 +233,60 @@ func TestStateMgr_getConsensusedCommittedBlockNum(t *testing.T) {
 	t.Logf("TestgetConsensusedCommittedBlockNum maxcommitted:%v, consensused:%v", maxcomit, flag)
 }
 
+func TestStateMgr_getConsensusedCommittedBlockNum_contrived(t *testing.T) {
+
+	f := func() (uint32, bool) {
+		C := 2
+
+		consensused := false
+		var maxCommitted uint32
+		myCommitted := uint32(3)
+		peersOrdered := []*PeerState{&PeerState{
+			peerIdx:           1,
+			chainConfigView:   0,
+			committedBlockNum: 4,
+			connected:         true,
+		}, &PeerState{
+			peerIdx:           2,
+			chainConfigView:   0,
+			committedBlockNum: 4,
+			connected:         true,
+		}, &PeerState{
+			peerIdx:           1,
+			chainConfigView:   0,
+			committedBlockNum: 5,
+			connected:         true,
+		}}
+		peers := make(map[uint32] /*block number*/ []uint32 /*peer index*/)
+		for _, p := range peersOrdered {
+			n := p.committedBlockNum
+			if n >= myCommitted {
+				if _, present := peers[n]; !present {
+					peers[n] = make([]uint32, 0)
+				}
+				for k := range peers {
+					if n >= k {
+						peers[k] = append(peers[k], p.peerIdx)
+						if len(peers[k]) > C {
+							if k > maxCommitted {
+								maxCommitted = k
+							}
+							consensused = true
+						}
+					}
+				}
+			}
+		}
+
+		return maxCommitted, consensused
+	}
+
+	maxCommitted, consensused := f()
+	if !(consensused && maxCommitted == 4) {
+		t.Fail()
+	}
+}
+
 func TestPeerState_String(t *testing.T) {
 	peers := make(map[uint32]*PeerState)
 	for i := uint32(0); i < 10; i++ {
