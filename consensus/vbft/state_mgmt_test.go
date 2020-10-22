@@ -264,7 +264,7 @@ func TestStateMgr_getConsensusedCommittedBlockNum_contrived(t *testing.T) {
 		}}
 		for _, p := range peersOrdered {
 			n := p.committedBlockNum
-			if n >= myCommitted {
+			if n >= myCommitted && n > maxCommitted {
 				peerCount := 0
 				for _, k := range peersOrdered {
 					if k.committedBlockNum >= n {
@@ -272,9 +272,7 @@ func TestStateMgr_getConsensusedCommittedBlockNum_contrived(t *testing.T) {
 					}
 				}
 				if peerCount > C {
-					if n > maxCommitted {
-						maxCommitted = n
-					}
+					maxCommitted = n
 					consensused = true
 				}
 			}
