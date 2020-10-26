@@ -178,6 +178,14 @@ var AppHelpFlagGroups = []flagGroup{
 		},
 	},
 	{
+		Name: "GRAPHQL",
+		Flags: []cli.Flag{
+			utils.GraphQLEnableFlag,
+			utils.GraphQLPortFlag,
+			utils.GraphQLMaxConnsFlag,
+		},
+	},
+	{
 		Name: "WEB SOCKET",
 		Flags: []cli.Flag{
 			utils.WsEnabledFlag,
