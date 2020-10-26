@@ -82,7 +82,6 @@ var (
 		Usage: "Block data storage `<path>`",
 		Value: config.DEFAULT_DATA_DIR,
 	}
-
 	//Consensus setting
 	EnableConsensusFlag = cli.BoolFlag{
 		Name:  "enable-consensus",
@@ -103,7 +102,6 @@ var (
 		Usage: "Min gas price `<value>` of transaction to be accepted by tx pool.",
 		Value: config.DEFAULT_GAS_PRICE,
 	}
-
 	//Test Mode setting
 	EnableTestModeFlag = cli.BoolFlag{
 		Name:  "testmode",
@@ -199,7 +197,23 @@ var (
 	RestfulMaxConnsFlag = cli.UintFlag{
 		Name:  "restmaxconns",
 		Usage: "Restful server maximum connections `<number>`",
-		Value: config.DEFAULT_REST_MAX_CONN,
+		Value: config.DEFAULT_HTTP_MAX_CONN,
+	}
+
+	//GraphQL setting
+	GraphQLEnableFlag = cli.BoolFlag{
+		Name:  "graphql",
+		Usage: "Enable graphql api server",
+	}
+	GraphQLPortFlag = cli.UintFlag{
+		Name:  "graphql-port",
+		Usage: "GraphQL server listening port `<number>`",
+		Value: config.DEFAULT_GRAPHQL_PORT,
+	}
+	GraphQLMaxConnsFlag = cli.UintFlag{
+		Name:  "graphql-max-connection",
+		Usage: "GraphQL server maximum connections `<number>`",
+		Value: config.DEFAULT_HTTP_MAX_CONN,
 	}
 
 	//Account setting

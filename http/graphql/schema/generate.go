@@ -16,30 +16,5 @@
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package vconfig
-
-import (
-	"encoding/json"
-	"fmt"
-
-	"github.com/ontio/ontology-crypto/keypair"
-	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/core/types"
-)
-
-// PubkeyID returns a marshaled representation of the given public key.
-func PubkeyID(pub keypair.PublicKey) string {
-	return common.PubKeyToHex(pub)
-}
-
-func Pubkey(nodeid string) (keypair.PublicKey, error) {
-	return common.PubKeyFromHex(nodeid)
-}
-
-func VbftBlock(header *types.Header) (*VbftBlockInfo, error) {
-	blkInfo := &VbftBlockInfo{}
-	if err := json.Unmarshal(header.ConsensusPayload, blkInfo); err != nil {
-		return nil, fmt.Errorf("unmarshal blockInfo: %s", err)
-	}
-	return blkInfo, nil
-}
+//go:generate go-bindata -ignore=\.go -pkg=schema -o=bindata.go ./...
+package schema

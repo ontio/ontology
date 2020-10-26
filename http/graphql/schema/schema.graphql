@@ -1,0 +1,119 @@
+# base58 or hex string address
+scalar Address
+# hex string of hash256
+scalar H256
+# hex string of public key
+scalar PubKey
+
+scalar Uint32
+# uint64 encoded as string
+scalar Uint64
+
+enum TxType {
+    INVOKE_NEO
+    INVOKE_WASM
+    DEPLOY_NEO
+    DEPLOY_WASM
+}
+
+interface Payload {
+    code : String!
+}
+
+type InvokeCode implements Payload {
+    code: String!
+}
+
+type DeployCode implements Payload {
+    code: String!
+    vmType: String!
+    name: String!
+    version: String!
+    author: String!
+    email: String!
+    desc: String!
+}
+
+# transaction structure of ontology
+type Transaction {
+    version: Uint32!
+    hash: H256!
+    nonce: Uint32!
+    txType: TxType!
+    gasPrice: Uint32!
+    gasLimit: Uint32!
+    payer: Address!
+    payload: Payload!
+    sigs: [Sig!]!
+
+    height: Uint32!
+}
+
+type Sig {
+    sigData: [String!]!
+    pubKeys: [PubKey!]!
+    M: Uint32!
+}
+
+# Block structure of ontology
+type Block {
+    # The header of this block.
+    header: Header!
+
+    # The transactions this block included.
+    transactions: [Transaction!]!
+}
+
+# Header is the header of a block
+type Header {
+    # The version of this header.
+    version: Uint32!
+
+    # The hash of this header.
+    hash: H256!
+
+    # The previous block hash.
+    prevHash: H256!
+
+    # The current block height.
+    height: Uint32!
+
+    # The timestamp this block generated.
+    timestamp: Uint32!
+
+    # The merkle tree root with leaves from genesis block to this block.
+    blockRoot: H256!
+
+    # The transactions root of this block.
+    txsRoot: H256!
+
+    # The consensus data of this block.
+    consensusData: Uint64!
+
+    # The multi address of conosensus nodes who can generate next block.
+    nextBookkeeper: Address!
+
+    # The conosensus nodes who generate this block.
+    bookkeepers: [PubKey!]!
+
+    # The signature of conosensus nodes who generate this block.
+    sigData: [String!]!
+}
+
+type Balance {
+    ont: Uint64!
+    ong: Uint64!
+    height: Uint32!
+}
+
+type Query {
+    getBlockByHeight(height: Uint32!): Block
+    getBlockByHash(hash: H256!): Block
+    getBlockHash(height: Uint32!): H256!
+    getTx(hash: H256!): Transaction
+    getBalance(addr: Address!): Balance!
+}
+
+schema {
+    query: Query
+}

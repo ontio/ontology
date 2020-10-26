@@ -44,6 +44,7 @@ import (
 	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/events"
 	bactor "github.com/ontio/ontology/http/base/actor"
+	"github.com/ontio/ontology/http/graphql"
 	"github.com/ontio/ontology/http/jsonrpc"
 	"github.com/ontio/ontology/http/localrpc"
 	"github.com/ontio/ontology/http/nodeinfo"
@@ -123,6 +124,10 @@ func setupAPP() *cli.App {
 		utils.RestfulEnableFlag,
 		utils.RestfulPortFlag,
 		utils.RestfulMaxConnsFlag,
+		//graphql setting
+		utils.GraphQLEnableFlag,
+		utils.GraphQLPortFlag,
+		utils.GraphQLMaxConnsFlag,
 		//ws setting
 		utils.WsEnabledFlag,
 		utils.WsPortFlag,
@@ -189,6 +194,7 @@ func startOntology(ctx *cli.Context) {
 		log.Errorf("initLocalRpc error: %s", err)
 		return
 	}
+	initGraphQL(ctx)
 	initRestful(ctx)
 	initWs(ctx)
 	initNodeInfo(ctx, p2pSvr)
@@ -386,6 +392,15 @@ func initLocalRpc(ctx *cli.Context) error {
 
 	log.Infof("Local rpc init success")
 	return nil
+}
+
+func initGraphQL(ctx *cli.Context) {
+	if !config.DefConfig.GraphQL.EnableGraphQL {
+		return
+	}
+	go graphql.StartServer(config.DefConfig.GraphQL)
+
+	log.Infof("GraphQL init success")
 }
 
 func initRestful(ctx *cli.Context) {
