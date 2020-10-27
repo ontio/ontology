@@ -1128,7 +1128,7 @@ func (self *Server) processProposalMsg(msg *blockProposalMsg) {
 		cfg = *blk.getNewChainConfig()
 		chainCfg := self.GetChainConfig()
 		if cfg.Hash() != chainCfg.Hash() {
-			log.Errorf("processProposalMsg chainconfig unqeual to blockinfo cfg,view:(%d,%d),N:(%d,%d),C:(%d,%d),BlockMsgDelay:(%d,%d),HashMsgDelay:(%d,%d),PeerHandshakeTimeout:(%d,%d),posTable:(%v,%v),MaxBlockChangeView:(%d,%d)",
+			log.Errorf("processProposalMsg chainconfig unequal to blockinfo cfg,view:(%d,%d),N:(%d,%d),C:(%d,%d),BlockMsgDelay:(%d,%d),HashMsgDelay:(%d,%d),PeerHandshakeTimeout:(%d,%d),posTable:(%v,%v),MaxBlockChangeView:(%d,%d)",
 				cfg.View, chainCfg.View,
 				cfg.N, chainCfg.N,
 				cfg.C, chainCfg.C,
@@ -1432,13 +1432,6 @@ func (self *Server) actionLoop() {
 					continue
 				}
 
-			case CommitBlock:
-				blkNum := action.Proposal.GetBlockNum()
-				if err := self.commitBlock(action.Proposal, action.forEmpty); err != nil {
-					log.Errorf("server %d failed to commit block proposal (%d): %s",
-						self.Index, blkNum, err)
-					continue
-				}
 			case SealBlock:
 				if action.Proposal.GetBlockNum() < self.GetCurrentBlockNo() {
 					continue
