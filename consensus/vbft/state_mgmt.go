@@ -385,21 +385,28 @@ func (self *StateMgr) checkStartSyncing(startBlkNum uint32, forceSync bool) {
 		// non-consensus node, block-syncer do the syncing
 		return
 	}
+
 	var maxCommitted uint32
-	peers := make(map[uint32][]uint32)
 	for _, p := range self.peers {
 		n := p.committedBlockNum
-		if n > startBlkNum {
-			if _, present := peers[n]; !present {
-				peers[n] = make([]uint32, 0)
-			}
-			for k := range peers {
-				if n >= k {
-					peers[k] = append(peers[k], p.peerIdx)
+		if n > startBlkNum && n > maxCommitted {
+			peerCount := 0
+			for _, k := range self.peers {
+				if k.committedBlockNum >= n {
+					peerCount++
 				}
 			}
-			if len(peers[n]) > int(self.server.GetChainConfig().C) {
+			if peerCount > int(self.server.GetChainConfig().C) {
 				maxCommitted = n
+			}
+		}
+	}
+
+	var maxCommittedPeers []uint32
+	if maxCommitted > 0 {
+		for _, k := range self.peers {
+			if k.committedBlockNum >= maxCommitted {
+				maxCommittedPeers = append(maxCommittedPeers, k.peerIdx)
 			}
 		}
 	}
@@ -410,16 +417,16 @@ func (self *StateMgr) checkStartSyncing(startBlkNum uint32, forceSync bool) {
 
 		if maxCommitted > self.server.syncer.getCurrentTargetBlockNum() {
 			// syncer is much slower than peer-update, too much SyncReq can make channel full
-			log.Infof("server %d, start syncing %d - %d, with %v", self.server.Index, startBlkNum, maxCommitted, peers)
+			log.Infof("server %d, start syncing %d - %d, with %v, %v", self.server.Index, startBlkNum, maxCommitted, maxCommittedPeers, self.peers)
 			self.lastBlockSyncReqHeight = maxCommitted
 			self.server.syncer.blockSyncReqC <- &BlockSyncReq{
-				targetPeers:    peers[maxCommitted],
+				targetPeers:    maxCommittedPeers,
 				startBlockNum:  startBlkNum,
 				targetBlockNum: maxCommitted,
 			}
 		}
 	} else if self.getState() == Synced {
-		log.Infof("server %d, start syncing check %v, %d", self.server.Index, peers, self.server.GetCurrentBlockNo())
+		log.Infof("server %d, start syncing check %v, %v %d", self.server.Index, maxCommittedPeers, self.peers, self.server.GetCurrentBlockNo())
 		self.setState(SyncingCheck)
 	}
 }
@@ -431,20 +438,21 @@ func (self *StateMgr) getConsensusedCommittedBlockNum() (uint32, bool) {
 	consensused := false
 	var maxCommitted uint32
 	myCommitted := self.server.GetCommittedBlockNo()
-	peers := make(map[uint32][]uint32)
+
 	for _, p := range self.peers {
 		n := p.committedBlockNum
-		if n >= myCommitted {
-			if _, present := peers[n]; !present {
-				peers[n] = make([]uint32, 0)
-			}
-			for k := range peers {
-				if n >= k {
-					peers[k] = append(peers[k], p.peerIdx)
+		if n >= myCommitted && n > maxCommitted {
+
+			peerCount := 0
+			for _, k := range self.peers {
+				if k.committedBlockNum >= n {
+					peerCount++
 				}
 			}
-			if len(peers[n]) > C {
+			if peerCount > C {
+
 				maxCommitted = n
+
 				consensused = true
 			}
 		}
