@@ -274,8 +274,6 @@ func (self *Server) constructProposalMsg(blkNum uint32, sysTxs, userTxs []*types
 
 	vbftBlkInfoEmpty := &vconfig.VbftBlockInfo{
 		Proposer:           math.MaxUint32,
-		VrfValue:           vrfValue,
-		VrfProof:           vrfProof,
 		LastConfigBlockNum: lastConfigBlkNum,
 		NewChainConfig:     chainconfig,
 	}
@@ -296,7 +294,7 @@ func (self *Server) constructProposalMsg(blkNum uint32, sysTxs, userTxs []*types
 		return nil, err
 	}
 
-	emptyBlk, err := self.constructBlock(blkNum, prevBlkHash, sysTxs, consensusPayloadEmpty, blocktimestamp, true)
+	emptyBlk, err := self.constructBlock(blkNum, prevBlkHash, sysTxs, consensusPayloadEmpty, prevBlk.Block.Header.Timestamp+1, true)
 	if err != nil {
 		return nil, fmt.Errorf("failed to construct empty block: %s", err)
 	}
