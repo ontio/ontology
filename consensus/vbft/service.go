@@ -804,7 +804,7 @@ func (self *Server) onConsensusMsg(peerIdx uint32, msg ConsensusMsg, msgHash com
 						self.Index, msgBlkNum, pMsg.Block.getProposer(), self.GetCommittedBlockNo())
 					self.timer.C <- &TimerEvent{
 						evtType:  EventPeerHeartbeat,
-						blockNum: pMsg.Block.getBlockNum(),
+						blockNum: pMsg.Block.getProposer(),
 					}
 				}
 				return
