@@ -305,7 +305,7 @@ func (self *Syncer) onNewBlockSyncReq(req *BlockSyncReq) {
 		log.Errorf("server %d new blockSyncReq startblkNum %d vs %d",
 			self.server.Index, req.startBlockNum, self.nextReqBlkNum)
 	}
-	if req.targetBlockNum <= self.targetBlkNum {
+	if req.targetBlockNum < self.targetBlkNum {
 		return
 	}
 	if self.nextReqBlkNum == 1 {
