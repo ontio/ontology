@@ -43,7 +43,7 @@ type JReq struct {
 	JSONRPC string        `json:"jsonrpc"`
 	Method  string        `json:"method"`
 	Params  []interface{} `json:"params"`
-	ID      int64         `json:"id"`
+	ID      interface{}   `json:"id"`
 }
 
 func init() {
