@@ -20,7 +20,6 @@
 package rpc
 
 import (
-	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -29,11 +28,23 @@ import (
 	"strings"
 	"sync"
 
+	// fast json marshal/unmarshal
+	jsoniter "github.com/json-iterator/go"
 	"github.com/ontio/ontology/common/log"
+	"github.com/ontio/ontology/http/base/common"
 	berr "github.com/ontio/ontology/http/base/error"
 )
 
-const MAX_REQUEST_BODY_SIZE = 1 << 20
+var (
+	json = jsoniter.ConfigCompatibleWithStandardLibrary
+)
+
+type JReq struct {
+	JSONRPC string        `json:"jsonrpc"`
+	Method  string        `json:"method"`
+	Params  []interface{} `json:"params"`
+	ID      int64         `json:"id"`
+}
 
 func init() {
 	mainMux.m = make(map[string]func([]interface{}) map[string]interface{})
@@ -64,8 +75,6 @@ func SetDefaultFunc(def func(http.ResponseWriter, *http.Request)) {
 // this is the function that should be called in order to answer an rpc call
 // should be registered like "http.HandleFunc("/", httpjsonrpc.Handle)"
 func Handle(w http.ResponseWriter, r *http.Request) {
-	mainMux.RLock()
-	defer mainMux.RUnlock()
 	if r.Method == "OPTIONS" {
 		w.Header().Add("Access-Control-Allow-Headers", "Content-Type")
 		w.Header().Set("content-type", "application/json;charset=utf-8")
@@ -77,55 +86,47 @@ func Handle(w http.ResponseWriter, r *http.Request) {
 		if mainMux.defaultFunction != nil {
 			log.Info("HTTP JSON RPC Handle - Method!=\"POST\"")
 			mainMux.defaultFunction(w, r)
-			return
 		} else {
 			log.Warn("HTTP JSON RPC Handle - Method!=\"POST\"")
-			return
 		}
+		return
 	}
 	//check if there is Request Body to read
 	if r.Body == nil {
+		mainMux.RLock()
 		if mainMux.defaultFunction != nil {
 			log.Info("HTTP JSON RPC Handle - Request body is nil")
 			mainMux.defaultFunction(w, r)
-			return
 		} else {
 			log.Warn("HTTP JSON RPC Handle - Request body is nil")
-			return
 		}
+		mainMux.RUnlock()
+		return
 	}
-	request := make(map[string]interface{})
+	var request JReq
 	defer r.Body.Close()
-	decoder := json.NewDecoder(io.LimitReader(r.Body, MAX_REQUEST_BODY_SIZE))
+	decoder := json.NewDecoder(io.LimitReader(r.Body, common.MAX_REQUEST_BODY_SIZE))
 	err := decoder.Decode(&request)
 	if err != nil {
 		log.Error("HTTP JSON RPC Handle - json.Unmarshal: ", err)
 		return
 	}
-	if request["method"] == nil {
-		log.Error("HTTP JSON RPC Handle - method not found: ")
-		return
-	}
-	method, ok := request["method"].(string)
-	if !ok {
+	if request.Method == "" {
 		log.Error("HTTP JSON RPC Handle - method is not string: ")
 		return
 	}
 	//get the corresponding function
-	function, ok := mainMux.m[method]
+	mainMux.RLock()
+	function, ok := mainMux.m[request.Method]
+	mainMux.RUnlock()
 	if ok {
-		param, ok := request["params"].([]interface{})
-		if !ok {
-			log.Error("HTTP JSON RPC Handle - parameter should be array")
-			return
-		}
-		response := function(param)
+		response := function(request.Params)
 		data, err := json.Marshal(map[string]interface{}{
 			"jsonrpc": "2.0",
 			"error":   response["error"],
 			"desc":    response["desc"],
 			"result":  response["result"],
-			"id":      request["id"],
+			"id":      request.ID,
 		})
 		if err != nil {
 			log.Error("HTTP JSON RPC Handle - json.Marshal: ", err)
@@ -137,7 +138,7 @@ func Handle(w http.ResponseWriter, r *http.Request) {
 		w.Write(data)
 	} else {
 		//if the function does not exist
-		log.Warn("HTTP JSON RPC Handle - No function to call for ", request["method"])
+		log.Warn("HTTP JSON RPC Handle - No function to call for ", request.Method)
 		data, err := json.Marshal(map[string]interface{}{
 			"error": berr.INVALID_METHOD,
 			"result": map[string]interface{}{
@@ -145,7 +146,7 @@ func Handle(w http.ResponseWriter, r *http.Request) {
 				"message": "Method not found",
 				"data":    "The called method was not found on the server",
 			},
-			"id": request["id"],
+			"id": request.ID,
 		})
 		if err != nil {
 			log.Error("HTTP JSON RPC Handle - json.Marshal: ", err)
