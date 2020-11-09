@@ -40,10 +40,10 @@ var (
 )
 
 type JReq struct {
-	JSONRPC string `json:"jsonrpc"`
-	Method  string `json:"method"`
-	Params  []interface{}
-	ID      int64
+	JSONRPC string        `json:"jsonrpc"`
+	Method  string        `json:"method"`
+	Params  []interface{} `json:"params"`
+	ID      int64         `json:"id"`
 }
 
 func init() {
