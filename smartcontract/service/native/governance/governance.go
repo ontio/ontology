@@ -81,6 +81,8 @@ const (
 	GET_PEER_POOL                    = "getPeerPool"
 	GET_PEER_INFO                    = "getPeerInfo"
 	GET_PEER_POOL_BY_ADDRESS         = "getPeerPoolByAddress"
+	GET_AUTHORIZE_INFO               = "getAuthorizeInfo"
+	GET_ADDRESS_FEE                  = "getAddressFee"
 
 	//key prefix
 	GLOBAL_PARAM      = "globalParam"
@@ -162,6 +164,8 @@ func RegisterGovernanceContract(native *native.NativeService) {
 	native.Register(GET_PEER_POOL, GetPeerPool)
 	native.Register(GET_PEER_INFO, GetPeerInfo)
 	native.Register(GET_PEER_POOL_BY_ADDRESS, GetPeerPoolByAddress)
+	native.Register(GET_AUTHORIZE_INFO, GetAuthorizeInfo)
+	native.Register(GET_ADDRESS_FEE, GetAddressFee)
 }
 
 //Init governance contract, include vbft config, global param and ontid admin.
@@ -526,6 +530,7 @@ func ApproveCandidate(native *native.NativeService) ([]byte, error) {
 	return utils.BYTE_TRUE, nil
 }
 
+// Deprecated
 //Reject a registered candidate node, remove node from pool and unfreeze deposit ont
 //Only approved candidate node can participate in consensus selection and get ong bonus.
 func RejectCandidate(native *native.NativeService) ([]byte, error) {
@@ -1887,4 +1892,42 @@ func GetPeerPoolForVm(native *native.NativeService) (*PeerPoolListForVm, error) 
 		PeerPoolList: peerPoolList,
 	}
 	return peerPoolListForVm, nil
+}
+
+func GetAuthorizeInfo(native *native.NativeService) ([]byte, error) {
+	contract := native.ContextRef.CurrentContext().ContractAddress
+	source := common.NewZeroCopySource(native.Input)
+	pubKey, err := utils.DecodeString(source)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("GetAuthorizeInfo, get public key error: %s", err)
+	}
+	address, err := utils.DecodeAddress(source)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("GetAuthorizeInfo, get address error: %s", err)
+	}
+
+	authorizeInfo, err := getAuthorizeInfo(native, contract, pubKey, address)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("GetAuthorizeInfo, getAuthorizeInfo error: %s", err)
+	}
+	sink := common.NewZeroCopySink(nil)
+	authorizeInfo.Serialization(sink)
+	return sink.Bytes(), nil
+}
+
+func GetAddressFee(native *native.NativeService) ([]byte, error) {
+	contract := native.ContextRef.CurrentContext().ContractAddress
+	source := common.NewZeroCopySource(native.Input)
+	address, err := utils.DecodeAddress(source)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("GetAddressFee, get address error: %s", err)
+	}
+
+	splitFeeAddress, err := getSplitFeeAddress(native, contract, address)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("GetAddressFee, getSplitFeeAddress error: %s", err)
+	}
+	sink := common.NewZeroCopySink(nil)
+	splitFeeAddress.Serialization(sink)
+	return sink.Bytes(), nil
 }
