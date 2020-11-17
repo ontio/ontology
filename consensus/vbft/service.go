@@ -1276,6 +1276,10 @@ func (self *Server) processMsgEvent() error {
 			msgBlkNum := pMsg.GetBlockNum()
 
 			if msgBlkNum == self.GetCurrentBlockNo() {
+				if pMsg.EndorsedProposer != self.Index && len(self.msgPool.GetProposalMsgs(msgBlkNum)) == 0 {
+					self.fetchProposal(msgBlkNum, pMsg.EndorsedProposer)
+				}
+
 				// add endorse to block-pool
 				self.blockPool.newBlockEndorsement(pMsg)
 				log.Infof("server %d received endorse from %d, for proposer %d, block %d, empty: %t",
