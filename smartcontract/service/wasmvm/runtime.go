@@ -163,7 +163,7 @@ func Debug(proc *exec.Process, ptr uint32, len uint32) {
 		//do not panic on debug
 		return
 	}
-
+	log.Debugf("[WasmContract]Step:%s\n", proc.HostData().(*Runtime).Service.ExecStep)
 	debugLog(bs)
 }
 
