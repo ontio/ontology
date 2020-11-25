@@ -163,7 +163,7 @@ func Debug(proc *exec.Process, ptr uint32, len uint32) {
 		//do not panic on debug
 		return
 	}
-	log.Debugf("[WasmContract]Debug:%s Step %v\n", bs, proc.HostData().(*Runtime).Service.ExecStep)
+	log.Debugf("[WasmContract]Debug:%s Step %v\n", bs, *proc.HostData().(*Runtime).Service.ExecStep)
 }
 
 func notify(service *WasmVmService, bs []byte) error {
