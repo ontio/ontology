@@ -78,6 +78,18 @@ func SelfAddress(proc *exec.Process, dst uint32) {
 	}
 }
 
+func GetGasInfo(proc *exec.Process, dst uint32) {
+	self := proc.HostData().(*Runtime)
+	self.checkGas(GET_GAS_INFO_GAS)
+	sink := common.NewZeroCopySink(nil)
+	sink.WriteUint64(*self.Service.vm.ExecMetrics.GasLimit)
+	sink.WriteUint64(self.Service.GasPrice)
+	_, err := proc.WriteAt(sink.Bytes(), int64(dst))
+	if err != nil {
+		panic(err)
+	}
+}
+
 func Sha256(proc *exec.Process, src uint32, slen uint32, dst uint32) {
 	self := proc.HostData().(*Runtime)
 	cost := uint64((slen/1024)+1) * SHA256_GAS
@@ -463,6 +475,11 @@ func NewHostModule() *wasm.Module {
 			Host: reflect.ValueOf(Sha256),
 			Body: &wasm.FunctionBody{}, // create a dummy wasm body (the actual value will be taken from Host.)
 		},
+		{ //24
+			Sig:  &m.Types.Entries[2],
+			Host: reflect.ValueOf(GetGasInfo),
+			Body: &wasm.FunctionBody{}, // create a dummy wasm body (the actual value will be taken from Host.)
+		},
 	}
 
 	m.Export = &wasm.SectionExports{
@@ -586,6 +603,11 @@ func NewHostModule() *wasm.Module {
 				FieldStr: "ontio_sha256",
 				Kind:     wasm.ExternalFunction,
 				Index:    23,
+			},
+			"ontio_gas_info": {
+				FieldStr: "ontio_gas_info",
+				Kind:     wasm.ExternalFunction,
+				Index:    24,
 			},
 		},
 	}

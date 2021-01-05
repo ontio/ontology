@@ -21,6 +21,7 @@ var (
 	TIMESTAMP_GAS        uint64 = 1
 	BLOCK_HEGHT_GAS      uint64 = 1
 	SELF_ADDRESS_GAS     uint64 = 1
+	GET_GAS_INFO_GAS     uint64 = 1
 	CALLER_ADDRESS_GAS   uint64 = 1
 	ENTRY_ADDRESS_GAS    uint64 = 1
 	CHECKWITNESS_GAS     uint64 = 200

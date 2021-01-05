@@ -187,6 +187,16 @@ func RuntimeBase58ToAddress(service *NeoVmService, engine *vm.Executor) error {
 	return engine.EvalStack.PushBytes(address[:])
 }
 
+func RuntimeGetGasInfo(service *NeoVmService, engine *vm.Executor) error {
+	left, price := service.ContextRef.GetGasInfo()
+	err := engine.EvalStack.PushUint64(left)
+	if err != nil {
+		return err
+	}
+
+	return engine.EvalStack.PushUint64(price)
+}
+
 func RuntimeAddressToBase58(service *NeoVmService, engine *vm.Executor) error {
 	item, err := engine.EvalStack.PopAsBytes()
 	if err != nil {

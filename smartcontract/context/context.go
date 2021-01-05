@@ -40,6 +40,7 @@ type ContextRef interface {
 	PushNotifications(notifications []*event.NotifyEventInfo)
 	NewExecuteEngine(code []byte, txtype types.TransactionType) (Engine, error)
 	CheckUseGas(gas uint64) bool
+	GetGasInfo() (gasLeft uint64, gasPrice uint64)
 	CheckExecStep() bool
 	GetCallerAddress() []common.Address
 	SetInternalErr()
