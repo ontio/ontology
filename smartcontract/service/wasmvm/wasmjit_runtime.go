@@ -256,7 +256,7 @@ func ontio_call_contract_cgo(vmctx *C.wasmjit_vmctx_t, contractAddr *C.address_t
 	*service.ExecStep = uint64(exec_step)
 	*service.GasLimit = uint64(gas_left)
 
-	buff := jitSliceToBytes(C.wasmjit_slice_t{data: ((*C.uint8_t)((unsafe.Pointer)(contractAddr))), len: 20})
+	buff := jitSliceToBytes(C.wasmjit_slice_t{data: (*C.uint8_t)((unsafe.Pointer)(contractAddr)), len: 20})
 
 	copy(contractAddress[:], buff[:])
 
@@ -324,13 +324,14 @@ func invokeJit(this *WasmVmService, contract *states.WasmContractParam, wasmCode
 	witness_raw := C.wasmjit_slice_t{data: witnessPtr, len: C.uint32_t(witness_len)}
 	input_raw := C.wasmjit_slice_t{data: inputPtr, len: C.uint32_t(input_len)}
 	service_index := C.uint64_t(this.ServiceIndex)
+	gas_price := C.uint64_t(this.GasPrice)
 	exec_step := C.uint64_t(*this.ExecStep)
 	gas_factor := C.uint64_t(this.GasFactor)
 	gas_left := C.uint64_t(*this.GasLimit)
 	depth_left := C.uint64_t(WASM_CALLSTACK_LIMIT)
 	codeSlice := C.wasmjit_slice_t{data: (*C.uint8_t)((unsafe.Pointer)(&wasmCode[0])), len: C.uint32_t(len(wasmCode))}
 
-	ctx := C.wasmjit_chain_context_create(height, block_hash, timestamp, tx_hash, caller_raw, witness_raw, input_raw, exec_step, gas_factor, gas_left, depth_left, service_index)
+	ctx := C.wasmjit_chain_context_create(height, block_hash, timestamp, tx_hash, caller_raw, witness_raw, input_raw, gas_price, exec_step, gas_factor, gas_left, depth_left, service_index)
 	jit_ret := C.wasmjit_invoke(codeSlice, ctx)
 	*this.ExecStep = uint64(jit_ret.exec_step)
 	*this.GasLimit = uint64(jit_ret.gas_left)

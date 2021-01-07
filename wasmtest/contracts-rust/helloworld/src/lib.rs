@@ -25,6 +25,14 @@ pub fn invoke() {
         b"block_height" => sink.write(runtime::block_height()),
         b"self_address" => sink.write(runtime::address()),
         b"caller_address" => sink.write(runtime::caller()),
+        b"gas_info" => {
+            let (left1, price) = runtime::gas_info();
+            let (left2, _) = runtime::gas_info();
+            assert_eq!(price, 0);
+            assert!(left1 > left2);
+            assert!(left1 < left2 + 100);
+            sink.write(true)
+        },
         b"entry_address" => sink.write(runtime::entry_address()),
         b"check_witness" => {
             let addr: Address = source.read().unwrap();
@@ -65,7 +73,7 @@ fn testcase() -> String {
     [
         [{"env":{"witness":[]}, "method":"add", "param":"int:1, int:2", "expected":"int:3"},
         {"method":"timestamp"}, {"method":"block_height"}, {"method":"self_address"},
-        {"method":"caller_address"}, {"method":"entry_address"},
+        {"method":"caller_address"}, {"method":"entry_address"}, {"method":"gas_info"},
         {"method":"current_txhash"}, {"method":"current_blockhash"},
         {"method":"storage_write", "param":"string:abc, string:123"},
         {"method":"storage_read", "param":"string:abc", "expected":"string:123"},

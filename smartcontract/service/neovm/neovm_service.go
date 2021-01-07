@@ -106,6 +106,7 @@ var (
 		RUNTIME_BASE58TOADDRESS_NAME:     RuntimeBase58ToAddress,
 		RUNTIME_ADDRESSTOBASE58_NAME:     RuntimeAddressToBase58,
 		RUNTIME_GETCURRENTBLOCKHASH_NAME: RuntimeGetCurrentBlockHash,
+		RUNTIME_GETGASINFO:               RuntimeGetGasInfo,
 	}
 )
 
