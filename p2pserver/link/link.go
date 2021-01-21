@@ -152,21 +152,32 @@ func (this *Link) SendRaw(rawPacket []byte) error {
 		return errors.New("[p2p]tx link invalid")
 	}
 	nByteCnt := len(rawPacket)
+	if nByteCnt == 0 {
+		return nil
+	}
 	log.Tracef("[p2p]TX buf length: %d\n", nByteCnt)
 
 	nCount := nByteCnt / common.PER_SEND_LEN
 	if nCount == 0 {
 		nCount = 1
 	}
-	_ = conn.SetWriteDeadline(time.Now().Add(time.Duration(nCount*common.WRITE_DEADLINE) * time.Second))
-	_, err := conn.Write(rawPacket)
-	if err != nil {
-		log.Infof("[p2p] error sending messge to %s :%s", this.GetAddr(), err.Error())
-		this.CloseConn()
-		return err
-	}
 
-	return nil
+	start := time.Now()
+	deadline := start.Add(time.Duration(nCount*common.WRITE_DEADLINE) * time.Second)
+	wrote := 0
+	for {
+		conn.SetWriteDeadline(deadline)
+		n, err := conn.Write(rawPacket[wrote:])
+		if err != nil {
+			log.Infof("[p2p] error sending messge to %s :%s", this.GetAddr(), err.Error())
+			this.CloseConn()
+			return err
+		}
+		wrote += n
+		if wrote >= nByteCnt {
+			return nil
+		}
+	}
 }
 
 //needSendMsg check whether the msg is needed to push to channel
