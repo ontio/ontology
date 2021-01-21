@@ -165,16 +165,19 @@ func (this *Link) SendRaw(rawPacket []byte) error {
 	start := time.Now()
 	deadline := start.Add(time.Duration(nCount*common.WRITE_DEADLINE) * time.Second)
 	wrote := 0
+	this.lock.Lock()
 	for {
 		conn.SetWriteDeadline(deadline)
 		n, err := conn.Write(rawPacket[wrote:])
 		if err != nil {
 			log.Infof("[p2p] error sending messge to %s :%s", this.GetAddr(), err.Error())
+			this.lock.Unlock()
 			this.CloseConn()
 			return err
 		}
 		wrote += n
 		if wrote >= nByteCnt {
+			this.lock.Unlock()
 			return nil
 		}
 	}
