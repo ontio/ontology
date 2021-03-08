@@ -32,7 +32,7 @@ import (
 
 func CrossChainNeoVMCall(this *native.NativeService, address common.Address, method string, args []byte,
 	fromContractAddress []byte, fromChainID uint64) (interface{}, error) {
-	dep, err := this.CacheDB.GetContract(address)
+	dep, _, err := this.CacheDB.GetContract(address)
 	if err != nil {
 		return nil, errors.NewErr("[NeoVMCall] Get contract context error!")
 	}

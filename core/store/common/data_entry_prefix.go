@@ -30,8 +30,9 @@ const (
 
 	// Transaction
 	ST_BOOKKEEPER DataEntryPrefix = 0x03 //BookKeeper state key prefix
-	ST_CONTRACT   DataEntryPrefix = 0x04 //Smart contract state key prefix
+	ST_CONTRACT   DataEntryPrefix = 0x04 //Smart contract deploy code key prefix
 	ST_STORAGE    DataEntryPrefix = 0x05 //Smart contract storage key prefix
+	ST_DESTROYED  DataEntryPrefix = 0x06 // record destroyed smart contract: prefix+address -> height
 
 	IX_HEADER_HASH_LIST DataEntryPrefix = 0x09 //Block height => block hash key prefix
 

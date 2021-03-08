@@ -18,8 +18,10 @@
 package wasmvm
 
 import (
+	"fmt"
 	"sync"
 
+	"github.com/ontio/ontology/core/payload"
 	lru "github.com/hashicorp/golang-lru"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
@@ -132,7 +134,7 @@ func (this *WasmVmService) Invoke() (interface{}, error) {
 		return nil, err
 	}
 
-	code, err := this.CacheDB.GetContract(contract.Address)
+	code, _, err := this.CacheDB.GetContract(contract.Address)
 	if err != nil {
 		return nil, err
 	}
@@ -226,4 +228,50 @@ func invokeInterpreter(this *WasmVmService, contract *states.WasmContractParam, 
 	}
 
 	return host.Output, nil
+}
+
+func (self *WasmVmService) DeployContract(code []byte, vmType uint32, name, version, author,
+	email, desc []byte) (addr common.Address, err error) {
+	dep, err := payload.CreateDeployCode(code, vmType, name, version, author, email, desc)
+	if err != nil {
+		return addr, err
+	}
+
+	wasmCode, err := dep.GetWasmCode()
+	if err != nil {
+		return addr, err
+	}
+	_, err = ReadWasmModule(wasmCode, config.DefConfig.Common.WasmVerifyMethod)
+	if err != nil {
+		return addr, err
+	}
+
+	addr = dep.Address()
+	err = self.ensureContractUndeployed(addr)
+	if err != nil {
+		return addr, errors.NewErr("contract has been deployed")
+	}
+
+	self.CacheDB.PutContract(dep)
+	return addr, nil
+}
+
+func (self *WasmVmService) ensureContractUndeployed(contractAddress common.Address) error {
+	item, destroyed, err := self.CacheDB.GetContract(contractAddress)
+
+	if err != nil || item != nil || destroyed {
+		return fmt.Errorf("get contract %s error or contract deployed", contractAddress.ToHexString())
+	}
+
+	return nil
+}
+
+func (self *WasmVmService) DeleteCurrentContractStorage() error {
+	contractAddress := self.ContextRef.CurrentContext().ContractAddress
+	return self.CacheDB.CleanContractStorage(contractAddress, self.Height)
+}
+
+func (self *WasmVmService) MigrateCurrentContractStorageTo(newAddress common.Address) error {
+	oldAddress := self.ContextRef.CurrentContext().ContractAddress
+	return self.CacheDB.MigrateContractStorage(oldAddress, newAddress, self.Height)
 }
