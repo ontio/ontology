@@ -130,10 +130,20 @@ func (self *CacheDB) IsContractDestroyed(addr comm.Address) (bool, error) {
 
 func (self *CacheDB) DeleteContract(address comm.Address, height uint32) {
 	self.delete(common.ST_CONTRACT, address[:])
+	self.SetContractDestroyed(address, height)
+}
+
+func (self *CacheDB) SetContractDestroyed(addr comm.Address, height uint32) {
 	if config.GetTrackDestroyedContractHeight() <= height {
 		sink := comm.NewZeroCopySink(nil)
 		sink.WriteUint32(height)
-		self.put(common.ST_DESTROYED, address[:], sink.Bytes())
+		self.put(common.ST_DESTROYED, addr[:], sink.Bytes())
+	}
+}
+
+func (self *CacheDB) UnsetContractDestroyed(addr comm.Address, height uint32) {
+	if config.GetTrackDestroyedContractHeight() <= height {
+		self.delete(common.ST_DESTROYED, addr[:])
 	}
 }
 

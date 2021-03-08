@@ -21,10 +21,10 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/ontio/ontology/core/payload"
 	lru "github.com/hashicorp/golang-lru"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
+	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/smartcontract/context"
