@@ -41,7 +41,7 @@ func WASMInvoke(service *NeoVmService, engine *vm.Executor) error {
 		return fmt.Errorf("invoke wasm contract:%s, address invalid", address)
 	}
 
-	dp, err := service.CacheDB.GetContract(contractAddress)
+	dp, _, err := service.CacheDB.GetContract(contractAddress)
 	if err != nil {
 		return err
 	}

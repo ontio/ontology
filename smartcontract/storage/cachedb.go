@@ -20,6 +20,7 @@ package storage
 
 import (
 	comm "github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/core/store/overlaydb"
@@ -83,21 +84,29 @@ func (self *CacheDB) put(prefix common.DataEntryPrefix, key []byte, value []byte
 	self.memdb.Put(self.keyScratch, value)
 }
 
-func (self *CacheDB) GetContract(addr comm.Address) (*payload.DeployCode, error) {
+func (self *CacheDB) GetContract(addr comm.Address) (*payload.DeployCode, bool, error) {
+	destroyed, err := self.IsContractDestroyed(addr)
+	if err != nil {
+		return nil, false, err
+	}
+	if destroyed {
+		return nil, true, nil
+	}
+
 	value, err := self.get(common.ST_CONTRACT, addr[:])
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 
 	if len(value) == 0 {
-		return nil, nil
+		return nil, false, nil
 	}
 
 	contract := new(payload.DeployCode)
 	if err := contract.Deserialization(comm.NewZeroCopySource(value)); err != nil {
-		return nil, err
+		return nil, false, err
 	}
-	return contract, nil
+	return contract, false, nil
 }
 
 func (self *CacheDB) PutContract(contract *payload.DeployCode) {
@@ -110,8 +119,32 @@ func (self *CacheDB) PutContract(contract *payload.DeployCode) {
 	self.put(common.ST_CONTRACT, address[:], value)
 }
 
-func (self *CacheDB) DeleteContract(address comm.Address) {
+func (self *CacheDB) IsContractDestroyed(addr comm.Address) (bool, error) {
+	value, err := self.get(common.ST_DESTROYED, addr[:])
+	if err != nil {
+		return true, err
+	}
+
+	return len(value) != 0, nil
+}
+
+func (self *CacheDB) DeleteContract(address comm.Address, height uint32) {
 	self.delete(common.ST_CONTRACT, address[:])
+	self.SetContractDestroyed(address, height)
+}
+
+func (self *CacheDB) SetContractDestroyed(addr comm.Address, height uint32) {
+	if config.GetTrackDestroyedContractHeight() <= height {
+		sink := comm.NewZeroCopySink(nil)
+		sink.WriteUint32(height)
+		self.put(common.ST_DESTROYED, addr[:], sink.Bytes())
+	}
+}
+
+func (self *CacheDB) UnsetContractDestroyed(addr comm.Address, height uint32) {
+	if config.GetTrackDestroyedContractHeight() <= height {
+		self.delete(common.ST_DESTROYED, addr[:])
+	}
 }
 
 func (self *CacheDB) Get(key []byte) ([]byte, error) {
@@ -163,4 +196,42 @@ func (self *Iter) Key() []byte {
 		key = key[1:] // remove the first prefix
 	}
 	return key
+}
+
+func (self *CacheDB) MigrateContractStorage(oldAddress, newAddress comm.Address, height uint32) error {
+	self.DeleteContract(oldAddress, height)
+
+	iter := self.NewIterator(oldAddress[:])
+	for has := iter.First(); has; has = iter.Next() {
+		key := iter.Key()
+		val := iter.Value()
+
+		newkey := serializeStorageKey(newAddress, key[20:])
+
+		self.Put(newkey, val)
+		self.Delete(key)
+	}
+
+	iter.Release()
+
+	return iter.Error()
+}
+
+func (self *CacheDB) CleanContractStorage(addr comm.Address, height uint32) error {
+	self.DeleteContract(addr, height)
+	iter := self.NewIterator(addr[:])
+
+	for has := iter.First(); has; has = iter.Next() {
+		self.Delete(iter.Key())
+	}
+	iter.Release()
+
+	return iter.Error()
+}
+
+func serializeStorageKey(address comm.Address, key []byte) []byte {
+	res := make([]byte, 0, len(address[:])+len(key))
+	res = append(res, address[:]...)
+	res = append(res, key...)
+	return res
 }

@@ -117,7 +117,7 @@ func StorageGetReadOnlyContext(service *NeoVmService, engine *vm.Executor) error
 }
 
 func checkStorageContext(service *NeoVmService, context *StorageContext) error {
-	item, err := service.CacheDB.GetContract(context.Address)
+	item, _, err := service.CacheDB.GetContract(context.Address)
 	if err != nil || item == nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[CheckStorageContext] get context fail!")
 	}

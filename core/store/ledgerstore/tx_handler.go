@@ -126,9 +126,12 @@ func (self *StateStore) HandleDeployTransaction(store store.LedgerStore, overlay
 
 	address := deploy.Address()
 	// store contract message
-	dep, err := cache.GetContract(address)
+	dep, destroyed, err := cache.GetContract(address)
 	if err != nil {
 		return err
+	}
+	if destroyed {
+		return fmt.Errorf("can not redeploy destroyed contract: %s", address.ToHexString())
 	}
 	if dep == nil {
 		log.Infof("deploy contract address:%s", address.ToHexString())

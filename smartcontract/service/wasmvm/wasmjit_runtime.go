@@ -123,13 +123,9 @@ func jitContractCreate(serviceIndex C.uint64_t,
 
 	contractAddr := dep.Address()
 
-	item, errs := service.CacheDB.GetContract(contractAddr)
+	errs = service.ensureContractUndeployed(contractAddr)
 	if errs != nil {
 		return jitErr(errs), nil, common.ADDRESS_EMPTY
-	}
-
-	if item != nil {
-		return jitErr(errors.NewErr("contract has been deployed")), nil, common.ADDRESS_EMPTY
 	}
 
 	service.CacheDB.PutContract(dep)
@@ -170,7 +166,7 @@ func ontio_contract_migrate_cgo(serviceIndex C.uint64_t,
 		return cResult
 	}
 
-	errs := migrateContractStorage(service, contractAddr)
+	errs := service.MigrateCurrentContractStorageTo(contractAddr)
 	if errs != nil {
 		return jitErr(errs)
 	}
@@ -182,7 +178,7 @@ func ontio_contract_migrate_cgo(serviceIndex C.uint64_t,
 func ontio_contract_destroy_cgo(service_index C.uint64_t) C.wasmjit_result_t {
 	service := getWasmVmService(uint64(service_index))
 
-	errs := deleteContractStorage(service)
+	errs := service.DeleteCurrentContractStorage()
 	if errs != nil {
 		return jitErr(errs)
 	}

@@ -281,7 +281,7 @@ func (this *NeoVmService) SystemCall(engine *vm.Executor) error {
 }
 
 func (this *NeoVmService) GetNeoContract(address scommon.Address) ([]byte, error) {
-	dep, err := this.CacheDB.GetContract(address)
+	dep, _, err := this.CacheDB.GetContract(address)
 	if err != nil {
 		return nil, errors.NewErr("[getNeoContract] get contract context error!")
 	}

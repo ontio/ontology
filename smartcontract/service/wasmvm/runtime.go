@@ -598,7 +598,7 @@ func getContractTypeInner(service *WasmVmService, addr common.Address) (Contract
 		return NATIVE_CONTRACT, nil
 	}
 
-	dep, err := service.CacheDB.GetContract(addr)
+	dep, _, err := service.CacheDB.GetContract(addr)
 	if err != nil {
 		return UNKOWN_CONTRACT, err
 	}

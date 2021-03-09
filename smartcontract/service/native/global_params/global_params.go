@@ -21,6 +21,8 @@ package global_params
 import (
 	"fmt"
 
+	"github.com/ontio/ontology/common/config"
+
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/smartcontract/service/native"
@@ -33,13 +35,18 @@ const (
 	VERSION_CONTRACT_GLOBAL_PARAMS           = byte(0)
 	CURRENT_VALUE                  paramType = 0x00
 	PREPARE_VALUE                  paramType = 0x01
-	INIT_NAME                                = "init"
-	ACCEPT_ADMIN_NAME                        = "acceptAdmin"
-	TRANSFER_ADMIN_NAME                      = "transferAdmin"
-	SET_OPERATOR                             = "setOperator"
-	SET_GLOBAL_PARAM_NAME                    = "setGlobalParam"
-	GET_GLOBAL_PARAM_NAME                    = "getGlobalParam"
-	CREATE_SNAPSHOT_NAME                     = "createSnapshot"
+)
+
+const (
+	INIT_NAME                 = "init"
+	ACCEPT_ADMIN_NAME         = "acceptAdmin"
+	TRANSFER_ADMIN_NAME       = "transferAdmin"
+	SET_OPERATOR              = "setOperator"
+	SET_GLOBAL_PARAM_NAME     = "setGlobalParam"
+	GET_GLOBAL_PARAM_NAME     = "getGlobalParam"
+	CREATE_SNAPSHOT_NAME      = "createSnapshot"
+	ADD_DESTROYED_CONTRACT    = "addDestroyedContract"
+	REMOVE_DESTROYED_CONTRACT = "removeDestroyedContract"
 )
 
 func InitGlobalParams() {
@@ -54,6 +61,10 @@ func RegisterParamContract(native *native.NativeService) {
 	native.Register(SET_GLOBAL_PARAM_NAME, SetGlobalParam)
 	native.Register(GET_GLOBAL_PARAM_NAME, GetGlobalParam)
 	native.Register(CREATE_SNAPSHOT_NAME, CreateSnapshot)
+	if native.Height >= config.GetTrackDestroyedContractHeight() {
+		native.Register(ADD_DESTROYED_CONTRACT, AddDestroyedContracts)
+		native.Register(REMOVE_DESTROYED_CONTRACT, RemoveDestroyedContracts)
+	}
 }
 
 func ParamInit(native *native.NativeService) ([]byte, error) {
@@ -232,5 +243,81 @@ func CreateSnapshot(native *native.NativeService) ([]byte, error) {
 	native.CacheDB.Put(generateParamKey(contract, CURRENT_VALUE), getParamStorageItem(prepareParam).ToArray())
 
 	NotifyParamChange(native, contract, CREATE_SNAPSHOT_NAME, prepareParam)
+	return utils.BYTE_TRUE, nil
+}
+
+type AddressParam struct {
+	Contracts []common.Address
+}
+
+func (this *AddressParam) Serialization(sink *common.ZeroCopySink) {
+	utils.EncodeVarUint(sink, uint64(len(this.Contracts)))
+	for _, v := range this.Contracts {
+		utils.EncodeAddress(sink, v)
+	}
+}
+
+func (this *AddressParam) Deserialization(source *common.ZeroCopySource) error {
+	n, err := utils.DecodeVarUint(source)
+	if err != nil {
+		return fmt.Errorf("serialization.ReadVarUint, deserialize peerPubkeyList length error: %v", err)
+	}
+	contracts := make([]common.Address, 0)
+	for i := 0; uint64(i) < n; i++ {
+		k, err := utils.DecodeAddress(source)
+		if err != nil {
+			return err
+		}
+		contracts = append(contracts, k)
+	}
+
+	this.Contracts = contracts
+	return nil
+}
+
+func AddDestroyedContracts(native *native.NativeService) ([]byte, error) {
+	contract := native.ContextRef.CurrentContext().ContractAddress
+	operator, err := GetStorageRole(native, GenerateOperatorKey(contract))
+	if err != nil || operator == common.ADDRESS_EMPTY {
+		return utils.BYTE_FALSE, fmt.Errorf("create snapshot, operator doesn't exist, caused by %v", err)
+	}
+	if !native.ContextRef.CheckWitness(operator) {
+		return utils.BYTE_FALSE, errors.NewErr("create snapshot, authentication failed!")
+	}
+
+	params := new(AddressParam)
+	if err := params.Deserialization(common.NewZeroCopySource(native.Input)); err != nil {
+		return utils.BYTE_FALSE, err
+	}
+
+	for _, addr := range params.Contracts {
+		if utils.IsNativeContract(addr) {
+			return utils.BYTE_FALSE, fmt.Errorf("native address can not be destroyed: %s", addr.ToHexString())
+		}
+		native.CacheDB.SetContractDestroyed(addr, native.Height)
+	}
+
+	return utils.BYTE_TRUE, nil
+}
+
+func RemoveDestroyedContracts(native *native.NativeService) ([]byte, error) {
+	contract := native.ContextRef.CurrentContext().ContractAddress
+	operator, err := GetStorageRole(native, GenerateOperatorKey(contract))
+	if err != nil || operator == common.ADDRESS_EMPTY {
+		return utils.BYTE_FALSE, fmt.Errorf("create snapshot, operator doesn't exist, caused by %v", err)
+	}
+	if !native.ContextRef.CheckWitness(operator) {
+		return utils.BYTE_FALSE, errors.NewErr("create snapshot, authentication failed!")
+	}
+
+	params := new(AddressParam)
+	if err := params.Deserialization(common.NewZeroCopySource(native.Input)); err != nil {
+		return utils.BYTE_FALSE, err
+	}
+
+	for _, addr := range params.Contracts {
+		native.CacheDB.UnsetContractDestroyed(addr, native.Height)
+	}
+
 	return utils.BYTE_TRUE, nil
 }
