@@ -21,6 +21,8 @@ package global_params
 import (
 	"fmt"
 
+	"github.com/ontio/ontology/common/config"
+
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/smartcontract/service/native"
@@ -59,8 +61,10 @@ func RegisterParamContract(native *native.NativeService) {
 	native.Register(SET_GLOBAL_PARAM_NAME, SetGlobalParam)
 	native.Register(GET_GLOBAL_PARAM_NAME, GetGlobalParam)
 	native.Register(CREATE_SNAPSHOT_NAME, CreateSnapshot)
-	native.Register(ADD_DESTROYED_CONTRACT, AddDestroyedContracts)
-	native.Register(REMOVE_DESTROYED_CONTRACT, RemoveDestroyedContracts)
+	if native.Height >= config.GetTrackDestroyedContractHeight() {
+		native.Register(ADD_DESTROYED_CONTRACT, AddDestroyedContracts)
+		native.Register(REMOVE_DESTROYED_CONTRACT, RemoveDestroyedContracts)
+	}
 }
 
 func ParamInit(native *native.NativeService) ([]byte, error) {
