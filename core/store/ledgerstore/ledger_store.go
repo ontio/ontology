@@ -787,6 +787,13 @@ func calculateTotalStateHash(overlay *overlaydb.OverlayDB) (result common.Uint25
 		return
 	}
 
+	iter = overlay.NewIterator([]byte{byte(scom.ST_DESTROYED)})
+	err = accumulateHash(stateDiff, iter)
+	iter.Release()
+	if err != nil {
+		return
+	}
+
 	stateDiff.Sum(result[:0])
 	return
 }

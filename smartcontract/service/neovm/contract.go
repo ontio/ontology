@@ -34,11 +34,12 @@ func ContractCreate(service *NeoVmService, engine *vm.Executor) error {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[ContractCreate] contract parameters invalid!")
 	}
 	contractAddress := contract.Address()
-	dep, err := service.CacheDB.GetContract(contractAddress)
+	dep, destroyed, err := service.CacheDB.GetContract(contractAddress)
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[ContractCreate] GetOrAdd error!")
 	}
-	if dep == nil {
+
+	if dep == nil && !destroyed {
 		service.CacheDB.PutContract(contract)
 		dep = contract
 	}
@@ -53,26 +54,16 @@ func ContractMigrate(service *NeoVmService, engine *vm.Executor) error {
 	}
 	newAddr := contract.Address()
 
-	if err := isContractExist(service, newAddr); err != nil {
+	if err := ensureContractUndeployed(service, newAddr); err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[ContractMigrate] contract invalid!")
 	}
 	context := service.ContextRef.CurrentContext()
 	oldAddr := context.ContractAddress
 
 	service.CacheDB.PutContract(contract)
-	service.CacheDB.DeleteContract(oldAddr)
 
-	iter := service.CacheDB.NewIterator(oldAddr[:])
-	for has := iter.First(); has; has = iter.Next() {
-		key := iter.Key()
-		val := iter.Value()
-
-		newKey := genStorageKey(newAddr, key[20:])
-		service.CacheDB.Put(newKey, val)
-		service.CacheDB.Delete(key)
-	}
-	iter.Release()
-	if err := iter.Error(); err != nil {
+	err = service.CacheDB.MigrateContractStorage(oldAddr, newAddr, service.Height)
+	if err != nil {
 		return err
 	}
 	return engine.EvalStack.PushAsInteropValue(contract)
@@ -85,24 +76,12 @@ func ContractDestory(service *NeoVmService, engine *vm.Executor) error {
 		return errors.NewErr("[ContractDestory] current contract context invalid!")
 	}
 	addr := context.ContractAddress
-	contract, err := service.CacheDB.GetContract(addr)
+	contract, _, err := service.CacheDB.GetContract(addr)
 	if err != nil || contract == nil {
 		return errors.NewErr("[ContractDestory] get current contract fail!")
 	}
 
-	service.CacheDB.DeleteContract(addr)
-
-	iter := service.CacheDB.NewIterator(addr[:])
-	for has := iter.First(); has; has = iter.Next() {
-		key := iter.Key()
-		service.CacheDB.Delete(key)
-	}
-	iter.Release()
-	if err := iter.Error(); err != nil {
-		return err
-	}
-
-	return nil
+	return service.CacheDB.CleanContractStorage(addr, service.Height)
 }
 
 // ContractGetStorageContext put contract storage context to vm stack
@@ -119,7 +98,7 @@ func ContractGetStorageContext(service *NeoVmService, engine *vm.Executor) error
 		return errors.NewErr("[GetStorageContext] Pop data not contract!")
 	}
 	address := contractState.Address()
-	item, err := service.CacheDB.GetContract(address)
+	item, _, err := service.CacheDB.GetContract(address)
 	if err != nil || item == nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[GetStorageContext] Get StorageContext nil")
 	}
@@ -191,11 +170,12 @@ func isContractParamValid(engine *vm.Executor) (*payload.DeployCode, error) {
 	return contract, nil
 }
 
-func isContractExist(service *NeoVmService, contractAddress common.Address) error {
-	item, err := service.CacheDB.GetContract(contractAddress)
+func ensureContractUndeployed(service *NeoVmService, contractAddress common.Address) error {
+	item, destroyed, err := service.CacheDB.GetContract(contractAddress)
 
-	if err != nil || item != nil {
-		return fmt.Errorf("[Contract] Get contract %x error or contract exist", contractAddress)
+	if err != nil || item != nil || destroyed {
+		return fmt.Errorf("[Contract] Get contract %x error or contract deployed", contractAddress)
 	}
+
 	return nil
 }
