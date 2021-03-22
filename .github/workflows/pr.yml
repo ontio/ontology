@@ -1,0 +1,20 @@
+on:
+  pull_request:
+    branches:
+    - master
+
+
+jobs:
+
+  build:
+    runs-on: ubuntu-18.04
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Set up Go
+      uses: actions/setup-go@v2
+      with:
+        go-version: 1.13
+
+    - name: command
+      run: bash ./.gha.script.bash
