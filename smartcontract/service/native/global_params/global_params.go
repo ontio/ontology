@@ -70,7 +70,7 @@ func RegisterParamContract(native *native.NativeService) {
 func ParamInit(native *native.NativeService) ([]byte, error) {
 	contract := native.ContextRef.CurrentContext().ContractAddress
 	storageAdmin, _ := GetStorageRole(native, generateAdminKey(contract, false))
-	storageOperator, _ := GetStorageRole(native, generateAdminKey(contract, false))
+	storageOperator, _ := GetStorageRole(native, GenerateOperatorKey(contract))
 	if storageAdmin != common.ADDRESS_EMPTY || storageOperator != common.ADDRESS_EMPTY {
 		return utils.BYTE_FALSE, errors.NewErr("init param, admin or operator has already existed!")
 	}
