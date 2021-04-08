@@ -19,11 +19,11 @@
 package global_params
 
 import (
+	"encoding/binary"
 	"fmt"
 
-	"github.com/ontio/ontology/common/config"
-
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
@@ -47,6 +47,7 @@ const (
 	CREATE_SNAPSHOT_NAME      = "createSnapshot"
 	ADD_DESTROYED_CONTRACT    = "addDestroyedContract"
 	REMOVE_DESTROYED_CONTRACT = "removeDestroyedContract"
+	SET_ETH_LAYER2_CHAINID    = "setEthLayer2Chainid"
 )
 
 func InitGlobalParams() {
@@ -61,6 +62,8 @@ func RegisterParamContract(native *native.NativeService) {
 	native.Register(SET_GLOBAL_PARAM_NAME, SetGlobalParam)
 	native.Register(GET_GLOBAL_PARAM_NAME, GetGlobalParam)
 	native.Register(CREATE_SNAPSHOT_NAME, CreateSnapshot)
+	native.Register(SET_ETH_LAYER2_CHAINID, SetEthLayer2ChainID)
+
 	if native.Height >= config.GetTrackDestroyedContractHeight() {
 		native.Register(ADD_DESTROYED_CONTRACT, AddDestroyedContracts)
 		native.Register(REMOVE_DESTROYED_CONTRACT, RemoveDestroyedContracts)
@@ -243,6 +246,33 @@ func CreateSnapshot(native *native.NativeService) ([]byte, error) {
 	native.CacheDB.Put(generateParamKey(contract, CURRENT_VALUE), getParamStorageItem(prepareParam).ToArray())
 
 	NotifyParamChange(native, contract, CREATE_SNAPSHOT_NAME, prepareParam)
+	return utils.BYTE_TRUE, nil
+}
+
+func SetEthLayer2ChainID(native *native.NativeService) ([]byte, error) {
+	contract := native.ContextRef.CurrentContext().ContractAddress
+	// param check
+	targetChainID, err := utils.DecodeVarUint(common.NewZeroCopySource(native.Input))
+	if err != nil {
+		return utils.BYTE_FALSE, errors.NewErr("read param fail")
+	}
+
+	var bin [8]byte
+	binary.LittleEndian.PutUint64(bin[:], targetChainID)
+
+	// auth check
+	operator, err := GetStorageRole(native, GenerateOperatorKey(contract))
+	if err != nil || operator == common.ADDRESS_EMPTY {
+		return utils.BYTE_FALSE, fmt.Errorf("create snapshot, operator doesn't exist, caused by %v", err)
+	}
+	if !native.ContextRef.CheckWitness(operator) {
+		return utils.BYTE_FALSE, errors.NewErr("create snapshot, authentication failed!")
+	}
+
+	// set value
+	native.CacheDB.Put(GenerateEthLayer2ChainIDKey(contract), bin[:])
+	NotifyEthChainIDChange(native, contract, SET_ETH_LAYER2_CHAINID, targetChainID)
+
 	return utils.BYTE_TRUE, nil
 }
 

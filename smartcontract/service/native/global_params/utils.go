@@ -32,6 +32,8 @@ const (
 	TRANSFER = "transfer"
 	ADMIN    = "admin"
 	OPERATOR = "operator"
+
+	ETHLAYER2ChainID = "ethl2chainid"
 )
 
 func getRoleStorageItem(role common.Address) *cstates.StorageItem {
@@ -48,6 +50,10 @@ func generateParamKey(contract common.Address, valueType paramType) []byte {
 	key := append(contract[:], PARAM...)
 	key = append(key[:], byte(valueType))
 	return key
+}
+
+func GenerateEthLayer2ChainIDKey(contract common.Address) []byte {
+	return append(contract[:], ETHLAYER2ChainID...)
 }
 
 func generateAdminKey(contract common.Address, isTransferAdmin bool) []byte {
@@ -120,5 +126,17 @@ func NotifyParamChange(native *native.NativeService, contract common.Address, fu
 		&event.NotifyEventInfo{
 			ContractAddress: contract,
 			States:          []interface{}{functionName, paramsString},
+		})
+}
+
+func NotifyEthChainIDChange(native *native.NativeService, contract common.Address, functionName string, id uint64) {
+	if !config.DefConfig.Common.EnableEventLog {
+		return
+	}
+
+	native.Notifications = append(native.Notifications,
+		&event.NotifyEventInfo{
+			ContractAddress: contract,
+			States:          []interface{}{functionName, id},
 		})
 }

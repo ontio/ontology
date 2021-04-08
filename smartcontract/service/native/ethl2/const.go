@@ -16,32 +16,30 @@
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package utils
+package ethl2
 
 import (
-	"testing"
-
 	"github.com/ontio/ontology/common"
-	"github.com/stretchr/testify/assert"
 )
 
-func TestIsNativeContract(t *testing.T) {
-	address := []common.Address{
-		OntContractAddress,
-		OngContractAddress,
-		OntIDContractAddress,
-		ParamContractAddress,
-		AuthContractAddress,
-		GovernanceContractAddress,
-		HeaderSyncContractAddress,
-		CrossChainContractAddress,
-		LockProxyContractAddress,
-		ETHL2ContractAddress,
-	}
+const (
+	MethodPutName       = "put"
+	MethodAppendAddress = "appendaddress"
+	MethodGetAddress    = "getaddress"
 
-	for _, addr := range address {
-		assert.True(t, IsNativeContract(addr))
-	}
+	PutKeyPrefix  = "ethl2"
+	AuthKeyPrefix = "authaddressset"
+)
 
-	assert.False(t, IsNativeContract(common.ADDRESS_EMPTY))
+const (
+	EthEIP155Type        = byte(0x00)
+	EthSignedMessageType = byte(0x02)
+)
+
+func GenPutKey(contract common.Address, input string) []byte {
+	return append(contract[:], (PutKeyPrefix + input)...)
+}
+
+func GetAppendAutAddressKey(contract common.Address) []byte {
+	return append(contract[:], AuthKeyPrefix...)
 }

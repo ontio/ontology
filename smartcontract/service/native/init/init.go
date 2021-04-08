@@ -27,6 +27,7 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/native/cross_chain/cross_chain_manager"
 	"github.com/ontio/ontology/smartcontract/service/native/cross_chain/header_sync"
 	"github.com/ontio/ontology/smartcontract/service/native/cross_chain/lock_proxy"
+	"github.com/ontio/ontology/smartcontract/service/native/ethl2"
 	params "github.com/ontio/ontology/smartcontract/service/native/global_params"
 	"github.com/ontio/ontology/smartcontract/service/native/governance"
 	"github.com/ontio/ontology/smartcontract/service/native/ong"
@@ -40,6 +41,7 @@ import (
 
 var (
 	COMMIT_DPOS_BYTES = InitBytes(utils.GovernanceContractAddress, governance.COMMIT_DPOS)
+	CALL_ETHL2_BYTES  = InitEthl2Bytes(utils.ETHLayer2ContractAddress, ethl2.MethodPutName)
 )
 
 func init() {
@@ -53,6 +55,7 @@ func init() {
 	header_sync.InitHeaderSync()
 	lock_proxy.InitLockProxy()
 	ontfs.InitFs()
+	ethl2.InitETHL2()
 }
 
 func InitBytes(addr common.Address, method string) []byte {
@@ -62,6 +65,18 @@ func InitBytes(addr common.Address, method string) []byte {
 	builder.EmitPushByteArray([]byte(method))
 	builder.EmitPushByteArray(addr[:])
 	builder.EmitPushInteger(big.NewInt(0))
+	builder.Emit(vm.SYSCALL)
+	builder.EmitPushByteArray([]byte(neovm.NATIVE_INVOKE_NAME))
+
+	return builder.ToArray()
+}
+
+func InitEthl2Bytes(addr common.Address, method string) []byte {
+	bf := new(bytes.Buffer)
+	builder := vm.NewParamsBuilder(bf)
+	builder.EmitPushByteArray([]byte(method))
+	builder.EmitPushByteArray(addr[:])
+	builder.EmitPushInteger(big.NewInt(0)) // version
 	builder.Emit(vm.SYSCALL)
 	builder.EmitPushByteArray([]byte(neovm.NATIVE_INVOKE_NAME))
 
