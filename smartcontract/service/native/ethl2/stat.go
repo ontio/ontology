@@ -71,3 +71,16 @@ func AddAppendAddressNotification(native *native.NativeService, contract common.
 
 	native.Notifications = append(native.Notifications, noti)
 }
+
+func AddNotification(native *native.NativeService, contract common.Address, args ...interface{}) {
+	if !config.DefConfig.Common.EnableEventLog {
+		return
+	}
+
+	noti := &event.NotifyEventInfo{
+		ContractAddress: contract,
+		States:          args,
+	}
+
+	native.Notifications = append(native.Notifications, noti)
+}

@@ -41,14 +41,46 @@ func RegisterETHL2Contract(native *native.NativeService) {
 	native.Register(MethodPutName, Put)
 	native.Register(MethodAppendAddress, AppendAuthedAddress)
 	native.Register(MethodGetAddress, GetEthLayer2AuthAddress)
+	native.Register(MethodSetEthGasLimit, SetEthGaslimit)
+	native.Register(MethodGetEthGasLimit, GetEthGaslimit)
+
+	native.Register(MethodSetMaxEthTxlenByte, SetMaxEthTxLen)
+	native.Register(MethodGetMaxEthTxlenByte, GetMaxEthTxlen)
 }
 
 func Put(native *native.NativeService) ([]byte, error) {
 	contract := native.ContextRef.CurrentContext().ContractAddress
 
-	raw, err := utils.DecodeVarBytes(common.NewZeroCopySource(native.Input))
-	if err != nil || len(raw) < 1 {
+	// get eth txMaxlen and eth gaslimit
+	b, err := native.CacheDB.Get(SetEthTxLenKey(contract))
+	if err != nil {
 		return utils.BYTE_FALSE, err
+	}
+	if len(b) == 0 {
+		return utils.BYTE_FALSE, errors.New("please set eth maxexlen first, call method: setmaxtxlen")
+	}
+	sink := common.NewZeroCopySource(b)
+	maxLen, _, ir, eof := sink.NextVarUint()
+	if ir || eof {
+		return utils.BYTE_FALSE, errors.New("read varint of maxlen fail")
+	}
+
+	b, err = native.CacheDB.Get(SetEthGasLimitKey(contract))
+	if err != nil {
+		return utils.BYTE_FALSE, err
+	}
+	if len(b) == 0 {
+		return utils.BYTE_FALSE, errors.New("please set gaslimit first, call method: setgaslimit")
+	}
+	sink = common.NewZeroCopySource(b)
+	gasLimit, _, ir, eof := sink.NextVarUint()
+	if ir || eof {
+		return utils.BYTE_FALSE, errors.New("get gaslimit fail")
+	}
+
+	raw, err := utils.DecodeVarBytes(common.NewZeroCopySource(native.Input))
+	if err != nil || len(raw) < 1 || len(raw) > int(maxLen) {
+		return utils.BYTE_FALSE, errors.New("invalid input")
 	}
 
 	ethtxType := raw[0]
@@ -65,6 +97,9 @@ func Put(native *native.NativeService) ([]byte, error) {
 		err = tx.UnmarshalBinary(txbin)
 		if err != nil {
 			return utils.BYTE_FALSE, err
+		}
+		if tx.Gas() > gasLimit {
+			return utils.BYTE_FALSE, fmt.Errorf("gas overflow: intx: %d, ceil: %d", tx.Gas(), gasLimit)
 		}
 		chainID, err := GetEthLayer2ChainID(native)
 		if err != nil {
@@ -168,6 +203,76 @@ func GetEthLayer2AuthAddress(native *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return utils.BYTE_FALSE, err
 	}
+
+	return b, nil
+}
+
+func SetEthGaslimit(native *native.NativeService) ([]byte, error) {
+	contract := native.ContextRef.CurrentContext().ContractAddress
+
+	operator, err := global_params.GetStorageRole(native, global_params.GenerateOperatorKey(utils.ParamContractAddress))
+	if err != nil || operator == common.ADDRESS_EMPTY {
+		return utils.BYTE_FALSE, fmt.Errorf("create snapshot, operator doesn't exist, caused by %v", err)
+	}
+	if !native.ContextRef.CheckWitness(operator) {
+		return utils.BYTE_FALSE, errors.New("need global params admin to set eth tx len, you have no permission to do this")
+	}
+	// will update this set
+	gasLimit, err := utils.DecodeVarUint(common.NewZeroCopySource(native.Input))
+	if err != nil {
+		return utils.BYTE_FALSE, errors.New("read param for this function fail, need valid tx len input")
+	}
+	sink := common.NewZeroCopySink(nil)
+	sink.WriteVarUint(gasLimit)
+
+	native.CacheDB.Put(SetEthGasLimitKey(contract), sink.Bytes())
+	AddNotification(native, contract, MethodSetEthGasLimit, gasLimit)
+
+	return utils.BYTE_TRUE, nil
+}
+
+func GetEthGaslimit(native *native.NativeService) ([]byte, error) {
+	contract := native.ContextRef.CurrentContext().ContractAddress
+	b, err := native.CacheDB.Get(SetEthGasLimitKey(contract))
+	if err != nil || len(b) == 0 {
+		return utils.BYTE_FALSE, errors.New("this key has not set yet")
+	}
+	// no event
+
+	return b, nil
+}
+
+func SetMaxEthTxLen(native *native.NativeService) ([]byte, error) {
+	contract := native.ContextRef.CurrentContext().ContractAddress
+
+	operator, err := global_params.GetStorageRole(native, global_params.GenerateOperatorKey(utils.ParamContractAddress))
+	if err != nil || operator == common.ADDRESS_EMPTY {
+		return utils.BYTE_FALSE, fmt.Errorf("create snapshot, operator doesn't exist, caused by %v", err)
+	}
+	if !native.ContextRef.CheckWitness(operator) {
+		return utils.BYTE_FALSE, errors.New("need global params admin to set eth tx len, you have no permission to do this")
+	}
+	// will update this set
+	txLen, err := utils.DecodeVarUint(common.NewZeroCopySource(native.Input))
+	if err != nil || txLen < 2 {
+		return utils.BYTE_FALSE, errors.New("read param for this function fail, need valid tx len input")
+	}
+	sink := common.NewZeroCopySink(nil)
+	sink.WriteVarUint(txLen)
+
+	native.CacheDB.Put(SetEthTxLenKey(contract), sink.Bytes())
+	AddNotification(native, contract, MethodSetMaxEthTxlenByte, txLen)
+
+	return utils.BYTE_TRUE, nil
+}
+
+func GetMaxEthTxlen(native *native.NativeService) ([]byte, error) {
+	contract := native.ContextRef.CurrentContext().ContractAddress
+	b, err := native.CacheDB.Get(SetEthTxLenKey(contract))
+	if err != nil || len(b) == 0 {
+		return utils.BYTE_FALSE, errors.New("this key has not set yet")
+	}
+	// no event
 
 	return b, nil
 }

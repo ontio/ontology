@@ -27,8 +27,18 @@ const (
 	MethodAppendAddress = "appendaddress"
 	MethodGetAddress    = "getaddress"
 
-	PutKeyPrefix  = "ethl2"
-	AuthKeyPrefix = "authaddressset"
+	MethodSetEthGasLimit = "setgaslimit"
+	MethodGetEthGasLimit = "getgaslimit"
+
+	MethodSetMaxEthTxlenByte = "setmaxtxlen"
+	MethodGetMaxEthTxlenByte = "getmaxtxlen"
+
+	// key prefix for dict key used in this contract
+
+	PutKeyPrefix         = "ethl2"
+	AuthKeyPrefix        = "authaddressset"
+	EthGaslimitKeyPrefix = "ethgaslimit"
+	EthTxLenKeyPrefix    = "ethtxlenbyte"
 )
 
 const (
@@ -42,4 +52,12 @@ func GenPutKey(contract common.Address, input string) []byte {
 
 func GetAppendAutAddressKey(contract common.Address) []byte {
 	return append(contract[:], AuthKeyPrefix...)
+}
+
+func SetEthTxLenKey(contract common.Address) []byte {
+	return append(contract[:], EthTxLenKeyPrefix...)
+}
+
+func SetEthGasLimitKey(contract common.Address) []byte {
+	return append(contract[:], EthGaslimitKeyPrefix...)
 }
