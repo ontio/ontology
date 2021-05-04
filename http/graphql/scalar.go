@@ -23,7 +23,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/v2/common"
 )
 
 type Uint32 uint32

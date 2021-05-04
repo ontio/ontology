@@ -25,8 +25,8 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/ontio/ontology/smartcontract/service/native/ontfs/pdp/merkle_pdp"
-	"github.com/ontio/ontology/smartcontract/service/native/ontfs/pdp/types"
+	"github.com/ontio/ontology/v2/smartcontract/service/native/ontfs/pdp/merkle_pdp"
+	"github.com/ontio/ontology/v2/smartcontract/service/native/ontfs/pdp/types"
 )
 
 const (

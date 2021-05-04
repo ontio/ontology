@@ -28,7 +28,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/ontio/ontology/common/constants"
+	"github.com/ontio/ontology/v2/common/constants"
 )
 
 const (

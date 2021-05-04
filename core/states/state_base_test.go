@@ -20,7 +20,7 @@ package states
 import (
 	"testing"
 
-	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/v2/common"
 )
 
 func TestStateBase_Serialize_Deserialize(t *testing.T) {

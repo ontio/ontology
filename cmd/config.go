@@ -21,11 +21,11 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/ontio/ontology/cmd/utils"
-	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/common/config"
-	"github.com/ontio/ontology/common/log"
-	"github.com/ontio/ontology/smartcontract/service/native/governance"
+	"github.com/ontio/ontology/v2/cmd/utils"
+	"github.com/ontio/ontology/v2/common"
+	"github.com/ontio/ontology/v2/common/config"
+	"github.com/ontio/ontology/v2/common/log"
+	"github.com/ontio/ontology/v2/smartcontract/service/native/governance"
 	"github.com/urfave/cli"
 )
 

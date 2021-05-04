@@ -21,7 +21,7 @@ import (
 	"errors"
 	"math"
 
-	"github.com/ontio/ontology/core/states"
+	"github.com/ontio/ontology/v2/core/states"
 	"github.com/ontio/wagon/exec"
 )
 

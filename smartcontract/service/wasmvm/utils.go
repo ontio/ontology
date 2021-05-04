@@ -22,7 +22,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/ontio/ontology/common/config"
+	"github.com/ontio/ontology/v2/common/config"
 	"github.com/ontio/wagon/exec"
 	"github.com/ontio/wagon/validate"
 	"github.com/ontio/wagon/wasm"

@@ -18,7 +18,7 @@
 
 package common
 
-import "github.com/ontio/ontology/common/log"
+import "github.com/ontio/ontology/v2/common/log"
 
 type Logger interface {
 	Debug(a ...interface{})

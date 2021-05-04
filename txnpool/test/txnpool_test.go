@@ -25,16 +25,16 @@ import (
 	"time"
 
 	"github.com/ontio/ontology-eventbus/actor"
-	"github.com/ontio/ontology/common/config"
-	"github.com/ontio/ontology/common/log"
-	"github.com/ontio/ontology/core/genesis"
-	"github.com/ontio/ontology/core/ledger"
-	"github.com/ontio/ontology/core/payload"
-	"github.com/ontio/ontology/core/types"
-	tc "github.com/ontio/ontology/txnpool/common"
-	tp "github.com/ontio/ontology/txnpool/proc"
-	"github.com/ontio/ontology/validator/stateful"
-	"github.com/ontio/ontology/validator/stateless"
+	"github.com/ontio/ontology/v2/common/config"
+	"github.com/ontio/ontology/v2/common/log"
+	"github.com/ontio/ontology/v2/core/genesis"
+	"github.com/ontio/ontology/v2/core/ledger"
+	"github.com/ontio/ontology/v2/core/payload"
+	"github.com/ontio/ontology/v2/core/types"
+	tc "github.com/ontio/ontology/v2/txnpool/common"
+	tp "github.com/ontio/ontology/v2/txnpool/proc"
+	"github.com/ontio/ontology/v2/validator/stateful"
+	"github.com/ontio/ontology/v2/validator/stateless"
 )
 
 func TestMain(m *testing.M) {

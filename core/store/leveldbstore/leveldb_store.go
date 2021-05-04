@@ -20,7 +20,7 @@ package leveldbstore
 
 import (
 	"github.com/ethereum/go-ethereum/common/fdlimit"
-	"github.com/ontio/ontology/core/store/common"
+	"github.com/ontio/ontology/v2/core/store/common"
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/errors"
 	"github.com/syndtr/goleveldb/leveldb/filter"

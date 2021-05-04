@@ -23,9 +23,9 @@ import (
 	"fmt"
 	"io"
 
-	comm "github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/common/config"
-	"github.com/ontio/ontology/p2pserver/common"
+	comm "github.com/ontio/ontology/v2/common"
+	"github.com/ontio/ontology/v2/common/config"
+	"github.com/ontio/ontology/v2/p2pserver/common"
 )
 
 type Message interface {

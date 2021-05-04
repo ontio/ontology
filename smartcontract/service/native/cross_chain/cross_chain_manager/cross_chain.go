@@ -24,12 +24,12 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/smartcontract/service/native"
-	ccom "github.com/ontio/ontology/smartcontract/service/native/cross_chain/common"
-	"github.com/ontio/ontology/smartcontract/service/native/cross_chain/header_sync"
-	"github.com/ontio/ontology/smartcontract/service/native/utils"
-	"github.com/ontio/ontology/vm/neovm/types"
+	"github.com/ontio/ontology/v2/common"
+	"github.com/ontio/ontology/v2/smartcontract/service/native"
+	ccom "github.com/ontio/ontology/v2/smartcontract/service/native/cross_chain/common"
+	"github.com/ontio/ontology/v2/smartcontract/service/native/cross_chain/header_sync"
+	"github.com/ontio/ontology/v2/smartcontract/service/native/utils"
+	"github.com/ontio/ontology/v2/vm/neovm/types"
 )
 
 const (

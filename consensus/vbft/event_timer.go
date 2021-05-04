@@ -26,7 +26,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/ontio/ontology/common/log"
+	"github.com/ontio/ontology/v2/common/log"
 )
 
 type TimerEventType int

@@ -27,8 +27,8 @@ import (
 	"github.com/gosuri/uiprogress"
 	"github.com/urfave/cli"
 
-	"github.com/ontio/ontology/cmd/utils"
-	"github.com/ontio/ontology/common/serialization"
+	"github.com/ontio/ontology/v2/cmd/utils"
+	"github.com/ontio/ontology/v2/common/serialization"
 )
 
 var ExportCommand = cli.Command{

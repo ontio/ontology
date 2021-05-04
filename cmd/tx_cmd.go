@@ -23,10 +23,10 @@ import (
 	"strconv"
 	"strings"
 
-	cmdcom "github.com/ontio/ontology/cmd/common"
-	"github.com/ontio/ontology/cmd/utils"
-	"github.com/ontio/ontology/common"
-	nutils "github.com/ontio/ontology/smartcontract/service/native/utils"
+	cmdcom "github.com/ontio/ontology/v2/cmd/common"
+	"github.com/ontio/ontology/v2/cmd/utils"
+	"github.com/ontio/ontology/v2/common"
+	nutils "github.com/ontio/ontology/v2/smartcontract/service/native/utils"
 	"github.com/urfave/cli"
 )
 

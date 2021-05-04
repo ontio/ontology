@@ -21,7 +21,7 @@ package types
 import (
 	"bytes"
 
-	"github.com/ontio/ontology/vm/neovm/interfaces"
+	"github.com/ontio/ontology/v2/vm/neovm/interfaces"
 )
 
 type InteropValue struct {

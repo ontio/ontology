@@ -21,7 +21,7 @@ package ontfs
 import (
 	"fmt"
 
-	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/v2/common"
 )
 
 type RetInfo struct {

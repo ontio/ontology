@@ -19,7 +19,7 @@
 package message
 
 import (
-	"github.com/ontio/ontology/core/types"
+	"github.com/ontio/ontology/v2/core/types"
 )
 
 const (

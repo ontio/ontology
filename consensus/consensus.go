@@ -20,12 +20,12 @@ package consensus
 
 import (
 	"github.com/ontio/ontology-eventbus/actor"
-	"github.com/ontio/ontology/account"
-	"github.com/ontio/ontology/common/log"
-	"github.com/ontio/ontology/consensus/dbft"
-	"github.com/ontio/ontology/consensus/solo"
-	"github.com/ontio/ontology/consensus/vbft"
-	p2p "github.com/ontio/ontology/p2pserver/net/protocol"
+	"github.com/ontio/ontology/v2/account"
+	"github.com/ontio/ontology/v2/common/log"
+	"github.com/ontio/ontology/v2/consensus/dbft"
+	"github.com/ontio/ontology/v2/consensus/solo"
+	"github.com/ontio/ontology/v2/consensus/vbft"
+	p2p "github.com/ontio/ontology/v2/p2pserver/net/protocol"
 )
 
 type ConsensusService interface {

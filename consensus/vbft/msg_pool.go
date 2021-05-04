@@ -22,7 +22,7 @@ import (
 	"errors"
 	"sync"
 
-	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/v2/common"
 )
 
 var errDropFarFutureMsg = errors.New("msg pool dropped msg for far future")

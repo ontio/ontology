@@ -21,7 +21,7 @@ package neovm
 import (
 	"io"
 
-	"github.com/ontio/ontology/vm/neovm/utils"
+	"github.com/ontio/ontology/v2/vm/neovm/utils"
 )
 
 type ExecutionContext struct {

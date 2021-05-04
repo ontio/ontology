@@ -24,12 +24,12 @@ import (
 	"io/ioutil"
 	"strings"
 
-	cmdcom "github.com/ontio/ontology/cmd/common"
-	"github.com/ontio/ontology/cmd/utils"
-	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/common/config"
-	"github.com/ontio/ontology/core/payload"
-	httpcom "github.com/ontio/ontology/http/base/common"
+	cmdcom "github.com/ontio/ontology/v2/cmd/common"
+	"github.com/ontio/ontology/v2/cmd/utils"
+	"github.com/ontio/ontology/v2/common"
+	"github.com/ontio/ontology/v2/common/config"
+	"github.com/ontio/ontology/v2/core/payload"
+	httpcom "github.com/ontio/ontology/v2/http/base/common"
 	"github.com/urfave/cli"
 )
 

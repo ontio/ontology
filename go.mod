@@ -1,4 +1,4 @@
-module github.com/ontio/ontology
+module github.com/ontio/ontology/v2
 
 go 1.12
 

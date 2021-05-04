@@ -23,17 +23,17 @@ import (
 	"fmt"
 	"io"
 
-	scommon "github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/common/config"
-	"github.com/ontio/ontology/common/log"
-	"github.com/ontio/ontology/core/store"
-	"github.com/ontio/ontology/core/types"
-	"github.com/ontio/ontology/errors"
-	"github.com/ontio/ontology/smartcontract/context"
-	"github.com/ontio/ontology/smartcontract/event"
-	"github.com/ontio/ontology/smartcontract/storage"
-	vm "github.com/ontio/ontology/vm/neovm"
-	vmty "github.com/ontio/ontology/vm/neovm/types"
+	scommon "github.com/ontio/ontology/v2/common"
+	"github.com/ontio/ontology/v2/common/config"
+	"github.com/ontio/ontology/v2/common/log"
+	"github.com/ontio/ontology/v2/core/store"
+	"github.com/ontio/ontology/v2/core/types"
+	"github.com/ontio/ontology/v2/errors"
+	"github.com/ontio/ontology/v2/smartcontract/context"
+	"github.com/ontio/ontology/v2/smartcontract/event"
+	"github.com/ontio/ontology/v2/smartcontract/storage"
+	vm "github.com/ontio/ontology/v2/vm/neovm"
+	vmty "github.com/ontio/ontology/v2/vm/neovm/types"
 )
 
 var (

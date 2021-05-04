@@ -22,9 +22,9 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/common/log"
-	"github.com/ontio/ontology/core/types"
+	"github.com/ontio/ontology/v2/common"
+	"github.com/ontio/ontology/v2/common/log"
+	"github.com/ontio/ontology/v2/core/types"
 )
 
 // IncrementValidator do increment check of transaction

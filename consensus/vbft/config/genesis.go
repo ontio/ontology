@@ -28,9 +28,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/common/config"
-	"github.com/ontio/ontology/common/log"
+	"github.com/ontio/ontology/v2/common"
+	"github.com/ontio/ontology/v2/common/config"
+	"github.com/ontio/ontology/v2/common/log"
 )
 
 func shuffle_hash(txid common.Uint256, height uint32, id string, idx int) (uint64, error) {

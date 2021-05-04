@@ -31,11 +31,11 @@ import (
 	"sync"
 	"time"
 
-	cfg "github.com/ontio/ontology/common/config"
-	"github.com/ontio/ontology/common/log"
-	"github.com/ontio/ontology/http/base/common"
-	berr "github.com/ontio/ontology/http/base/error"
-	"github.com/ontio/ontology/http/base/rest"
+	cfg "github.com/ontio/ontology/v2/common/config"
+	"github.com/ontio/ontology/v2/common/log"
+	"github.com/ontio/ontology/v2/http/base/common"
+	berr "github.com/ontio/ontology/v2/http/base/error"
+	"github.com/ontio/ontology/v2/http/base/rest"
 	"golang.org/x/net/netutil"
 )
 

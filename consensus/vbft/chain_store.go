@@ -23,13 +23,13 @@ import (
 	"sync/atomic"
 
 	"github.com/ontio/ontology-eventbus/actor"
-	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/common/log"
-	"github.com/ontio/ontology/core/ledger"
-	"github.com/ontio/ontology/core/store"
-	"github.com/ontio/ontology/core/store/overlaydb"
-	"github.com/ontio/ontology/core/types"
-	"github.com/ontio/ontology/events/message"
+	"github.com/ontio/ontology/v2/common"
+	"github.com/ontio/ontology/v2/common/log"
+	"github.com/ontio/ontology/v2/core/ledger"
+	"github.com/ontio/ontology/v2/core/store"
+	"github.com/ontio/ontology/v2/core/store/overlaydb"
+	"github.com/ontio/ontology/v2/core/types"
+	"github.com/ontio/ontology/v2/events/message"
 )
 
 type PendingBlock struct {

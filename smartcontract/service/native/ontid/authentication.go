@@ -22,9 +22,9 @@ import (
 	"fmt"
 
 	"github.com/ontio/ontology-crypto/keypair"
-	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/smartcontract/service/native"
-	"github.com/ontio/ontology/smartcontract/service/native/utils"
+	"github.com/ontio/ontology/v2/common"
+	"github.com/ontio/ontology/v2/smartcontract/service/native"
+	"github.com/ontio/ontology/v2/smartcontract/service/native/utils"
 )
 
 func addNewAuthKey(srvc *native.NativeService) ([]byte, error) {

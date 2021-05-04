@@ -20,9 +20,9 @@
 package p2p
 
 import (
-	"github.com/ontio/ontology/p2pserver/common"
-	"github.com/ontio/ontology/p2pserver/message/types"
-	"github.com/ontio/ontology/p2pserver/peer"
+	"github.com/ontio/ontology/v2/p2pserver/common"
+	"github.com/ontio/ontology/v2/p2pserver/message/types"
+	"github.com/ontio/ontology/v2/p2pserver/peer"
 )
 
 //P2P represent the net interface of p2p package

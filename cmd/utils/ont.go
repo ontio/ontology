@@ -32,17 +32,17 @@ import (
 
 	"github.com/ontio/ontology-crypto/keypair"
 	sig "github.com/ontio/ontology-crypto/signature"
-	"github.com/ontio/ontology/account"
-	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/common/constants"
-	"github.com/ontio/ontology/common/serialization"
-	"github.com/ontio/ontology/core/payload"
-	"github.com/ontio/ontology/core/signature"
-	"github.com/ontio/ontology/core/types"
-	cutils "github.com/ontio/ontology/core/utils"
-	httpcom "github.com/ontio/ontology/http/base/common"
-	"github.com/ontio/ontology/smartcontract/service/native/ont"
-	"github.com/ontio/ontology/smartcontract/service/native/utils"
+	"github.com/ontio/ontology/v2/account"
+	"github.com/ontio/ontology/v2/common"
+	"github.com/ontio/ontology/v2/common/constants"
+	"github.com/ontio/ontology/v2/common/serialization"
+	"github.com/ontio/ontology/v2/core/payload"
+	"github.com/ontio/ontology/v2/core/signature"
+	"github.com/ontio/ontology/v2/core/types"
+	cutils "github.com/ontio/ontology/v2/core/utils"
+	httpcom "github.com/ontio/ontology/v2/http/base/common"
+	"github.com/ontio/ontology/v2/smartcontract/service/native/ont"
+	"github.com/ontio/ontology/v2/smartcontract/service/native/utils"
 )
 
 const (

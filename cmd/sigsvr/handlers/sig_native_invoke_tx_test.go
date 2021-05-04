@@ -24,9 +24,9 @@ import (
 
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology-crypto/signature"
-	"github.com/ontio/ontology/cmd/abi"
-	clisvrcom "github.com/ontio/ontology/cmd/sigsvr/common"
-	nutils "github.com/ontio/ontology/smartcontract/service/native/utils"
+	"github.com/ontio/ontology/v2/cmd/abi"
+	clisvrcom "github.com/ontio/ontology/v2/cmd/sigsvr/common"
+	nutils "github.com/ontio/ontology/v2/smartcontract/service/native/utils"
 )
 
 func TestSigNativeInvokeTx(t *testing.T) {

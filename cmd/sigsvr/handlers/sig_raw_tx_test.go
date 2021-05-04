@@ -26,12 +26,12 @@ import (
 
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology-crypto/signature"
-	"github.com/ontio/ontology/account"
-	clisvrcom "github.com/ontio/ontology/cmd/sigsvr/common"
-	"github.com/ontio/ontology/cmd/sigsvr/store"
-	"github.com/ontio/ontology/cmd/utils"
-	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/common/log"
+	"github.com/ontio/ontology/v2/account"
+	clisvrcom "github.com/ontio/ontology/v2/cmd/sigsvr/common"
+	"github.com/ontio/ontology/v2/cmd/sigsvr/store"
+	"github.com/ontio/ontology/v2/cmd/utils"
+	"github.com/ontio/ontology/v2/common"
+	"github.com/ontio/ontology/v2/common/log"
 	"github.com/stretchr/testify/assert"
 )
 
