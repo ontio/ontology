@@ -167,6 +167,7 @@ var AppHelpFlagGroups = []flagGroup{
 			utils.RPCPortFlag,
 			utils.RPCLocalEnableFlag,
 			utils.RPCLocalProtFlag,
+			utils.ETHRPCPortFlag,
 		},
 	},
 	{
