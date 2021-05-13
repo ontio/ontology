@@ -20,12 +20,12 @@ package ethl2
 
 import (
 	"encoding/binary"
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/global_params"
@@ -89,15 +89,12 @@ func Put(native *native.NativeService) ([]byte, error) {
 	var s *State
 	if ethtxType == EthEIP155Type {
 		var tx types.Transaction
-		txbin, err := hex.DecodeString(string(raweth))
+		err := rlp.DecodeBytes(raweth, &tx)
+
 		if err != nil {
 			return utils.BYTE_FALSE, err
 		}
 
-		err = tx.UnmarshalBinary(txbin)
-		if err != nil {
-			return utils.BYTE_FALSE, err
-		}
 		if tx.Gas() > gasLimit {
 			return utils.BYTE_FALSE, fmt.Errorf("gas overflow: intx: %d, ceil: %d", tx.Gas(), gasLimit)
 		}
