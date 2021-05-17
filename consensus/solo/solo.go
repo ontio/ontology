@@ -200,9 +200,10 @@ func (self *SoloService) makeBlock() (*types.Block, error) {
 	txs := self.poolActor.GetTxnPool(true, validHeight)
 
 	transactions := make([]*types.Transaction, 0, len(txs))
+	nonceCtx := make(map[common.Address]increment.NonceWithTxhash)
 	for _, txEntry := range txs {
 		// TODO optimize to use height in txentry
-		if err := self.incrValidator.Verify(txEntry.Tx, validHeight); err == nil {
+		if err := self.incrValidator.Verify(txEntry.Tx, validHeight, nonceCtx); err == nil {
 			transactions = append(transactions, txEntry.Tx)
 		}
 	}

@@ -57,8 +57,8 @@ type EthereumAPI struct {
 	txpool TxPoolService
 }
 
-func NewEthereumAPI(txpool TxPoolService) EthereumAPI {
-	return EthereumAPI{txpool: txpool}
+func NewEthereumAPI(txpool TxPoolService) *EthereumAPI {
+	return &EthereumAPI{txpool: txpool}
 }
 
 func (api *EthereumAPI) ChainId() hexutil.Uint64 {

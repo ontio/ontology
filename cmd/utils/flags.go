@@ -82,6 +82,11 @@ var (
 		Usage: "Block data storage `<path>`",
 		Value: config.DEFAULT_DATA_DIR,
 	}
+	ETHTxGasLimitFlag = cli.Uint64Flag{
+		Name:  "eth-tx-gaslimit",
+		Usage: "ETH block total gas limit",
+		Value: config.DEFAULT_ETH_TX_GAS_LIMIT,
+	}
 	//Consensus setting
 	EnableConsensusFlag = cli.BoolFlag{
 		Name:  "enable-consensus",
@@ -152,6 +157,11 @@ var (
 		Name:  "max-conn-in-bound-single-ip",
 		Usage: "Max connection `<number>` in bound for single ip",
 		Value: config.DEFAULT_MAX_CONN_IN_BOUND_FOR_SINGLE_IP,
+	}
+	EVMChainId = cli.UintFlag{
+		Name:  "eth-chain-id",
+		Usage: "ethereum chain id",
+		Value: config.DEFAULT_ETH_CHAINID,
 	}
 	// RPC settings
 	RPCDisabledFlag = cli.BoolFlag{

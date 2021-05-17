@@ -138,6 +138,8 @@ func setCommonConfig(ctx *cli.Context, cfg *config.CommonConfig) {
 	cfg.MinGasLimit = ctx.Uint64(utils.GetFlagName(utils.GasLimitFlag))
 	cfg.GasPrice = ctx.Uint64(utils.GetFlagName(utils.GasPriceFlag))
 	cfg.DataDir = ctx.String(utils.GetFlagName(utils.DataDirFlag))
+	//add new flag for ethgaslimit
+	cfg.ETHTxGasLimit = ctx.Uint64(utils.GetFlagName(utils.ETHTxGasLimitFlag))
 }
 
 func setConsensusConfig(ctx *cli.Context, cfg *config.ConsensusConfig) {
@@ -155,7 +157,7 @@ func setP2PNodeConfig(ctx *cli.Context, cfg *config.P2PNodeConfig) {
 	cfg.MaxConnInBound = ctx.Uint(utils.GetFlagName(utils.MaxConnInBoundFlag))
 	cfg.MaxConnOutBound = ctx.Uint(utils.GetFlagName(utils.MaxConnOutBoundFlag))
 	cfg.MaxConnInBoundForSingleIP = ctx.Uint(utils.GetFlagName(utils.MaxConnInBoundForSingleIPFlag))
-
+	cfg.EVMChainId = uint32(ctx.Uint(utils.GetFlagName(utils.EVMChainId)))
 	rsvfile := ctx.String(utils.GetFlagName(utils.ReservedPeersFileFlag))
 	if cfg.ReservedPeersOnly {
 		if !common.FileExisted(rsvfile) {

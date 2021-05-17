@@ -104,6 +104,7 @@ var AppHelpFlagGroups = []flagGroup{
 			utils.DisableLogFileFlag,
 			utils.DisableEventLogFlag,
 			utils.DataDirFlag,
+			utils.ETHTxGasLimitFlag,
 			utils.WasmVerifyMethodFlag,
 		},
 	},
@@ -158,6 +159,7 @@ var AppHelpFlagGroups = []flagGroup{
 			utils.MaxConnInBoundFlag,
 			utils.MaxConnOutBoundFlag,
 			utils.MaxConnInBoundForSingleIPFlag,
+			utils.EVMChainId,
 		},
 	},
 	{

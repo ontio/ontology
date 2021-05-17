@@ -124,6 +124,10 @@ func (worker *txPoolWorker) handleRsp(rsp *types.CheckResponse) {
 		log.Debugf("handleRsp: validator %d transaction %x invalid: %s", rsp.Type, rsp.Hash, rsp.ErrCode.Error())
 		delete(worker.pendingTxList, rsp.Hash)
 		worker.server.removePendingTx(rsp.Hash, rsp.ErrCode)
+		if pt.tx.TxType == tx.EIP155 {
+			worker.server.pendingNonces.setIfLower(pt.tx.Payer, uint64(pt.tx.Nonce))
+			worker.server.pendingEipTxs[pt.tx.Payer].txs.Remove(uint64(pt.tx.Nonce))
+		}
 		return
 	}
 
@@ -145,14 +149,24 @@ func (worker *txPoolWorker) handleRsp(rsp *types.CheckResponse) {
 	}
 
 	if pt.passedStateless && pt.passedStateful {
-		txEntry := &tc.TXEntry{
-			Tx:    pt.tx,
-			Attrs: pt.GetTxAttr(),
-		}
-		worker.server.addTxList(txEntry)
-		worker.server.removePendingTx(pt.tx.Hash(), errors.ErrNoError)
+		worker.putTxPool(pt)
 		delete(worker.pendingTxList, rsp.Hash)
 	}
+}
+
+func (worker *txPoolWorker) putTxPool(pt *pendingTx) bool {
+	txEntry := &tc.TXEntry{
+		Tx:    pt.tx,
+		Attrs: pt.GetTxAttr(),
+	}
+	f := worker.server.addTxList(txEntry)
+	if f {
+		worker.server.removePendingTx(pt.tx.Hash(), errors.ErrNoError)
+		//remove from pendingEipTxs
+		worker.server.addEIPTxPool(txEntry.Tx)
+		worker.server.removeEIPPendingTx(pt.tx)
+	}
+	return true
 }
 
 // verifyTx prepares a check request and sends it to the validators.

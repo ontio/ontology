@@ -19,14 +19,14 @@
 package proc
 
 import (
-	"os"
-	"testing"
-	"time"
-
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/genesis"
 	"github.com/ontio/ontology/core/ledger"
+	"os"
+	"testing"
+	"time"
+
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/events/message"

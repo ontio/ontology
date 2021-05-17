@@ -60,7 +60,7 @@ func isBalanceEnough(address common.Address, gas uint64) bool {
 }
 
 func replyTxResult(sender tc.SenderType, txResultCh chan *tc.TxResult, hash common.Uint256, err errors.ErrCode, desc string) {
-	if sender == tc.HttpSender && txResultCh != nil {
+	if txResultCh != nil {
 		result := &tc.TxResult{
 			Err:  err,
 			Hash: hash,
@@ -150,6 +150,48 @@ func (ta *TxActor) handleTransaction(sender tc.SenderType, txn *tx.Transaction, 
 		replyTxResult(sender, txResultCh, txn.Hash(), errors.ErrUnknown,
 			fmt.Sprintf("Deploy tx gaslimit should >= %d", neovm.CONTRACT_CREATE_GAS))
 		return
+	}
+
+	if txn.TxType == tx.EIP155 {
+		log.Debugf("handleTransaction: EIP155tx")
+		//verify signature
+		if err := txn.VerifyEIP155Tx(); err != nil {
+			log.Errorf("handleTransaction GetEIP155Tx failed:%s", err.Error())
+			replyTxResult(sender, txResultCh, txn.Hash(), errors.ErrUnknown, "Invalid EIP155 transaction signature ")
+			return
+		}
+
+		if txn.GasLimit > config.DefConfig.Common.ETHTxGasLimit {
+			replyTxResult(sender, txResultCh, txn.Hash(), errors.ErrUnknown, "EIP155 tx gaslimit exceed ")
+			return
+		}
+
+		eiptx, err := txn.GetEIP155Tx()
+		if err != nil {
+			log.Errorf("handleTransaction GetEIP155Tx failed:%s", err.Error())
+			replyTxResult(sender, txResultCh, txn.Hash(), errors.ErrUnknown, "Invalid EIP155 transaction format ")
+			return
+		}
+
+		currentNonce := ta.server.CurrentNonce(txn.Payer)
+		if eiptx.Nonce() < currentNonce {
+			replyTxResult(sender, txResultCh, txn.Hash(), errors.ErrUnknown,
+				fmt.Sprintf("handleTransaction lower nonce:%d ,current nonce:%d", currentNonce, eiptx.Nonce()))
+			return
+		}
+
+		balance, err := tc.GetOngBalance(txn.Payer)
+		if err != nil {
+			log.Errorf("GetOngBalance failed:%s", err.Error())
+			replyTxResult(sender, txResultCh, txn.Hash(), errors.ErrUnknown,
+				fmt.Sprintf("GetOngBalance failed:%s", err.Error()))
+			return
+		}
+		if balance.Cmp(txn.Cost()) < 0 {
+			replyTxResult(sender, txResultCh, txn.Hash(), errors.ErrUnknown,
+				fmt.Sprintf("not enough ong balance for %s - has:%d - want:%d", txn.Payer.ToHexString(), balance, txn.Cost()))
+			return
+		}
 	}
 
 	if !ta.server.disablePreExec {
