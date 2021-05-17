@@ -20,19 +20,28 @@ package increment
 
 import (
 	"fmt"
+	"github.com/ontio/ontology/http/base/actor"
 	"sync"
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/types"
+
+	ethcomm "github.com/ethereum/go-ethereum/common"
 )
 
 // IncrementValidator do increment check of transaction
+type NonceWithTxhash struct {
+	Nonce  uint64
+	Txhash common.Uint256
+}
+
 type IncrementValidator struct {
 	mutex      sync.Mutex
 	blocks     []map[common.Uint256]bool
 	baseHeight uint32
 	maxBlocks  int
+	nonces     []map[common.Address]NonceWithTxhash
 }
 
 func NewIncrementValidator(maxBlocks int) *IncrementValidator {
@@ -41,6 +50,7 @@ func NewIncrementValidator(maxBlocks int) *IncrementValidator {
 	}
 	return &IncrementValidator{
 		maxBlocks: maxBlocks,
+		//nonces:    make(map[common.Address]NonceWithTxhash),
 	}
 }
 
@@ -48,6 +58,7 @@ func (self *IncrementValidator) Clean() {
 	self.mutex.Lock()
 	self.blocks = nil
 	self.baseHeight = 0
+	self.nonces = nil
 	self.mutex.Unlock()
 }
 
@@ -80,27 +91,76 @@ func (self *IncrementValidator) AddBlock(block *types.Block) {
 	if len(self.blocks) >= self.maxBlocks {
 		self.blocks = self.blocks[1:]
 		self.baseHeight += 1
+
+		self.nonces = self.nonces[1:]
 	}
 	txHashes := make(map[common.Uint256]bool)
+	nonceMap := make(map[common.Address]NonceWithTxhash)
 	for _, tx := range block.Transactions {
-		txHashes[tx.Hash()] = true
+		txhash := tx.Hash()
+		txHashes[txhash] = true
+		if tx.TxType == types.EIP155 {
+			nonceMap[tx.Payer] = NonceWithTxhash{
+				Nonce:  uint64(tx.Nonce) + 1,
+				Txhash: tx.Hash(),
+			}
+		}
 	}
+	self.nonces = append(self.nonces, nonceMap)
 	self.blocks = append(self.blocks, txHashes)
 }
 
 // Verfiy does increment check start at startHeight
-func (self *IncrementValidator) Verify(tx *types.Transaction, startHeight uint32) error {
+func (self *IncrementValidator) Verify(tx *types.Transaction, startHeight uint32, nonceCtx map[common.Address]NonceWithTxhash) error {
 	self.mutex.Lock()
 	defer self.mutex.Unlock()
 	if startHeight < self.baseHeight {
 		return fmt.Errorf("can not do increment validation: startHeight %v < self.baseHeight %v", startHeight, self.baseHeight)
 	}
-
 	for i := int(startHeight - self.baseHeight); i < len(self.blocks); i++ {
 		if _, ok := self.blocks[i][tx.Hash()]; ok {
 			return fmt.Errorf("tx duplicated")
 		}
 	}
+	//check nonce
+	if tx.TxType == types.EIP155 {
+		//1st tx for account
+		if isNonceWithTxhashEmpty(nonceCtx[tx.Payer]) {
+			//get the nonce from cache
+			for i := int(startHeight - self.baseHeight); i < len(self.blocks); i++ {
+				latestNonce := self.nonces[i][tx.Payer]
+				if !isNonceWithTxhashEmpty(latestNonce) {
+					nonceCtx[tx.Payer] = latestNonce
+				}
+			}
+			//still empty, load from ledger store
+			if isNonceWithTxhashEmpty(nonceCtx[tx.Payer]) {
+				acct, err := actor.GetEthAccount(ethcomm.BytesToAddress(tx.Payer[:]))
+				if err != nil {
+					return err
+				}
+				nonceCtx[tx.Payer] = NonceWithTxhash{
+					Nonce:  acct.Nonce,
+					Txhash: common.UINT256_EMPTY, //we don't know the last tx by this account
+				}
+			}
+		}
+
+		if uint64(tx.Nonce) != nonceCtx[tx.Payer].Nonce && tx.Hash() != nonceCtx[tx.Payer].Txhash {
+			return fmt.Errorf("nonce is not correct")
+		}
+
+		if nonceCtx[tx.Payer].Txhash != tx.Hash() {
+			nonceCtx[tx.Payer] = NonceWithTxhash{
+				Nonce:  uint64(tx.Nonce) + 1,
+				Txhash: tx.Hash(),
+			}
+		}
+	}
 
 	return nil
+}
+
+func isNonceWithTxhashEmpty(nwt NonceWithTxhash) bool {
+	return nwt.Nonce == 0 && nwt.Txhash == common.UINT256_EMPTY
 }

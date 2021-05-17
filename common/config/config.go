@@ -82,8 +82,9 @@ const (
 	DEFAULT_DATA_DIR      = "./Chain/"
 	DEFAULT_RESERVED_FILE = "./peers.rsv"
 
-	DEFAULT_ETH_BLOCK_GAS_LIMIT = 8000000
-	N_GAS_LIMIT                 = 10
+	//DEFAULT_ETH_BLOCK_GAS_LIMIT = 800000000
+	DEFAULT_ETH_TX_GAS_LIMIT = 800000000 / 10
+	DEFAULT_ETH_CHAINID      = 5851
 )
 
 const (
@@ -627,15 +628,15 @@ type SOLOConfig struct {
 }
 
 type CommonConfig struct {
-	LogLevel         uint
-	NodeType         string
-	EnableEventLog   bool
-	SystemFee        map[string]int64
-	MinGasLimit      uint64
-	GasPrice         uint64
-	DataDir          string
-	ETHBlockGasLimit uint64
-	NGasLimit        uint64
+	LogLevel       uint
+	NodeType       string
+	EnableEventLog bool
+	SystemFee      map[string]int64
+	MinGasLimit    uint64
+	GasPrice       uint64
+	DataDir        string
+	ETHTxGasLimit  uint64
+	//NGasLimit        uint64
 	WasmVerifyMethod VerifyMethod
 }
 
@@ -717,6 +718,9 @@ func NewOntologyConfig() *OntologyConfig {
 			MinGasLimit:      DEFAULT_GAS_LIMIT,
 			DataDir:          DEFAULT_DATA_DIR,
 			WasmVerifyMethod: InterpVerifyMethod,
+			//todo check from input
+			ETHTxGasLimit: DEFAULT_ETH_TX_GAS_LIMIT,
+			//NGasLimit:        N_GAS_LIMIT,
 		},
 		Consensus: &ConsensusConfig{
 			EnableConsensus: true,

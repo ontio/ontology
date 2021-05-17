@@ -27,7 +27,7 @@ import (
 )
 
 func StartEthServer(txpool *tp.TXPoolServer) error {
-	ethAPI := NewEthereumAPI(nil) // todo  : use txpool
+	ethAPI := NewEthereumAPI(txpool)
 	server := rpc.NewServer()
 	err := server.RegisterName("eth", ethAPI)
 	if err != nil {

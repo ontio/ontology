@@ -85,12 +85,15 @@ func applyTransaction(msg types.Message, statedb *storage.StateDB, blockHeight u
 // and uses the input parameters for its environment. It returns the receipt
 // for the transaction, gas used and an error if the transaction failed,
 // indicating the block was invalid.
-func ApplyTransaction(config *params.ChainConfig, bc store.LedgerStore, statedb *storage.StateDB, blockHeight, timestamp uint32, tx *types.Transaction, usedGas *uint64, feeReceiver common.Address, cfg evm.Config) (*types2.ExecutionResult, *otypes.Receipt, error) {
+func ApplyTransaction(config *params.ChainConfig, bc store.LedgerStore, statedb *storage.StateDB, blockHeight, timestamp uint32, tx *types.Transaction, usedGas *uint64, feeReceiver common.Address, cfg evm.Config, checkNonce bool) (*types2.ExecutionResult, *otypes.Receipt, error) {
 	signer := types.NewEIP155Signer(config.ChainID)
 	msg, err := tx.AsMessage(signer)
 	if err != nil {
 		return nil, nil, err
 	}
+
+	msg = types.NewMessage(msg.From(), msg.To(), msg.Nonce(), msg.Value(), msg.Gas(), msg.GasPrice(), msg.Data(), checkNonce)
+
 	// Create a new context to be used in the EVM environment
 	blockContext := NewEVMBlockContext(blockHeight, timestamp, bc)
 	vmenv := evm.NewEVM(blockContext, evm.TxContext{}, statedb, config, cfg)
