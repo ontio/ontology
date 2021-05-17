@@ -1016,6 +1016,16 @@ func (this *LedgerStoreImp) handleTransaction(overlay *overlaydb.OverlayDB, cach
 		if err != nil {
 			log.Debugf("HandleInvokeTransaction tx %s error %s", txHash.ToHexString(), err)
 		}
+	case types.EIP155:
+		//todo determin the param and return
+		crossStateHashes, err = this.stateStore.HandleEIP155Transaction(this, overlay, gasTable, cache, tx, block, notify)
+		if overlay.Error() != nil {
+			return nil, nil, fmt.Errorf("HandleInvokeTransaction tx %s error %s", txHash.ToHexString(), overlay.Error())
+		}
+		if err != nil {
+			log.Debugf("HandleInvokeTransaction tx %s error %s", txHash.ToHexString(), err)
+		}
+		//todo deal with EIP155
 	}
 	return notify, crossStateHashes, nil
 }
@@ -1297,6 +1307,39 @@ func (this *LedgerStoreImp) PreExecuteContractWithParam(tx *types.Transaction, p
 		}
 
 		return &sstate.PreExecResult{State: event.CONTRACT_STATE_SUCCESS, Gas: gasTable[neovm.CONTRACT_CREATE_NAME] + calcGasByCodeLen(len(deploy.GetRawCode()), gasTable[neovm.UINT_DEPLOY_CODE_LEN_NAME]), Result: nil}, nil
+	} else if tx.TxType == types.EIP155 {
+		//todo deal with EIP155
+		invoke := tx.Payload.(*payload.EIP155Code)
+
+		sc := smartcontract.SmartContract{
+			Config:       sconfig,
+			Store:        this,
+			CacheDB:      cache,
+			GasTable:     gasTable,
+			Gas:          math.MaxUint64 - calcGasByCodeLen(len(invoke.Code), gasTable[neovm.UINT_INVOKE_CODE_LEN_NAME]),
+			WasmExecStep: config.DEFAULT_WASM_MAX_STEPCOUNT,
+			//JitMode:      preParam.JitMode,
+			PreExec: true,
+		}
+		engine, _ := sc.NewExecuteEngine(invoke.Code, tx.TxType)
+
+		_, err := engine.Invoke()
+		if err != nil {
+			return stf, err
+		}
+		gasCost := math.MaxUint64 - sc.Gas
+
+		if preParam.MinGas {
+			mixGas := neovm.MIN_TRANSACTION_GAS
+			if gasCost < mixGas {
+				gasCost = mixGas
+			}
+			gasCost = tuneGasFeeByHeight(sconfig.Height, gasCost, neovm.MIN_TRANSACTION_GAS, math.MaxUint64)
+		}
+
+		cv := "EIP155 Test result"
+		return &sstate.PreExecResult{State: event.CONTRACT_STATE_SUCCESS, Gas: gasCost, Result: cv, Notify: nil}, nil
+
 	} else {
 		return stf, errors.NewErr("transaction type error")
 	}

@@ -19,13 +19,18 @@
 package types
 
 import (
+	"bytes"
 	"crypto/sha256"
 	"errors"
 	"fmt"
+	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/rlp"
 	"io"
+	"math/big"
 
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
+	sysconfig "github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/constants"
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/program"
@@ -68,8 +73,55 @@ func TransactionFromRawBytes(raw []byte) (*Transaction, error) {
 	return tx, nil
 }
 
+// todo transaction from EIP155 tx
+func TransactionFromEIP155(eiptx *types.Transaction) (*Transaction, error) {
+	if eiptx.Data() == nil {
+		return nil, fmt.Errorf("error EIP155 transaction format")
+	}
+
+	evmChainId := sysconfig.DefConfig.P2PNode.EVMChainId
+
+	signer := types.NewEIP155Signer(big.NewInt(int64(evmChainId)))
+	from, err := signer.Sender(eiptx)
+	if err != nil {
+		return nil, fmt.Errorf("error EIP155 get sender:%s", err.Error())
+	}
+
+	addr, err := common.AddressParseFromBytes(from[:])
+	if err != nil {
+		return nil, fmt.Errorf("error EIP155 parse sender address:%s", err.Error())
+	}
+	eiphash := eiptx.Hash()
+	txhash, err := common.Uint256ParseFromBytes(eiphash[:])
+	if err != nil {
+		return nil, fmt.Errorf("error EIP155 parse txhash:%s", err.Error())
+	}
+	retTx := &Transaction{
+		Version:  byte(0),
+		TxType:   EIP155,
+		Nonce:    uint32(eiptx.Nonce()),
+		GasPrice: eiptx.GasPrice().Uint64(),
+		GasLimit: eiptx.Gas(),
+		Payer:    addr,
+		Payload:  &payload.EIP155Code{Code: eiptx.Data()},
+		//Sigs: ???
+		//Raw:eiptx.Data(),
+		hashUnsigned:         common.Uint256{},
+		hash:                 txhash,
+		SignedAddr:           []common.Address{addr},
+		nonDirectConstracted: true,
+	}
+
+	sink := new(common.ZeroCopySink)
+	retTx.Serialization(sink)
+	retTx.Raw = sink.Bytes()
+
+	return retTx, nil
+}
+
 // Transaction has internal reference of param `source`
 func (tx *Transaction) Deserialization(source *common.ZeroCopySource) error {
+
 	pstart := source.Pos()
 	err := tx.deserializationUnsigned(source)
 	if err != nil {
@@ -79,8 +131,28 @@ func (tx *Transaction) Deserialization(source *common.ZeroCopySource) error {
 	lenUnsigned := pos - pstart
 	source.BackUp(lenUnsigned)
 	rawUnsigned, _ := source.NextBytes(lenUnsigned)
+
 	tx.hashUnsigned = sha256.Sum256(rawUnsigned)
-	tx.hash = common.Uint256(sha256.Sum256(tx.hashUnsigned[:]))
+	//todo deal with EIP155 tx hash
+	if tx.TxType == EIP155 {
+		//payload is EIP155 bytes
+		sink := common.NewZeroCopySink(nil)
+		tx.Payload.Serialization(sink)
+		bts := sink.Bytes()
+
+		eiptx := new(types.Transaction)
+		err := eiptx.DecodeRLP(rlp.NewStream(bytes.NewBuffer(bts), uint64(len(bts))))
+		if err != nil {
+			return fmt.Errorf("error on DecodeRLP :%s", err.Error())
+		}
+		eiphash := eiptx.Hash()
+		tx.hash, err = common.Uint256ParseFromBytes(eiphash[:])
+		if err != nil {
+			return fmt.Errorf("error EIP155 parse txhash:%s", err.Error())
+		}
+	} else {
+		tx.hash = sha256.Sum256(tx.hashUnsigned[:])
+	}
 
 	// tx sigs
 	length, _, irregular, eof := source.NextVarUint()
@@ -186,6 +258,14 @@ func (tx *Transaction) deserializationUnsigned(source *common.ZeroCopySource) er
 			return err
 		}
 		tx.Payload = pl
+	case EIP155:
+		pl := new(payload.EIP155Code)
+		err := pl.Deserialization(source)
+		if err != nil {
+			return err
+		}
+		tx.Payload = pl
+
 	default:
 		return fmt.Errorf("unsupported tx type %v", tx.TxType)
 	}
@@ -318,10 +398,11 @@ const (
 	Deploy     TransactionType = 0xd0
 	InvokeNeo  TransactionType = 0xd1
 	InvokeWasm TransactionType = 0xd2 //add for wasm invoke
+	EIP155     TransactionType = 0xd3 //for EIP155 transaction
 )
 
 // Payload define the func for loading the payload data
-// base on payload type which have different struture
+// base on payload type which have different structure
 type Payload interface {
 	//Serialize payload data
 	Serialization(sink *common.ZeroCopySink)

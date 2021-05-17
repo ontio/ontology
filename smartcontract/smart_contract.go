@@ -190,6 +190,9 @@ func (this *SmartContract) NewExecuteEngine(code []byte, txtype ctypes.Transacti
 			GasFactor:  gasFactor,
 			JitMode:    this.JitMode,
 		}
+	case ctypes.EIP155:
+		//todo deal with EIP155
+
 	default:
 		return nil, errors.New("failed to construct execute engine, wrong transaction type")
 	}

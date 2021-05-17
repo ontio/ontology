@@ -645,6 +645,7 @@ type P2PNodeConfig struct {
 	MaxConnInBound            uint
 	MaxConnOutBound           uint
 	MaxConnInBoundForSingleIP uint
+	EVMChainId                uint32
 }
 
 type RpcConfig struct {
