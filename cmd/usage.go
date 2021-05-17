@@ -104,6 +104,7 @@ var AppHelpFlagGroups = []flagGroup{
 			utils.DisableLogFileFlag,
 			utils.DisableEventLogFlag,
 			utils.DataDirFlag,
+			utils.ETHTxGasLimitFlag,
 			utils.WasmVerifyMethodFlag,
 		},
 	},

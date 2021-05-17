@@ -19,13 +19,16 @@
 package common
 
 import (
+	"math/big"
 	"sync/atomic"
 
-	types2 "github.com/ontio/ontology/validator/types"
-
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/errors"
+	"github.com/ontio/ontology/smartcontract/service/native/ont"
+	"github.com/ontio/ontology/smartcontract/service/native/utils"
+	types2 "github.com/ontio/ontology/validator/types"
 )
 
 const (
@@ -160,4 +163,28 @@ func (n OrderByNetWorkFee) Len() int { return len(n) }
 
 func (n OrderByNetWorkFee) Swap(i, j int) { n[i], n[j] = n[j], n[i] }
 
-func (n OrderByNetWorkFee) Less(i, j int) bool { return n[j].Tx.GasPrice < n[i].Tx.GasPrice }
+func (n OrderByNetWorkFee) Less(i, j int) bool {
+	//sort the eip tx
+	if n[i].Tx.TxType != n[j].Tx.TxType {
+		return byte(n[i].Tx.TxType) > byte(n[j].Tx.TxType)
+	}
+
+	if n[i].Tx.TxType == types.EIP155 && n[j].Tx.TxType == types.EIP155 {
+		if n[i].Tx.Payer == n[j].Tx.Payer {
+			return n[i].Tx.Nonce < n[j].Tx.Nonce
+		}
+	}
+
+	return n[j].Tx.GasPrice < n[i].Tx.GasPrice
+}
+
+func GetOngBalance(account common.Address) (*big.Int, error) {
+	cache := ledger.DefLedger.GetStore().GetCacheDB()
+	balanceKey := ont.GenBalanceKey(utils.OngContractAddress, account)
+	amount, err := utils.GetStorageUInt64(cache, balanceKey)
+	if err != nil {
+		return nil, err
+	}
+
+	return big.NewInt(0).SetUint64(amount), nil
+}
