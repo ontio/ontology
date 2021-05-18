@@ -109,10 +109,12 @@ func (s *StructLog) ErrorString() string {
 // Note that reference types are actual VM data structures; make copies
 // if you need to retain them beyond the current call.
 type Tracer interface {
-	CaptureStart(from common.Address, to common.Address, create bool, input []byte, gas uint64, value *big.Int) error
-	CaptureState(env *EVM, pc uint64, op OpCode, gas, cost uint64, memory *Memory, stack *Stack, rStack *ReturnStack, rData []byte, contract *Contract, depth int, err error) error
-	CaptureFault(env *EVM, pc uint64, op OpCode, gas, cost uint64, memory *Memory, stack *Stack, rStack *ReturnStack, contract *Contract, depth int, err error) error
-	CaptureEnd(output []byte, gasUsed uint64, t time.Duration, err error) error
+	CaptureStart(from common.Address, to common.Address, create bool, input []byte, gas uint64, value *big.Int)
+	CaptureState(env *EVM, pc uint64, op OpCode, gas, cost uint64, memory *Memory, stack *Stack,
+		rStack *ReturnStack, rData []byte, contract *Contract, depth int, err error)
+	CaptureFault(env *EVM, pc uint64, op OpCode, gas, cost uint64, memory *Memory, stack *Stack,
+		rStack *ReturnStack, contract *Contract, depth int, err error)
+	CaptureEnd(output []byte, gasUsed uint64, t time.Duration, err error)
 }
 
 // StructLogger is an EVM state logger and implements Tracer.
@@ -141,17 +143,17 @@ func NewStructLogger(cfg *LogConfig) *StructLogger {
 }
 
 // CaptureStart implements the Tracer interface to initialize the tracing operation.
-func (l *StructLogger) CaptureStart(from common.Address, to common.Address, create bool, input []byte, gas uint64, value *big.Int) error {
-	return nil
+func (l *StructLogger) CaptureStart(from common.Address, to common.Address, create bool, input []byte, gas uint64, value *big.Int)  {
 }
 
 // CaptureState logs a new structured log message and pushes it out to the environment
 //
 // CaptureState also tracks SLOAD/SSTORE ops to track storage change.
-func (l *StructLogger) CaptureState(env *EVM, pc uint64, op OpCode, gas, cost uint64, memory *Memory, stack *Stack, rStack *ReturnStack, rData []byte, contract *Contract, depth int, err error) error {
+func (l *StructLogger) CaptureState(env *EVM, pc uint64, op OpCode, gas, cost uint64, memory *Memory,
+	stack *Stack, rStack *ReturnStack, rData []byte, contract *Contract, depth int, err error) {
 	// check if already accumulated the specified number of logs
 	if l.cfg.Limit != 0 && l.cfg.Limit <= len(l.logs) {
-		return errTraceLimitReached
+		return
 	}
 	// Copy a snapshot of the current memory state to a new buffer
 	var mem []byte
@@ -206,17 +208,16 @@ func (l *StructLogger) CaptureState(env *EVM, pc uint64, op OpCode, gas, cost ui
 	// create a new snapshot of the EVM.
 	log := StructLog{pc, op, gas, cost, mem, memory.Len(), stck, rstack, rdata, storage, depth, env.StateDB.GetRefund(), err}
 	l.logs = append(l.logs, log)
-	return nil
 }
 
 // CaptureFault implements the Tracer interface to trace an execution fault
 // while running an opcode.
-func (l *StructLogger) CaptureFault(env *EVM, pc uint64, op OpCode, gas, cost uint64, memory *Memory, stack *Stack, rStack *ReturnStack, contract *Contract, depth int, err error) error {
-	return nil
+func (l *StructLogger) CaptureFault(env *EVM, pc uint64, op OpCode, gas, cost uint64, memory *Memory,
+	stack *Stack, rStack *ReturnStack, contract *Contract, depth int, err error) {
 }
 
 // CaptureEnd is called after the call finishes to finalize the tracing.
-func (l *StructLogger) CaptureEnd(output []byte, gasUsed uint64, t time.Duration, err error) error {
+func (l *StructLogger) CaptureEnd(output []byte, gasUsed uint64, t time.Duration, err error) {
 	l.output = output
 	l.err = err
 	if l.cfg.Debug {
@@ -225,7 +226,6 @@ func (l *StructLogger) CaptureEnd(output []byte, gasUsed uint64, t time.Duration
 			fmt.Printf(" error: %v\n", err)
 		}
 	}
-	return nil
 }
 
 // StructLogs returns the captured log entries.
@@ -240,53 +240,53 @@ func (l *StructLogger) Output() []byte { return l.output }
 // WriteTrace writes a formatted trace to the given writer
 func WriteTrace(writer io.Writer, logs []StructLog) {
 	for _, log := range logs {
-		fmt.Fprintf(writer, "%-16spc=%08d gas=%v cost=%v", log.Op, log.Pc, log.Gas, log.GasCost)
+		_,_ = fmt.Fprintf(writer, "%-16spc=%08d gas=%v cost=%v", log.Op, log.Pc, log.Gas, log.GasCost)
 		if log.Err != nil {
-			fmt.Fprintf(writer, " ERROR: %v", log.Err)
+			_,_ = fmt.Fprintf(writer, " ERROR: %v", log.Err)
 		}
-		fmt.Fprintln(writer)
+		_,_ = fmt.Fprintln(writer)
 
 		if len(log.Stack) > 0 {
-			fmt.Fprintln(writer, "Stack:")
+			_,_ = fmt.Fprintln(writer, "Stack:")
 			for i := len(log.Stack) - 1; i >= 0; i-- {
-				fmt.Fprintf(writer, "%08d  %x\n", len(log.Stack)-i-1, math.PaddedBigBytes(log.Stack[i], 32))
+				_,_ = fmt.Fprintf(writer, "%08d  %x\n", len(log.Stack)-i-1, math.PaddedBigBytes(log.Stack[i], 32))
 			}
 		}
 		if len(log.ReturnStack) > 0 {
-			fmt.Fprintln(writer, "ReturnStack:")
+			_,_ = fmt.Fprintln(writer, "ReturnStack:")
 			for i := len(log.Stack) - 1; i >= 0; i-- {
-				fmt.Fprintf(writer, "%08d  0x%x (%d)\n", len(log.Stack)-i-1, log.ReturnStack[i], log.ReturnStack[i])
+				_,_ = fmt.Fprintf(writer, "%08d  0x%x (%d)\n", len(log.Stack)-i-1, log.ReturnStack[i], log.ReturnStack[i])
 			}
 		}
 		if len(log.Memory) > 0 {
-			fmt.Fprintln(writer, "Memory:")
-			fmt.Fprint(writer, hex.Dump(log.Memory))
+			_,_ = fmt.Fprintln(writer, "Memory:")
+			_,_ = fmt.Fprint(writer, hex.Dump(log.Memory))
 		}
 		if len(log.Storage) > 0 {
-			fmt.Fprintln(writer, "Storage:")
+			_,_ = fmt.Fprintln(writer, "Storage:")
 			for h, item := range log.Storage {
-				fmt.Fprintf(writer, "%x: %x\n", h, item)
+				_,_ = fmt.Fprintf(writer, "%x: %x\n", h, item)
 			}
 		}
 		if len(log.ReturnData) > 0 {
-			fmt.Fprintln(writer, "ReturnData:")
-			fmt.Fprint(writer, hex.Dump(log.ReturnData))
+			_,_ = fmt.Fprintln(writer, "ReturnData:")
+			_,_ = fmt.Fprint(writer, hex.Dump(log.ReturnData))
 		}
-		fmt.Fprintln(writer)
+		_,_ = fmt.Fprintln(writer)
 	}
 }
 
 // WriteLogs writes vm logs in a readable format to the given writer
 func WriteLogs(writer io.Writer, logs []*types.Log) {
 	for _, log := range logs {
-		fmt.Fprintf(writer, "LOG%d: %x bn=%d txi=%x\n", len(log.Topics), log.Address, log.BlockNumber, log.TxIndex)
+		_,_ = fmt.Fprintf(writer, "LOG%d: %x bn=%d txi=%x\n", len(log.Topics), log.Address, log.BlockNumber, log.TxIndex)
 
 		for i, topic := range log.Topics {
-			fmt.Fprintf(writer, "%08d  %x\n", i, topic)
+			_,_ = fmt.Fprintf(writer, "%08d  %x\n", i, topic)
 		}
 
-		fmt.Fprint(writer, hex.Dump(log.Data))
-		fmt.Fprintln(writer)
+		_,_ = fmt.Fprint(writer, hex.Dump(log.Data))
+		_,_ = fmt.Fprintln(writer)
 	}
 }
 
@@ -305,26 +305,27 @@ func NewMarkdownLogger(cfg *LogConfig, writer io.Writer) *mdLogger {
 	return l
 }
 
-func (t *mdLogger) CaptureStart(from common.Address, to common.Address, create bool, input []byte, gas uint64, value *big.Int) error {
+func (t *mdLogger) CaptureStart(from common.Address, to common.Address, create bool, input []byte, gas uint64, value *big.Int) {
 	if !create {
-		fmt.Fprintf(t.out, "From: `%v`\nTo: `%v`\nData: `0x%x`\nGas: `%d`\nValue `%v` wei\n",
+		_,_ = fmt.Fprintf(t.out, "From: `%v`\nTo: `%v`\nData: `0x%x`\nGas: `%d`\nValue `%v` wei\n",
 			from.String(), to.String(),
 			input, gas, value)
 	} else {
-		fmt.Fprintf(t.out, "From: `%v`\nCreate at: `%v`\nData: `0x%x`\nGas: `%d`\nValue `%v` wei\n",
+		_,_ = fmt.Fprintf(t.out, "From: `%v`\nCreate at: `%v`\nData: `0x%x`\nGas: `%d`\nValue `%v` wei\n",
 			from.String(), to.String(),
 			input, gas, value)
 	}
 
-	fmt.Fprintf(t.out, `
+	_, _ = fmt.Fprintf(t.out, `
 |  Pc   |      Op     | Cost |   Stack   |   RStack  |  Refund |
 |-------|-------------|------|-----------|-----------|---------|
 `)
-	return nil
+
 }
 
-func (t *mdLogger) CaptureState(env *EVM, pc uint64, op OpCode, gas, cost uint64, memory *Memory, stack *Stack, rStack *ReturnStack, rData []byte, contract *Contract, depth int, err error) error {
-	fmt.Fprintf(t.out, "| %4d  | %10v  |  %3d |", pc, op, cost)
+func (t *mdLogger) CaptureState(env *EVM, pc uint64, op OpCode, gas, cost uint64, memory *Memory,
+	stack *Stack, rStack *ReturnStack, rData []byte, contract *Contract, depth int, err error) {
+	_ , _ = fmt.Fprintf(t.out, "| %4d  | %10v  |  %3d |", pc, op, cost)
 
 	if !t.cfg.DisableStack {
 		// format stack
@@ -333,7 +334,7 @@ func (t *mdLogger) CaptureState(env *EVM, pc uint64, op OpCode, gas, cost uint64
 			a = append(a, fmt.Sprintf("%v", elem.String()))
 		}
 		b := fmt.Sprintf("[%v]", strings.Join(a, ","))
-		fmt.Fprintf(t.out, "%10v |", b)
+		_,_=fmt.Fprintf(t.out, "%10v |", b)
 
 		// format return stack
 		a = a[:0]
@@ -341,25 +342,21 @@ func (t *mdLogger) CaptureState(env *EVM, pc uint64, op OpCode, gas, cost uint64
 			a = append(a, fmt.Sprintf("%2d", elem))
 		}
 		b = fmt.Sprintf("[%v]", strings.Join(a, ","))
-		fmt.Fprintf(t.out, "%10v |", b)
+		_,_ = fmt.Fprintf(t.out, "%10v |", b)
 	}
-	fmt.Fprintf(t.out, "%10v |", env.StateDB.GetRefund())
-	fmt.Fprintln(t.out, "")
+	_,_=fmt.Fprintf(t.out, "%10v |", env.StateDB.GetRefund())
+	_,_=fmt.Fprintln(t.out, "")
 	if err != nil {
-		fmt.Fprintf(t.out, "Error: %v\n", err)
+		_,_=fmt.Fprintf(t.out, "Error: %v\n", err)
 	}
-	return nil
 }
 
-func (t *mdLogger) CaptureFault(env *EVM, pc uint64, op OpCode, gas, cost uint64, memory *Memory, stack *Stack, rStack *ReturnStack, contract *Contract, depth int, err error) error {
-
-	fmt.Fprintf(t.out, "\nError: at pc=%d, op=%v: %v\n", pc, op, err)
-
-	return nil
+func (t *mdLogger) CaptureFault(env *EVM, pc uint64, op OpCode, gas, cost uint64, memory *Memory,
+	stack *Stack, rStack *ReturnStack, contract *Contract, depth int, err error) {
+	_,_=fmt.Fprintf(t.out, "\nError: at pc=%d, op=%v: %v\n", pc, op, err)
 }
 
-func (t *mdLogger) CaptureEnd(output []byte, gasUsed uint64, tm time.Duration, err error) error {
-	fmt.Fprintf(t.out, "\nOutput: `0x%x`\nConsumed gas: `%d`\nError: `%v`\n",
+func (t *mdLogger) CaptureEnd(output []byte, gasUsed uint64, tm time.Duration, err error) {
+	_,_ = fmt.Fprintf(t.out, "\nOutput: `0x%x`\nConsumed gas: `%d`\nError: `%v`\n",
 		output, gasUsed, err)
-	return nil
 }

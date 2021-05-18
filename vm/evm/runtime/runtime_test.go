@@ -326,23 +326,22 @@ type stepCounter struct {
 	steps int
 }
 
-func (s *stepCounter) CaptureStart(from common.Address, to common.Address, create bool, input []byte, gas uint64, value *big.Int) error {
-	return nil
+func (s *stepCounter) CaptureStart(from common.Address, to common.Address, create bool, input []byte, gas uint64, value *big.Int)  {
 }
 
-func (s *stepCounter) CaptureState(env *evm.EVM, pc uint64, op evm.OpCode, gas, cost uint64, memory *evm.Memory, stack *evm.Stack, rStack *evm.ReturnStack, rData []byte, contract *evm.Contract, depth int, err error) error {
+func (s *stepCounter) CaptureState(env *evm.EVM, pc uint64, op evm.OpCode, gas, cost uint64,
+	memory *evm.Memory, stack *evm.Stack, rStack *evm.ReturnStack, rData []byte,
+	contract *evm.Contract, depth int, err error) {
 	s.steps++
 	// Enable this for more output
 	//s.inner.CaptureState(env, pc, op, gas, cost, memory, stack, rStack, contract, depth, err)
-	return nil
 }
 
-func (s *stepCounter) CaptureFault(env *evm.EVM, pc uint64, op evm.OpCode, gas, cost uint64, memory *evm.Memory, stack *evm.Stack, rStack *evm.ReturnStack, contract *evm.Contract, depth int, err error) error {
-	return nil
+func (s *stepCounter) CaptureFault(env *evm.EVM, pc uint64, op evm.OpCode, gas, cost uint64,
+	memory *evm.Memory, stack *evm.Stack, rStack *evm.ReturnStack, contract *evm.Contract, depth int, err error) {
 }
 
-func (s *stepCounter) CaptureEnd(output []byte, gasUsed uint64, t time.Duration, err error) error {
-	return nil
+func (s *stepCounter) CaptureEnd(output []byte, gasUsed uint64, t time.Duration, err error) {
 }
 
 func TestJumpSub1024Limit(t *testing.T) {
