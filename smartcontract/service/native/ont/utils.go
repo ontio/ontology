@@ -122,7 +122,7 @@ func TransferedFrom(native *native.NativeService, currentContract common.Address
 }
 
 func getUnboundOffset(native *native.NativeService, contract, address common.Address) (uint32, error) {
-	offset, err := utils.GetStorageUInt32(native, genAddressUnboundOffsetKey(contract, address))
+	offset, err := utils.GetStorageUInt32(native.CacheDB, genAddressUnboundOffsetKey(contract, address))
 	if err != nil {
 		return 0, err
 	}
@@ -130,7 +130,7 @@ func getUnboundOffset(native *native.NativeService, contract, address common.Add
 }
 
 func getGovernanceUnboundOffset(native *native.NativeService, contract common.Address) (uint32, error) {
-	offset, err := utils.GetStorageUInt32(native, genGovernanceUnboundOffsetKey(contract))
+	offset, err := utils.GetStorageUInt32(native.CacheDB, genGovernanceUnboundOffsetKey(contract))
 	if err != nil {
 		return 0, err
 	}
@@ -143,7 +143,7 @@ func genTransferFromKey(contract common.Address, state *TransferFrom) []byte {
 }
 
 func fromApprove(native *native.NativeService, fromApproveKey []byte, value uint64) error {
-	approveValue, err := utils.GetStorageUInt64(native, fromApproveKey)
+	approveValue, err := utils.GetStorageUInt64(native.CacheDB, fromApproveKey)
 	if err != nil {
 		return err
 	}
@@ -158,7 +158,7 @@ func fromApprove(native *native.NativeService, fromApproveKey []byte, value uint
 }
 
 func fromTransfer(native *native.NativeService, fromKey []byte, value uint64) (uint64, error) {
-	fromBalance, err := utils.GetStorageUInt64(native, fromKey)
+	fromBalance, err := utils.GetStorageUInt64(native.CacheDB, fromKey)
 	if err != nil {
 		return 0, err
 	}
@@ -175,7 +175,7 @@ func fromTransfer(native *native.NativeService, fromKey []byte, value uint64) (u
 }
 
 func toTransfer(native *native.NativeService, toKey []byte, value uint64) (uint64, error) {
-	toBalance, err := utils.GetStorageUInt64(native, toKey)
+	toBalance, err := utils.GetStorageUInt64(native.CacheDB, toKey)
 	if err != nil {
 		return 0, err
 	}

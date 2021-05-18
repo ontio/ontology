@@ -131,7 +131,7 @@ func pdpRecordExist(native *native.NativeService, fileHash []byte, fileOwner com
 	contract := native.ContextRef.CurrentContext().ContractAddress
 	pdpRecordKey := GenFsPdpRecordKey(contract, fileHash, fileOwner, nodeAddr)
 
-	item, err := utils.GetStorageItem(native, pdpRecordKey)
+	item, err := utils.GetStorageItem(native.CacheDB, pdpRecordKey)
 	if err != nil || item == nil || item.Value == nil {
 		return false
 	}
@@ -155,7 +155,7 @@ func getPdpRawRecord(native *native.NativeService, fileHash []byte, fileOwner co
 	contract := native.ContextRef.CurrentContext().ContractAddress
 	pdpRecordKey := GenFsPdpRecordKey(contract, fileHash, fileOwner, nodeAddr)
 
-	item, err := utils.GetStorageItem(native, pdpRecordKey)
+	item, err := utils.GetStorageItem(native.CacheDB, pdpRecordKey)
 	if err != nil || item == nil || item.Value == nil {
 		return nil
 	}
@@ -170,7 +170,7 @@ func getPdpRecordList(native *native.NativeService, fileHash []byte, fileOwner c
 	var pdpRecordList PdpRecordList
 	iter := native.CacheDB.NewIterator(pdpRecordPrefix[:])
 	for has := iter.First(); has; has = iter.Next() {
-		item, err := utils.GetStorageItem(native, iter.Key())
+		item, err := utils.GetStorageItem(native.CacheDB, iter.Key())
 		if err != nil || item == nil || item.Value == nil {
 			log.Error("getPdpRecordList GetStorageItem ", err)
 			continue

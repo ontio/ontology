@@ -50,6 +50,7 @@ func SetOntologyConfig(ctx *cli.Context) (*config.OntologyConfig, error) {
 		cfg.P2PNode.NetworkId = config.NETWORK_ID_SOLO_NET
 		cfg.P2PNode.NetworkName = config.GetNetworkName(cfg.P2PNode.NetworkId)
 		cfg.P2PNode.NetworkMagic = config.GetNetworkMagic(cfg.P2PNode.NetworkId)
+		cfg.P2PNode.EVMChainId = config.GetEip155ChainID(cfg.P2PNode.NetworkId)
 		cfg.Common.GasPrice = 0
 	}
 	if cfg.P2PNode.NetworkId == config.NETWORK_ID_MAIN_NET ||
@@ -62,6 +63,7 @@ func SetOntologyConfig(ctx *cli.Context) (*config.OntologyConfig, error) {
 			cfg.P2PNode.NetworkId = defNetworkId
 			cfg.P2PNode.NetworkMagic = config.GetNetworkMagic(defNetworkId)
 			cfg.P2PNode.NetworkName = config.GetNetworkName(defNetworkId)
+			cfg.P2PNode.EVMChainId = config.GetEip155ChainID(defNetworkId)
 		}
 	}
 
@@ -135,9 +137,12 @@ func setGenesis(ctx *cli.Context, cfg *config.OntologyConfig) error {
 func setCommonConfig(ctx *cli.Context, cfg *config.CommonConfig) {
 	cfg.LogLevel = ctx.Uint(utils.GetFlagName(utils.LogLevelFlag))
 	cfg.EnableEventLog = !ctx.Bool(utils.GetFlagName(utils.DisableEventLogFlag))
-	cfg.GasLimit = ctx.Uint64(utils.GetFlagName(utils.GasLimitFlag))
+	cfg.MinGasLimit = ctx.Uint64(utils.GetFlagName(utils.GasLimitFlag))
 	cfg.GasPrice = ctx.Uint64(utils.GetFlagName(utils.GasPriceFlag))
 	cfg.DataDir = ctx.String(utils.GetFlagName(utils.DataDirFlag))
+	//add new flag for ethgaslimit
+	cfg.ETHTxGasLimit = ctx.Uint64(utils.GetFlagName(utils.ETHTxGasLimitFlag))
+	cfg.TraceTxPool = ctx.Bool(utils.GetFlagName(utils.TraceTxPoolFlag))
 }
 
 func setConsensusConfig(ctx *cli.Context, cfg *config.ConsensusConfig) {
@@ -148,6 +153,7 @@ func setConsensusConfig(ctx *cli.Context, cfg *config.ConsensusConfig) {
 func setP2PNodeConfig(ctx *cli.Context, cfg *config.P2PNodeConfig) {
 	cfg.NetworkId = uint32(ctx.Uint(utils.GetFlagName(utils.NetworkIdFlag)))
 	cfg.NetworkMagic = config.GetNetworkMagic(cfg.NetworkId)
+	cfg.EVMChainId = config.GetEip155ChainID(cfg.NetworkId)
 	cfg.NetworkName = config.GetNetworkName(cfg.NetworkId)
 	cfg.NodePort = uint16(ctx.Uint(utils.GetFlagName(utils.NodePortFlag)))
 	cfg.HttpInfoPort = uint16(ctx.Uint(utils.GetFlagName(utils.HttpInfoPortFlag)))
@@ -181,6 +187,7 @@ func setRpcConfig(ctx *cli.Context, cfg *config.RpcConfig) {
 	cfg.EnableHttpJsonRpc = !ctx.Bool(utils.GetFlagName(utils.RPCDisabledFlag))
 	cfg.HttpJsonPort = ctx.Uint(utils.GetFlagName(utils.RPCPortFlag))
 	cfg.HttpLocalPort = ctx.Uint(utils.GetFlagName(utils.RPCLocalProtFlag))
+	cfg.EthJsonPort = ctx.Uint(utils.GetFlagName(utils.ETHRPCPortFlag))
 }
 
 func setRestfulConfig(ctx *cli.Context, cfg *config.RestfulConfig) {

@@ -19,107 +19,54 @@
 package stateful
 
 import (
-	"reflect"
-
-	"github.com/ontio/ontology-eventbus/actor"
-	"github.com/ontio/ontology/common/log"
+	ethcomm "github.com/ethereum/go-ethereum/common"
+	"github.com/gammazero/workerpool"
 	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/errors"
-	"github.com/ontio/ontology/validator/db"
 	vatypes "github.com/ontio/ontology/validator/types"
 )
 
-// Validator is an interface for tx validation actor
-type Validator interface {
-	Register(poolId *actor.PID)
-	UnRegister(poolId *actor.PID)
-	VerifyType() vatypes.VerifyType
+type ValidatorPool struct {
+	pool *workerpool.WorkerPool
 }
 
-type validator struct {
-	pid       *actor.PID
-	id        string
-	bestBlock db.BestBlock
+func NewValidatorPool(maxWorkers int) *ValidatorPool {
+	return &ValidatorPool{pool: workerpool.New(maxWorkers)}
 }
 
-// NewValidator returns Validator for stateful check of tx
-func NewValidator(id string) (Validator, error) {
-
-	validator := &validator{id: id}
-	props := actor.FromProducer(func() actor.Actor {
-		return validator
-	})
-
-	pid, err := actor.SpawnNamed(props, id)
-	validator.pid = pid
-	return validator, err
-}
-
-func (self *validator) Receive(context actor.Context) {
-	switch msg := context.Message().(type) {
-	case *actor.Started:
-		log.Info("stateful-validator: started and be ready to receive txn")
-	case *actor.Stopping:
-		log.Info("stateful-validator: stopping")
-	case *actor.Restarting:
-		log.Info("stateful-validator: restarting")
-	case *vatypes.CheckTx:
-		log.Debugf("stateful-validator: receive tx %x", msg.Tx.Hash())
-		sender := context.Sender()
+func (self *ValidatorPool) SubmitVerifyTask(tx *types.Transaction, rspCh chan<- *vatypes.CheckResponse) {
+	task := func() {
 		height := ledger.DefLedger.GetCurrentBlockHeight()
 
 		errCode := errors.ErrNoError
-		hash := msg.Tx.Hash()
+		response := &vatypes.CheckResponse{
+			Type:    vatypes.Stateful,
+			Hash:    tx.Hash(),
+			Tx:      tx,
+			Height:  height,
+			ErrCode: errCode,
+		}
+		hash := tx.Hash()
 
 		exist, err := ledger.DefLedger.IsContainTransaction(hash)
 		if err != nil {
-			log.Warn("query db error:", err)
-			errCode = errors.ErrUnknown
+			response.ErrCode = errors.ErrUnknown
 		} else if exist {
-			errCode = errors.ErrDuplicatedTx
+			response.ErrCode = errors.ErrDuplicatedTx
+		} else if tx.IsEipTx() {
+			ethacct, err := ledger.DefLedger.GetEthAccount(ethcomm.Address(tx.Payer))
+			if err != nil {
+				response.ErrCode = errors.ErrNoAccount
+			} else if uint64(tx.Nonce) < ethacct.Nonce {
+				response.ErrCode = errors.ErrHigherNonceExist
+			} else {
+				response.Nonce = ethacct.Nonce
+			}
 		}
 
-		response := &vatypes.CheckResponse{
-			WorkerId: msg.WorkerId,
-			Type:     self.VerifyType(),
-			Hash:     msg.Tx.Hash(),
-			Height:   height,
-			ErrCode:  errCode,
-		}
-
-		sender.Tell(response)
-	case *vatypes.UnRegisterAck:
-		context.Self().Stop()
-	case *types.Block:
-
-		//bestBlock, _ := self.db.GetBestBlock()
-		//if bestBlock.Height+1 < msg.Header.Height {
-		//	// add sync block request
-		//} else if bestBlock.Height+1 == msg.Header.Height {
-		//	self.db.PersistBlock(msg)
-		//}
-
-	default:
-		log.Info("stateful-validator: unknown msg ", msg, "type", reflect.TypeOf(msg))
+		rspCh <- response
 	}
 
-}
-
-func (self *validator) VerifyType() vatypes.VerifyType {
-	return vatypes.Stateful
-}
-
-func (self *validator) Register(poolId *actor.PID) {
-	poolId.Tell(&vatypes.RegisterValidator{
-		Sender: self.pid,
-		Type:   self.VerifyType(),
-		Id:     self.id,
-	})
-}
-
-func (self *validator) UnRegister(poolId *actor.PID) {
-	poolId.Tell(&vatypes.UnRegisterValidator{
-		Id: self.id,
-	})
+	self.pool.Submit(task)
 }

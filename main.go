@@ -42,8 +42,10 @@ import (
 	"github.com/ontio/ontology/consensus"
 	"github.com/ontio/ontology/core/genesis"
 	"github.com/ontio/ontology/core/ledger"
+	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/events"
 	bactor "github.com/ontio/ontology/http/base/actor"
+	"github.com/ontio/ontology/http/ethrpc"
 	"github.com/ontio/ontology/http/graphql"
 	"github.com/ontio/ontology/http/jsonrpc"
 	"github.com/ontio/ontology/http/localrpc"
@@ -54,10 +56,7 @@ import (
 	netreqactor "github.com/ontio/ontology/p2pserver/actor/req"
 	p2p "github.com/ontio/ontology/p2pserver/net/protocol"
 	"github.com/ontio/ontology/txnpool"
-	tc "github.com/ontio/ontology/txnpool/common"
 	"github.com/ontio/ontology/txnpool/proc"
-	"github.com/ontio/ontology/validator/stateful"
-	"github.com/ontio/ontology/validator/stateless"
 	"github.com/urfave/cli"
 )
 
@@ -89,6 +88,7 @@ func setupAPP() *cli.App {
 		utils.DisableLogFileFlag,
 		utils.DisableEventLogFlag,
 		utils.DataDirFlag,
+		utils.ETHTxGasLimitFlag,
 		utils.WasmVerifyMethodFlag,
 		//account setting
 		utils.WalletFileFlag,
@@ -103,6 +103,7 @@ func setupAPP() *cli.App {
 		utils.TxpoolPreExecDisableFlag,
 		utils.DisableSyncVerifyTxFlag,
 		utils.DisableBroadcastNetTxFlag,
+		utils.TraceTxPoolFlag,
 		//p2p setting
 		utils.ReservedPeersOnlyFlag,
 		utils.ReservedPeersFileFlag,
@@ -118,6 +119,7 @@ func setupAPP() *cli.App {
 		//rpc setting
 		utils.RPCDisabledFlag,
 		utils.RPCPortFlag,
+		utils.ETHRPCPortFlag,
 		utils.RPCLocalEnableFlag,
 		utils.RPCLocalProtFlag,
 		//rest setting
@@ -153,6 +155,9 @@ func startOntology(ctx *cli.Context) {
 
 	setMaxOpenFiles()
 
+	//set check transaction chainId
+	types.CheckChainID = true
+
 	cfg, err := initConfig(ctx)
 	if err != nil {
 		log.Errorf("initConfig error: %s", err)
@@ -187,6 +192,11 @@ func startOntology(ctx *cli.Context) {
 	err = initRpc(ctx)
 	if err != nil {
 		log.Errorf("initRpc error: %s", err)
+		return
+	}
+	err = initETHRpc(txpool)
+	if err != nil {
+		log.Errorf("initEthRpc error: %s", err)
 		return
 	}
 	err = initLocalRpc(ctx)
@@ -260,10 +270,6 @@ func initLedger(ctx *cli.Context, stateHashHeight uint32) (*ledger.Ledger, error
 
 	var err error
 	dbDir := utils.GetStoreDirPath(config.DefConfig.Common.DataDir, config.DefConfig.P2PNode.NetworkName)
-	ledger.DefLedger, err = ledger.NewLedger(dbDir, stateHashHeight)
-	if err != nil {
-		return nil, fmt.Errorf("NewLedger error: %s", err)
-	}
 	bookKeepers, err := config.DefConfig.GetBookkeepers()
 	if err != nil {
 		return nil, fmt.Errorf("GetBookkeepers error: %s", err)
@@ -273,9 +279,9 @@ func initLedger(ctx *cli.Context, stateHashHeight uint32) (*ledger.Ledger, error
 	if err != nil {
 		return nil, fmt.Errorf("genesisBlock error %s", err)
 	}
-	err = ledger.DefLedger.Init(bookKeepers, genesisBlock)
+	ledger.DefLedger, err = ledger.InitLedger(dbDir, stateHashHeight, bookKeepers, genesisBlock)
 	if err != nil {
-		return nil, fmt.Errorf("init ledger error: %s", err)
+		return nil, fmt.Errorf("NewLedger error: %s", err)
 	}
 
 	log.Infof("Ledger init success")
@@ -290,15 +296,9 @@ func initTxPool(ctx *cli.Context) (*proc.TXPoolServer, error) {
 	if err != nil {
 		return nil, fmt.Errorf("init txpool error: %s", err)
 	}
-	stlValidator, _ := stateless.NewValidator("stateless_validator")
-	stlValidator.Register(txPoolServer.GetPID(tc.VerifyRspActor))
-	stlValidator2, _ := stateless.NewValidator("stateless_validator2")
-	stlValidator2.Register(txPoolServer.GetPID(tc.VerifyRspActor))
-	stfValidator, _ := stateful.NewValidator("stateful_validator")
-	stfValidator.Register(txPoolServer.GetPID(tc.VerifyRspActor))
 
-	bactor.SetTxnPoolPid(txPoolServer.GetPID(tc.TxPoolActor))
-	bactor.SetTxPid(txPoolServer.GetPID(tc.TxActor))
+	bactor.SetTxnPoolPid(txPoolServer.GetPID())
+	bactor.SetTxPoolService(proc.NewTxPoolService(txPoolServer))
 
 	log.Infof("TxPool init success")
 	return txPoolServer, nil
@@ -308,7 +308,7 @@ func initP2PNode(ctx *cli.Context, txpoolSvr *proc.TXPoolServer, acct *account.A
 	if config.DefConfig.Genesis.ConsensusType == config.CONSENSUS_TYPE_SOLO {
 		return nil, nil, nil
 	}
-	p2p, err := p2pserver.NewServer(acct)
+	p2p, err := p2pserver.NewServer(acct, proc.NewTxPoolService(txpoolSvr))
 	if err != nil {
 		return nil, nil, err
 	}
@@ -317,7 +317,6 @@ func initP2PNode(ctx *cli.Context, txpoolSvr *proc.TXPoolServer, acct *account.A
 	if err != nil {
 		return nil, nil, fmt.Errorf("p2p service start error %s", err)
 	}
-	netreqactor.SetTxnPoolPid(txpoolSvr.GetPID(tc.TxActor))
 	txpoolSvr.Net = p2p.GetNetwork()
 	bactor.SetNetServer(p2p.GetNetwork())
 	p2p.WaitForPeersStart()
@@ -329,7 +328,7 @@ func initConsensus(ctx *cli.Context, net p2p.P2P, txpoolSvr *proc.TXPoolServer, 
 	if !config.DefConfig.Consensus.EnableConsensus {
 		return nil, nil
 	}
-	pool := txpoolSvr.GetPID(tc.TxPoolActor)
+	pool := txpoolSvr.GetPID()
 
 	consensusType := strings.ToLower(config.DefConfig.Genesis.ConsensusType)
 	consensusService, err := consensus.NewConsensusService(consensusType, acc, pool, nil, net)
@@ -366,6 +365,31 @@ func initRpc(ctx *cli.Context) error {
 		flag = true
 	}
 	log.Infof("Rpc init success")
+	return nil
+}
+
+func initETHRpc(txpool *proc.TXPoolServer) error {
+	if !config.DefConfig.Rpc.EnableHttpJsonRpc {
+		return nil
+	}
+
+	var err error
+	exitCh := make(chan interface{}, 0)
+	go func() {
+		err = ethrpc.StartEthServer(txpool)
+		close(exitCh)
+	}()
+
+	flag := false
+	select {
+	case <-exitCh:
+		if !flag {
+			return err
+		}
+	case <-time.After(time.Millisecond * 5):
+		flag = true
+	}
+	log.Infof("Eth Rpc init success")
 	return nil
 }
 

@@ -146,7 +146,7 @@ func ReadMessage(reader io.Reader) (Message, uint32, error) {
 		return nil, 0, fmt.Errorf("message checksum mismatch: %x != %x ", hdr.Checksum, checksum)
 	}
 
-	cmdType := string(bytes.TrimRight(hdr.CMD[:], string(0)))
+	cmdType := string(bytes.TrimRight(hdr.CMD[:], string(rune(0))))
 	msg := makeEmptyMessage(cmdType)
 
 	// the buf is referenced by msg to avoid reallocation, so can not reused

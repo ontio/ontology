@@ -23,11 +23,14 @@ import (
 	"math/big"
 
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/constants"
+	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/ont"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
+	"github.com/ontio/ontology/smartcontract/storage"
 )
 
 func InitOng() {
@@ -50,7 +53,7 @@ func RegisterOngContract(native *native.NativeService) {
 
 func OngInit(native *native.NativeService) ([]byte, error) {
 	contract := native.ContextRef.CurrentContext().ContractAddress
-	amount, err := utils.GetStorageUInt64(native, ont.GenTotalSupplyKey(contract))
+	amount, err := utils.GetStorageUInt64(native.CacheDB, ont.GenTotalSupplyKey(contract))
 	if err != nil {
 		return utils.BYTE_FALSE, err
 	}
@@ -58,10 +61,17 @@ func OngInit(native *native.NativeService) ([]byte, error) {
 	if amount > 0 {
 		return utils.BYTE_FALSE, errors.NewErr("Init ong has been completed!")
 	}
+	addr := common.Address{}
+	if config.DefConfig.P2PNode.NetworkId == config.NETWORK_ID_SOLO_NET {
+		bookkeepers, _ := config.DefConfig.GetBookkeepers()
+		addr = types.AddressFromPubKey(bookkeepers[0])
+	} else {
+		addr = utils.OntContractAddress
+	}
 
 	item := utils.GenUInt64StorageItem(constants.ONG_TOTAL_SUPPLY)
 	native.CacheDB.Put(ont.GenTotalSupplyKey(contract), item.ToArray())
-	native.CacheDB.Put(append(contract[:], utils.OntContractAddress[:]...), item.ToArray())
+	native.CacheDB.Put(append(contract[:], addr[:]...), item.ToArray())
 	ont.AddNotifications(native, contract, &ont.State{To: utils.OntContractAddress, Value: constants.ONG_TOTAL_SUPPLY})
 	return utils.BYTE_TRUE, nil
 }
@@ -139,7 +149,7 @@ func OngSymbol(native *native.NativeService) ([]byte, error) {
 
 func OngTotalSupply(native *native.NativeService) ([]byte, error) {
 	contract := native.ContextRef.CurrentContext().ContractAddress
-	amount, err := utils.GetStorageUInt64(native, ont.GenTotalSupplyKey(contract))
+	amount, err := utils.GetStorageUInt64(native.CacheDB, ont.GenTotalSupplyKey(contract))
 	if err != nil {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "[OntTotalSupply] get totalSupply error!")
 	}
@@ -156,4 +166,51 @@ func OngAllowance(native *native.NativeService) ([]byte, error) {
 
 func OngTotalAllowance(native *native.NativeService) ([]byte, error) {
 	return ont.TotalAllowance(native)
+}
+
+type OngBalanceHandle struct{}
+
+func (self OngBalanceHandle) SubBalance(cache *storage.CacheDB, addr common.Address, val *big.Int) error {
+	balance, err := self.GetBalance(cache, addr)
+	if err != nil {
+		return err
+	}
+
+	balance.Sub(balance, val)
+	return self.SetBalance(cache, addr, balance)
+}
+
+func (self OngBalanceHandle) AddBalance(cache *storage.CacheDB, addr common.Address, val *big.Int) error {
+	balance, err := self.GetBalance(cache, addr)
+	if err != nil {
+		return err
+	}
+
+	balance.Add(balance, val)
+	return self.SetBalance(cache, addr, balance)
+}
+
+func (self OngBalanceHandle) SetBalance(cache *storage.CacheDB, addr common.Address, val *big.Int) error {
+	balanceKey := ont.GenBalanceKey(utils.OngContractAddress, addr)
+	if !val.IsUint64() {
+		return fmt.Errorf("balance overflow uint64, %d", val)
+	}
+	result := val.Uint64()
+	if result == 0 {
+		cache.Delete(balanceKey)
+	} else {
+		cache.Put(balanceKey, utils.GenUInt64StorageItem(result).ToArray())
+	}
+
+	return nil
+}
+
+func (self OngBalanceHandle) GetBalance(cache *storage.CacheDB, addr common.Address) (*big.Int, error) {
+	balanceKey := ont.GenBalanceKey(utils.OngContractAddress, addr)
+	amount, err := utils.GetStorageUInt64(cache, balanceKey)
+	if err != nil {
+		return nil, err
+	}
+
+	return big.NewInt(0).SetUint64(amount), nil
 }

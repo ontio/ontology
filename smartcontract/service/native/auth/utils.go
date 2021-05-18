@@ -46,7 +46,7 @@ func concatContractAdminKey(native *native.NativeService, contractAddr common.Ad
 
 func getContractAdmin(native *native.NativeService, contractAddr common.Address) ([]byte, error) {
 	key := concatContractAdminKey(native, contractAddr)
-	item, err := utils.GetStorageItem(native, key)
+	item, err := utils.GetStorageItem(native.CacheDB, key)
 	if err != nil {
 		return nil, err
 	}
@@ -74,7 +74,7 @@ func concatRoleFuncKey(native *native.NativeService, contractAddr common.Address
 
 func getRoleFunc(native *native.NativeService, contractAddr common.Address, role []byte) (*roleFuncs, error) {
 	key := concatRoleFuncKey(native, contractAddr, role)
-	item, err := utils.GetStorageItem(native, key)
+	item, err := utils.GetStorageItem(native.CacheDB, key)
 	if err != nil {
 		return nil, err
 	}
@@ -108,7 +108,7 @@ func concatOntIDTokenKey(native *native.NativeService, contractAddr common.Addre
 
 func getOntIDToken(native *native.NativeService, contractAddr common.Address, ontID []byte) (*roleTokens, error) {
 	key := concatOntIDTokenKey(native, contractAddr, ontID)
-	item, err := utils.GetStorageItem(native, key)
+	item, err := utils.GetStorageItem(native.CacheDB, key)
 	if err != nil {
 		return nil, err
 	}
@@ -142,7 +142,7 @@ func concatDelegateStatusKey(native *native.NativeService, contractAddr common.A
 
 func getDelegateStatus(native *native.NativeService, contractAddr common.Address, ontID []byte) (*Status, error) {
 	key := concatDelegateStatusKey(native, contractAddr, ontID)
-	item, err := utils.GetStorageItem(native, key)
+	item, err := utils.GetStorageItem(native.CacheDB, key)
 	if err != nil {
 		return nil, err
 	}

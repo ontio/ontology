@@ -57,6 +57,7 @@ const (
 	CONSENSUS_TYPE_VBFT = "vbft"
 
 	DEFAULT_LOG_LEVEL                       = log.InfoLog
+	DEFAULT_ETH_RPC_PORT                    = 20339
 	DEFAULT_NODE_PORT                       = 20338
 	DEFAULT_RPC_PORT                        = 20336
 	DEFAULT_RPC_LOCAL_PORT                  = 20337
@@ -73,13 +74,16 @@ const (
 	DEFAULT_ENABLE_EVENT_LOG                = true
 	DEFAULT_CLI_RPC_PORT                    = uint(20000)
 	DEFUALT_CLI_RPC_ADDRESS                 = "127.0.0.1"
-	DEFAULT_GAS_LIMIT                       = 20000
+	DEFAULT_MIN_GAS_LIMIT                   = 20000
 	DEFAULT_GAS_PRICE                       = 500
 	DEFAULT_WASM_GAS_FACTOR                 = uint64(10)
 	DEFAULT_WASM_MAX_STEPCOUNT              = uint64(8000000)
 
 	DEFAULT_DATA_DIR      = "./Chain/"
 	DEFAULT_RESERVED_FILE = "./peers.rsv"
+
+	//DEFAULT_ETH_BLOCK_GAS_LIMIT = 800000000
+	DEFAULT_ETH_TX_MAX_GAS_LIMIT = 6000000
 )
 
 const (
@@ -113,6 +117,21 @@ func GetNetworkMagic(id uint32) uint32 {
 		return nid
 	}
 	return id
+}
+
+var Eip155ChainID = map[uint32]uint32{
+	NETWORK_ID_MAIN_NET:    constants.EIP155_CHAINID_MAINNET, //Network main
+	NETWORK_ID_POLARIS_NET: constants.EIP155_CHAINID_POLARIS, //Network polaris
+	NETWORK_ID_SOLO_NET:    12345,                            //Network solo
+}
+
+func GetEip155ChainID(id uint32) uint32 {
+	nid, ok := Eip155ChainID[id]
+	if ok {
+		return nid
+	}
+
+	return 12345
 }
 
 var STATE_HASH_CHECK_HEIGHT = map[uint32]uint32{
@@ -608,14 +627,17 @@ type SOLOConfig struct {
 }
 
 type CommonConfig struct {
-	LogLevel         uint
-	NodeType         string
-	EnableEventLog   bool
-	SystemFee        map[string]int64
-	GasLimit         uint64
-	GasPrice         uint64
-	DataDir          string
+	LogLevel       uint
+	NodeType       string
+	EnableEventLog bool
+	SystemFee      map[string]int64
+	MinGasLimit    uint64
+	GasPrice       uint64
+	DataDir        string
+	ETHTxGasLimit  uint64
+	//NGasLimit        uint64
 	WasmVerifyMethod VerifyMethod
+	TraceTxPool      bool
 }
 
 type ConsensusConfig struct {
@@ -644,12 +666,14 @@ type P2PNodeConfig struct {
 	MaxConnInBound            uint
 	MaxConnOutBound           uint
 	MaxConnInBoundForSingleIP uint
+	EVMChainId                uint32
 }
 
 type RpcConfig struct {
 	EnableHttpJsonRpc bool
 	HttpJsonPort      uint
 	HttpLocalPort     uint
+	EthJsonPort       uint
 }
 
 type RestfulConfig struct {
@@ -691,9 +715,10 @@ func NewOntologyConfig() *OntologyConfig {
 			LogLevel:         DEFAULT_LOG_LEVEL,
 			EnableEventLog:   DEFAULT_ENABLE_EVENT_LOG,
 			SystemFee:        make(map[string]int64),
-			GasLimit:         DEFAULT_GAS_LIMIT,
+			MinGasLimit:      DEFAULT_MIN_GAS_LIMIT,
 			DataDir:          DEFAULT_DATA_DIR,
 			WasmVerifyMethod: InterpVerifyMethod,
+			ETHTxGasLimit:    DEFAULT_ETH_TX_MAX_GAS_LIMIT,
 		},
 		Consensus: &ConsensusConfig{
 			EnableConsensus: true,
@@ -705,6 +730,7 @@ func NewOntologyConfig() *OntologyConfig {
 			NetworkId:                 NETWORK_ID_MAIN_NET,
 			NetworkName:               GetNetworkName(NETWORK_ID_MAIN_NET),
 			NetworkMagic:              GetNetworkMagic(NETWORK_ID_MAIN_NET),
+			EVMChainId:                GetEip155ChainID(NETWORK_ID_MAIN_NET),
 			NodePort:                  DEFAULT_NODE_PORT,
 			IsTLS:                     false,
 			CertPath:                  "",

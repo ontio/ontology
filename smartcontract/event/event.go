@@ -41,5 +41,5 @@ func PushSmartCodeEvent(txHash common.Uint256, errcode int64, action string, res
 		Result: result,
 		Error:  errcode,
 	}
-	events.DefActorPublisher.Publish(message.TOPIC_SMART_CODE_EVENT, &message.SmartCodeEventMsg{smartCodeEvt})
+	events.DefActorPublisher.Publish(message.TOPIC_SMART_CODE_EVENT, &message.SmartCodeEventMsg{Event: smartCodeEvt})
 }

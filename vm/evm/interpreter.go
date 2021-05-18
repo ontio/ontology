@@ -1,3 +1,4 @@
+// Copyright (C) 2021 The Ontology Authors
 // Copyright 2014 The go-ethereum Authors
 // This file is part of the go-ethereum library.
 //
@@ -23,6 +24,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/math"
 	"github.com/ethereum/go-ethereum/log"
+	"github.com/ontio/ontology/vm/evm/errors"
 )
 
 // Config are the configuration options for the Interpreter
@@ -33,9 +35,6 @@ type Config struct {
 	EnablePreimageRecording bool   // Enables recording of SHA3/keccak preimages
 
 	JumpTable [256]*operation // EVM instruction table, automatically populated if unset
-
-	EWASMInterpreter string // External EWASM interpreter options
-	EVMInterpreter   string // External EVM interpreter options
 
 	ExtraEips []int // Additional EIPS that are to be enabled
 }
@@ -48,18 +47,6 @@ type Interpreter interface {
 	// Run loops and evaluates the contract's code with the given input data and returns
 	// the return byte-slice and an error if one occurred.
 	Run(contract *Contract, input []byte, static bool) ([]byte, error)
-	// CanRun tells if the contract, passed as an argument, can be
-	// run by the current interpreter. This is meant so that the
-	// caller can do something like:
-	//
-	// ```golang
-	// for _, interpreter := range interpreters {
-	//   if interpreter.CanRun(contract.code) {
-	//     interpreter.Run(contract.code, input)
-	//   }
-	// }
-	// ```
-	CanRun([]byte) bool
 }
 
 // callCtx contains the things that are per-call, such as stack and memory,
@@ -139,7 +126,6 @@ func NewEVMInterpreter(evm *EVM, cfg Config) *EVMInterpreter {
 // considered a revert-and-consume-all-gas operation except for
 // ErrExecutionReverted which means revert-and-keep-gas-left.
 func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (ret []byte, err error) {
-
 	// Increment the call depth which is restricted to 1024
 	in.evm.depth++
 	defer func() { in.evm.depth-- }()
@@ -238,13 +224,13 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 			// account to the others means the state is modified and should also
 			// return with an error.
 			if operation.writes || (op == CALL && stack.Back(2).Sign() != 0) {
-				return nil, ErrWriteProtection
+				return nil, errors.ErrWriteProtection
 			}
 		}
 		// Static portion of gas
 		cost = operation.constantGas // For tracing
 		if !contract.UseGas(operation.constantGas) {
-			return nil, ErrOutOfGas
+			return nil, errors.ErrOutOfGas
 		}
 
 		var memorySize uint64
@@ -255,12 +241,12 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 		if operation.memorySize != nil {
 			memSize, overflow := operation.memorySize(stack)
 			if overflow {
-				return nil, ErrGasUintOverflow
+				return nil, errors.ErrGasUintOverflow
 			}
 			// memory is expanded in words of 32 bytes. Gas
 			// is also calculated in words.
 			if memorySize, overflow = math.SafeMul(toWordSize(memSize), 32); overflow {
-				return nil, ErrGasUintOverflow
+				return nil, errors.ErrGasUintOverflow
 			}
 		}
 		// Dynamic portion of gas
@@ -271,7 +257,7 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 			dynamicCost, err = operation.dynamicGas(in.evm, contract, stack, mem, memorySize)
 			cost += dynamicCost // total cost, for debug tracing
 			if err != nil || !contract.UseGas(dynamicCost) {
-				return nil, ErrOutOfGas
+				return nil, errors.ErrOutOfGas
 			}
 		}
 		if memorySize > 0 {
@@ -295,7 +281,7 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 		case err != nil:
 			return nil, err
 		case operation.reverts:
-			return res, ErrExecutionReverted
+			return res, errors.ErrExecutionReverted
 		case operation.halts:
 			return res, nil
 		case !operation.jumps:
@@ -303,10 +289,4 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 		}
 	}
 	return nil, nil
-}
-
-// CanRun tells if the contract, passed as an argument, can be
-// run by the current interpreter.
-func (in *EVMInterpreter) CanRun(code []byte) bool {
-	return true
 }

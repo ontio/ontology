@@ -82,6 +82,11 @@ var (
 		Usage: "Block data storage `<path>`",
 		Value: config.DEFAULT_DATA_DIR,
 	}
+	ETHTxGasLimitFlag = cli.Uint64Flag{
+		Name:  "eth-tx-gaslimit",
+		Usage: "ETH block total gas limit",
+		Value: config.DEFAULT_ETH_TX_MAX_GAS_LIMIT,
+	}
 	//Consensus setting
 	EnableConsensusFlag = cli.BoolFlag{
 		Name:  "enable-consensus",
@@ -162,6 +167,11 @@ var (
 		Name:  "rpcport",
 		Usage: "Json rpc server listening port `<number>`",
 		Value: config.DEFAULT_RPC_PORT,
+	}
+	ETHRPCPortFlag = cli.UintFlag{
+		Name:  "ethrpcport",
+		Usage: "Eth json rpc server listening port `<number>`",
+		Value: config.DEFAULT_ETH_RPC_PORT,
 	}
 	RPCLocalEnableFlag = cli.BoolFlag{
 		Name:  "localrpc",
@@ -508,6 +518,11 @@ var (
 	DisableBroadcastNetTxFlag = cli.BoolFlag{
 		Name:  "disable-broadcast-net-tx",
 		Usage: "Disable broadcast tx from network in tx pool",
+	}
+
+	TraceTxPoolFlag = cli.BoolFlag{
+		Name:  "trace-tx-pool",
+		Usage: "trace info log in tx pool",
 	}
 
 	NonOptionFlag = cli.StringFlag{

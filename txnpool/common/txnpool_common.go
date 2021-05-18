@@ -19,35 +19,28 @@
 package common
 
 import (
+	"math/big"
+	"sync/atomic"
+
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/config"
+	"github.com/ontio/ontology/common/log"
+	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/errors"
+	"github.com/ontio/ontology/smartcontract/service/native/ont"
+	"github.com/ontio/ontology/smartcontract/service/native/utils"
+	types2 "github.com/ontio/ontology/validator/types"
 )
 
 const (
-	MAX_CAPACITY     = 100140                           // The tx pool's capacity that holds the verified txs
-	MAX_PENDING_TXN  = 4096 * 10                        // The max length of pending txs
-	MAX_WORKER_NUM   = 2                                // The max concurrent workers
-	MAX_RCV_TXN_LEN  = MAX_WORKER_NUM * MAX_PENDING_TXN // The max length of the queue that server can hold
-	MAX_RETRIES      = 0                                // The retry times to verify tx
-	EXPIRE_INTERVAL  = 9                                // The timeout that verify tx
-	STATELESS_MASK   = 0x1                              // The mask of stateless validator
-	STATEFUL_MASK    = 0x2                              // The mask of stateful validator
-	VERIFY_MASK      = STATELESS_MASK | STATEFUL_MASK   // The mask that indicates tx valid
-	MAX_LIMITATION   = 10000                            // The length of pending tx from net and http
-	UPDATE_FREQUENCY = 100                              // The frequency to update gas price from global params
-	MAX_TX_SIZE      = 1024 * 1024                      // The max size of a transaction to prevent DOS attacks
-)
-
-// ActorType enumerates the kind of actor
-type ActorType uint8
-
-const (
-	_              ActorType = iota
-	TxActor                  // Actor that handles new transaction
-	TxPoolActor              // Actor that handles consensus msg
-	VerifyRspActor           // Actor that handles the response from valdiators
-	MaxActor
+	MAX_CAPACITY            = 100140      // The tx pool's capacity that holds the verified txs
+	MAX_PENDING_TXN         = 4096 * 10   // The max length of pending txs
+	MAX_LIMITATION          = 10000       // The length of pending tx from net and http
+	UPDATE_FREQUENCY        = 100         // The frequency to update gas price from global params
+	MAX_TX_SIZE             = 1024 * 1024 // The max size of a transaction to prevent DOS attacks
+	EIPTX_EXPIRATION_BLOCKS = 50          // eip pending nonce tx expire block count
+	EIPTX_NONCE_MAX_GAP     = 1000        // max nonce gap from new tx to tx pool
 )
 
 // SenderType enumerates the kind of tx submitter
@@ -57,34 +50,6 @@ const (
 	NilSender  SenderType = iota
 	NetSender             // Net sends tx req
 	HttpSender            // Http sends tx req
-)
-
-func (sender SenderType) Sender() string {
-	switch sender {
-	case NilSender:
-		return "nil sender"
-	case NetSender:
-		return "net sender"
-	case HttpSender:
-		return "http sender"
-	default:
-		return "unknown sender"
-	}
-}
-
-// TxnStatsType enumerates the kind of tx statistics
-type TxnStatsType uint8
-
-const (
-	_              TxnStatsType = iota
-	RcvStats                    // The count that the tx pool receive from the actor bus
-	SuccessStats                // The count that the transactions are verified successfully
-	FailureStats                // The count that the transactions are invalid
-	DuplicateStats              // The count that the transactions are duplicated input
-	SigErrStats                 // The count that the transactions' signature error
-	StateErrStats               // The count that the transactions are invalid in database
-
-	MaxStats
 )
 
 // CheckBlkResult contains a verifed tx list,
@@ -101,104 +66,62 @@ type TxStatus struct {
 	Hash  common.Uint256 // transaction hash
 	Attrs []*TXAttr      // transaction's status
 }
+
 type TxResult struct {
 	Err  errors.ErrCode
 	Hash common.Uint256
 	Desc string
 }
 
-// TxReq specifies the api that how to submit a new transaction.
-// Input: transacton and submitter type
-type TxReq struct {
-	Tx         *types.Transaction
-	Sender     SenderType
-	TxResultCh chan *TxResult
+type CheckingStatus struct {
+	PassedStateless uint32 // actually bool, use uint32 for atomic operation
+	PassedStateful  uint32 // actually bool, use uint32 for atomic operation
+	CheckHeight     uint32
+	Nonce           uint64
 }
 
-// TxRsp returns the result of submitting tx, including
-// a transaction hash and error code.
-type TxRsp struct {
-	Hash    common.Uint256
-	ErrCode errors.ErrCode
+func (s *CheckingStatus) SetStateless() {
+	atomic.StoreUint32(&s.PassedStateless, 1)
 }
 
-// restful api
-
-// GetTxnReq specifies the api that how to get the transaction.
-// Input: a transaction hash
-type GetTxnReq struct {
-	Hash common.Uint256
+func (s *CheckingStatus) GetStateless() bool {
+	val := atomic.LoadUint32(&s.PassedStateless)
+	return val == 1
 }
 
-// GetTxnRsp returns a transaction for the specified tx hash.
-type GetTxnRsp struct {
-	Txn *types.Transaction
+func (s *CheckingStatus) GetStateful() bool {
+	val := atomic.LoadUint32(&s.PassedStateful)
+	return val == 1
 }
 
-// CheckTxnReq specifies the api that how to check whether a
-// transaction in the pool.
-// Input: a transaction hash
-type CheckTxnReq struct {
-	Hash common.Uint256
+func (s *CheckingStatus) SetStateful(height uint32, nonce uint64) {
+	if s.CheckHeight < height {
+		s.CheckHeight = height
+		s.Nonce = nonce
+	}
+	atomic.StoreUint32(&s.PassedStateful, 1)
 }
 
-// CheckTxnRsp returns a value for the CheckTxnReq, if the
-// transaction in the pool, value is true, or false.
-type CheckTxnRsp struct {
-	Ok bool
-}
+func (self *CheckingStatus) GetTxAttr() []*TXAttr {
+	var res []*TXAttr
+	if self.GetStateless() {
+		res = append(res,
+			&TXAttr{
+				Height:  0,
+				Type:    types2.Stateless,
+				ErrCode: errors.ErrNoError,
+			})
+	}
+	if self.GetStateful() {
+		res = append(res,
+			&TXAttr{
+				Height:  self.CheckHeight,
+				Type:    types2.Stateful,
+				ErrCode: errors.ErrNoError,
+			})
+	}
 
-// GetTxnStatusReq specifies the api that how to get a transaction
-// status.
-// Input: a transaction hash.
-type GetTxnStatusReq struct {
-	Hash common.Uint256
-}
-
-// GetTxnStatusRsp returns a transaction status for GetTxnStatusReq.
-// Output: a transaction hash and it's verified result.
-type GetTxnStatusRsp struct {
-	Hash     common.Uint256
-	TxStatus []*TXAttr
-}
-
-// GetTxnStats specifies the api that how to get the tx statistics.
-type GetTxnStats struct {
-}
-
-// GetTxnStatsRso returns the tx statistics.
-type GetTxnStatsRsp struct {
-	Count []uint64
-}
-
-// GetTxnCountReq specifies the api that how to get the tx count
-type GetTxnCountReq struct {
-}
-
-// GetTxnCountRsp returns current tx count, including pending, and verified
-type GetTxnCountRsp struct {
-	Count []uint32
-}
-
-// GetPendingTxnReq specifies the api that how to get a pending tx list
-// in the pool.
-type GetPendingTxnReq struct {
-	ByCount bool
-}
-
-// GetPendingTxnRsp returns a transaction list for GetPendingTxnReq.
-type GetPendingTxnRsp struct {
-	Txs []*types.Transaction
-}
-
-// GetPendingTxnHashReq specifies the api that how to get a pending txHash list
-// in the pool.
-type GetPendingTxnHashReq struct {
-}
-
-// GetPendingTxnHashRsp returns a transaction hash list for GetPendingTxnHashReq.
-type GetPendingTxnHashRsp struct {
-	TxHashs []common.Uint256
+	return res
 }
 
 // consensus messages
@@ -210,7 +133,16 @@ type GetTxnPoolReq struct {
 
 // GetTxnPoolRsp returns a transaction list for GetTxnPoolReq.
 type GetTxnPoolRsp struct {
-	TxnPool []*TXEntry
+	TxnPool []*VerifiedTx
+}
+
+type TxPoolService interface {
+	GetTransaction(hash common.Uint256) *types.Transaction
+	GetTransactionStatus(hash common.Uint256) *TxStatus
+	GetTxAmount() []uint32
+	GetTxList() []common.Uint256
+	AppendTransaction(sender SenderType, txn *types.Transaction) *TxResult
+	AppendTransactionAsync(sender SenderType, txn *types.Transaction)
 }
 
 // VerifyBlockReq specifies that api that how to verify a block from consensus.
@@ -231,33 +163,29 @@ type VerifyBlockRsp struct {
 	TxnPool []*VerifyTxResult
 }
 
-/*
- * Implement sort.Interface
- */
-type LB struct {
-	Size     int
-	WorkerID uint8
-}
-
-type LBSlice []LB
-
-func (this LBSlice) Len() int {
-	return len(this)
-}
-
-func (this LBSlice) Swap(i, j int) {
-	this[i].Size, this[j].Size = this[j].Size, this[i].Size
-	this[i].WorkerID, this[j].WorkerID = this[j].WorkerID, this[i].WorkerID
-}
-
-func (this LBSlice) Less(i, j int) bool {
-	return this[i].Size < this[j].Size
-}
-
-type OrderByNetWorkFee []*TXEntry
+type OrderByNetWorkFee []*VerifiedTx
 
 func (n OrderByNetWorkFee) Len() int { return len(n) }
 
 func (n OrderByNetWorkFee) Swap(i, j int) { n[i], n[j] = n[j], n[i] }
 
 func (n OrderByNetWorkFee) Less(i, j int) bool { return n[j].Tx.GasPrice < n[i].Tx.GasPrice }
+
+func GetOngBalance(account common.Address) (*big.Int, error) {
+	cache := ledger.DefLedger.GetStore().GetCacheDB()
+	balanceKey := ont.GenBalanceKey(utils.OngContractAddress, account)
+	amount, err := utils.GetStorageUInt64(cache, balanceKey)
+	if err != nil {
+		return nil, err
+	}
+
+	return big.NewInt(0).SetUint64(amount), nil
+}
+
+func ShowTraceLog(format string, a ...interface{}) {
+	if config.DefConfig.Common.TraceTxPool {
+		log.Infof(format, a...)
+	} else {
+		log.Debugf(format, a...)
+	}
+}

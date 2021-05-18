@@ -24,6 +24,8 @@ import (
 	"math"
 	"strconv"
 
+	common2 "github.com/ethereum/go-ethereum/common"
+	types2 "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ontio/ontology/common"
 	sysconfig "github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
@@ -35,13 +37,18 @@ import (
 	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/smartcontract"
 	"github.com/ontio/ontology/smartcontract/event"
+	evm2 "github.com/ontio/ontology/smartcontract/service/evm"
+	types3 "github.com/ontio/ontology/smartcontract/service/evm/types"
 	"github.com/ontio/ontology/smartcontract/service/native/global_params"
 	ninit "github.com/ontio/ontology/smartcontract/service/native/init"
+	"github.com/ontio/ontology/smartcontract/service/native/ong"
 	"github.com/ontio/ontology/smartcontract/service/native/ont"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 	"github.com/ontio/ontology/smartcontract/service/neovm"
 	"github.com/ontio/ontology/smartcontract/service/wasmvm"
 	"github.com/ontio/ontology/smartcontract/storage"
+	"github.com/ontio/ontology/vm/evm"
+	"github.com/ontio/ontology/vm/evm/params"
 )
 
 func tuneGasFeeByHeight(height uint32, gas uint64, gasRound uint64, curBalance uint64) uint64 {
@@ -114,7 +121,6 @@ func (self *StateStore) HandleDeployTransaction(store store.LedgerStore, overlay
 				return err
 			}
 			return fmt.Errorf("gasLimit insufficient, need:%d actual:%d", gasLimit, tx.GasLimit)
-
 		}
 		gasConsumed = gasLimit * tx.GasPrice
 		notifies, err = chargeCostGas(tx.Payer, gasConsumed, config, cache, store)
@@ -136,6 +142,7 @@ func (self *StateStore) HandleDeployTransaction(store store.LedgerStore, overlay
 	if dep == nil {
 		log.Infof("deploy contract address:%s", address.ToHexString())
 		cache.PutContract(deploy)
+		notify.CreatedContract = address
 	}
 	cache.Commit()
 
@@ -403,4 +410,34 @@ func costInvalidGas(address common.Address, gas uint64, config *smartcontract.Co
 
 func calcGasByCodeLen(codeLen int, codeGas uint64) uint64 {
 	return uint64(codeLen/neovm.PER_UNIT_CODE_LEN) * codeGas
+}
+
+type Eip155Context struct {
+	BlockHash common.Uint256
+	TxIndex   uint32
+	Height    uint32
+	Timestamp uint32
+}
+
+func (self *StateStore) HandleEIP155Transaction(store store.LedgerStore, cache *storage.CacheDB,
+	tx *types2.Transaction, ctx Eip155Context, notify *event.ExecuteNotify, checkNonce bool) (*types3.ExecutionResult, error) {
+	usedGas := uint64(0)
+	config := params.GetChainConfig(sysconfig.DefConfig.P2PNode.EVMChainId)
+	statedb := storage.NewStateDB(cache, tx.Hash(), common2.Hash(ctx.BlockHash), ong.OngBalanceHandle{})
+	result, receipt, err := evm2.ApplyTransaction(config, store, statedb, ctx.Height, ctx.Timestamp, tx, &usedGas,
+		utils.GovernanceContractAddress, evm.Config{}, checkNonce)
+
+	if err != nil {
+		cache.SetDbErr(err)
+		return nil, err
+	}
+	if err = statedb.DbErr(); err != nil {
+		cache.SetDbErr(err)
+		return nil, err
+	}
+	receipt.TxIndex = ctx.TxIndex
+
+	*notify = *event.ExecuteNotifyFromEthReceipt(receipt)
+
+	return result, nil
 }

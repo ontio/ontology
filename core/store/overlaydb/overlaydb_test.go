@@ -35,8 +35,7 @@ func makeKey(i int) []byte {
 }
 
 func TestNewOverlayDB(t *testing.T) {
-	store, err := leveldbstore.NewMemLevelDBStore()
-	assert.Nil(t, err)
+	store := leveldbstore.NewMemLevelDBStore()
 
 	N := 10000
 
@@ -69,7 +68,7 @@ func TestNewOverlayDB(t *testing.T) {
 }
 
 func BenchmarkOverlayDBSerialPut(b *testing.B) {
-	store, _ := leveldbstore.NewMemLevelDBStore()
+	store := leveldbstore.NewMemLevelDBStore()
 
 	N := 100000
 	overlay := NewOverlayDB(store)
@@ -84,7 +83,7 @@ func BenchmarkOverlayDBSerialPut(b *testing.B) {
 }
 
 func BenchmarkOverlayDBRandomPut(b *testing.B) {
-	store, _ := leveldbstore.NewMemLevelDBStore()
+	store := leveldbstore.NewMemLevelDBStore()
 
 	N := 100000
 	keys := make([]int, N)

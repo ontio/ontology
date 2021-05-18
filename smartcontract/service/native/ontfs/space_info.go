@@ -115,7 +115,7 @@ func spaceInfoExist(native *native.NativeService, spaceOwner common.Address) boo
 	contract := native.ContextRef.CurrentContext().ContractAddress
 	spaceInfoKey := GenFsSpaceKey(contract, spaceOwner)
 
-	item, err := utils.GetStorageItem(native, spaceInfoKey)
+	item, err := utils.GetStorageItem(native.CacheDB, spaceInfoKey)
 	if err != nil || item == nil || item.Value == nil {
 		return false
 	}
@@ -126,7 +126,7 @@ func getSpaceInfoFromDb(native *native.NativeService, fileOwner common.Address) 
 	contract := native.ContextRef.CurrentContext().ContractAddress
 	spaceInfoKey := GenFsSpaceKey(contract, fileOwner)
 
-	item, err := utils.GetStorageItem(native, spaceInfoKey)
+	item, err := utils.GetStorageItem(native.CacheDB, spaceInfoKey)
 	if err != nil || item == nil || item.Value == nil {
 		return nil
 	}

@@ -267,19 +267,18 @@ func SendRawTransaction(cmd map[string]interface{}) map[string]interface{} {
 	var hash common.Uint256
 	hash = txn.Hash()
 	log.Debugf("SendRawTransaction recv %s", hash.ToHexString())
-	if txn.TxType == types.InvokeNeo || txn.TxType == types.InvokeWasm || txn.TxType == types.Deploy {
-		if preExec, ok := cmd["PreExec"].(string); ok && preExec == "1" {
-			rst, err := bactor.PreExecuteContract(txn)
-			if err != nil {
-				log.Infof("PreExec: ", err)
-				resp = ResponsePack(berr.SMARTCODE_ERROR)
-				resp["Result"] = err.Error()
-				return resp
-			}
-			resp["Result"] = bcomn.ConvertPreExecuteResult(rst)
+	if preExec, ok := cmd["PreExec"].(string); ok && preExec == "1" {
+		rst, err := bactor.PreExecuteContract(txn)
+		if err != nil {
+			log.Infof("PreExec: ", err)
+			resp = ResponsePack(berr.SMARTCODE_ERROR)
+			resp["Result"] = err.Error()
 			return resp
 		}
+		resp["Result"] = bcomn.ConvertPreExecuteResult(rst)
+		return resp
 	}
+
 	log.Debugf("SendRawTransaction send to txpool %s", hash.ToHexString())
 	if errCode, desc := bcomn.SendTxToPool(txn); errCode != ontErrors.ErrNoError {
 		resp["Error"] = int64(errCode)
@@ -472,12 +471,13 @@ func GetMerkleProof(cmd map[string]interface{}) map[string]interface{} {
 
 //get avg gas price in block
 func GetGasPrice(cmd map[string]interface{}) map[string]interface{} {
-	result, err := bcomn.GetGasPrice()
+	gasPrice, height, err := bcomn.GetGasPrice()
 	if err != nil {
 		return ResponsePack(berr.INTERNAL_ERROR)
 	}
 	resp := ResponsePack(berr.SUCCESS)
-	resp["Result"] = result
+	res := map[string]interface{}{"gasprice": gasPrice, "height": height}
+	resp["Result"] = res
 	return resp
 }
 
@@ -555,10 +555,7 @@ func GetGrantOng(cmd map[string]interface{}) map[string]interface{} {
 //get memory pool transaction count
 func GetMemPoolTxCount(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(berr.SUCCESS)
-	count, err := bactor.GetTxnCount()
-	if err != nil {
-		return ResponsePack(berr.INTERNAL_ERROR)
-	}
+	count := bactor.GetTxnCount()
 	resp["Result"] = count
 	return resp
 }
@@ -566,10 +563,7 @@ func GetMemPoolTxCount(cmd map[string]interface{}) map[string]interface{} {
 //get memory pool transaction hash list
 func GetMemPoolTxHashList(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(berr.SUCCESS)
-	txHashList, err := bactor.GetTxnHashList()
-	if err != nil {
-		return ResponsePack(berr.INTERNAL_ERROR)
-	}
+	txHashList := bactor.GetTxnHashList()
 	resp["Result"] = txHashList
 	return resp
 }

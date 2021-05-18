@@ -19,6 +19,8 @@
 package store
 
 import (
+	common2 "github.com/ethereum/go-ethereum/common"
+	types2 "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/payload"
@@ -26,7 +28,9 @@ import (
 	"github.com/ontio/ontology/core/store/overlaydb"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract/event"
+	types3 "github.com/ontio/ontology/smartcontract/service/evm/types"
 	cstates "github.com/ontio/ontology/smartcontract/states"
+	"github.com/ontio/ontology/smartcontract/storage"
 )
 
 type ExecuteResult struct {
@@ -64,15 +68,20 @@ type LedgerStore interface {
 	GetMerkleProof(m, n uint32) ([]common.Uint256, error)
 	GetContractState(contractHash common.Address) (*payload.DeployCode, error)
 	GetBookkeeperState() (*states.BookkeeperState, error)
-	GetStorageItem(key *states.StorageKey) (*states.StorageItem, error)
+	GetStorageItem(codeHash common.Address, key []byte) ([]byte, error)
 	PreExecuteContract(tx *types.Transaction) (*cstates.PreExecResult, error)
 	PreExecuteContractBatch(txes []*types.Transaction, atomic bool) ([]*cstates.PreExecResult, uint32, error)
+	PreExecuteEip155Tx(msg types2.Message) (*types3.ExecutionResult, error)
 	GetEventNotifyByTx(tx common.Uint256) (*event.ExecuteNotify, error)
 	GetEventNotifyByBlock(height uint32) ([]*event.ExecuteNotify, error)
-
+	GetEthCode(hash common2.Hash) ([]byte, error)
+	GetEthState(address common2.Address, key common2.Hash) ([]byte, error)
+	GetEthAccount(address common2.Address) (*storage.EthAccount, error)
 	//cross chain states root
 	GetCrossStatesRoot(height uint32) (common.Uint256, error)
 	GetCrossChainMsg(height uint32) (*types.CrossChainMsg, error)
 	GetCrossStatesProof(height uint32, key []byte) ([]byte, error)
 	EnableBlockPrune(numBeforeCurr uint32)
+	//expose the cache db
+	GetCacheDB() *storage.CacheDB
 }

@@ -19,7 +19,12 @@
 package event
 
 import (
+	"errors"
+	"fmt"
+
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/core/types"
 )
 
 const (
@@ -31,6 +36,8 @@ const (
 type NotifyEventInfo struct {
 	ContractAddress common.Address
 	States          interface{}
+
+	IsEvm bool
 }
 
 type ExecuteNotify struct {
@@ -38,4 +45,58 @@ type ExecuteNotify struct {
 	State       byte
 	GasConsumed uint64
 	Notify      []*NotifyEventInfo
+
+	GasStepUsed     uint64
+	TxIndex         uint32
+	CreatedContract common.Address
+}
+
+func ExecuteNotifyFromEthReceipt(receipt *types.Receipt) *ExecuteNotify {
+	notify := &ExecuteNotify{
+		TxHash:          common.Uint256(receipt.TxHash),
+		State:           byte(receipt.Status),
+		GasConsumed:     receipt.GasUsed * receipt.GasPrice,
+		GasStepUsed:     receipt.GasUsed,
+		TxIndex:         receipt.TxIndex,
+		CreatedContract: common.Address(receipt.ContractAddress),
+	}
+
+	for _, log := range receipt.Logs {
+		notify.Notify = append(notify.Notify, NotifyEventInfoFromEvmLog(log))
+	}
+
+	return notify
+}
+
+func NotifyEventInfoFromEvmLog(log *types.StorageLog) *NotifyEventInfo {
+	raw := common.SerializeToBytes(log)
+
+	return &NotifyEventInfo{
+		ContractAddress: common.Address(log.Address),
+		States:          hexutil.Bytes(raw),
+		IsEvm:           true,
+	}
+}
+
+func NotifyEventInfoToEvmLog(info *NotifyEventInfo) (*types.StorageLog, error) {
+	n := info
+	if !n.IsEvm {
+		return nil, fmt.Errorf("not evm event")
+	}
+	states, ok := n.States.(string)
+	if !ok {
+		return nil, errors.New("event info states is not string")
+	}
+	data, err := hexutil.Decode(states)
+	if err != nil {
+		return nil, err
+	}
+	source := common.NewZeroCopySource(data)
+	var storageLog types.StorageLog
+	err = storageLog.Deserialization(source)
+	if err != nil {
+		return nil, err
+	}
+
+	return &storageLog, nil
 }

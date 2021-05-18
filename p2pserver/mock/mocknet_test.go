@@ -21,13 +21,11 @@ package mock
 import (
 	"crypto/rand"
 	"encoding/binary"
-	"testing"
-
 	"net"
+	"testing"
 
 	"github.com/ontio/ontology/p2pserver/common"
 	"github.com/stretchr/testify/assert"
-
 	"github.com/stretchr/testify/require"
 )
 

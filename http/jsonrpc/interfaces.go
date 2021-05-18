@@ -130,33 +130,15 @@ func GetSyncStatus(params []interface{}) map[string]interface{} {
 	return rpc.ResponseSuccess(status)
 }
 
-func GetRawMemPool(params []interface{}) map[string]interface{} {
-	txs := []*bcomn.Transactions{}
-	txpool := bactor.GetTxsFromPool(false)
-	for _, t := range txpool {
-		txs = append(txs, bcomn.TransArryByteToHexString(t))
-	}
-	if len(txs) == 0 {
-		return rpc.ResponsePack(berr.INVALID_PARAMS, nil)
-	}
-	return rpc.ResponseSuccess(txs)
-}
-
 //get memory pool transaction count
 func GetMemPoolTxCount(params []interface{}) map[string]interface{} {
-	count, err := bactor.GetTxnCount()
-	if err != nil {
-		return rpc.ResponsePack(berr.INTERNAL_ERROR, nil)
-	}
+	count := bactor.GetTxnCount()
 	return rpc.ResponseSuccess(count)
 }
 
 //get memory pool transaction hash
 func GetMemPoolTxHashList(params []interface{}) map[string]interface{} {
-	txHashList, err := bactor.GetTxnHashList()
-	if err != nil {
-		return rpc.ResponsePack(berr.INTERNAL_ERROR, nil)
-	}
+	txHashList := bactor.GetTxnHashList()
 	return rpc.ResponseSuccess(txHashList)
 }
 
@@ -293,17 +275,15 @@ func SendRawTransaction(params []interface{}) map[string]interface{} {
 		}
 		hash = txn.Hash()
 		log.Debugf("SendRawTransaction recv %s", hash.ToHexString())
-		if txn.TxType == types.InvokeNeo || txn.TxType == types.Deploy || txn.TxType == types.InvokeWasm {
-			if len(params) > 1 {
-				preExec, ok := params[1].(float64)
-				if ok && preExec == 1 {
-					result, err := bactor.PreExecuteContract(txn)
-					if err != nil {
-						log.Infof("PreExec: ", err)
-						return rpc.ResponsePack(berr.SMARTCODE_ERROR, err.Error())
-					}
-					return rpc.ResponseSuccess(bcomn.ConvertPreExecuteResult(result))
+		if len(params) > 1 {
+			preExec, ok := params[1].(float64)
+			if ok && preExec == 1 {
+				result, err := bactor.PreExecuteContract(txn)
+				if err != nil {
+					log.Infof("PreExec: ", err)
+					return rpc.ResponsePack(berr.SMARTCODE_ERROR, err.Error())
 				}
+				return rpc.ResponseSuccess(bcomn.ConvertPreExecuteResult(result))
 			}
 		}
 
@@ -591,11 +571,12 @@ func GetBlockTxsByHeight(params []interface{}) map[string]interface{} {
 
 //get gas price in block
 func GetGasPrice(params []interface{}) map[string]interface{} {
-	result, err := bcomn.GetGasPrice()
+	gasPrice, height, err := bcomn.GetGasPrice()
 	if err != nil {
 		return rpc.ResponsePack(berr.INTERNAL_ERROR, "")
 	}
-	return rpc.ResponseSuccess(result)
+	res := map[string]interface{}{"gasprice": gasPrice, "height": height}
+	return rpc.ResponseSuccess(res)
 }
 
 // get unbound ong of address

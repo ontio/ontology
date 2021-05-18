@@ -240,7 +240,7 @@ func fileInfoExist(native *native.NativeService, fileOwner common.Address, fileH
 	contract := native.ContextRef.CurrentContext().ContractAddress
 	fileInfoKey := GenFsFileInfoKey(contract, fileOwner, fileHash)
 
-	item, err := utils.GetStorageItem(native, fileInfoKey)
+	item, err := utils.GetStorageItem(native.CacheDB, fileInfoKey)
 	if err != nil || item == nil || item.Value == nil {
 		return false
 	}
@@ -251,7 +251,7 @@ func getFileInfoFromDb(native *native.NativeService, fileOwner common.Address, f
 	contract := native.ContextRef.CurrentContext().ContractAddress
 	fileInfoKey := GenFsFileInfoKey(contract, fileOwner, fileHash)
 
-	item, err := utils.GetStorageItem(native, fileInfoKey)
+	item, err := utils.GetStorageItem(native.CacheDB, fileInfoKey)
 	if err != nil || item == nil || item.Value == nil {
 		return nil
 	}

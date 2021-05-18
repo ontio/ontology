@@ -26,10 +26,11 @@ import (
 	cstates "github.com/ontio/ontology/core/states"
 	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/smartcontract/service/native"
+	"github.com/ontio/ontology/smartcontract/storage"
 )
 
-func GetStorageItem(native *native.NativeService, key []byte) (*cstates.StorageItem, error) {
-	store, err := native.CacheDB.Get(key)
+func GetStorageItem(cacheDB *storage.CacheDB, key []byte) (*cstates.StorageItem, error) {
+	store, err := cacheDB.Get(key)
 	if err != nil {
 		return nil, errors.NewDetailErr(err, errors.ErrNoCode, "[GetStorageItem] storage error!")
 	}
@@ -44,8 +45,8 @@ func GetStorageItem(native *native.NativeService, key []byte) (*cstates.StorageI
 	return item, nil
 }
 
-func GetStorageUInt64(native *native.NativeService, key []byte) (uint64, error) {
-	item, err := GetStorageItem(native, key)
+func GetStorageUInt64(cacheDB *storage.CacheDB, key []byte) (uint64, error) {
+	item, err := GetStorageItem(cacheDB, key)
 	if err != nil {
 		return 0, err
 	}
@@ -59,8 +60,8 @@ func GetStorageUInt64(native *native.NativeService, key []byte) (uint64, error) 
 	return v, nil
 }
 
-func GetStorageUInt32(native *native.NativeService, key []byte) (uint32, error) {
-	item, err := GetStorageItem(native, key)
+func GetStorageUInt32(cacheDB *storage.CacheDB, key []byte) (uint32, error) {
+	item, err := GetStorageItem(cacheDB, key)
 	if err != nil {
 		return 0, err
 	}
@@ -91,7 +92,7 @@ func PutBytes(native *native.NativeService, key []byte, value []byte) {
 }
 
 func GetStorageVarBytes(native *native.NativeService, key []byte) ([]byte, error) {
-	item, err := GetStorageItem(native, key)
+	item, err := GetStorageItem(native.CacheDB, key)
 	if err != nil {
 		return []byte{}, err
 	}

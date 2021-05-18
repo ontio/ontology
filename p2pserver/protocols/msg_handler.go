@@ -42,6 +42,7 @@ import (
 	"github.com/ontio/ontology/p2pserver/protocols/reconnect"
 	"github.com/ontio/ontology/p2pserver/protocols/subnet"
 	"github.com/ontio/ontology/p2pserver/protocols/utils"
+	common2 "github.com/ontio/ontology/txnpool/common"
 )
 
 //respCache cache for some response data
@@ -63,9 +64,11 @@ type MsgHandler struct {
 	ledger                   *ledger.Ledger
 	acct                     *account.Account // nil if conenesus is not enabled
 	staticReserveFilter      p2p.AddressFilter
+	txPoolService            common2.TxPoolService
 }
 
-func NewMsgHandler(acct *account.Account, staticReserveFilter p2p.AddressFilter, ld *ledger.Ledger, logger msgCommon.Logger) *MsgHandler {
+func NewMsgHandler(acct *account.Account, staticReserveFilter p2p.AddressFilter, ld *ledger.Ledger,
+	txPool common2.TxPoolService, logger msgCommon.Logger) *MsgHandler {
 	gov := utils.NewGovNodeResolver(ld)
 	seedsList := config.DefConfig.Genesis.SeedList
 	seeds, invalid := utils.NewHostsResolver(seedsList)
@@ -73,7 +76,7 @@ func NewMsgHandler(acct *account.Account, staticReserveFilter p2p.AddressFilter,
 		panic(fmt.Errorf("invalid seed list； %v", invalid))
 	}
 	subNet := subnet.NewSubNet(acct, seeds, gov, logger)
-	return &MsgHandler{ledger: ld, seeds: seeds, subnet: subNet, acct: acct, staticReserveFilter: staticReserveFilter}
+	return &MsgHandler{ledger: ld, seeds: seeds, subnet: subNet, acct: acct, txPoolService: txPool, staticReserveFilter: staticReserveFilter}
 }
 
 func (self *MsgHandler) GetReservedAddrFilter(staticFilterEnabled bool) p2p.AddressFilter {
@@ -164,7 +167,7 @@ func (self *MsgHandler) HandlePeerMessage(ctx *p2p.Context, msg msgTypes.Message
 	case *msgTypes.Consensus:
 		ConsensusHandle(ctx, m)
 	case *msgTypes.Trn:
-		TransactionHandle(ctx, m)
+		self.transactionHandle(ctx, m)
 	case *msgTypes.Addr:
 		self.discovery.AddrHandle(ctx, m)
 	case *msgTypes.DataReq:
@@ -234,10 +237,10 @@ func ConsensusHandle(ctx *p2p.Context, consensus *msgTypes.Consensus) {
 }
 
 // TransactionHandle handles the transaction message from peer
-func TransactionHandle(ctx *p2p.Context, trn *msgTypes.Trn) {
+func (self *MsgHandler) transactionHandle(ctx *p2p.Context, trn *msgTypes.Trn) {
 	if !txCache.Contains(trn.Txn.Hash()) {
 		txCache.Add(trn.Txn.Hash(), nil)
-		actor.AddTransaction(trn.Txn)
+		self.txPoolService.AppendTransactionAsync(common2.NetSender, trn.Txn)
 	} else {
 		log.Tracef("[p2p]receive duplicate Transaction message, txHash: %x\n", trn.Txn.Hash())
 	}
@@ -306,7 +309,7 @@ func DataReqHandle(ctx *p2p.Context, dataReq *msgTypes.DataReq) {
 		}
 
 	case common.TRANSACTION:
-		txn, err := ledger.DefLedger.GetTransaction(hash)
+		txn, _, err := ledger.DefLedger.GetTransaction(hash)
 		if err != nil {
 			log.Debug("[p2p]Can't get transaction by hash: ",
 				hash, " ,send not found message")
@@ -345,7 +348,7 @@ func InvHandle(ctx *p2p.Context, inv *msgTypes.Inv) {
 		log.Debug("[p2p]receive transaction message", id)
 		// TODO check the ID queue
 		id = inv.P.Blk[0]
-		trn, err := ledger.DefLedger.GetTransaction(id)
+		trn, _, err := ledger.DefLedger.GetTransaction(id)
 		if trn == nil || err != nil {
 			msg := msgpack.NewTxnDataReq(id)
 			err = remotePeer.Send(msg)

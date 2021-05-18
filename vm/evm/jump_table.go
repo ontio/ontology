@@ -1,3 +1,4 @@
+// Copyright (C) 2021 The Ontology Authors
 // Copyright 2015 The go-ethereum Authors
 // This file is part of the go-ethereum library.
 //
@@ -68,7 +69,6 @@ type JumpTable [256]*operation
 func newYoloV2InstructionSet() JumpTable {
 	instructionSet := newIstanbulInstructionSet()
 	enable2315(&instructionSet) // Subroutines - https://eips.ethereum.org/EIPS/eip-2315
-	enable2929(&instructionSet) // Access lists for trie accesses https://eips.ethereum.org/EIPS/eip-2929
 	return instructionSet
 }
 

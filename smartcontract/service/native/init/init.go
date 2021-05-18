@@ -33,6 +33,7 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/native/ont"
 	"github.com/ontio/ontology/smartcontract/service/native/ontfs"
 	"github.com/ontio/ontology/smartcontract/service/native/ontid"
+	"github.com/ontio/ontology/smartcontract/service/native/system"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 	"github.com/ontio/ontology/smartcontract/service/neovm"
 	vm "github.com/ontio/ontology/vm/neovm"
@@ -53,6 +54,7 @@ func init() {
 	header_sync.InitHeaderSync()
 	lock_proxy.InitLockProxy()
 	ontfs.InitFs()
+	system.InitSystem()
 }
 
 func InitBytes(addr common.Address, method string) []byte {

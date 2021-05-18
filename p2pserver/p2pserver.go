@@ -32,6 +32,7 @@ import (
 	p2p "github.com/ontio/ontology/p2pserver/net/protocol"
 	"github.com/ontio/ontology/p2pserver/protocols"
 	"github.com/ontio/ontology/p2pserver/protocols/utils"
+	common2 "github.com/ontio/ontology/txnpool/common"
 )
 
 //P2PServer control all network activities
@@ -41,7 +42,7 @@ type P2PServer struct {
 }
 
 //NewServer return a new p2pserver according to the pubkey
-func NewServer(acct *account.Account) (*P2PServer, error) {
+func NewServer(acct *account.Account, txpool common2.TxPoolService) (*P2PServer, error) {
 	db := ledger.DefLedger
 	var rsv []string
 	var recRsv []string
@@ -54,7 +55,7 @@ func NewServer(acct *account.Account) (*P2PServer, error) {
 	}
 
 	staticFilter := connect_controller.NewStaticReserveFilter(rsv)
-	protocol := protocols.NewMsgHandler(acct, connect_controller.NewStaticReserveFilter(recRsv), db, common.NewGlobalLoggerWrapper())
+	protocol := protocols.NewMsgHandler(acct, connect_controller.NewStaticReserveFilter(recRsv), db, txpool, common.NewGlobalLoggerWrapper())
 	reserved := protocol.GetReservedAddrFilter(len(rsv) != 0)
 	reservedPeers := p2p.CombineAddrFilter(staticFilter, reserved)
 	n, err := netserver.NewNetServer(protocol, conf, reservedPeers)

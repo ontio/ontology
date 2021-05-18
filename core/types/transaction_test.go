@@ -20,8 +20,14 @@ package types
 
 import (
 	"math"
+	"math/big"
 	"testing"
 
+	ethcomm "github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/core/payload"
 	"github.com/stretchr/testify/assert"
 )
@@ -38,4 +44,62 @@ func TestTransaction_SigHashForChain(t *testing.T) {
 	assert.Equal(t, tx.Hash(), tx.SigHashForChain(0))
 	assert.NotEqual(t, tx.Hash(), tx.SigHashForChain(1))
 	assert.NotEqual(t, tx.Hash(), tx.SigHashForChain(math.MaxUint32))
+}
+
+func init() {
+	CheckChainID = true
+	config.DefConfig.P2PNode.EVMChainId = 1234
+}
+
+func Ensure(err error) {
+	if err != nil {
+		panic(err)
+	}
+}
+
+func EnsureTrue(b bool) {
+	if !b {
+		panic("must be true")
+	}
+}
+
+func genTx(nonce uint64) *Transaction {
+	privateKey, _ := crypto.HexToECDSA("fad9c8855b740a0b7ed4c221dbad0f33a83a49cad6b3fe8d5817ac83d38b6a19")
+	value := big.NewInt(1000000000)
+	gaslimit := uint64(21000)
+	gasPrice := big.NewInt(2500)
+	toAddress := ethcomm.HexToAddress("0x4592d8f8d7b001e72cb26a73e4fa1806a51ac79d")
+	tx := types.NewTransaction(nonce, toAddress, value, gaslimit, gasPrice, nil)
+
+	chainId := big.NewInt(0)
+	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(chainId), privateKey)
+	Ensure(err)
+	_, err = TransactionFromEIP155(signedTx)
+	EnsureTrue(err != nil)
+	chainId = big.NewInt(1234)
+	signedTx, err = types.SignTx(tx, types.NewEIP155Signer(chainId), privateKey)
+	Ensure(err)
+	otx, err := TransactionFromEIP155(signedTx)
+	Ensure(err)
+	return otx
+}
+
+func Test_EIP155Tx(t *testing.T) {
+	otx := genTx(0)
+
+	sink := common.ZeroCopySink{}
+	otx.Serialization(&sink)
+
+	tx, err := TransactionFromRawBytes(sink.Bytes())
+	assert.Nil(t, err)
+
+	assert.NotNil(t, tx)
+
+	assert.Equal(t, otx.Nonce, tx.Nonce)
+	assert.Equal(t, otx.Payer, tx.Payer)
+	assert.Equal(t, otx.GasLimit, tx.GasLimit)
+	assert.Equal(t, otx.GasPrice, tx.GasPrice)
+	assert.Equal(t, otx.TxType, tx.TxType)
+	assert.Equal(t, otx.Version, tx.Version)
+	assert.Equal(t, otx.Raw, tx.Raw)
 }

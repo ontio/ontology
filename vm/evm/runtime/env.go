@@ -1,3 +1,4 @@
+// Copyright (C) 2021 The Ontology Authors
 // Copyright 2015 The go-ethereum Authors
 // This file is part of the go-ethereum library.
 //
@@ -17,9 +18,10 @@
 package runtime
 
 import (
+	"math/big"
+
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ontio/ontology/vm/evm"
-	"math/big"
 )
 
 func NewEnv(cfg *Config) *evm.EVM {
@@ -51,4 +53,5 @@ func CanTransfer(db evm.StateDB, addr common.Address, amount *big.Int) bool {
 func Transfer(db evm.StateDB, sender, recipient common.Address, amount *big.Int) {
 	db.SubBalance(sender, amount)
 	db.AddBalance(recipient, amount)
+	evm.MakeOngTransferLog(db, sender, recipient, amount)
 }

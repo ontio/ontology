@@ -19,40 +19,18 @@
 package types
 
 import (
-	"github.com/ontio/ontology-eventbus/actor"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/errors"
 )
 
-// message
-type RegisterValidator struct {
-	Sender *actor.PID
-	Type   VerifyType
-	Id     string
-}
-
-type UnRegisterValidator struct {
-	Id   string
-	Type VerifyType
-}
-
-type UnRegisterAck struct {
-	Id   string
-	Type VerifyType
-}
-
-type CheckTx struct {
-	WorkerId uint8
-	Tx       *types.Transaction
-}
-
 type CheckResponse struct {
-	WorkerId uint8
-	Type     VerifyType
-	Hash     common.Uint256
-	Height   uint32
-	ErrCode  errors.ErrCode
+	Type    VerifyType
+	Hash    common.Uint256
+	Tx      *types.Transaction
+	Height  uint32
+	Nonce   uint64
+	ErrCode errors.ErrCode
 }
 
 // VerifyType of validator

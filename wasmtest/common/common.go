@@ -22,13 +22,12 @@ import (
 	"encoding/json"
 
 	utils2 "github.com/ontio/ontology/cmd/utils"
+	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/payload"
+	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/core/utils"
 	common2 "github.com/ontio/ontology/http/base/common"
 	"github.com/ontio/ontology/smartcontract/states"
-
-	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/vm/neovm"
 )
 
@@ -77,6 +76,18 @@ type TestCase struct {
 	Param       string  `json:"param"`
 	Expect      string  `json:"expected"`
 	Notify      string  `json:"notify"`
+	JsonAbi     string  `json:"jsonabi"`
+}
+
+func NewTestCase(env TestEnv, needContext bool, method string, param string, expect string, jsonABI string) TestCase {
+	return TestCase{
+		Env:         env,
+		NeedContext: needContext,
+		Method:      method,
+		Param:       param,
+		Expect:      expect,
+		JsonAbi:     jsonABI,
+	}
 }
 
 type ConAddr struct {

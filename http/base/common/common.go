@@ -84,6 +84,10 @@ type ExecuteNotify struct {
 	State       byte
 	GasConsumed uint64
 	Notify      []NotifyEventInfo
+
+	GasStepUsed     uint64
+	TxIndex         uint32
+	CreatedContract string
 }
 
 type PreExecuteResult struct {
@@ -203,7 +207,8 @@ func GetExecuteNotify(obj *event.ExecuteNotify) (map[string]bool, ExecuteNotify)
 		contractAddrs[v.ContractAddress.ToHexString()] = true
 	}
 	txhash := obj.TxHash.ToHexString()
-	return contractAddrs, ExecuteNotify{txhash, obj.State, obj.GasConsumed, evts}
+	return contractAddrs, ExecuteNotify{txhash, obj.State, obj.GasConsumed, evts,
+		obj.GasStepUsed, obj.TxIndex, obj.CreatedContract.ToHexString()}
 }
 
 func ConvertPreExecuteResult(obj *cstate.PreExecResult) PreExecuteResult {
@@ -259,7 +264,7 @@ func TransferCrossChainMsg(msg *types.CrossChainMsg, pks []keypair.PublicKey) st
 
 func SendTxToPool(txn *types.Transaction) (ontErrors.ErrCode, string) {
 	if errCode, desc := bactor.AppendTxToPool(txn); errCode != ontErrors.ErrNoError {
-		log.Warn("TxnPool verify error:", errCode.Error())
+		log.Warnf("send tx to pool failed, tx: %s error: %s", txn.Hash().ToHexString(), desc)
 		return errCode, desc
 	}
 	return ontErrors.ErrNoError, ""
@@ -486,10 +491,8 @@ func GetContractAllowance(cVersion byte, contractAddr, fromAddr, toAddr common.A
 	return allowance.Uint64(), nil
 }
 
-func GetGasPrice() (map[string]interface{}, error) {
+func GetGasPrice() (gasPrice uint64, height uint32, err error) {
 	start := bactor.GetCurrentBlockHeight()
-	var gasPrice uint64 = 0
-	var height uint32 = 0
 	var end uint32 = 0
 	if start > MAX_SEARCH_HEIGHT {
 		end = start - MAX_SEARCH_HEIGHT
@@ -500,7 +503,7 @@ func GetGasPrice() (map[string]interface{}, error) {
 			height = i
 			blk, err := bactor.GetBlockByHeight(i)
 			if err != nil {
-				return nil, err
+				return 0, 0, err
 			}
 			for _, v := range blk.Transactions {
 				gasPrice += v.GasPrice
@@ -509,8 +512,7 @@ func GetGasPrice() (map[string]interface{}, error) {
 			break
 		}
 	}
-	result := map[string]interface{}{"gasprice": gasPrice, "height": height}
-	return result, nil
+	return
 }
 
 func GetBlockTransactions(block *types.Block) interface{} {

@@ -1,4 +1,4 @@
-// Copyright 2015 The go-ethereum Authors
+// Copyright (C) 2021 The Ontology Authors
 // This file is part of the go-ethereum library.
 //
 // The go-ethereum library is free software: you can redistribute it and/or modify
@@ -21,11 +21,14 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/ontio/ontology/vm/evm"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/rawdb"
-	"github.com/ethereum/go-ethereum/core/state"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/holiman/uint256"
+	"github.com/ontio/ontology/core/store/leveldbstore"
+	"github.com/ontio/ontology/core/store/overlaydb"
+	"github.com/ontio/ontology/smartcontract/service/native/ong"
+	"github.com/ontio/ontology/smartcontract/storage"
+	"github.com/ontio/ontology/vm/evm"
 	"github.com/ontio/ontology/vm/evm/params"
 )
 
@@ -44,7 +47,7 @@ type Config struct {
 	Debug       bool
 	EVMConfig   evm.Config
 
-	State     *state.StateDB
+	State     *storage.StateDB
 	GetHashFn func(n uint64) common.Hash
 }
 
@@ -57,7 +60,6 @@ func setDefaults(cfg *Config) {
 			DAOForkBlock:        new(big.Int),
 			DAOForkSupport:      false,
 			EIP150Block:         new(big.Int),
-			EIP150Hash:          common.Hash{},
 			EIP155Block:         new(big.Int),
 			EIP158Block:         new(big.Int),
 			ByzantiumBlock:      new(big.Int),
@@ -99,27 +101,22 @@ func setDefaults(cfg *Config) {
 //
 // Execute sets up an in-memory, temporary, environment for the execution of
 // the given code. It makes sure that it's restored to its original state afterwards.
-func Execute(code, input []byte, cfg *Config) ([]byte, *state.StateDB, error) {
+func Execute(code, input []byte, cfg *Config) ([]byte, *storage.StateDB, error) {
 	if cfg == nil {
 		cfg = new(Config)
 	}
 	setDefaults(cfg)
 
 	if cfg.State == nil {
-		cfg.State, _ = state.New(common.Hash{}, state.NewDatabase(rawdb.NewMemoryDatabase()), nil)
+		db := storage.NewCacheDB(overlaydb.NewOverlayDB(leveldbstore.NewMemLevelDBStore()))
+		cfg.State = storage.NewStateDB(db, common.Hash{}, common.Hash{}, ong.OngBalanceHandle{})
 	}
 	var (
 		address = common.BytesToAddress([]byte("contract"))
 		vmenv   = NewEnv(cfg)
 		sender  = evm.AccountRef(cfg.Origin)
 	)
-	if cfg.ChainConfig.IsYoloV2(vmenv.Context.BlockNumber) {
-		cfg.State.AddAddressToAccessList(cfg.Origin)
-		cfg.State.AddAddressToAccessList(address)
-		for _, addr := range vmenv.ActivePrecompiles() {
-			cfg.State.AddAddressToAccessList(addr)
-		}
-	}
+
 	cfg.State.CreateAccount(address)
 	// set the receiver's (the executing contract) code for execution.
 	cfg.State.SetCode(address, code)
@@ -143,18 +140,13 @@ func Create(input []byte, cfg *Config) ([]byte, common.Address, uint64, error) {
 	setDefaults(cfg)
 
 	if cfg.State == nil {
-		cfg.State, _ = state.New(common.Hash{}, state.NewDatabase(rawdb.NewMemoryDatabase()), nil)
+		db := storage.NewCacheDB(overlaydb.NewOverlayDB(leveldbstore.NewMemLevelDBStore()))
+		cfg.State = storage.NewStateDB(db, common.Hash{}, common.Hash{}, ong.OngBalanceHandle{})
 	}
 	var (
 		vmenv  = NewEnv(cfg)
 		sender = evm.AccountRef(cfg.Origin)
 	)
-	if cfg.ChainConfig.IsYoloV2(vmenv.Context.BlockNumber) {
-		cfg.State.AddAddressToAccessList(cfg.Origin)
-		for _, addr := range vmenv.ActivePrecompiles() {
-			cfg.State.AddAddressToAccessList(addr)
-		}
-	}
 
 	// Call the code with the given configuration.
 	code, address, leftOverGas, err := vmenv.Create(
@@ -162,6 +154,33 @@ func Create(input []byte, cfg *Config) ([]byte, common.Address, uint64, error) {
 		input,
 		cfg.GasLimit,
 		cfg.Value,
+	)
+	return code, address, leftOverGas, err
+}
+
+// Create2 executes the code using the EVM create2 method
+func Create2(input []byte, cfg *Config, salt *uint256.Int) ([]byte, common.Address, uint64, error) {
+	if cfg == nil {
+		cfg = new(Config)
+	}
+	setDefaults(cfg)
+
+	if cfg.State == nil {
+		db := storage.NewCacheDB(overlaydb.NewOverlayDB(leveldbstore.NewMemLevelDBStore()))
+		cfg.State = storage.NewStateDB(db, common.Hash{}, common.Hash{}, ong.OngBalanceHandle{})
+	}
+	var (
+		vmenv  = NewEnv(cfg)
+		sender = evm.AccountRef(cfg.Origin)
+	)
+
+	// Call the code with the given configuration.
+	code, address, leftOverGas, err := vmenv.Create2(
+		sender,
+		input,
+		cfg.GasLimit,
+		cfg.Value,
+		salt,
 	)
 	return code, address, leftOverGas, err
 }
@@ -175,15 +194,7 @@ func Call(address common.Address, input []byte, cfg *Config) ([]byte, uint64, er
 	setDefaults(cfg)
 
 	vmenv := NewEnv(cfg)
-
-	sender := cfg.State.GetOrNewStateObject(cfg.Origin)
-	if cfg.ChainConfig.IsYoloV2(vmenv.Context.BlockNumber) {
-		cfg.State.AddAddressToAccessList(cfg.Origin)
-		cfg.State.AddAddressToAccessList(address)
-		for _, addr := range vmenv.ActivePrecompiles() {
-			cfg.State.AddAddressToAccessList(addr)
-		}
-	}
+	sender := evm.AccountRef(cfg.Origin)
 
 	// Call the code with the given configuration.
 	ret, leftOverGas, err := vmenv.Call(

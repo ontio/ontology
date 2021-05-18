@@ -24,14 +24,19 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"math/big"
 	"os"
 	"path"
 	"path/filepath"
 	"reflect"
 	"runtime"
 	"sort"
+	"strconv"
 	"strings"
 
+	"github.com/ethereum/go-ethereum/accounts/abi"
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
+	types2 "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/account"
 	"github.com/ontio/ontology/cmd/utils"
@@ -56,6 +61,7 @@ import (
 	"github.com/ontio/wagon/wasm"
 )
 
+const contractDir2 = "test-contract"
 const contractDir = "testwasmdata"
 const testcaseMethod = "testcase"
 
@@ -85,6 +91,18 @@ func NewDeployNeoContract(signer *account.Account, code []byte) (*types.Transact
 	}
 	tx, err := mutable.IntoImmutable()
 	return tx, err
+}
+
+func NewDeployEvmContract(opts *bind.TransactOpts, code []byte, jsonABI string, params ...interface{}) (*types2.Transaction, error) {
+	parsed, err := abi.JSON(strings.NewReader(jsonABI))
+	checkErr(err)
+	input, err := parsed.Pack("", params...)
+	checkErr(err)
+	input = append(code, input...)
+	deployTx := types2.NewContractCreation(opts.Nonce.Uint64(), opts.Value, opts.GasLimit, opts.GasPrice, input)
+	signedTx, err := opts.Signer(opts.From, deployTx)
+	checkErr(err)
+	return signedTx, err
 }
 
 func GenNeoTextCaseTransaction(contract common.Address, database *ledger.Ledger) [][]common3.TestCase {
@@ -181,21 +199,34 @@ func LoadContracts(dir string) ([]Item, error) {
 	sort.Strings(fnames)
 
 	for _, name := range fnames {
-		if !(strings.HasSuffix(name, ".wasm") || strings.HasSuffix(name, ".avm")) {
+		if !(strings.HasSuffix(name, ".wasm") || strings.HasSuffix(name, ".avm") ||
+			strings.HasSuffix(name, ".evm")) {
 			continue
 		}
-		raw, err := ioutil.ReadFile(name)
-		if err != nil {
-			return nil, err
-		}
+		code := loadContract(name)
 		con := Item{
 			File:     path.Base(name),
-			Contract: raw,
+			Contract: code,
 		}
 		contracts = append(contracts, con)
 	}
 
 	return contracts, nil
+}
+
+func loadContract(filePath string) []byte {
+	if common.FileExisted(filePath) {
+		raw, err := ioutil.ReadFile(filePath)
+		checkErr(err)
+		code, err := hex.DecodeString(strings.TrimSpace(string(raw)))
+		if err != nil {
+			return raw
+		} else {
+			return code
+		}
+	} else {
+		panic("no existed file:" + filePath)
+	}
 }
 
 func init() {
@@ -250,7 +281,6 @@ func execTxCheckRes(tx *types.Transaction, testCase common3.TestCase, database *
 	res, err := database.PreExecuteContract(tx)
 	checkErr(err)
 	log.Infof("testcase consume gas: %d", res.Gas)
-
 	height := database.GetCurrentBlockHeight()
 	header, err := database.GetHeaderByHeight(height)
 	checkErr(err)
@@ -262,6 +292,7 @@ func execTxCheckRes(tx *types.Transaction, testCase common3.TestCase, database *
 	block, _ := makeBlock(acct, []*types.Transaction{tx})
 	err = database.AddBlock(block, nil, common.UINT256_EMPTY)
 	checkErr(err)
+	log.Infof("execTxCheckRes success: %s", testCase.Method)
 }
 
 func main() {
@@ -279,49 +310,29 @@ func main() {
 	config.DefConfig.Genesis.ConsensusType = "solo"
 	config.DefConfig.Genesis.SOLO.GenBlockTime = 3
 	config.DefConfig.Genesis.SOLO.Bookkeepers = []string{hex.EncodeToString(buf)}
-	config.DefConfig.P2PNode.NetworkId = 0
+	config.DefConfig.P2PNode.NetworkId = 3
 
 	bookkeepers := []keypair.PublicKey{acct.PublicKey}
 	//Init event hub
 	events.Init()
 
 	log.Info("1. Loading the Ledger")
-	database, err := ledger.NewLedger(datadir, 1000000)
-	checkErr(err)
-	ledger.DefLedger = database
 	genblock, err := genesis.BuildGenesisBlock(bookkeepers, config.DefConfig.Genesis)
 	checkErr(err)
-	err = database.Init(bookkeepers, genblock)
+	database, err := ledger.InitLedger(datadir, 1000000, bookkeepers, genblock)
 	checkErr(err)
+	ledger.DefLedger = database
 
 	log.Info("loading wasm contract")
 	contract, err := LoadContracts(contractDir)
 	checkErr(err)
 
-	log.Infof("deploying %d wasm contracts", len(contract))
-	txes := make([]*types.Transaction, 0, len(contract))
-	for _, item := range contract {
-		file := item.File
-		cont := item.Contract
-		var tx *types.Transaction
-		var err error
-		if strings.HasSuffix(file, ".wasm") {
-			tx, err = NewDeployWasmContract(acct, cont)
-		} else if strings.HasSuffix(file, ".avm") {
-			tx, err = NewDeployNeoContract(acct, cont)
-		}
-
-		checkErr(err)
-
-		res, err := database.PreExecuteContract(tx)
-		log.Infof("deploy %s consume gas: %d", file, res.Gas)
-		checkErr(err)
-		txes = append(txes, tx)
-	}
-
-	block, _ := makeBlock(acct, txes)
-	err = database.AddBlock(block, nil, common.UINT256_EMPTY)
+	contract2, err := LoadContracts(contractDir2)
 	checkErr(err)
+
+	log.Infof("deploying %d wasm contracts", len(contract))
+	deployContract(contract, acct, database)
+	deployContract(contract2, acct, database)
 
 	addrMap := make([]common3.ConAddr, 0)
 	for _, item := range contract {
@@ -331,15 +342,18 @@ func main() {
 			File:    file,
 			Address: common.AddressFromVmCode(code),
 		}
-
 		addrMap = append(addrMap, conaddr)
+	}
+	if true {
+		bridge, wingErc20, wingOep4 := getBridgeContract(contract2)
+		bridgeTest(bridge, wingOep4, wingErc20, database, acct)
+		return
 	}
 
 	testContext := common3.TestContext{
 		Admin:   acct.Address,
 		AddrMap: addrMap,
 	}
-
 	for _, item := range contract {
 		file := item.File
 		cont := item.Contract
@@ -352,7 +366,6 @@ func main() {
 				log.Info("executing testcase: ", string(val))
 				tx, err := common3.GenNeoVMTransaction(testCase, addr, &testContext)
 				checkErr(err)
-
 				execTxCheckRes(tx, testCase, database, addr, acct)
 			}
 		} else if strings.HasSuffix(file, ".wasm") {
@@ -381,6 +394,11 @@ type ExecEnv struct {
 
 func checkExecResult(testCase common3.TestCase, result *states.PreExecResult, execEnv ExecEnv) {
 	assertEq(result.State, byte(1))
+	if execEnv.Tx.IsEipTx() {
+		res := parseEthResult(testCase.Method, result.Result, testCase.JsonAbi)
+		compareEthResult(res, testCase.Expect)
+		return
+	}
 	ret := result.Result.(string)
 	switch testCase.Method {
 	case "timestamp":
@@ -424,6 +442,30 @@ func checkExecResult(testCase common3.TestCase, result *states.PreExecResult, ex
 		if len(testCase.Notify) != 0 {
 			js, _ := json.Marshal(result.Notify)
 			assertEq(true, strings.Contains(string(js), testCase.Notify))
+		}
+	}
+}
+
+func compareEthResult(result interface{}, expect string) {
+	res := strings.Split(expect, ":")
+	switch res[0] {
+	case "int":
+		data := result.(*big.Int)
+		exp, err := strconv.ParseUint(res[1], 10, 64)
+		checkErr(err)
+		if data.Uint64() != exp {
+			panic(data)
+		}
+	case "bool":
+		data := result.(bool)
+		if res[1] == "true" {
+			if !data {
+				panic(data)
+			}
+		} else {
+			if data {
+				panic(data)
+			}
 		}
 	}
 }
@@ -523,4 +565,11 @@ func assertEq(a interface{}, b interface{}) {
 	if reflect.DeepEqual(a, b) == false {
 		panic(fmt.Sprintf("not equal: a= %v, b=%v", a, b))
 	}
+}
+
+func JsonString(v interface{}) string {
+	buf, err := json.MarshalIndent(v, "", "  ")
+	checkErr(err)
+
+	return string(buf)
 }

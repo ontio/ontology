@@ -9,7 +9,7 @@ os:
   - osx
 
 go:
-  - 1.12.x
+  - 1.14.x
 
 script:
     - bash ./.travis.script.bash
@@ -19,7 +19,7 @@ deploy:
   provider: releases
   token: "${GITHUB_TOKEN}"
   file_glob: true
-  file: 
+  file:
     - ontology*
     - tool-*.zip
   skip_cleanup: true

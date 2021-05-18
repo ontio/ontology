@@ -25,6 +25,7 @@ import (
 	"fmt"
 	"io"
 
+	common2 "github.com/ethereum/go-ethereum/common"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/common/serialization"
@@ -36,6 +37,7 @@ import (
 	"github.com/ontio/ontology/merkle"
 	"github.com/ontio/ontology/smartcontract/service/native/ontid"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
+	"github.com/ontio/ontology/smartcontract/storage"
 )
 
 var (
@@ -79,7 +81,7 @@ func NewStateStore(dbDir, merklePath string, stateHashCheckHeight uint32) (*Stat
 
 // for test
 func NewMemStateStore(stateHashHeight uint32) *StateStore {
-	store, _ := leveldbstore.NewMemLevelDBStore()
+	store := leveldbstore.NewMemLevelDBStore()
 	stateStore := &StateStore{
 		store:                store,
 		merkleTree:           merkle.NewTree(0, nil, nil),
@@ -295,13 +297,74 @@ func (self *StateStore) SaveBookkeeperState(bookkeeperState *states.BookkeeperSt
 	return self.store.Put(key, value.Bytes())
 }
 
-//GetStorageItem return the storage value of the key in smart contract.
-func (self *StateStore) GetStorageState(key *states.StorageKey) (*states.StorageItem, error) {
-	storeKey, err := self.getStorageKey(key)
+func (self *StateStore) GetEthCode(codeHash common2.Hash) ([]byte, error) {
+	key := genEthCodeKey(codeHash)
+	value, err := self.store.Get(key)
 	if err != nil {
 		return nil, err
 	}
+	return value, nil
+}
 
+func (self *StateStore) GetEthAccount(address common2.Address) (*storage.EthAccount, error) {
+	key := genEthAccountKey(address)
+	value, err := self.store.Get(key)
+	if err != nil {
+		if err == scom.ErrNotFound {
+			return &storage.EthAccount{}, nil
+		}
+		return nil, err
+	}
+	reader := common.NewZeroCopySource(value)
+	account := new(storage.EthAccount)
+	err = account.Deserialization(reader)
+	if err != nil {
+		return nil, err
+	}
+	return account, nil
+}
+
+func (self *StateStore) GetEthState(addr common2.Address, stateKey common2.Hash) ([]byte, error) {
+	key := genStateKey(addr, stateKey)
+	value, err := self.store.Get(key)
+	if err != nil {
+		return nil, err
+	}
+	return value, nil
+}
+
+func genEthCodeKey(codeHash common2.Hash) []byte {
+	key := make([]byte, 1+len(codeHash))
+	key[0] = byte(scom.ST_ETH_CODE)
+	copy(key[1:], codeHash[:])
+	return key
+}
+
+func genStateKey(contract common2.Address, stateKey common2.Hash) []byte {
+	suffixKey := genKey(contract, stateKey)
+	key := make([]byte, 1+len(suffixKey))
+	key[0] = byte(scom.ST_STORAGE)
+	copy(key[1:], suffixKey)
+	return key
+}
+
+func genKey(contract common2.Address, key common2.Hash) []byte {
+	var result []byte
+	result = append(result, contract.Bytes()...)
+	result = append(result, key.Bytes()...)
+	return result
+}
+
+func genEthAccountKey(addr common2.Address) []byte {
+	key := make([]byte, 1+len(addr))
+	key[0] = byte(scom.ST_ETH_ACCOUNT)
+	copy(key[1:], addr[:])
+	return key
+}
+
+//GetStorageItem return the storage value of the key in smart contract.
+func (self *StateStore) GetStorageState(key *states.StorageKey) (*states.StorageItem, error) {
+	storeKey := self.genStorageKey(key)
 	data, err := self.store.Get(storeKey)
 	if err != nil {
 		return nil, err
@@ -415,12 +478,12 @@ func (self *StateStore) getContractStateKey(contractHash common.Address) ([]byte
 	return key, nil
 }
 
-func (self *StateStore) getStorageKey(key *states.StorageKey) ([]byte, error) {
+func (self *StateStore) genStorageKey(key *states.StorageKey) []byte {
 	buf := bytes.NewBuffer(nil)
 	buf.WriteByte(byte(scom.ST_STORAGE))
 	buf.Write(key.ContractAddress[:])
 	buf.Write(key.Key)
-	return buf.Bytes(), nil
+	return buf.Bytes()
 }
 
 func (self *StateStore) GetStateMerkleRootWithNewHash(writeSetHash common.Uint256) common.Uint256 {

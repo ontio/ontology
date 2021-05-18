@@ -45,22 +45,21 @@ func init() {
 }
 
 func TestTxPool(t *testing.T) {
-	txPool := &TXPool{}
-	txPool.Init()
+	txPool := NewTxPool()
 
-	txEntry := &TXEntry{
-		Tx:    txn,
-		Attrs: []*TXAttr{},
+	txEntry := &VerifiedTx{
+		Tx:             txn,
+		VerifiedHeight: 10,
 	}
 
 	ret := txPool.AddTxList(txEntry)
-	if ret == false {
+	if !ret.Success() {
 		t.Error("Failed to add tx to the pool")
 		return
 	}
 
 	ret = txPool.AddTxList(txEntry)
-	if ret == true {
+	if ret.Success() {
 		t.Error("Failed to add tx to the pool")
 		return
 	}
@@ -93,9 +92,5 @@ func TestTxPool(t *testing.T) {
 	count := txPool.GetTransactionCount()
 	assert.Equal(t, count, 1)
 
-	err := txPool.CleanTransactionList([]*types.Transaction{txn})
-	if err != nil {
-		t.Error("Failed to clean transaction list")
-		return
-	}
+	txPool.CleanCompletedTransactionList([]*types.Transaction{txn}, 0)
 }

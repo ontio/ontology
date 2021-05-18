@@ -1,3 +1,4 @@
+// Copyright (C) 2021 The Ontology Authors
 // Copyright 2015 The go-ethereum Authors
 // This file is part of the go-ethereum library.
 //
@@ -18,6 +19,7 @@ package evm
 
 import (
 	"github.com/holiman/uint256"
+	"github.com/ontio/ontology/vm/evm/errors"
 )
 
 // Gas costs
@@ -46,7 +48,7 @@ func callGas(isEip150 bool, availableGas, base uint64, callCost *uint256.Int) (u
 		}
 	}
 	if !callCost.IsUint64() {
-		return 0, ErrGasUintOverflow
+		return 0, errors.ErrGasUintOverflow
 	}
 
 	return callCost.Uint64(), nil
