@@ -431,7 +431,7 @@ func (evm *EVM) create(caller ContractRef, codeAndHash *codeAndHash, gas uint64,
 	}
 	start := time.Now()
 
-	ret, err := evm.interpreter.Run( contract, nil, false)
+	ret, err := evm.interpreter.Run(contract, nil, false)
 
 	// check whether the max code size has been exceeded
 	maxCodeSizeExceeded := evm.chainRules.IsEIP158 && len(ret) > params.MaxCodeSize

@@ -143,6 +143,15 @@ func (self *ZeroCopySource) ReadUint32() (data uint32, err error) {
 	return data, nil
 }
 
+func (self *ZeroCopySource) ReadUint64() (data uint64, err error) {
+	data, eof := self.NextUint64()
+	if eof {
+		return 0, io.ErrUnexpectedEOF
+	}
+
+	return data, nil
+}
+
 func (self *ZeroCopySource) NextUint64() (data uint64, eof bool) {
 	var buf []byte
 	buf, eof = self.NextBytes(UINT64_SIZE)
