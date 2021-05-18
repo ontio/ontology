@@ -113,13 +113,7 @@ func Execute(code, input []byte, cfg *Config) ([]byte, *state.StateDB, error) {
 		vmenv   = NewEnv(cfg)
 		sender  = evm.AccountRef(cfg.Origin)
 	)
-	if cfg.ChainConfig.IsYoloV2(vmenv.Context.BlockNumber) {
-		cfg.State.AddAddressToAccessList(cfg.Origin)
-		cfg.State.AddAddressToAccessList(address)
-		for _, addr := range vmenv.ActivePrecompiles() {
-			cfg.State.AddAddressToAccessList(addr)
-		}
-	}
+
 	cfg.State.CreateAccount(address)
 	// set the receiver's (the executing contract) code for execution.
 	cfg.State.SetCode(address, code)
@@ -149,12 +143,6 @@ func Create(input []byte, cfg *Config) ([]byte, common.Address, uint64, error) {
 		vmenv  = NewEnv(cfg)
 		sender = evm.AccountRef(cfg.Origin)
 	)
-	if cfg.ChainConfig.IsYoloV2(vmenv.Context.BlockNumber) {
-		cfg.State.AddAddressToAccessList(cfg.Origin)
-		for _, addr := range vmenv.ActivePrecompiles() {
-			cfg.State.AddAddressToAccessList(addr)
-		}
-	}
 
 	// Call the code with the given configuration.
 	code, address, leftOverGas, err := vmenv.Create(
@@ -175,15 +163,7 @@ func Call(address common.Address, input []byte, cfg *Config) ([]byte, uint64, er
 	setDefaults(cfg)
 
 	vmenv := NewEnv(cfg)
-
 	sender := cfg.State.GetOrNewStateObject(cfg.Origin)
-	if cfg.ChainConfig.IsYoloV2(vmenv.Context.BlockNumber) {
-		cfg.State.AddAddressToAccessList(cfg.Origin)
-		cfg.State.AddAddressToAccessList(address)
-		for _, addr := range vmenv.ActivePrecompiles() {
-			cfg.State.AddAddressToAccessList(addr)
-		}
-	}
 
 	// Call the code with the given configuration.
 	ret, leftOverGas, err := vmenv.Call(
