@@ -32,6 +32,10 @@ import (
 	"github.com/ontio/ontology/smartcontract/event"
 )
 
+// UseNumber can be set to true to enable the use of json.Number when decoding
+// event state.
+var UseNumber = false
+
 //Saving event notifies gen by smart contract execution
 type EventStore struct {
 	dbDir string                     //Store path
@@ -85,7 +89,13 @@ func (this *EventStore) GetEventNotifyByTx(txHash common.Uint256) (*event.Execut
 		return nil, err
 	}
 	var notify event.ExecuteNotify
-	if err = json.Unmarshal(data, &notify); err != nil {
+	if UseNumber {
+		dec := json.NewDecoder(bytes.NewReader(data))
+		dec.UseNumber()
+		if err = dec.Decode(&notify); err != nil {
+			return nil, fmt.Errorf("json.Unmarshal error %s", err)
+		}
+	} else if err = json.Unmarshal(data, &notify); err != nil {
 		return nil, fmt.Errorf("json.Unmarshal error %s", err)
 	}
 	return &notify, nil
