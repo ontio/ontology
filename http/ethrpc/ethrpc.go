@@ -25,9 +25,14 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/ethereum/go-ethereum/rpc"
 	oComm "github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/log"
+	otypes "github.com/ontio/ontology/core/types"
+	ontErrors "github.com/ontio/ontology/errors"
 	bactor "github.com/ontio/ontology/http/base/actor"
+	bcomn "github.com/ontio/ontology/http/base/common"
 	hComm "github.com/ontio/ontology/http/base/common"
 	types2 "github.com/ontio/ontology/http/ethrpc/types"
 )
@@ -188,7 +193,22 @@ func (api *EthereumAPI) SendTransaction(args types2.SendTxArgs) (common.Hash, er
 }
 
 func (api *EthereumAPI) SendRawTransaction(data hexutil.Bytes) (common.Hash, error) {
-	return [32]byte{}, nil
+
+	tx := new(types.Transaction)
+	if err := rlp.DecodeBytes(data, tx); err != nil {
+		return common.Hash{}, err
+	}
+
+	eip155tx, err := otypes.TransactionFromEIP155(tx)
+	if err != nil {
+		return common.Hash{}, err
+	}
+	txhash := eip155tx.Hash()
+	if errCode, desc := bcomn.SendTxToPool(eip155tx); errCode != ontErrors.ErrNoError {
+		log.Warnf("SendRawTransaction verified %s error: %s", txhash.ToHexString(), desc)
+		return common.Hash{}, err
+	}
+	return common.BytesToHash(txhash[:]), nil
 }
 
 func (api *EthereumAPI) Call(args types2.CallArgs, blockNumber int64, _ *map[common.Address]types2.Account) (hexutil.Bytes, error) {
