@@ -76,9 +76,6 @@ func TransactionFromRawBytes(raw []byte) (*Transaction, error) {
 
 // todo transaction from EIP155 tx
 func TransactionFromEIP155(eiptx *types.Transaction) (*Transaction, error) {
-	if eiptx.Data() == nil {
-		return nil, fmt.Errorf("error EIP155 transaction format")
-	}
 
 	evmChainId := sysconfig.DefConfig.P2PNode.EVMChainId
 
