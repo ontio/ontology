@@ -6,7 +6,6 @@ VERSION=$(git describe --always --tags --long)
 if [ $TRAVIS_OS_NAME == 'linux' ]; then
 	echo "linux sys"
 	env GO111MODULE=on make all
-	env GO111MODULE=on go mod vendor
 	cd ./wasmtest && bash ./run-wasm-tests.sh && cd ../
 	bash ./.travis.check-license.sh
 	bash ./.travis.check-templog.sh

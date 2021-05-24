@@ -1,25 +1,48 @@
+/*
+ * Copyright (C) 2018 The ontology Authors
+ * This file is part of The ontology library.
+ *
+ * The ontology is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * The ontology is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
+ */
 package ethrpc
 
 import (
 	"bytes"
 	"fmt"
+	"math/big"
+
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/rpc"
 	oComm "github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/common/constants"
 	bactor "github.com/ontio/ontology/http/base/actor"
 	hComm "github.com/ontio/ontology/http/base/common"
 	types2 "github.com/ontio/ontology/http/ethrpc/types"
-	"math/big"
+)
+
+const (
+	eth65           = 65
+	ProtocolVersion = eth65
+	ChainId         = 5851
 )
 
 type EthereumAPI struct {
 }
 
 func (api *EthereumAPI) ChainId() hexutil.Uint64 {
-	return hexutil.Uint64(constants.ChainId)
+	return hexutil.Uint64(ChainId)
 }
 
 func (api *EthereumAPI) BlockNumber() (hexutil.Uint64, error) {
@@ -36,7 +59,7 @@ func (api *EthereumAPI) GetBalance(address common.Address, _ rpc.BlockNumberOrHa
 }
 
 func (api *EthereumAPI) ProtocolVersion() hexutil.Uint {
-	return hexutil.Uint(constants.ProtocolVersion)
+	return hexutil.Uint(ProtocolVersion)
 }
 
 func (api *EthereumAPI) Syncing() (interface{}, error) {
@@ -109,6 +132,9 @@ func (api *EthereumAPI) GetBlockTransactionCountByHash(hash common.Hash) *hexuti
 	if err != nil {
 		return nil
 	}
+	if block == nil {
+		return nil
+	}
 	txCount := hexutil.Uint(len(block.Transactions))
 	return &txCount
 }
@@ -116,6 +142,9 @@ func (api *EthereumAPI) GetBlockTransactionCountByHash(hash common.Hash) *hexuti
 func (api *EthereumAPI) GetBlockTransactionCountByNumber(number int64) *hexutil.Uint {
 	block, err := bactor.GetBlockByHeight(uint32(number))
 	if err != nil {
+		return nil
+	}
+	if block == nil {
 		return nil
 	}
 	txCount := hexutil.Uint(len(block.Transactions))
@@ -134,6 +163,9 @@ func (api *EthereumAPI) GetCode(address common.Address, blockNumber types2.Block
 	deployCode, err := bactor.GetContractStateFromStore(oComm.Address(address))
 	if err != nil {
 		return nil, err
+	}
+	if deployCode == nil {
+		return nil, fmt.Errorf("code: %v not found", address)
 	}
 	code := deployCode.GetRawCode()
 	return code, nil
@@ -176,10 +208,17 @@ func (api *EthereumAPI) GetBlockByHash(hash common.Hash, fullTx bool) (interface
 }
 
 func (api *EthereumAPI) GetBlockByNumber(blockNum types2.BlockNumber, fullTx bool) (interface{}, error) {
-	//block, err := bactor.GetBlockByHeight(uint32(blockNum))
-	//if err != nil {
-	//	return nil, err
-	//}
+	height := uint32(blockNum)
+	if blockNum.IsLatest() || blockNum.IsPending() {
+		height = bactor.GetCurrentBlockHeight()
+	}
+	block, err := bactor.GetBlockByHeight(height)
+	if err != nil {
+		return nil, err
+	}
+	if block == nil {
+		return nil, fmt.Errorf("block: %v not found", blockNum.Int64())
+	}
 	return map[string]interface{}{
 		"number":           hexutil.Uint64(100000),
 		"hash":             hexutil.Bytes{},
@@ -214,6 +253,9 @@ func (api *EthereumAPI) GetTransactionByHash(hash common.Hash) (*types2.Transact
 	block, err := bactor.GetBlockByHeight(height)
 	if err != nil {
 		return nil, err
+	}
+	if block == nil {
+		return nil, fmt.Errorf("block: %v not found", height)
 	}
 	header := block.Header
 	blockHash := header.Hash()

@@ -15,36 +15,31 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
-package main
+package ethrpc
 
 import (
-	"fmt"
 	"net/http"
+	"strconv"
 
 	"github.com/ethereum/go-ethereum/rpc"
-	"github.com/ontio/ontology/http/ethrpc"
+	cfg "github.com/ontio/ontology/common/config"
 )
 
-func main() {
-
-	startEthRpc()
-}
-
-func Ensure(err error) {
-	if err != nil {
-		panic(err)
-	}
-}
-
-func startEthRpc() {
-	calculator := new(ethrpc.EthereumAPI)
+func StartEthServer() error {
+	calculator := new(EthereumAPI)
 	server := rpc.NewServer()
 	err := server.RegisterName("eth", calculator)
-	Ensure(err)
-	netRpcService := new(ethrpc.PublicNetAPI)
+	if err != nil {
+		return err
+	}
+	netRpcService := new(PublicNetAPI)
 	err = server.RegisterName("net", netRpcService)
-	Ensure(err)
-	fmt.Printf("listen on 8545")
-	err = http.ListenAndServe("0.0.0.0:8545", server)
-	Ensure(err)
+	if err != nil {
+		return err
+	}
+	err = http.ListenAndServe(":"+strconv.Itoa(int(cfg.DefConfig.Rpc.EthJsonPort)), server)
+	if err != nil {
+		return err
+	}
+	return nil
 }

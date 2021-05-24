@@ -57,6 +57,7 @@ const (
 	CONSENSUS_TYPE_VBFT = "vbft"
 
 	DEFAULT_LOG_LEVEL                       = log.InfoLog
+	DEFAULT_ETH_RPC_PORT                    = 20339
 	DEFAULT_NODE_PORT                       = 20338
 	DEFAULT_RPC_PORT                        = 20336
 	DEFAULT_RPC_LOCAL_PORT                  = 20337
@@ -650,6 +651,7 @@ type RpcConfig struct {
 	EnableHttpJsonRpc bool
 	HttpJsonPort      uint
 	HttpLocalPort     uint
+	EthJsonPort       uint
 }
 
 type RestfulConfig struct {

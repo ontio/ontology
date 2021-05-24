@@ -44,6 +44,7 @@ import (
 	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/events"
 	bactor "github.com/ontio/ontology/http/base/actor"
+	"github.com/ontio/ontology/http/ethrpc"
 	"github.com/ontio/ontology/http/graphql"
 	"github.com/ontio/ontology/http/jsonrpc"
 	"github.com/ontio/ontology/http/localrpc"
@@ -118,6 +119,7 @@ func setupAPP() *cli.App {
 		//rpc setting
 		utils.RPCDisabledFlag,
 		utils.RPCPortFlag,
+		utils.ETHRPCPortFlag,
 		utils.RPCLocalEnableFlag,
 		utils.RPCLocalProtFlag,
 		//rest setting
@@ -187,6 +189,11 @@ func startOntology(ctx *cli.Context) {
 	err = initRpc(ctx)
 	if err != nil {
 		log.Errorf("initRpc error: %s", err)
+		return
+	}
+	err = initETHRpc()
+	if err != nil {
+		log.Errorf("initEthRpc error: %s", err)
 		return
 	}
 	err = initLocalRpc(ctx)
@@ -366,6 +373,30 @@ func initRpc(ctx *cli.Context) error {
 		flag = true
 	}
 	log.Infof("Rpc init success")
+	return nil
+}
+
+func initETHRpc() error {
+	if !config.DefConfig.Rpc.EnableHttpJsonRpc {
+		return nil
+	}
+	var err error
+	exitCh := make(chan interface{}, 0)
+	go func() {
+		err = ethrpc.StartEthServer()
+		close(exitCh)
+	}()
+
+	flag := false
+	select {
+	case <-exitCh:
+		if !flag {
+			return err
+		}
+	case <-time.After(time.Millisecond * 5):
+		flag = true
+	}
+	log.Infof("Eth Rpc init success")
 	return nil
 }
 
