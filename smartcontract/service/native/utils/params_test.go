@@ -26,9 +26,19 @@ import (
 )
 
 func TestIsNativeContract(t *testing.T) {
-	address := []common.Address{OntContractAddress, OngContractAddress, OntIDContractAddress,
-		ParamContractAddress, AuthContractAddress, GovernanceContractAddress,
-		HeaderSyncContractAddress, CrossChainContractAddress, LockProxyContractAddress}
+	address := []common.Address{
+		OntContractAddress,
+		OngContractAddress,
+		OntIDContractAddress,
+		ParamContractAddress,
+		AuthContractAddress,
+		GovernanceContractAddress,
+		HeaderSyncContractAddress,
+		CrossChainContractAddress,
+		LockProxyContractAddress,
+		ETHL2ContractAddress,
+	}
+
 	for _, addr := range address {
 		assert.True(t, IsNativeContract(addr))
 	}

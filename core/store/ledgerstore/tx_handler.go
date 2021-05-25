@@ -150,7 +150,7 @@ func (self *StateStore) HandleInvokeTransaction(store store.LedgerStore, overlay
 	tx *types.Transaction, block *types.Block, notify *event.ExecuteNotify) ([]common.Uint256, error) {
 	invoke := tx.Payload.(*payload.InvokeCode)
 	code := invoke.Code
-	sysTransFlag := bytes.Compare(code, ninit.COMMIT_DPOS_BYTES) == 0 || block.Header.Height == 0
+	sysTransFlag := (bytes.Compare(code, ninit.COMMIT_DPOS_BYTES) == 0) || block.Header.Height == 0
 
 	isCharge := !sysTransFlag && tx.GasPrice != 0
 

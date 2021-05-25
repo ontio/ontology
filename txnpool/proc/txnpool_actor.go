@@ -19,6 +19,7 @@
 package proc
 
 import (
+	"bytes"
 	"fmt"
 	"reflect"
 
@@ -28,10 +29,12 @@ import (
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/ledger"
+	"github.com/ontio/ontology/core/payload"
 	tx "github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/events/message"
 	hComm "github.com/ontio/ontology/http/base/common"
+	ninit "github.com/ontio/ontology/smartcontract/service/native/init"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 	"github.com/ontio/ontology/smartcontract/service/neovm"
 	tc "github.com/ontio/ontology/txnpool/common"
@@ -163,6 +166,27 @@ func (ta *TxActor) handleTransaction(sender tc.SenderType, self *actor.PID,
 
 		gasLimitConfig := config.DefConfig.Common.GasLimit
 		gasPriceConfig := ta.server.getGasPrice()
+
+		if invoke, ok := txn.Payload.(*payload.InvokeCode); ok {
+			if len(invoke.Code) >= len(ninit.CALL_ETHL2_BYTES) && bytes.Equal(invoke.Code[len(invoke.Code)-len(ninit.CALL_ETHL2_BYTES):], ninit.CALL_ETHL2_BYTES) {
+				ethl2AuthSet, err := ta.server.getEthl2AuthAddress()
+
+				if err != nil {
+					replyTxResult(txResultCh, txn.Hash(), errors.ErrUnknown,
+						fmt.Sprintf("get ethl2 auth address set fail: %v", err))
+					return
+				}
+				// vip tx, pass it directly
+				if ethl2AuthSet.Has(txn.Payer.ToBase58()) {
+					log.Debug("this tx is ethl2 tx, just ignore fee check and pass <------")
+					<-ta.server.slots
+					ta.server.assignTxToWorker(txn, sender, txResultCh)
+
+					return
+				}
+			}
+		}
+
 		if txn.GasLimit < gasLimitConfig || txn.GasPrice < gasPriceConfig {
 			log.Debugf("handleTransaction: invalid gasLimit %v, gasPrice %v",
 				txn.GasLimit, txn.GasPrice)

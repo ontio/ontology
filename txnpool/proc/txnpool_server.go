@@ -38,10 +38,12 @@ import (
 	httpcom "github.com/ontio/ontology/http/base/common"
 	msgpack "github.com/ontio/ontology/p2pserver/message/msg_pack"
 	p2p "github.com/ontio/ontology/p2pserver/net/protocol"
+	"github.com/ontio/ontology/smartcontract/service/native/ethl2"
 	params "github.com/ontio/ontology/smartcontract/service/native/global_params"
 	nutils "github.com/ontio/ontology/smartcontract/service/native/utils"
 	tc "github.com/ontio/ontology/txnpool/common"
 	"github.com/ontio/ontology/validator/types"
+	"github.com/scylladb/go-set/strset"
 )
 
 type txStats struct {
@@ -98,6 +100,40 @@ func NewTxPoolServer(num uint8, disablePreExec, disableBroadcastNetTx bool) *TXP
 	s := &TXPoolServer{}
 	s.init(num, disablePreExec, disableBroadcastNetTx)
 	return s
+}
+
+// getEthl2AuthAddress return a base58 set of ethl2auth address
+func (txpserver *TXPoolServer) getEthl2AuthAddress() (*strset.Set, error) {
+	var ret *strset.Set
+	mutable, err := httpcom.NewNativeInvokeTransaction(0, 0, nutils.ETHLayer2ContractAddress, 0, ethl2.MethodGetAddress, []interface{}{""})
+	if err != nil {
+		return nil, fmt.Errorf("NewNativeInvokeTransaction error:%s", err)
+	}
+	tx, err := mutable.IntoImmutable()
+	if err != nil {
+		return nil, err
+	}
+	result, err := ledger.DefLedger.PreExecuteContract(tx)
+	if err != nil {
+		return nil, fmt.Errorf("PreExecuteContract failed %v", err)
+	}
+
+	ap := params.AddressParam{}
+	data, err := hex.DecodeString(result.Result.(string))
+	if err != nil {
+		return nil, fmt.Errorf("decode result error %v", err)
+	}
+
+	err = ap.Deserialization(common.NewZeroCopySource([]byte(data)))
+	if err != nil {
+		return nil, fmt.Errorf("deserialize result error %v", err)
+	}
+	ret = strset.New()
+	for _, addr := range ap.Contracts {
+		ret.Add(addr.ToBase58())
+	}
+
+	return ret, nil
 }
 
 // getGlobalGasPrice returns a global gas price

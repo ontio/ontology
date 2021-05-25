@@ -118,3 +118,12 @@ func DecodeString(source *common.ZeroCopySource) (string, error) {
 
 	return data, nil
 }
+
+func DecodeByte(source *common.ZeroCopySource) (byte, error) {
+	b, eof := source.NextByte()
+	if eof {
+		return 0, io.ErrUnexpectedEOF
+	}
+
+	return b, nil
+}
