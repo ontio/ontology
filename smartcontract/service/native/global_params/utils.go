@@ -63,7 +63,7 @@ func GenerateOperatorKey(contract common.Address) []byte {
 }
 
 func getStorageParam(native *native.NativeService, key []byte) (Params, error) {
-	item, err := utils.GetStorageItem(native, key)
+	item, err := utils.GetStorageItem(native.CacheDB, key)
 	params := Params{}
 	if err != nil || item == nil {
 		return params, err
@@ -73,7 +73,7 @@ func getStorageParam(native *native.NativeService, key []byte) (Params, error) {
 }
 
 func GetStorageRole(native *native.NativeService, key []byte) (common.Address, error) {
-	item, err := utils.GetStorageItem(native, key)
+	item, err := utils.GetStorageItem(native.CacheDB, key)
 	var role common.Address
 	if err != nil || item == nil {
 		return role, err

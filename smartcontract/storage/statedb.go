@@ -5,33 +5,31 @@ import (
 	"io"
 	"math/big"
 
-	"github.com/ontio/ontology/core/store/overlaydb"
-
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	comm "github.com/ontio/ontology/common"
 	common2 "github.com/ontio/ontology/core/store/common"
-
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ontio/ontology/core/store/overlaydb"
 )
 
 type OngBalanceHandle interface {
-	SubBalance(common.Address, *big.Int)
-	AddBalance(common.Address, *big.Int)
-	GetBalance(common.Address) *big.Int
-	SetBalance(common.Address, *big.Int)
+	SubBalance(cache *CacheDB, addr comm.Address, val *big.Int) error
+	AddBalance(cache *CacheDB, addr comm.Address, val *big.Int) error
+	SetBalance(cache *CacheDB, addr comm.Address, val *big.Int) error
+	GetBalance(cache *CacheDB, addr comm.Address) (*big.Int, error)
 }
 
 type StateDB struct {
-	cacheDB      *CacheDB
-	suicided     map[common.Address]bool
-	logs         []*types.Log
-	thash, bhash common.Hash
-	txIndex      int
-	refund       uint64
-	dbErr        error
-	snapshots    []*snapshot
-	OngBalanceHandle
+	cacheDB          *CacheDB
+	suicided         map[common.Address]bool
+	logs             []*types.Log
+	thash, bhash     common.Hash
+	txIndex          int
+	refund           uint64
+	dbErr            error
+	snapshots        []*snapshot
+	OngBalanceHandle OngBalanceHandle
 }
 
 func NewStateDB(cacheDB *CacheDB, thash, bhash common.Hash, txIndex int, balanceHandle OngBalanceHandle) *StateDB {
@@ -216,7 +214,10 @@ func (self *StateDB) Suicide(addr common.Address) bool {
 		return false
 	}
 	self.suicided[addr] = true
-	self.OngBalanceHandle.SetBalance(addr, big.NewInt(0))
+	err := self.OngBalanceHandle.SetBalance(self.cacheDB, comm.Address(addr), big.NewInt(0))
+	if err != nil {
+		self.dbErr = err
+	}
 	return true
 }
 
@@ -229,7 +230,12 @@ func (self *StateDB) Exist(addr common.Address) bool {
 		return true
 	}
 	acct := self.getEthAccount(addr)
-	if !acct.IsEmpty() || self.GetBalance(addr).Sign() > 0 {
+	balance, err := self.OngBalanceHandle.GetBalance(self.cacheDB, comm.Address(addr))
+	if err != nil {
+		self.dbErr = err
+		return false
+	}
+	if !acct.IsEmpty() || balance.Sign() > 0 {
 		return true
 	}
 
@@ -239,7 +245,13 @@ func (self *StateDB) Exist(addr common.Address) bool {
 func (self *StateDB) Empty(addr common.Address) bool {
 	acct := self.getEthAccount(addr)
 
-	return acct.IsEmpty() && self.GetBalance(addr).Sign() == 0
+	balance, err := self.OngBalanceHandle.GetBalance(self.cacheDB, comm.Address(addr))
+	if err != nil {
+		self.dbErr = err
+		return false
+	}
+
+	return acct.IsEmpty() && balance.Sign() == 0
 }
 
 func (self *StateDB) AddLog(log *types.Log) {
@@ -293,4 +305,30 @@ func (self *StateDB) RevertToSnapshot(idx int) {
 	self.suicided = sn.suicided
 	self.refund = sn.refund
 	self.logs = self.logs[:sn.logsSize]
+}
+
+func (self *StateDB) SubBalance(addr common.Address, val *big.Int) {
+	err := self.OngBalanceHandle.SubBalance(self.cacheDB, comm.Address(addr), val)
+	if err != nil {
+		self.dbErr = err
+		return
+	}
+}
+
+func (self *StateDB) AddBalance(addr common.Address, val *big.Int) {
+	err := self.OngBalanceHandle.AddBalance(self.cacheDB, comm.Address(addr), val)
+	if err != nil {
+		self.dbErr = err
+		return
+	}
+}
+
+func (self *StateDB) GetBalance(addr common.Address) *big.Int {
+	balance, err := self.OngBalanceHandle.GetBalance(self.cacheDB, comm.Address(addr))
+	if err != nil {
+		self.dbErr = err
+		return big.NewInt(0)
+	}
+
+	return balance
 }

@@ -50,7 +50,7 @@ func getCreateTime(srvc *native.NativeService, encId []byte) (uint32, error) {
 }
 
 func getTime(srvc *native.NativeService, key []byte) (uint32, error) {
-	timeStore, err := utils.GetStorageItem(srvc, key)
+	timeStore, err := utils.GetStorageItem(srvc.CacheDB, key)
 	if err != nil {
 		return 0, errors.New("getTime error:" + err.Error())
 	}

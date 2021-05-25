@@ -102,7 +102,7 @@ func getFileOwner(native *native.NativeService, fileHash []byte) (common.Address
 	contract := native.ContextRef.CurrentContext().ContractAddress
 	fileOwnerKey := GenFsFileOwnerKey(contract, fileHash)
 
-	item, err := utils.GetStorageItem(native, fileOwnerKey)
+	item, err := utils.GetStorageItem(native.CacheDB, fileOwnerKey)
 	if err != nil || item == nil || item.Value == nil {
 		return common.Address{}, fmt.Errorf("getFileOwner GetStorageItem error")
 	}
