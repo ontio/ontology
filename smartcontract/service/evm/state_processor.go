@@ -19,8 +19,10 @@ package evm
 import (
 	"math/big"
 
+	common2 "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/store"
 	otypes "github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract/storage"
@@ -28,7 +30,7 @@ import (
 	"github.com/ontio/ontology/vm/evm/params"
 )
 
-func applyTransaction(msg types.Message, gp *GasPool, statedb *storage.StateDB, header *otypes.Header, tx *types.Transaction, usedGas *uint64, evm *evm.EVM) (*ExecutionResult, *types.Receipt, error) {
+func applyTransaction(msg types.Message, gp *GasPool, statedb *storage.StateDB, header *otypes.Header, tx *types.Transaction, usedGas *uint64, evm *evm.EVM, feeReceiver common.Address) (*ExecutionResult, *otypes.Receipt, error) {
 	// Create a new context to be used in the EVM environment
 	txContext := NewEVMTxContext(msg)
 	// Add addresses to access list if applicable
@@ -48,7 +50,7 @@ func applyTransaction(msg types.Message, gp *GasPool, statedb *storage.StateDB, 
 	// Update the evm with the new transaction context.
 	evm.Reset(txContext, statedb)
 	// Apply the transaction to the current state (included in the env)
-	result, err := ApplyMessage(evm, msg, gp)
+	result, err := ApplyMessage(evm, msg, gp, common2.Address(feeReceiver))
 	if err != nil {
 		return nil, nil, err
 	}
@@ -61,7 +63,7 @@ func applyTransaction(msg types.Message, gp *GasPool, statedb *storage.StateDB, 
 
 	// Create a new receipt for the transaction, storing the intermediate root and gas used by the tx
 	// based on the eip phase, we're passing whether the root touch-delete accounts.
-	receipt := types.NewReceipt(nil, result.Failed(), *usedGas)
+	receipt := otypes.NewReceipt(result.Failed(), *usedGas)
 	receipt.TxHash = tx.Hash()
 	receipt.GasUsed = result.UsedGas
 	// if the transaction created a contract, store the creation address in the receipt.
@@ -70,10 +72,9 @@ func applyTransaction(msg types.Message, gp *GasPool, statedb *storage.StateDB, 
 	}
 	// Set the receipt logs and create a bloom for filtering
 	receipt.Logs = statedb.GetLogs()
-	receipt.Bloom = types.CreateBloom(types.Receipts{receipt})
 	receipt.BlockHash = statedb.BlockHash()
 	receipt.BlockNumber = big.NewInt(int64(header.Height))
-	receipt.TransactionIndex = uint(statedb.TxIndex())
+	receipt.TxIndex = uint(statedb.TxIndex())
 
 	return nil, receipt, err
 }
@@ -82,7 +83,7 @@ func applyTransaction(msg types.Message, gp *GasPool, statedb *storage.StateDB, 
 // and uses the input parameters for its environment. It returns the receipt
 // for the transaction, gas used and an error if the transaction failed,
 // indicating the block was invalid.
-func ApplyTransaction(config *params.ChainConfig, bc store.LedgerStore, gp *GasPool, statedb *storage.StateDB, header *otypes.Header, tx *types.Transaction, usedGas *uint64, cfg evm.Config) (*ExecutionResult, *types.Receipt, error) {
+func ApplyTransaction(config *params.ChainConfig, bc store.LedgerStore, gp *GasPool, statedb *storage.StateDB, header *otypes.Header, tx *types.Transaction, usedGas *uint64, feeReceiver common.Address, cfg evm.Config) (*ExecutionResult, *otypes.Receipt, error) {
 	signer := types.NewEIP155Signer(config.ChainID)
 	msg, err := tx.AsMessage(signer)
 	if err != nil {
@@ -91,5 +92,5 @@ func ApplyTransaction(config *params.ChainConfig, bc store.LedgerStore, gp *GasP
 	// Create a new context to be used in the EVM environment
 	blockContext := NewEVMBlockContext(header, bc)
 	vmenv := evm.NewEVM(blockContext, evm.TxContext{}, statedb, config, cfg)
-	return applyTransaction(msg, gp, statedb, header, tx, usedGas, vmenv)
+	return applyTransaction(msg, gp, statedb, header, tx, usedGas, vmenv, feeReceiver)
 }

@@ -65,6 +65,8 @@ type StateTransition struct {
 	data       []byte
 	state      evm.StateDB
 	evm        *evm.EVM
+
+	GasReceiver common.Address
 }
 
 // Message represents a message sent to a contract.
@@ -154,15 +156,16 @@ func IntrinsicGas(data []byte, contractCreation, isHomestead bool, isEIP2028 boo
 }
 
 // NewStateTransition initialises and returns a new state transition object.
-func NewStateTransition(evm *evm.EVM, msg Message, gp *GasPool) *StateTransition {
+func NewStateTransition(evm *evm.EVM, msg Message, gp *GasPool, feeReceiver common.Address) *StateTransition {
 	return &StateTransition{
-		gp:       gp,
-		evm:      evm,
-		msg:      msg,
-		gasPrice: msg.GasPrice(),
-		value:    msg.Value(),
-		data:     msg.Data(),
-		state:    evm.StateDB,
+		gp:          gp,
+		evm:         evm,
+		msg:         msg,
+		gasPrice:    msg.GasPrice(),
+		value:       msg.Value(),
+		data:        msg.Data(),
+		state:       evm.StateDB,
+		GasReceiver: feeReceiver,
 	}
 }
 
@@ -173,8 +176,8 @@ func NewStateTransition(evm *evm.EVM, msg Message, gp *GasPool) *StateTransition
 // the gas used (which includes gas refunds) and an error if it failed. An error always
 // indicates a core error meaning that the message would always fail for that particular
 // state and would never be accepted within a block.
-func ApplyMessage(evm *evm.EVM, msg Message, gp *GasPool) (*ExecutionResult, error) {
-	return NewStateTransition(evm, msg, gp).TransitionDb()
+func ApplyMessage(evm *evm.EVM, msg Message, gp *GasPool, feeReceiver common.Address) (*ExecutionResult, error) {
+	return NewStateTransition(evm, msg, gp, feeReceiver).TransitionDb()
 }
 
 // to returns the recipient of the message.
@@ -276,8 +279,7 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 		ret, st.gas, vmerr = st.evm.Call(sender, st.to(), st.data, st.gas, st.value)
 	}
 	st.refundGas()
-	//todo: coinbase
-	st.state.AddBalance(st.evm.Context.Coinbase, new(big.Int).Mul(new(big.Int).SetUint64(st.gasUsed()), st.gasPrice))
+	st.state.AddBalance(st.GasReceiver, new(big.Int).Mul(new(big.Int).SetUint64(st.gasUsed()), st.gasPrice))
 
 	return &ExecutionResult{
 		UsedGas:    st.gasUsed(),

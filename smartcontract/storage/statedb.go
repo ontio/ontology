@@ -6,11 +6,11 @@ import (
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	comm "github.com/ontio/ontology/common"
 	common2 "github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/core/store/overlaydb"
+	"github.com/ontio/ontology/core/types"
 )
 
 type OngBalanceHandle interface {
@@ -23,7 +23,7 @@ type OngBalanceHandle interface {
 type StateDB struct {
 	cacheDB          *CacheDB
 	suicided         map[common.Address]bool
-	logs             []*types.Log
+	logs             []*types.StorageLog
 	thash, bhash     common.Hash
 	txIndex          int
 	refund           uint64
@@ -54,6 +54,10 @@ func (s *StateDB) Prepare(thash, bhash common.Hash, ti int) {
 	//	s.accessList = newAccessList()
 }
 
+func (s *StateDB) DbErr() error {
+	return s.dbErr
+}
+
 func (s *StateDB) BlockHash() common.Hash {
 	return s.bhash
 }
@@ -61,7 +65,7 @@ func (s *StateDB) TxIndex() int {
 	return s.txIndex
 }
 
-func (s *StateDB) GetLogs() []*types.Log {
+func (s *StateDB) GetLogs() []*types.StorageLog {
 	return s.logs
 }
 
@@ -281,11 +285,7 @@ func (self *StateDB) Empty(addr common.Address) bool {
 	return acct.IsEmpty() && balance.Sign() == 0
 }
 
-func (self *StateDB) AddLog(log *types.Log) {
-	log.TxHash = self.thash
-	log.BlockHash = self.bhash
-	log.TxIndex = uint(self.txIndex)
-	log.Index = uint(len(self.logs))
+func (self *StateDB) AddLog(log *types.StorageLog) {
 	self.logs = append(self.logs, log)
 }
 

@@ -24,6 +24,13 @@ import (
 	"math"
 	"strconv"
 
+	common2 "github.com/ethereum/go-ethereum/common"
+	evm2 "github.com/ontio/ontology/smartcontract/service/evm"
+	"github.com/ontio/ontology/smartcontract/service/native/ong"
+	"github.com/ontio/ontology/vm/evm"
+	"github.com/ontio/ontology/vm/evm/params"
+
+	types2 "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ontio/ontology/common"
 	sysconfig "github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
@@ -114,7 +121,6 @@ func (self *StateStore) HandleDeployTransaction(store store.LedgerStore, overlay
 				return err
 			}
 			return fmt.Errorf("gasLimit insufficient, need:%d actual:%d", gasLimit, tx.GasLimit)
-
 		}
 		gasConsumed = gasLimit * tx.GasPrice
 		notifies, err = chargeCostGas(tx.Payer, gasConsumed, config, cache, store)
@@ -403,4 +409,27 @@ func costInvalidGas(address common.Address, gas uint64, config *smartcontract.Co
 
 func calcGasByCodeLen(codeLen int, codeGas uint64) uint64 {
 	return uint64(codeLen/neovm.PER_UNIT_CODE_LEN) * codeGas
+}
+
+func (self *StateStore) HandleEIP155Transaction(store store.LedgerStore, overlay *overlaydb.OverlayDB, cache *storage.CacheDB,
+	tx *types2.Transaction, txIndex uint, header *types.Header, notify *event.ExecuteNotify) error {
+
+	gp := evm2.GasPool(math.MaxUint64)
+	usedGas := uint64(0)
+	config := params.MainnetChainConfig //todo use config based on network
+	statedb := storage.NewStateDB(cache, tx.Hash(), common2.Hash(header.Hash()), int(txIndex), ong.OngBalanceHandle{})
+	_, receipt, err := evm2.ApplyTransaction(config, store, &gp, statedb, header, tx, &usedGas, utils.GovernanceContractAddress, evm.Config{})
+
+	if err != nil {
+		overlay.SetError(err)
+		return err
+	}
+	if err = statedb.DbErr(); err != nil {
+		overlay.SetError(statedb.DbErr())
+		return err
+	}
+
+	*notify = *event.ExecuteNotifyFromEthReceipt(receipt)
+
+	return nil
 }
