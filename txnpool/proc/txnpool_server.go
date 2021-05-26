@@ -75,10 +75,14 @@ type registerValidators struct {
 
 // TXPoolServer contains all api to external modules
 type TXPoolServer struct {
-	mu                    sync.RWMutex                        // Sync mutex
-	wg                    sync.WaitGroup                      // Worker sync
-	workers               []txPoolWorker                      // Worker pool
-	txPool                *tc.TXPool                          // The tx pool that holds the valid transaction
+	mu      sync.RWMutex   // Sync mutex
+	wg      sync.WaitGroup // Worker sync
+	workers []txPoolWorker // Worker pool
+	txPool  *tc.TXPool     // The tx pool that holds the valid transaction
+
+	//restore for the evm tx only
+	queue map[common.Address]*txList // Queued but non-processable transactions
+
 	allPendingTxs         map[common.Uint256]*serverPendingTx // The txs that server is processing
 	pendingBlock          *pendingBlock                       // The block that server is processing
 	actors                map[tc.ActorType]*actor.PID         // The actors running in the server
@@ -166,6 +170,8 @@ func (s *TXPoolServer) init(num uint8, disablePreExec, disableBroadcastNetTx boo
 			state: make(map[types.VerifyType]int),
 		},
 	}
+	//init queue
+	s.queue = make(map[common.Address]*txList)
 
 	s.pendingBlock = &pendingBlock{
 		processedTxs:   make(map[common.Uint256]*tc.VerifyTxResult, 0),

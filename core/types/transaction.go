@@ -26,6 +26,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/rlp"
+	"github.com/ontio/ontology/common/log"
 	"io"
 	"math/big"
 
@@ -117,8 +118,21 @@ func TransactionFromEIP155(eiptx *types.Transaction) (*Transaction, error) {
 	return retTx, nil
 }
 
-func (tx *Transaction) VerifyEIP155Tx() error {
+func(tx *Transaction)GetEIP155Tx()(*types.Transaction,error){
+	if tx.TxType == EIP155 {
+		bts := tx.Payload.(*payload.EIP155Code).Code
+		eiptx := new(types.Transaction)
+		err := eiptx.DecodeRLP(rlp.NewStream(bytes.NewBuffer(bts), uint64(len(bts))))
+		if err != nil {
+			return nil,fmt.Errorf("error on DecodeRLP :%s", err.Error())
+		}
+		return eiptx,nil
+	}
+	return nil,fmt.Errorf("not a EIP155 tx")
+}
 
+
+func (tx *Transaction) VerifyEIP155Tx() error {
 	if tx.TxType != EIP155 {
 		return fmt.Errorf("not a EIP155 transaction")
 	}
@@ -249,6 +263,21 @@ func (tx *Transaction) Deserialization(source *common.ZeroCopySource) error {
 	tx.nonDirectConstracted = true
 
 	return nil
+}
+
+func (tx *Transaction)Value() *big.Int  {
+	eiptx,err := tx.GetEIP155Tx()
+	if err != nil {
+		log.Error("GetEIP155Tx failed:%s",err.Error())
+		return big.NewInt(0)
+	}
+	return eiptx.Value()
+}
+
+func  (tx *Transaction)Cost() *big.Int{
+	total := new(big.Int).Mul(new(big.Int).SetUint64(tx.GasPrice), new(big.Int).SetUint64(tx.GasLimit))
+	total.Add(total, tx.Value())
+	return total
 }
 
 // note: ownership transfered to output

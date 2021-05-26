@@ -35,7 +35,7 @@ const (
 	ST_DESTROYED  DataEntryPrefix = 0x06 // record destroyed smart contract: prefix+address -> height
 
 	// eth state
-	ST_ETH_CODE    DataEntryPrefix = 0x30 // eth contract code:hash -> bytes
+	ST_ETH_CODE    DataEntryPrefix = 0x30 // eth contract code:hash -> bytes, note it is not used for state root calculation
 	ST_ETH_ACCOUNT DataEntryPrefix = 0x31 // eth account: address -> [nonce, codeHash]
 
 	IX_HEADER_HASH_LIST DataEntryPrefix = 0x09 //Block height => block hash key prefix
