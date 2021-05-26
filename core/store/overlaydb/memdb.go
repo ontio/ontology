@@ -22,7 +22,8 @@
 package overlaydb
 
 import (
-	"math/rand"
+	"math"
+	_ "unsafe" // required by go:linkname
 
 	"github.com/syndtr/goleveldb/leveldb/comparer"
 	"github.com/syndtr/goleveldb/leveldb/errors"
@@ -184,7 +185,6 @@ const (
 // MemDB is an in-memdb key/value database.
 type MemDB struct {
 	cmp comparer.BasicComparer
-	rnd *rand.Rand
 
 	kvData []byte
 	// Node data:
@@ -192,7 +192,7 @@ type MemDB struct {
 	// [1]         : Key length
 	// [2]         : Value length
 	// [3]         : Height
-	// [3..height] : Next nodes
+	// [0..height] : Next nodes
 	nodeData  []int
 	prevNode  [tMaxHeight]int
 	maxHeight int
@@ -200,10 +200,26 @@ type MemDB struct {
 	kvSize    int
 }
 
+//go:linkname fastRand runtime.fastrand
+func fastRand() uint32
+
+var probabilityTable []uint32
+
+const probability float64 = 1.0 / 4
+
+func init() {
+	for i := 1; i < tMaxHeight; i++ {
+		prob := math.Pow(probability, float64(i))
+		probabilityTable = append(probabilityTable, uint32(prob*math.MaxUint32))
+	}
+}
+
 func (p *MemDB) randHeight() (h int) {
-	const branching = 4
+
+	r := fastRand()
+
 	h = 1
-	for h < tMaxHeight && p.rnd.Int()%branching == 0 {
+	for h < tMaxHeight && r < probabilityTable[h-1] {
 		h++
 	}
 	return
@@ -414,7 +430,6 @@ func (p *MemDB) Len() int {
 
 // Reset resets the MemDB to initial empty state. Allows reuse the buffer.
 func (p *MemDB) Reset() {
-	p.rnd = rand.New(rand.NewSource(0xdeadbeef))
 	p.maxHeight = 1
 	p.n = 0
 	p.kvSize = 0
@@ -441,7 +456,6 @@ func (p *MemDB) Reset() {
 func NewMemDB(capacity int, kvNum int) *MemDB {
 	p := &MemDB{
 		cmp:       comparer.DefaultComparer,
-		rnd:       rand.New(rand.NewSource(0xdeadbeef)),
 		maxHeight: 1,
 		kvData:    make([]byte, 0, capacity),
 		nodeData:  make([]int, 4+tMaxHeight, (4+tMaxHeight)*(1+kvNum)),
