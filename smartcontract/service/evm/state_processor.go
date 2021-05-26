@@ -1,0 +1,95 @@
+// Copyright 2015 The go-ethereum Authors
+// This file is part of the go-ethereum library.
+//
+// The go-ethereum library is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The go-ethereum library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
+
+package evm
+
+import (
+	"math/big"
+
+	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/ontio/ontology/core/store"
+	otypes "github.com/ontio/ontology/core/types"
+	"github.com/ontio/ontology/smartcontract/storage"
+	"github.com/ontio/ontology/vm/evm"
+	"github.com/ontio/ontology/vm/evm/params"
+)
+
+func applyTransaction(msg types.Message, gp *GasPool, statedb *storage.StateDB, header *otypes.Header, tx *types.Transaction, usedGas *uint64, evm *evm.EVM) (*ExecutionResult, *types.Receipt, error) {
+	// Create a new context to be used in the EVM environment
+	txContext := NewEVMTxContext(msg)
+	// Add addresses to access list if applicable
+	/* todo
+	if config.IsYoloV2(header.Number) {
+		statedb.AddAddressToAccessList(msg.From())
+		if dst := msg.To(); dst != nil {
+			statedb.AddAddressToAccessList(*dst)
+			// If it's a create-tx, the destination will be added inside evm.create
+		}
+		for _, addr := range evm.ActivePrecompiles() {
+			statedb.AddAddressToAccessList(addr)
+		}
+	}
+	*/
+
+	// Update the evm with the new transaction context.
+	evm.Reset(txContext, statedb)
+	// Apply the transaction to the current state (included in the env)
+	result, err := ApplyMessage(evm, msg, gp)
+	if err != nil {
+		return nil, nil, err
+	}
+	// Update the state with pending changes
+	err = statedb.Finalise()
+	if err != nil {
+		return nil, nil, err
+	}
+	*usedGas += result.UsedGas
+
+	// Create a new receipt for the transaction, storing the intermediate root and gas used by the tx
+	// based on the eip phase, we're passing whether the root touch-delete accounts.
+	receipt := types.NewReceipt(nil, result.Failed(), *usedGas)
+	receipt.TxHash = tx.Hash()
+	receipt.GasUsed = result.UsedGas
+	// if the transaction created a contract, store the creation address in the receipt.
+	if msg.To() == nil {
+		receipt.ContractAddress = crypto.CreateAddress(evm.TxContext.Origin, tx.Nonce())
+	}
+	// Set the receipt logs and create a bloom for filtering
+	receipt.Logs = statedb.GetLogs()
+	receipt.Bloom = types.CreateBloom(types.Receipts{receipt})
+	receipt.BlockHash = statedb.BlockHash()
+	receipt.BlockNumber = big.NewInt(int64(header.Height))
+	receipt.TransactionIndex = uint(statedb.TxIndex())
+
+	return nil, receipt, err
+}
+
+// ApplyTransaction attempts to apply a transaction to the given state database
+// and uses the input parameters for its environment. It returns the receipt
+// for the transaction, gas used and an error if the transaction failed,
+// indicating the block was invalid.
+func ApplyTransaction(config *params.ChainConfig, bc store.LedgerStore, gp *GasPool, statedb *storage.StateDB, header *otypes.Header, tx *types.Transaction, usedGas *uint64, cfg evm.Config) (*ExecutionResult, *types.Receipt, error) {
+	signer := types.NewEIP155Signer(config.ChainID)
+	msg, err := tx.AsMessage(signer)
+	if err != nil {
+		return nil, nil, err
+	}
+	// Create a new context to be used in the EVM environment
+	blockContext := NewEVMBlockContext(header, bc)
+	vmenv := evm.NewEVM(blockContext, evm.TxContext{}, statedb, config, cfg)
+	return applyTransaction(msg, gp, statedb, header, tx, usedGas, vmenv)
+}

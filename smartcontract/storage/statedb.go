@@ -47,6 +47,33 @@ func NewStateDB(cacheDB *CacheDB, thash, bhash common.Hash, txIndex int, balance
 	}
 }
 
+func (s *StateDB) Prepare(thash, bhash common.Hash, ti int) {
+	s.thash = thash
+	s.bhash = bhash
+	s.txIndex = ti
+	//	s.accessList = newAccessList()
+}
+
+func (s *StateDB) BlockHash() common.Hash {
+	return s.bhash
+}
+func (s *StateDB) TxIndex() int {
+	return s.txIndex
+}
+
+func (s *StateDB) GetLogs() []*types.Log {
+	return s.logs
+}
+
+func (s *StateDB) Finalise() error {
+	if s.dbErr != nil {
+		return s.dbErr
+	}
+
+	s.cacheDB.Commit()
+	return nil
+}
+
 type snapshot struct {
 	changes  *overlaydb.MemDB
 	suicided map[common.Address]bool
