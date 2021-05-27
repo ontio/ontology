@@ -43,6 +43,7 @@ type ExecuteNotify struct {
 	GasConsumed uint64
 	Notify      []*NotifyEventInfo
 
+	GasStepUsed     uint64
 	TxIndex         uint32
 	CreatedContract common.Address
 }
@@ -51,7 +52,8 @@ func ExecuteNotifyFromEthReceipt(receipt *types.Receipt) *ExecuteNotify {
 	notify := &ExecuteNotify{
 		TxHash:          common.Uint256(receipt.TxHash),
 		State:           byte(receipt.Status),
-		GasConsumed:     receipt.GasUsed,
+		GasConsumed:     receipt.GasUsed * receipt.GasPrice,
+		GasStepUsed:     receipt.GasUsed,
 		TxIndex:         uint32(receipt.TxIndex),
 		CreatedContract: common.Address(receipt.ContractAddress),
 	}

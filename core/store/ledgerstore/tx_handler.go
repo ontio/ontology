@@ -142,6 +142,7 @@ func (self *StateStore) HandleDeployTransaction(store store.LedgerStore, overlay
 	if dep == nil {
 		log.Infof("deploy contract address:%s", address.ToHexString())
 		cache.PutContract(deploy)
+		notify.CreatedContract = address
 	}
 	cache.Commit()
 
