@@ -82,6 +82,7 @@ type TXPoolServer struct {
 
 	//restore for the evm tx only
 	queue map[common.Address]*txList // Queued but non-processable transactions
+	pendingNonces         *txNoncer      // Pending state tracking virtual nonces
 
 	allPendingTxs         map[common.Uint256]*serverPendingTx // The txs that server is processing
 	pendingBlock          *pendingBlock                       // The block that server is processing
@@ -172,6 +173,8 @@ func (s *TXPoolServer) init(num uint8, disablePreExec, disableBroadcastNetTx boo
 	}
 	//init queue
 	s.queue = make(map[common.Address]*txList)
+	cachedb := ledger.DefLedger.GetStore().GetCacheDB()
+	s.pendingNonces = newTxNoncer(cachedb)
 
 	s.pendingBlock = &pendingBlock{
 		processedTxs:   make(map[common.Uint256]*tc.VerifyTxResult, 0),

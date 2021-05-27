@@ -27,6 +27,7 @@ import (
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract/event"
 	cstates "github.com/ontio/ontology/smartcontract/states"
+	"github.com/ontio/ontology/smartcontract/storage"
 )
 
 type ExecuteResult struct {
@@ -75,4 +76,7 @@ type LedgerStore interface {
 	GetCrossChainMsg(height uint32) (*types.CrossChainMsg, error)
 	GetCrossStatesProof(height uint32, key []byte) ([]byte, error)
 	EnableBlockPrune(numBeforeCurr uint32)
+	//expose the cache db
+	GetCacheDB()*storage.CacheDB
+
 }
