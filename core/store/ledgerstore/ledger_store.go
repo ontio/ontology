@@ -775,25 +775,17 @@ func (this *LedgerStoreImp) executeBlock(block *types.Block) (result store.Execu
 
 func calculateTotalStateHash(overlay *overlaydb.OverlayDB) (result common.Uint256, err error) {
 	stateDiff := sha256.New()
-	iter := overlay.NewIterator([]byte{byte(scom.ST_CONTRACT)})
-	err = accumulateHash(stateDiff, iter)
-	iter.Release()
-	if err != nil {
-		return
-	}
 
-	iter = overlay.NewIterator([]byte{byte(scom.ST_STORAGE)})
-	err = accumulateHash(stateDiff, iter)
-	iter.Release()
-	if err != nil {
-		return
-	}
+	prefix := []scom.DataEntryPrefix{scom.ST_CONTRACT, scom.ST_STORAGE, scom.ST_DESTROYED, scom.ST_ETH_CODE,
+		scom.ST_ETH_ACCOUNT}
 
-	iter = overlay.NewIterator([]byte{byte(scom.ST_DESTROYED)})
-	err = accumulateHash(stateDiff, iter)
-	iter.Release()
-	if err != nil {
-		return
+	for _, v := range prefix {
+		iter := overlay.NewIterator([]byte{byte(v)})
+		err = accumulateHash(stateDiff, iter)
+		iter.Release()
+		if err != nil {
+			return
+		}
 	}
 
 	stateDiff.Sum(result[:0])
