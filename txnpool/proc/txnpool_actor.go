@@ -20,6 +20,8 @@ package proc
 
 import (
 	"fmt"
+	"github.com/ontio/ontology/smartcontract/service/native/ont"
+	"math/big"
 	"reflect"
 
 	"github.com/ontio/ontology-eventbus/actor"
@@ -183,6 +185,46 @@ func (ta *TxActor) handleTransaction(sender tc.SenderType, self *actor.PID,
 						neovm.CONTRACT_CREATE_GAS))
 			}
 			return
+		}
+		//todo add EIP155 tx check
+		if txn.TxType == tx.EIP155 {
+			log.Debugf("handleTransaction: EIP155tx")
+			eiptx,err := txn.GetEIP155Tx()
+			if err != nil {
+				log.Errorf("handleTransaction GetEIP155Tx failed:%s",err.Error())
+				if sender == tc.HttpSender && txResultCh != nil {
+					replyTxResult(txResultCh, txn.Hash(), errors.ErrUnknown,
+						"Invalid EIP155 transaction format ")
+				}
+				return
+			}
+			currentNonce := ta.server.CurrenctNonce(txn.Payer)
+			if eiptx.Nonce() < currentNonce {
+				if sender == tc.HttpSender && txResultCh != nil {
+					replyTxResult(txResultCh, txn.Hash(), errors.ErrUnknown,
+						fmt.Sprintf("handleTransaction lower nonce:%d ,current nonce:%d",currentNonce,eiptx.Nonce()))
+				}
+				return
+			}
+
+			balance ,err := GetOngBalance(txn.Payer)
+			if err != nil{
+				log.Errorf("GetOngBalance failed:%s",err.Error())
+				if sender == tc.HttpSender && txResultCh != nil {
+					replyTxResult(txResultCh, txn.Hash(), errors.ErrUnknown,
+						fmt.Sprintf("GetOngBalance failed:%s",err.Error()))
+				}
+				return
+			}
+
+			if balance.Cmp(txn.Cost()) < 0{
+				if sender == tc.HttpSender && txResultCh != nil {
+					replyTxResult(txResultCh, txn.Hash(), errors.ErrUnknown,
+						fmt.Sprintf("not enough ong balance for %s - has:%d - want:%d",txn.Payer.ToHexString(),balance,txn.Cost()))
+				}
+				return
+			}
+
 		}
 
 		if !ta.server.disablePreExec {
@@ -396,4 +438,15 @@ func (vpa *VerifyRspActor) Receive(context actor.Context) {
 
 func (vpa *VerifyRspActor) setServer(s *TXPoolServer) {
 	vpa.server = s
+}
+
+func GetOngBalance(account common.Address)(*big.Int,error){
+	cache := ledger.DefLedger.GetStore().GetCacheDB()
+	balanceKey := ont.GenBalanceKey(utils.OngContractAddress, account)
+	amount, err := utils.GetStorageUInt64(cache, balanceKey)
+	if err != nil {
+		return nil, err
+	}
+
+	return big.NewInt(0).SetUint64(amount), nil
 }

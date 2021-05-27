@@ -27,7 +27,7 @@ import (
 	"strconv"
 	"sync"
 	"sync/atomic"
-
+	ethcomm "github.com/ethereum/go-ethereum/common"
 	"github.com/ontio/ontology-eventbus/actor"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
@@ -81,8 +81,10 @@ type TXPoolServer struct {
 	txPool  *tc.TXPool     // The tx pool that holds the valid transaction
 
 	//restore for the evm tx only
-	queue map[common.Address]*txList // Queued but non-processable transactions
-	pendingNonces         *txNoncer      // Pending state tracking virtual nonces
+	eipTxPool    		  map[common.Address]*txList // The tx pool that holds the valid transaction
+	pendingEipTxs         map[common.Address]*txList // The tx pool that holds the valid transaction
+	queue 				  map[common.Address]*txList        // Queued but non-processable transactions
+	pendingNonces         *txNoncer         // Pending state tracking virtual nonces
 
 	allPendingTxs         map[common.Uint256]*serverPendingTx // The txs that server is processing
 	pendingBlock          *pendingBlock                       // The block that server is processing
@@ -172,6 +174,7 @@ func (s *TXPoolServer) init(num uint8, disablePreExec, disableBroadcastNetTx boo
 		},
 	}
 	//init queue
+	s.eipTxPool = make(map[common.Address]*txList)
 	s.queue = make(map[common.Address]*txList)
 	cachedb := ledger.DefLedger.GetStore().GetCacheDB()
 	s.pendingNonces = newTxNoncer(cachedb)
@@ -605,8 +608,36 @@ func (s *TXPoolServer) addTxList(txEntry *tc.TXEntry) bool {
 	if !ret {
 		s.increaseStats(tc.DuplicateStats)
 	}
+	//solve the EIP155
+	if txEntry.Tx.TxType == tx.EIP155 {
+		//the tx nonce should equals to pending nonce + 1
+		log.Debugf("addTxList: hash:%v tx nonce is %d, pending nonce %d",txEntry.Tx.Hash(),txEntry.Tx.Nonce, s.pendingNonces.nonces[txEntry.Tx.Payer])
+		s.pendingNonces.nonces[txEntry.Tx.Payer] = uint64(txEntry.Tx.Nonce)
+		s.addEIPTxPool(txEntry.Tx)
+	}
 	return ret
 }
+
+func (s *TXPoolServer) addEIPTxPool(trans *tx.Transaction ) {
+	if _,ok := s.eipTxPool[trans.Payer];!ok{
+		s.eipTxPool[trans.Payer] = newTxList(true)
+	}
+
+	//does the same nonce exist?
+	old := s.eipTxPool[trans.Payer].txs.Get(uint64(trans.Nonce))
+	if old == nil {
+		s.eipTxPool[trans.Payer].txs.Put(trans)
+	}else{
+		if old.GasPrice < trans.GasPrice {
+			if !s.txPool.DelTxList(old) {
+				log.Debugf("DelTxList failed:%v",old.Hash())
+			}
+			s.eipTxPool[trans.Payer].txs.Remove(uint64(old.Nonce))
+			s.eipTxPool[trans.Payer].txs.Put(trans)
+		}
+	}
+}
+
 
 // increaseStats increases the count with the stats type
 func (s *TXPoolServer) increaseStats(v tc.TxnStatsType) {
@@ -774,4 +805,23 @@ func (s *TXPoolServer) verifyBlock(req *tc.VerifyBlockReq, sender *actor.PID) {
 	if len(s.pendingBlock.unProcessedTxs) == 0 {
 		s.sendBlkResult2Consensus()
 	}
+}
+
+func (s *TXPoolServer) enqueue(hash common.Uint256,tx Transactions)(bool,error){
+
+	//todo implement me
+	return true,nil
+}
+
+func (s *TXPoolServer) GetNonce(addr common.Address) uint64{
+	return s.pendingNonces.nonces[addr]
+}
+
+func (s *TXPoolServer) CurrenctNonce(addr common.Address) uint64 {
+	ethacct,err :=	ledger.DefLedger.GetStore().GetCacheDB().GetEthAccount(ethcomm.BytesToAddress(addr[:]))
+	if err != nil {
+		return 0
+	}
+	return ethacct.Nonce
+
 }

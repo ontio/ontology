@@ -266,6 +266,9 @@ func (tx *Transaction) Deserialization(source *common.ZeroCopySource) error {
 }
 
 func (tx *Transaction)Value() *big.Int  {
+	if tx.TxType != EIP155 {
+		return big.NewInt(0)
+	}
 	eiptx,err := tx.GetEIP155Tx()
 	if err != nil {
 		log.Error("GetEIP155Tx failed:%s",err.Error())
