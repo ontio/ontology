@@ -1017,7 +1017,6 @@ func (this *LedgerStoreImp) handleTransaction(overlay *overlaydb.OverlayDB, cach
 			log.Debugf("HandleInvokeTransaction tx %s error %s", txHash.ToHexString(), err)
 		}
 	case types.EIP155:
-		//todo check nonce
 		ethacct, err := cache.GetEthAccount(ethcom.BytesToAddress(tx.Payer[:]))
 		if err != nil {
 			return nil, nil, fmt.Errorf("HandleInvokeTransaction tx %s error %s", txHash.ToHexString(), err.Error())
@@ -1042,7 +1041,6 @@ func (this *LedgerStoreImp) handleTransaction(overlay *overlaydb.OverlayDB, cach
 		if err != nil {
 			log.Debugf("HandleInvokeTransaction tx %s error %s", txHash.ToHexString(), err)
 		}
-		//todo deal with EIP155
 	}
 	return notify, crossStateHashes, nil
 }
@@ -1353,7 +1351,7 @@ func (this *LedgerStoreImp) PreExecuteContractWithParam(tx *types.Transaction, p
 			gasCost = tuneGasFeeByHeight(sconfig.Height, gasCost, neovm.MIN_TRANSACTION_GAS, math.MaxUint64)
 		}
 
-		return &sstate.PreExecResult{State: event.CONTRACT_STATE_SUCCESS, Gas: 0, Result: cv, Notify: nil}, nil
+		return &sstate.PreExecResult{State: event.CONTRACT_STATE_SUCCESS, Gas: gasCost, Result: cv, Notify: nil}, nil
 
 	} else {
 		return stf, errors.NewErr("transaction type error")

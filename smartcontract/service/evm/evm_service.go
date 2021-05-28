@@ -38,12 +38,12 @@ func (this *EvmService) Invoke() (interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	eiptx, err := this.Tx.GetEIP155Tx()
 	if err != nil {
 		return nil, err
 	}
 	res, _, err := ApplyTransaction(config, this.Store, statedb, block.Header, eiptx, &usedGas, utils.GovernanceContractAddress, evm.Config{})
+	this.ContextRef.CheckUseGas(usedGas)
 
 	return res, err
 }
