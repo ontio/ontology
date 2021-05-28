@@ -742,7 +742,9 @@ func (this *LedgerStoreImp) executeBlock(block *types.Block) (result store.Execu
 			err = e
 			return
 		}
-		notify.GasStepUsed = notify.GasConsumed / tx.GasPrice
+		if tx.GasPrice != 0 {
+			notify.GasStepUsed = notify.GasConsumed / tx.GasPrice
+		}
 		notify.TxIndex = uint32(i)
 		result.Notify = append(result.Notify, notify)
 		result.CrossStates = append(result.CrossStates, crossStateHashes...)
