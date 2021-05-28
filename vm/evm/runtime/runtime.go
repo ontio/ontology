@@ -22,9 +22,11 @@ import (
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/rawdb"
-	"github.com/ethereum/go-ethereum/core/state"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/ontio/ontology/core/store/leveldbstore"
+	"github.com/ontio/ontology/core/store/overlaydb"
+	"github.com/ontio/ontology/smartcontract/service/native/ong"
+	"github.com/ontio/ontology/smartcontract/storage"
 	"github.com/ontio/ontology/vm/evm"
 	"github.com/ontio/ontology/vm/evm/params"
 )
@@ -44,7 +46,7 @@ type Config struct {
 	Debug       bool
 	EVMConfig   evm.Config
 
-	State     *state.StateDB
+	State     *storage.StateDB
 	GetHashFn func(n uint64) common.Hash
 }
 
@@ -98,14 +100,15 @@ func setDefaults(cfg *Config) {
 //
 // Execute sets up an in-memory, temporary, environment for the execution of
 // the given code. It makes sure that it's restored to its original state afterwards.
-func Execute(code, input []byte, cfg *Config) ([]byte, *state.StateDB, error) {
+func Execute(code, input []byte, cfg *Config) ([]byte, *storage.StateDB, error) {
 	if cfg == nil {
 		cfg = new(Config)
 	}
 	setDefaults(cfg)
 
 	if cfg.State == nil {
-		cfg.State, _ = state.New(common.Hash{}, state.NewDatabase(rawdb.NewMemoryDatabase()), nil)
+		db := storage.NewCacheDB(overlaydb.NewOverlayDB(leveldbstore.NewMemLevelDBStore()))
+		cfg.State = storage.NewStateDB(db, common.Hash{}, common.Hash{}, 1, ong.OngBalanceHandle{})
 	}
 	var (
 		address = common.BytesToAddress([]byte("contract"))
@@ -136,7 +139,8 @@ func Create(input []byte, cfg *Config) ([]byte, common.Address, uint64, error) {
 	setDefaults(cfg)
 
 	if cfg.State == nil {
-		cfg.State, _ = state.New(common.Hash{}, state.NewDatabase(rawdb.NewMemoryDatabase()), nil)
+		db := storage.NewCacheDB(overlaydb.NewOverlayDB(leveldbstore.NewMemLevelDBStore()))
+		cfg.State = storage.NewStateDB(db, common.Hash{}, common.Hash{}, 1, ong.OngBalanceHandle{})
 	}
 	var (
 		vmenv  = NewEnv(cfg)
@@ -162,7 +166,7 @@ func Call(address common.Address, input []byte, cfg *Config) ([]byte, uint64, er
 	setDefaults(cfg)
 
 	vmenv := NewEnv(cfg)
-	sender := cfg.State.GetOrNewStateObject(cfg.Origin)
+	sender := evm.AccountRef(cfg.Origin)
 
 	// Call the code with the given configuration.
 	ret, leftOverGas, err := vmenv.Call(

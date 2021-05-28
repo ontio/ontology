@@ -17,26 +17,51 @@
 package evm
 
 import (
+	"errors"
 	"fmt"
 	"math"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core"
 	"github.com/ontio/ontology/vm/evm"
 	"github.com/ontio/ontology/vm/evm/params"
 )
 
+// List of evm-call-message pre-checking errors. All state transition messages will
+// be pre-checked before execution. If any invalidation detected, the corresponding
+// error should be returned which is defined here.
+//
+// - If the pre-checking happens in the miner, then the transaction won't be packed.
+// - If the pre-checking happens in the block processing procedure, then a "BAD BLOCk"
+// error should be emitted.
 var (
-	ErrGasUintOverflow              = core.ErrGasUintOverflow
-	ErrInsufficientFunds            = core.ErrInsufficientFunds
-	ErrNonceTooHigh                 = core.ErrNonceTooHigh
-	ErrNonceTooLow                  = core.ErrNonceTooLow
-	ErrIntrinsicGas                 = core.ErrIntrinsicGas
-	ErrInsufficientFundsForTransfer = core.ErrInsufficientFundsForTransfer
-)
+	// ErrNonceTooLow is returned if the nonce of a transaction is lower than the
+	// one present in the local chain.
+	ErrNonceTooLow = errors.New("nonce too low")
 
-type GasPool = core.GasPool
+	// ErrNonceTooHigh is returned if the nonce of a transaction is higher than the
+	// next one expected based on the local chain.
+	ErrNonceTooHigh = errors.New("nonce too high")
+
+	// ErrGasLimitReached is returned by the gas pool if the amount of gas required
+	// by a transaction is higher than what's left in the block.
+	ErrGasLimitReached = errors.New("gas limit reached")
+
+	// ErrInsufficientFundsForTransfer is returned if the transaction sender doesn't
+	// have enough funds for transfer(topmost call only).
+	ErrInsufficientFundsForTransfer = errors.New("insufficient funds for transfer")
+
+	// ErrInsufficientFunds is returned if the total cost of executing a transaction
+	// is higher than the balance of the user's account.
+	ErrInsufficientFunds = errors.New("insufficient funds for gas * price + value")
+
+	// ErrGasUintOverflow is returned when calculating gas usage.
+	ErrGasUintOverflow = errors.New("gas uint64 overflow")
+
+	// ErrIntrinsicGas is returned if the transaction is specified to use less gas
+	// than required to start the invocation.
+	ErrIntrinsicGas = errors.New("intrinsic gas too low")
+)
 
 /*
 The State Transitioning Model

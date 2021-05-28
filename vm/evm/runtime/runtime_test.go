@@ -24,13 +24,16 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ontio/ontology/core/store/leveldbstore"
+	"github.com/ontio/ontology/core/store/overlaydb"
+	"github.com/ontio/ontology/smartcontract/service/native/ong"
+	"github.com/ontio/ontology/smartcontract/storage"
+
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/consensus"
 	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/core/asm"
-	"github.com/ethereum/go-ethereum/core/rawdb"
-	"github.com/ethereum/go-ethereum/core/state"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ontio/ontology/vm/evm"
 	"github.com/ontio/ontology/vm/evm/params"
@@ -71,7 +74,7 @@ func TestEVM(t *testing.T) {
 		}
 	}()
 
-	_,_,_ = Execute([]byte{
+	_, _, _ = Execute([]byte{
 		byte(evm.DIFFICULTY),
 		byte(evm.TIMESTAMP),
 		byte(evm.GASLIMIT),
@@ -102,9 +105,10 @@ func TestExecute(t *testing.T) {
 }
 
 func TestCall(t *testing.T) {
-	state, _ := state.New(common.Hash{}, state.NewDatabase(rawdb.NewMemoryDatabase()), nil)
+	db := storage.NewCacheDB(overlaydb.NewOverlayDB(leveldbstore.NewMemLevelDBStore()))
+	statedb := storage.NewStateDB(db, common.Hash{}, common.Hash{}, 1, ong.OngBalanceHandle{})
 	address := common.HexToAddress("0x0a")
-	state.SetCode(address, []byte{
+	statedb.SetCode(address, []byte{
 		byte(evm.PUSH1), 10,
 		byte(evm.PUSH1), 0,
 		byte(evm.MSTORE),
@@ -113,7 +117,7 @@ func TestCall(t *testing.T) {
 		byte(evm.RETURN),
 	})
 
-	ret, _, err := Call(address, nil, &Config{State: state})
+	ret, _, err := Call(address, nil, &Config{State: statedb})
 	if err != nil {
 		t.Fatal("didn't expect error", err)
 	}
@@ -158,9 +162,10 @@ func BenchmarkCall(b *testing.B) {
 }
 func benchmarkEVM_Create(bench *testing.B, code string) {
 	var (
-		statedb, _ = state.New(common.Hash{}, state.NewDatabase(rawdb.NewMemoryDatabase()), nil)
-		sender     = common.BytesToAddress([]byte("sender"))
-		receiver   = common.BytesToAddress([]byte("receiver"))
+		db       = storage.NewCacheDB(overlaydb.NewOverlayDB(leveldbstore.NewMemLevelDBStore()))
+		statedb  = storage.NewStateDB(db, common.Hash{}, common.Hash{}, 1, ong.OngBalanceHandle{})
+		sender   = common.BytesToAddress([]byte("sender"))
+		receiver = common.BytesToAddress([]byte("receiver"))
 	)
 
 	statedb.CreateAccount(sender)
@@ -326,7 +331,7 @@ type stepCounter struct {
 	steps int
 }
 
-func (s *stepCounter) CaptureStart(from common.Address, to common.Address, create bool, input []byte, gas uint64, value *big.Int)  {
+func (s *stepCounter) CaptureStart(from common.Address, to common.Address, create bool, input []byte, gas uint64, value *big.Int) {
 }
 
 func (s *stepCounter) CaptureState(env *evm.EVM, pc uint64, op evm.OpCode, gas, cost uint64,
@@ -345,7 +350,8 @@ func (s *stepCounter) CaptureEnd(output []byte, gasUsed uint64, t time.Duration,
 }
 
 func TestJumpSub1024Limit(t *testing.T) {
-	state, _ := state.New(common.Hash{}, state.NewDatabase(rawdb.NewMemoryDatabase()), nil)
+	db := storage.NewCacheDB(overlaydb.NewOverlayDB(leveldbstore.NewMemLevelDBStore()))
+	statedb := storage.NewStateDB(db, common.Hash{}, common.Hash{}, 1, ong.OngBalanceHandle{})
 	address := common.HexToAddress("0x0a")
 	// Code is
 	// 0 beginsub
@@ -354,7 +360,7 @@ func TestJumpSub1024Limit(t *testing.T) {
 	//
 	// The code recursively calls itself. It should error when the returns-stack
 	// grows above 1023
-	state.SetCode(address, []byte{
+	statedb.SetCode(address, []byte{
 		byte(evm.PUSH1), 3,
 		byte(evm.JUMPSUB),
 		byte(evm.BEGINSUB),
@@ -363,7 +369,7 @@ func TestJumpSub1024Limit(t *testing.T) {
 	})
 	tracer := stepCounter{inner: evm.NewJSONLogger(nil, os.Stdout)}
 	// Enable 2315
-	_, _, err := Call(address, nil, &Config{State: state,
+	_, _, err := Call(address, nil, &Config{State: statedb,
 		GasLimit:    20000,
 		ChainConfig: params.AllEthashProtocolChanges,
 		EVMConfig: evm.Config{
@@ -382,11 +388,12 @@ func TestJumpSub1024Limit(t *testing.T) {
 }
 
 func TestReturnSubShallow(t *testing.T) {
-	state, _ := state.New(common.Hash{}, state.NewDatabase(rawdb.NewMemoryDatabase()), nil)
+	db := storage.NewCacheDB(overlaydb.NewOverlayDB(leveldbstore.NewMemLevelDBStore()))
+	statedb := storage.NewStateDB(db, common.Hash{}, common.Hash{}, 1, ong.OngBalanceHandle{})
 	address := common.HexToAddress("0x0a")
 	// The code does returnsub without having anything on the returnstack.
 	// It should not panic, but just fail after one step
-	state.SetCode(address, []byte{
+	statedb.SetCode(address, []byte{
 		byte(evm.PUSH1), 5,
 		byte(evm.JUMPSUB),
 		byte(evm.RETURNSUB),
@@ -398,7 +405,7 @@ func TestReturnSubShallow(t *testing.T) {
 	tracer := stepCounter{}
 
 	// Enable 2315
-	_, _, err := Call(address, nil, &Config{State: state,
+	_, _, err := Call(address, nil, &Config{State: statedb,
 		GasLimit:    10000,
 		ChainConfig: params.AllEthashProtocolChanges,
 		EVMConfig: evm.Config{
@@ -570,7 +577,8 @@ func DisabledTestEipExampleCases(t *testing.T) {
 func benchmarkNonModifyingCode(gas uint64, code []byte, name string, b *testing.B) {
 	cfg := new(Config)
 	setDefaults(cfg)
-	cfg.State, _ = state.New(common.Hash{}, state.NewDatabase(rawdb.NewMemoryDatabase()), nil)
+	db := storage.NewCacheDB(overlaydb.NewOverlayDB(leveldbstore.NewMemLevelDBStore()))
+	cfg.State = storage.NewStateDB(db, common.Hash{}, common.Hash{}, 1, ong.OngBalanceHandle{})
 	cfg.GasLimit = gas
 	var (
 		destination = common.BytesToAddress([]byte("contract"))
@@ -613,12 +621,12 @@ func BenchmarkSimpleLoop(b *testing.B) {
 	staticCallIdentity := []byte{
 		byte(evm.JUMPDEST), //  [ count ]
 		// push args for the call
-		byte(evm.PUSH1), 0,   // out size
+		byte(evm.PUSH1), 0, // out size
 		byte(evm.DUP1),       // out offset
 		byte(evm.DUP1),       // out insize
 		byte(evm.DUP1),       // in offset
 		byte(evm.PUSH1), 0x4, // address of identity
-		byte(evm.GAS),        // gas
+		byte(evm.GAS), // gas
 		byte(evm.STATICCALL),
 		byte(evm.POP),      // pop return value
 		byte(evm.PUSH1), 0, // jumpdestination
@@ -628,13 +636,13 @@ func BenchmarkSimpleLoop(b *testing.B) {
 	callIdentity := []byte{
 		byte(evm.JUMPDEST), //  [ count ]
 		// push args for the call
-		byte(evm.PUSH1), 0,   // out size
+		byte(evm.PUSH1), 0, // out size
 		byte(evm.DUP1),       // out offset
 		byte(evm.DUP1),       // out insize
 		byte(evm.DUP1),       // in offset
 		byte(evm.DUP1),       // value
 		byte(evm.PUSH1), 0x4, // address of identity
-		byte(evm.GAS),        // gas
+		byte(evm.GAS), // gas
 		byte(evm.CALL),
 		byte(evm.POP),      // pop return value
 		byte(evm.PUSH1), 0, // jumpdestination
@@ -644,13 +652,13 @@ func BenchmarkSimpleLoop(b *testing.B) {
 	callInexistant := []byte{
 		byte(evm.JUMPDEST), //  [ count ]
 		// push args for the call
-		byte(evm.PUSH1), 0,    // out size
+		byte(evm.PUSH1), 0, // out size
 		byte(evm.DUP1),        // out offset
 		byte(evm.DUP1),        // out insize
 		byte(evm.DUP1),        // in offset
 		byte(evm.DUP1),        // value
 		byte(evm.PUSH1), 0xff, // address of existing contract
-		byte(evm.GAS),         // gas
+		byte(evm.GAS), // gas
 		byte(evm.CALL),
 		byte(evm.POP),      // pop return value
 		byte(evm.PUSH1), 0, // jumpdestination
@@ -660,13 +668,13 @@ func BenchmarkSimpleLoop(b *testing.B) {
 	callEOA := []byte{
 		byte(evm.JUMPDEST), //  [ count ]
 		// push args for the call
-		byte(evm.PUSH1), 0,    // out size
+		byte(evm.PUSH1), 0, // out size
 		byte(evm.DUP1),        // out offset
 		byte(evm.DUP1),        // out insize
 		byte(evm.DUP1),        // in offset
 		byte(evm.DUP1),        // value
 		byte(evm.PUSH1), 0xE0, // address of EOA
-		byte(evm.GAS),         // gas
+		byte(evm.GAS), // gas
 		byte(evm.CALL),
 		byte(evm.POP),      // pop return value
 		byte(evm.PUSH1), 0, // jumpdestination
@@ -676,12 +684,12 @@ func BenchmarkSimpleLoop(b *testing.B) {
 	loopingCode := []byte{
 		byte(evm.JUMPDEST), //  [ count ]
 		// push args for the call
-		byte(evm.PUSH1), 0,   // out size
+		byte(evm.PUSH1), 0, // out size
 		byte(evm.DUP1),       // out offset
 		byte(evm.DUP1),       // out insize
 		byte(evm.DUP1),       // in offset
 		byte(evm.PUSH1), 0x4, // address of identity
-		byte(evm.GAS),        // gas
+		byte(evm.GAS), // gas
 
 		byte(evm.POP), byte(evm.POP), byte(evm.POP), byte(evm.POP), byte(evm.POP), byte(evm.POP),
 		byte(evm.PUSH1), 0, // jumpdestination
@@ -691,13 +699,13 @@ func BenchmarkSimpleLoop(b *testing.B) {
 	calllRevertingContractWithInput := []byte{
 		byte(evm.JUMPDEST), //
 		// push args for the call
-		byte(evm.PUSH1), 0,    // out size
+		byte(evm.PUSH1), 0, // out size
 		byte(evm.DUP1),        // out offset
 		byte(evm.PUSH1), 0x20, // in size
 		byte(evm.PUSH1), 0x00, // in offset
 		byte(evm.PUSH1), 0x00, // value
 		byte(evm.PUSH1), 0xEE, // address of reverting contract
-		byte(evm.GAS),         // gas
+		byte(evm.GAS), // gas
 		byte(evm.CALL),
 		byte(evm.POP),      // pop return value
 		byte(evm.PUSH1), 0, // jumpdestination

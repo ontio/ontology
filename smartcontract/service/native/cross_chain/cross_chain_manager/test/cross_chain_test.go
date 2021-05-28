@@ -131,7 +131,7 @@ var (
 	}
 
 	getNativeFunc = func(args []byte) *native.NativeService {
-		store, _ := leveldbstore.NewMemLevelDBStore()
+		store := leveldbstore.NewMemLevelDBStore()
 		db := storage.NewCacheDB(overlaydb.NewOverlayDB(store))
 
 		return &native.NativeService{

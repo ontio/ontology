@@ -21,8 +21,8 @@ import (
 	"testing"
 
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/state"
 	"github.com/holiman/uint256"
+	"github.com/ontio/ontology/smartcontract/storage"
 	"github.com/ontio/ontology/vm/evm/params"
 )
 
@@ -44,7 +44,7 @@ func (d *dummyContractRef) SetNonce(uint64)            {}
 func (d *dummyContractRef) Balance() *big.Int          { return new(big.Int) }
 
 type dummyStatedb struct {
-	state.StateDB
+	storage.StateDB
 }
 
 func (*dummyStatedb) GetRefund() uint64 { return 1337 }
