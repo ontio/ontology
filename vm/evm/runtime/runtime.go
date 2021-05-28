@@ -108,7 +108,7 @@ func Execute(code, input []byte, cfg *Config) ([]byte, *storage.StateDB, error) 
 
 	if cfg.State == nil {
 		db := storage.NewCacheDB(overlaydb.NewOverlayDB(leveldbstore.NewMemLevelDBStore()))
-		cfg.State = storage.NewStateDB(db, common.Hash{}, common.Hash{}, 1, ong.OngBalanceHandle{})
+		cfg.State = storage.NewStateDB(db, common.Hash{}, common.Hash{}, ong.OngBalanceHandle{})
 	}
 	var (
 		address = common.BytesToAddress([]byte("contract"))
@@ -140,7 +140,7 @@ func Create(input []byte, cfg *Config) ([]byte, common.Address, uint64, error) {
 
 	if cfg.State == nil {
 		db := storage.NewCacheDB(overlaydb.NewOverlayDB(leveldbstore.NewMemLevelDBStore()))
-		cfg.State = storage.NewStateDB(db, common.Hash{}, common.Hash{}, 1, ong.OngBalanceHandle{})
+		cfg.State = storage.NewStateDB(db, common.Hash{}, common.Hash{}, ong.OngBalanceHandle{})
 	}
 	var (
 		vmenv  = NewEnv(cfg)

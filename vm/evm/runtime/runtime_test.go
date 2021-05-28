@@ -17,12 +17,16 @@
 package runtime
 
 import (
+	"encoding/hex"
 	"fmt"
 	"math/big"
 	"os"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/stretchr/testify/require"
 
 	"github.com/ontio/ontology/core/store/leveldbstore"
 	"github.com/ontio/ontology/core/store/overlaydb"
@@ -106,7 +110,7 @@ func TestExecute(t *testing.T) {
 
 func TestCall(t *testing.T) {
 	db := storage.NewCacheDB(overlaydb.NewOverlayDB(leveldbstore.NewMemLevelDBStore()))
-	statedb := storage.NewStateDB(db, common.Hash{}, common.Hash{}, 1, ong.OngBalanceHandle{})
+	statedb := storage.NewStateDB(db, common.Hash{}, common.Hash{}, ong.OngBalanceHandle{})
 	address := common.HexToAddress("0x0a")
 	statedb.SetCode(address, []byte{
 		byte(evm.PUSH1), 10,
@@ -163,7 +167,7 @@ func BenchmarkCall(b *testing.B) {
 func benchmarkEVM_Create(bench *testing.B, code string) {
 	var (
 		db       = storage.NewCacheDB(overlaydb.NewOverlayDB(leveldbstore.NewMemLevelDBStore()))
-		statedb  = storage.NewStateDB(db, common.Hash{}, common.Hash{}, 1, ong.OngBalanceHandle{})
+		statedb  = storage.NewStateDB(db, common.Hash{}, common.Hash{}, ong.OngBalanceHandle{})
 		sender   = common.BytesToAddress([]byte("sender"))
 		receiver = common.BytesToAddress([]byte("receiver"))
 	)
@@ -351,7 +355,7 @@ func (s *stepCounter) CaptureEnd(output []byte, gasUsed uint64, t time.Duration,
 
 func TestJumpSub1024Limit(t *testing.T) {
 	db := storage.NewCacheDB(overlaydb.NewOverlayDB(leveldbstore.NewMemLevelDBStore()))
-	statedb := storage.NewStateDB(db, common.Hash{}, common.Hash{}, 1, ong.OngBalanceHandle{})
+	statedb := storage.NewStateDB(db, common.Hash{}, common.Hash{}, ong.OngBalanceHandle{})
 	address := common.HexToAddress("0x0a")
 	// Code is
 	// 0 beginsub
@@ -389,7 +393,7 @@ func TestJumpSub1024Limit(t *testing.T) {
 
 func TestReturnSubShallow(t *testing.T) {
 	db := storage.NewCacheDB(overlaydb.NewOverlayDB(leveldbstore.NewMemLevelDBStore()))
-	statedb := storage.NewStateDB(db, common.Hash{}, common.Hash{}, 1, ong.OngBalanceHandle{})
+	statedb := storage.NewStateDB(db, common.Hash{}, common.Hash{}, ong.OngBalanceHandle{})
 	address := common.HexToAddress("0x0a")
 	// The code does returnsub without having anything on the returnstack.
 	// It should not panic, but just fail after one step
@@ -578,7 +582,7 @@ func benchmarkNonModifyingCode(gas uint64, code []byte, name string, b *testing.
 	cfg := new(Config)
 	setDefaults(cfg)
 	db := storage.NewCacheDB(overlaydb.NewOverlayDB(leveldbstore.NewMemLevelDBStore()))
-	cfg.State = storage.NewStateDB(db, common.Hash{}, common.Hash{}, 1, ong.OngBalanceHandle{})
+	cfg.State = storage.NewStateDB(db, common.Hash{}, common.Hash{}, ong.OngBalanceHandle{})
 	cfg.GasLimit = gas
 	var (
 		destination = common.BytesToAddress([]byte("contract"))
