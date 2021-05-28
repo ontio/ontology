@@ -46,6 +46,10 @@ func NewCacheDB(store *overlaydb.OverlayDB) *CacheDB {
 	}
 }
 
+func (self *CacheDB) SetDbErr(err error) {
+	self.backend.SetError(err)
+}
+
 func (self *CacheDB) Reset() {
 	self.memdb.Reset()
 }

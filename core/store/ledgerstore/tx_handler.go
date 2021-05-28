@@ -417,7 +417,7 @@ func (self *StateStore) HandleEIP155Transaction(store store.LedgerStore, overlay
 
 	usedGas := uint64(0)
 	config := params.MainnetChainConfig //todo use config based on network
-	statedb := storage.NewStateDB(cache, tx.Hash(), common2.Hash(header.Hash()), int(txIndex), ong.OngBalanceHandle{})
+	statedb := storage.NewStateDB(cache, tx.Hash(), common2.Hash(header.Hash()), ong.OngBalanceHandle{})
 	_, receipt, err := evm2.ApplyTransaction(config, store, statedb, header, tx, &usedGas, utils.GovernanceContractAddress, evm.Config{})
 
 	if err != nil {
@@ -428,6 +428,7 @@ func (self *StateStore) HandleEIP155Transaction(store store.LedgerStore, overlay
 		overlay.SetError(statedb.DbErr())
 		return err
 	}
+	receipt.TxIndex = txIndex
 
 	*notify = *event.ExecuteNotifyFromEthReceipt(receipt)
 

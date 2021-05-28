@@ -27,42 +27,35 @@ type StateDB struct {
 	thash, bhash     common.Hash
 	txIndex          int
 	refund           uint64
-	dbErr            error
 	snapshots        []*snapshot
 	OngBalanceHandle OngBalanceHandle
 }
 
-func NewStateDB(cacheDB *CacheDB, thash, bhash common.Hash, txIndex int, balanceHandle OngBalanceHandle) *StateDB {
+func NewStateDB(cacheDB *CacheDB, thash, bhash common.Hash, balanceHandle OngBalanceHandle) *StateDB {
 	return &StateDB{
 		cacheDB:          cacheDB,
 		suicided:         make(map[common.Address]bool),
 		logs:             nil,
 		thash:            thash,
 		bhash:            bhash,
-		txIndex:          txIndex,
 		refund:           0,
-		dbErr:            nil,
 		snapshots:        nil,
 		OngBalanceHandle: balanceHandle,
 	}
 }
 
-func (s *StateDB) Prepare(thash, bhash common.Hash, ti int) {
+func (s *StateDB) Prepare(thash, bhash common.Hash) {
 	s.thash = thash
 	s.bhash = bhash
-	s.txIndex = ti
 	//	s.accessList = newAccessList()
 }
 
 func (s *StateDB) DbErr() error {
-	return s.dbErr
+	return s.cacheDB.backend.Error()
 }
 
 func (s *StateDB) BlockHash() common.Hash {
 	return s.bhash
-}
-func (s *StateDB) TxIndex() int {
-	return s.txIndex
 }
 
 func (s *StateDB) GetLogs() []*types.StorageLog {
@@ -70,10 +63,6 @@ func (s *StateDB) GetLogs() []*types.StorageLog {
 }
 
 func (s *StateDB) Finalise() error {
-	if s.dbErr != nil {
-		return s.dbErr
-	}
-
 	s.cacheDB.Commit()
 	return nil
 }
@@ -109,7 +98,7 @@ func genKey(contract common.Address, key common.Hash) []byte {
 func (s *StateDB) GetState(contract common.Address, key common.Hash) common.Hash {
 	val, err := s.cacheDB.Get(genKey(contract, key))
 	if err != nil {
-		s.dbErr = err
+		s.cacheDB.SetDbErr(err)
 	}
 
 	return common.BytesToHash(val)
@@ -127,7 +116,7 @@ func (s *StateDB) SetState(contract common.Address, key, value common.Hash) {
 func (s *StateDB) GetCommittedState(addr common.Address, key common.Hash) common.Hash {
 	val, err := s.cacheDB.backend.Get(genKey(addr, key))
 	if err != nil {
-		s.dbErr = err
+		s.cacheDB.SetDbErr(err)
 	}
 
 	return common.BytesToHash(val)
@@ -194,7 +183,7 @@ func (self *CacheDB) PutEthCode(codeHash common.Hash, val []byte) {
 func (self *StateDB) getEthAccount(addr common.Address) (val EthAcount) {
 	account, err := self.cacheDB.GetEthAccount(addr)
 	if err != nil {
-		self.dbErr = err
+		self.cacheDB.SetDbErr(err)
 		return val
 	}
 
@@ -219,7 +208,7 @@ func (self *StateDB) GetCode(addr common.Address) []byte {
 	hash := self.GetCodeHash(addr)
 	code, err := self.cacheDB.GetEthCode(hash)
 	if err != nil {
-		self.dbErr = err
+		self.cacheDB.SetDbErr(err)
 		return nil
 	}
 
@@ -247,7 +236,7 @@ func (self *StateDB) Suicide(addr common.Address) bool {
 	self.suicided[addr] = true
 	err := self.OngBalanceHandle.SetBalance(self.cacheDB, comm.Address(addr), big.NewInt(0))
 	if err != nil {
-		self.dbErr = err
+		self.cacheDB.SetDbErr(err)
 	}
 	return true
 }
@@ -263,7 +252,7 @@ func (self *StateDB) Exist(addr common.Address) bool {
 	acct := self.getEthAccount(addr)
 	balance, err := self.OngBalanceHandle.GetBalance(self.cacheDB, comm.Address(addr))
 	if err != nil {
-		self.dbErr = err
+		self.cacheDB.SetDbErr(err)
 		return false
 	}
 	if !acct.IsEmpty() || balance.Sign() > 0 {
@@ -278,7 +267,7 @@ func (self *StateDB) Empty(addr common.Address) bool {
 
 	balance, err := self.OngBalanceHandle.GetBalance(self.cacheDB, comm.Address(addr))
 	if err != nil {
-		self.dbErr = err
+		self.cacheDB.SetDbErr(err)
 		return false
 	}
 
@@ -337,7 +326,7 @@ func (self *StateDB) RevertToSnapshot(idx int) {
 func (self *StateDB) SubBalance(addr common.Address, val *big.Int) {
 	err := self.OngBalanceHandle.SubBalance(self.cacheDB, comm.Address(addr), val)
 	if err != nil {
-		self.dbErr = err
+		self.cacheDB.SetDbErr(err)
 		return
 	}
 }
@@ -345,7 +334,7 @@ func (self *StateDB) SubBalance(addr common.Address, val *big.Int) {
 func (self *StateDB) AddBalance(addr common.Address, val *big.Int) {
 	err := self.OngBalanceHandle.AddBalance(self.cacheDB, comm.Address(addr), val)
 	if err != nil {
-		self.dbErr = err
+		self.cacheDB.SetDbErr(err)
 		return
 	}
 }
@@ -353,7 +342,7 @@ func (self *StateDB) AddBalance(addr common.Address, val *big.Int) {
 func (self *StateDB) GetBalance(addr common.Address) *big.Int {
 	balance, err := self.OngBalanceHandle.GetBalance(self.cacheDB, comm.Address(addr))
 	if err != nil {
-		self.dbErr = err
+		self.cacheDB.SetDbErr(err)
 		return big.NewInt(0)
 	}
 

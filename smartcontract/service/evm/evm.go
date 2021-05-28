@@ -22,19 +22,18 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ontio/ontology/core/store"
-	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/vm/evm"
 )
 
 // NewEVMBlockContext creates a new context for use in the EVM.
-func NewEVMBlockContext(header *types.Header, chain store.LedgerStore) evm.BlockContext {
+func NewEVMBlockContext(height uint32, timestamp uint32, chain store.LedgerStore) evm.BlockContext {
 	return evm.BlockContext{
 		CanTransfer: CanTransfer,
 		Transfer:    Transfer,
 		GetHash:     GetHashFn(chain),
 		Coinbase:    common.Address{}, // todo
-		BlockNumber: big.NewInt(int64(header.Height)),
-		Time:        big.NewInt(int64(header.Timestamp)),
+		BlockNumber: big.NewInt(int64(height)),
+		Time:        big.NewInt(int64(timestamp)),
 		Difficulty:  big.NewInt(0),
 		GasLimit:    math.MaxUint64, // todo
 	}

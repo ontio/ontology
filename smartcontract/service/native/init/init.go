@@ -22,6 +22,8 @@ import (
 	"bytes"
 	"math/big"
 
+	"github.com/ontio/ontology/smartcontract/service/native/system"
+
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/smartcontract/service/native/auth"
 	"github.com/ontio/ontology/smartcontract/service/native/cross_chain/cross_chain_manager"
@@ -53,6 +55,7 @@ func init() {
 	header_sync.InitHeaderSync()
 	lock_proxy.InitLockProxy()
 	ontfs.InitFs()
+	system.InitSystem()
 }
 
 func InitBytes(addr common.Address, method string) []byte {

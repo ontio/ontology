@@ -75,7 +75,6 @@ func applyTransaction(msg types.Message, statedb *storage.StateDB, header *otype
 	receipt.Logs = statedb.GetLogs()
 	receipt.BlockHash = statedb.BlockHash()
 	receipt.BlockNumber = big.NewInt(int64(header.Height))
-	receipt.TxIndex = uint(statedb.TxIndex())
 
 	return nil, receipt, err
 }
@@ -91,7 +90,7 @@ func ApplyTransaction(config *params.ChainConfig, bc store.LedgerStore, statedb 
 		return nil, nil, err
 	}
 	// Create a new context to be used in the EVM environment
-	blockContext := NewEVMBlockContext(header, bc)
+	blockContext := NewEVMBlockContext(header.Height, header.Timestamp, bc)
 	vmenv := evm.NewEVM(blockContext, evm.TxContext{}, statedb, config, cfg)
 	return applyTransaction(msg, statedb, header, tx, usedGas, vmenv, feeReceiver)
 }
