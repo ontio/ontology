@@ -83,8 +83,6 @@ type TXPoolServer struct {
 	//restore for the evm tx only
 	eipTxPool     map[common.Address]*txList // The tx pool that holds the valid transaction
 	pendingEipTxs map[common.Address]*txList // The tx pool that holds the valid transaction
-	//queue 				  map[common.Address]*txList        // Queued but non-processable transactions
-	//pendingNonces         *txNoncer         // Pending state tracking virtual nonces
 
 	allPendingTxs         map[common.Uint256]*serverPendingTx // The txs that server is processing
 	pendingBlock          *pendingBlock                       // The block that server is processing
@@ -175,9 +173,6 @@ func (s *TXPoolServer) init(num uint8, disablePreExec, disableBroadcastNetTx boo
 	}
 	//init queue
 	s.eipTxPool = make(map[common.Address]*txList)
-	//s.queue = make(map[common.Address]*txList)
-	//cachedb := ledger.DefLedger.GetStore().GetCacheDB()
-	//s.pendingNonces = newTxNoncer(cachedb)
 
 	s.pendingBlock = &pendingBlock{
 		processedTxs:   make(map[common.Uint256]*tc.VerifyTxResult, 0),
@@ -632,9 +627,6 @@ func (s *TXPoolServer) addTxList(txEntry *tc.TXEntry) bool {
 	}
 	//solve the EIP155
 	if txEntry.Tx.TxType == txtypes.EIP155 {
-		//the tx nonce should equals to pending nonce + 1
-		//log.Debugf("addTxList: hash:%v tx nonce is %d, pending nonce %d",txEntry.Tx.Hash(),txEntry.Tx.Nonce, s.pendingNonces.nonces[txEntry.Tx.Payer])
-		//s.pendingNonces.nonces[txEntry.Tx.Payer] = uint64(txEntry.Tx.Nonce)
 		old := s.addEIPTxPool(txEntry.Tx)
 		if old != nil {
 			s.txPool.DelTxList(old)
@@ -852,16 +844,6 @@ func (s *TXPoolServer) verifyBlock(req *tc.VerifyBlockReq, sender *actor.PID) {
 		s.sendBlkResult2Consensus()
 	}
 }
-
-//func (s *TXPoolServer) enqueue(hash common.Uint256,tx Transactions)(bool,error){
-//
-//	//todo implement me
-//	return true,nil
-//}
-
-//func (s *TXPoolServer) GetNonce(addr common.Address) uint64{
-//	return s.pendingNonces.nonces[addr]
-//}
 
 func (s *TXPoolServer) CurrenctNonce(addr common.Address) uint64 {
 	ethacct, err := ledger.DefLedger.GetStore().GetCacheDB().GetEthAccount(ethcomm.BytesToAddress(addr[:]))
