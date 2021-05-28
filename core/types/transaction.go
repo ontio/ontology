@@ -106,7 +106,7 @@ func TransactionFromEIP155(eiptx *types.Transaction) (*Transaction, error) {
 		GasPrice: eiptx.GasPrice().Uint64(),
 		GasLimit: eiptx.Gas(),
 		Payer:    addr,
-		Payload:  &payload.EIP155Code{Code: eiptx.Data()},
+		Payload:  &payload.EIP155Code{EIPTx: eiptx},
 		//Sigs: ???
 		Raw:                  raw,
 		hashUnsigned:         common.Uint256{},
@@ -124,13 +124,8 @@ func TransactionFromEIP155(eiptx *types.Transaction) (*Transaction, error) {
 
 func (tx *Transaction) GetEIP155Tx() (*types.Transaction, error) {
 	if tx.TxType == EIP155 {
-		bts := tx.Payload.(*payload.EIP155Code).Code
-		eiptx := new(types.Transaction)
-		err := eiptx.DecodeRLP(rlp.NewStream(bytes.NewBuffer(bts), uint64(len(bts))))
-		if err != nil {
-			return nil, fmt.Errorf("error on DecodeRLP :%s", err.Error())
-		}
-		return eiptx, nil
+		tx := tx.Payload.(*payload.EIP155Code).EIPTx
+		return tx, nil
 	}
 	return nil, fmt.Errorf("not a EIP155 tx")
 }
@@ -140,12 +135,7 @@ func (tx *Transaction) VerifyEIP155Tx() error {
 		return fmt.Errorf("not a EIP155 transaction")
 	}
 
-	bts := tx.Payload.(*payload.EIP155Code).Code
-	eiptx := new(types.Transaction)
-	err := eiptx.DecodeRLP(rlp.NewStream(bytes.NewBuffer(bts), uint64(len(bts))))
-	if err != nil {
-		return fmt.Errorf("error on DecodeRLP :%s", err.Error())
-	}
+	eiptx := tx.Payload.(*payload.EIP155Code).EIPTx
 	v, r, s := eiptx.RawSignatureValues()
 	return sanityCheckSignature(v, r, s, true)
 }
