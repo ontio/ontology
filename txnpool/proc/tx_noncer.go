@@ -54,12 +54,12 @@ func (txn *txNoncer) get(addr common.Address) uint64 {
 
 	if _, ok := txn.nonces[addr]; !ok {
 		//txn.nonces[addr] = txn.fallback.GetNonce()
-		ethacct,err := txn.fallback.GetEthAccount(ethcomm.BytesToAddress(addr[:]))
+		ethacct, err := txn.fallback.GetEthAccount(ethcomm.BytesToAddress(addr[:]))
 		if err != nil {
 			log.Error(err)
 			//todo return the default nonce???
 			txn.nonces[addr] = 0
-		}else{
+		} else {
 			txn.nonces[addr] = ethacct.Nonce
 		}
 	}
@@ -83,12 +83,12 @@ func (txn *txNoncer) setIfLower(addr common.Address, nonce uint64) {
 
 	if _, ok := txn.nonces[addr]; !ok {
 		//txn.nonces[addr] = txn.fallback.GetNonce(ethcomm.BytesToAddress(addr[:]))
-		ethacct,err := txn.fallback.GetEthAccount(ethcomm.BytesToAddress(addr[:]))
+		ethacct, err := txn.fallback.GetEthAccount(ethcomm.BytesToAddress(addr[:]))
 		if err != nil {
 			log.Error(err)
 			//todo return the default nonce???
 			txn.nonces[addr] = 0
-		}else{
+		} else {
 			txn.nonces[addr] = ethacct.Nonce
 		}
 	}

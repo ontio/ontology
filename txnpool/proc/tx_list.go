@@ -23,7 +23,6 @@ import (
 	"math"
 	"math/big"
 	"sort"
-
 	//"github.com/ethereum/go-ethereum/core/types"
 )
 
@@ -31,6 +30,7 @@ import (
 // retrieving sorted transactions from the possibly gapped future queue.
 type nonceHeap []uint64
 type Transactions []*types.Transaction
+
 func (h nonceHeap) Len() int           { return len(h) }
 func (h nonceHeap) Less(i, j int) bool { return h[i] < h[j] }
 func (h nonceHeap) Swap(i, j int)      { h[i], h[j] = h[j], h[i] }
@@ -53,13 +53,12 @@ func (s TxByNonce) Len() int           { return len(s) }
 func (s TxByNonce) Less(i, j int) bool { return s[i].Nonce < s[j].Nonce }
 func (s TxByNonce) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
 
-
 // txSortedMap is a nonce->transaction hash map with a heap based index to allow
 // iterating over the contents in a nonce-incrementing way.
 type txSortedMap struct {
-	items map[uint64]*types.Transaction// Hash map storing the transaction data
+	items map[uint64]*types.Transaction // Hash map storing the transaction data
 	index *nonceHeap                    // Heap of nonces of all the stored transactions (non-strict mode)
-	cache Transactions           // Cache of the transactions already sorted
+	cache Transactions                  // Cache of the transactions already sorted
 }
 
 // newTxSortedMap creates a new nonce-sorted transaction map.
@@ -78,7 +77,7 @@ func (m *txSortedMap) Get(nonce uint64) *types.Transaction {
 // Put inserts a new transaction into the map, also updating the map's nonce
 // index. If a transaction already exists with the same nonce, it's overwritten.
 func (m *txSortedMap) Put(tx *types.Transaction) {
-	if tx.TxType == types.EIP155{
+	if tx.TxType == types.EIP155 {
 		nonce := uint64(tx.Nonce)
 		if m.items[nonce] == nil {
 			heap.Push(m.index, nonce)
@@ -287,7 +286,7 @@ func (l *txList) Overlaps(tx *types.Transaction) bool {
 // thresholds are also potentially updated.
 func (l *txList) Add(tx *types.Transaction, priceBump uint64) (bool, *types.Transaction) {
 	if tx.TxType != types.EIP155 {
-		return false,nil
+		return false, nil
 	}
 	// If there's an older better transaction, abort
 	old := l.txs.Get(uint64(tx.Nonce))
@@ -301,7 +300,7 @@ func (l *txList) Add(tx *types.Transaction, priceBump uint64) (bool, *types.Tran
 		// price as well as checking the percentage threshold to ensure that
 		// this is accurate for low (Wei-level) gas price replacements
 		//if old.GasPriceCmp(tx) >= 0 || tx.GasPriceIntCmp(threshold) < 0 {
-		if old.GasPrice >= tx.GasPrice || tx.GasPrice< threshold.Uint64() {
+		if old.GasPrice >= tx.GasPrice || tx.GasPrice < threshold.Uint64() {
 			return false, nil
 		}
 	}
@@ -418,6 +417,7 @@ func (l *txList) Flatten() Transactions {
 func (l *txList) LastElement() *types.Transaction {
 	return l.txs.LastElement()
 }
+
 /*
 // priceHeap is a heap.Interface implementation over transactions for retrieving
 // price-sorted transactions to discard when the pool fills up.

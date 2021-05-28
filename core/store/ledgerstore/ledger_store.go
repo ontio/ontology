@@ -31,6 +31,7 @@ import (
 	"sync"
 	"time"
 
+	ethcom "github.com/ethereum/go-ethereum/common"
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
@@ -1017,8 +1018,25 @@ func (this *LedgerStoreImp) handleTransaction(overlay *overlaydb.OverlayDB, cach
 			log.Debugf("HandleInvokeTransaction tx %s error %s", txHash.ToHexString(), err)
 		}
 	case types.EIP155:
-		//todo determin the param and return
-		crossStateHashes, err = this.stateStore.HandleEIP155Transaction(this, overlay, gasTable, cache, tx, block, notify)
+		//todo check nonce
+		ethacct, err := cache.GetEthAccount(ethcom.BytesToAddress(tx.Payer[:]))
+		if err != nil {
+			return nil, nil, fmt.Errorf("HandleInvokeTransaction tx %s error %s", txHash.ToHexString(), err.Error())
+		}
+		if ethacct.Nonce >= uint64(tx.Nonce) {
+			return nil, nil, fmt.Errorf("HandleInvokeTransaction tx %s error nonce is to low :current:%d, tx nonce:%d", txHash.ToHexString(), ethacct.Nonce, tx.Nonce)
+		}
+
+		if ethacct.Nonce+1 != uint64(tx.Nonce) {
+			return nil, nil, fmt.Errorf("HandleInvokeTransaction tx %s error nonce is not continuous :current:%d, tx nonce:%d", txHash.ToHexString(), ethacct.Nonce, tx.Nonce)
+		}
+
+		eiptx, err := tx.GetEIP155Tx()
+		if err != nil {
+			return nil, nil, fmt.Errorf("HandleInvokeTransaction tx %s error %s", txHash.ToHexString(), err.Error())
+		}
+
+		err = this.stateStore.HandleEIP155Transaction(this, overlay, cache, eiptx, uint(txIndex), block.Header, notify)
 		if overlay.Error() != nil {
 			return nil, nil, fmt.Errorf("HandleInvokeTransaction tx %s error %s", txHash.ToHexString(), overlay.Error())
 		}
@@ -1410,7 +1428,7 @@ func (this *LedgerStoreImp) maxAllowedPruneHeight(currHeader *types.Header) uint
 	return lastReferHeight - 1
 }
 
-func (this *LedgerStoreImp)GetCacheDB() *storage.CacheDB {
+func (this *LedgerStoreImp) GetCacheDB() *storage.CacheDB {
 	overlay := this.stateStore.NewOverlayDB()
 	return storage.NewCacheDB(overlay)
 

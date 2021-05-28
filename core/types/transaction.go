@@ -118,19 +118,18 @@ func TransactionFromEIP155(eiptx *types.Transaction) (*Transaction, error) {
 	return retTx, nil
 }
 
-func(tx *Transaction)GetEIP155Tx()(*types.Transaction,error){
+func (tx *Transaction) GetEIP155Tx() (*types.Transaction, error) {
 	if tx.TxType == EIP155 {
 		bts := tx.Payload.(*payload.EIP155Code).Code
 		eiptx := new(types.Transaction)
 		err := eiptx.DecodeRLP(rlp.NewStream(bytes.NewBuffer(bts), uint64(len(bts))))
 		if err != nil {
-			return nil,fmt.Errorf("error on DecodeRLP :%s", err.Error())
+			return nil, fmt.Errorf("error on DecodeRLP :%s", err.Error())
 		}
-		return eiptx,nil
+		return eiptx, nil
 	}
-	return nil,fmt.Errorf("not a EIP155 tx")
+	return nil, fmt.Errorf("not a EIP155 tx")
 }
-
 
 func (tx *Transaction) VerifyEIP155Tx() error {
 	if tx.TxType != EIP155 {
@@ -265,19 +264,19 @@ func (tx *Transaction) Deserialization(source *common.ZeroCopySource) error {
 	return nil
 }
 
-func (tx *Transaction)Value() *big.Int  {
+func (tx *Transaction) Value() *big.Int {
 	if tx.TxType != EIP155 {
 		return big.NewInt(0)
 	}
-	eiptx,err := tx.GetEIP155Tx()
+	eiptx, err := tx.GetEIP155Tx()
 	if err != nil {
-		log.Error("GetEIP155Tx failed:%s",err.Error())
+		log.Error("GetEIP155Tx failed:%s", err.Error())
 		return big.NewInt(0)
 	}
 	return eiptx.Value()
 }
 
-func  (tx *Transaction)Cost() *big.Int{
+func (tx *Transaction) Cost() *big.Int {
 	total := new(big.Int).Mul(new(big.Int).SetUint64(tx.GasPrice), new(big.Int).SetUint64(tx.GasLimit))
 	total.Add(total, tx.Value())
 	return total

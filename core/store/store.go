@@ -77,6 +77,5 @@ type LedgerStore interface {
 	GetCrossStatesProof(height uint32, key []byte) ([]byte, error)
 	EnableBlockPrune(numBeforeCurr uint32)
 	//expose the cache db
-	GetCacheDB()*storage.CacheDB
-
+	GetCacheDB() *storage.CacheDB
 }

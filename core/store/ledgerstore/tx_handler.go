@@ -291,14 +291,6 @@ func (self *StateStore) HandleInvokeTransaction(store store.LedgerStore, overlay
 	return sc.CrossHashes, nil
 }
 
-func (self *StateStore) HandleEIP155Transaction(store store.LedgerStore, overlay *overlaydb.OverlayDB, gasTable map[string]uint64, cache *storage.CacheDB,
-	tx *types.Transaction, block *types.Block, notify *event.ExecuteNotify) ([]common.Uint256, error) {
-	//todo implment me
-	//todo call EVM to execute the transaction
-
-	return []common.Uint256{{}}, nil
-}
-
 func SaveNotify(eventStore scommon.EventStore, txHash common.Uint256, notify *event.ExecuteNotify) error {
 	if !sysconfig.DefConfig.Common.EnableEventLog {
 		return nil
@@ -422,6 +414,7 @@ func calcGasByCodeLen(codeLen int, codeGas uint64) uint64 {
 
 func (self *StateStore) HandleEIP155Transaction(store store.LedgerStore, overlay *overlaydb.OverlayDB, cache *storage.CacheDB,
 	tx *types2.Transaction, txIndex uint, header *types.Header, notify *event.ExecuteNotify) error {
+	//todo check nonce
 
 	usedGas := uint64(0)
 	config := params.MainnetChainConfig //todo use config based on network
