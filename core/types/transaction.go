@@ -95,6 +95,10 @@ func TransactionFromEIP155(eiptx *types.Transaction) (*Transaction, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error EIP155 parse txhash:%s", err.Error())
 	}
+	raw, err := rlp.EncodeToBytes(eiptx)
+	if err != nil {
+		return nil, fmt.Errorf("error EIP155 EncodeToBytes %s", err.Error())
+	}
 	retTx := &Transaction{
 		Version:  byte(0),
 		TxType:   EIP155,
@@ -104,7 +108,7 @@ func TransactionFromEIP155(eiptx *types.Transaction) (*Transaction, error) {
 		Payer:    addr,
 		Payload:  &payload.EIP155Code{Code: eiptx.Data()},
 		//Sigs: ???
-		//Raw:eiptx.Data(),
+		Raw:                  raw,
 		hashUnsigned:         common.Uint256{},
 		hash:                 txhash,
 		SignedAddr:           []common.Address{addr},
