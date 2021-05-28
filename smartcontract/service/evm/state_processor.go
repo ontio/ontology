@@ -30,7 +30,7 @@ import (
 	"github.com/ontio/ontology/vm/evm/params"
 )
 
-func applyTransaction(msg types.Message, gp *GasPool, statedb *storage.StateDB, header *otypes.Header, tx *types.Transaction, usedGas *uint64, evm *evm.EVM, feeReceiver common.Address) (*ExecutionResult, *otypes.Receipt, error) {
+func applyTransaction(msg types.Message, statedb *storage.StateDB, header *otypes.Header, tx *types.Transaction, usedGas *uint64, evm *evm.EVM, feeReceiver common.Address) (*ExecutionResult, *otypes.Receipt, error) {
 	// Create a new context to be used in the EVM environment
 	txContext := NewEVMTxContext(msg)
 	// Add addresses to access list if applicable
@@ -50,7 +50,7 @@ func applyTransaction(msg types.Message, gp *GasPool, statedb *storage.StateDB, 
 	// Update the evm with the new transaction context.
 	evm.Reset(txContext, statedb)
 	// Apply the transaction to the current state (included in the env)
-	result, err := ApplyMessage(evm, msg, gp, common2.Address(feeReceiver))
+	result, err := ApplyMessage(evm, msg, common2.Address(feeReceiver))
 	if err != nil {
 		return nil, nil, err
 	}
@@ -84,7 +84,7 @@ func applyTransaction(msg types.Message, gp *GasPool, statedb *storage.StateDB, 
 // and uses the input parameters for its environment. It returns the receipt
 // for the transaction, gas used and an error if the transaction failed,
 // indicating the block was invalid.
-func ApplyTransaction(config *params.ChainConfig, bc store.LedgerStore, gp *GasPool, statedb *storage.StateDB, header *otypes.Header, tx *types.Transaction, usedGas *uint64, feeReceiver common.Address, cfg evm.Config) (*ExecutionResult, *otypes.Receipt, error) {
+func ApplyTransaction(config *params.ChainConfig, bc store.LedgerStore, statedb *storage.StateDB, header *otypes.Header, tx *types.Transaction, usedGas *uint64, feeReceiver common.Address, cfg evm.Config) (*ExecutionResult, *otypes.Receipt, error) {
 	signer := types.NewEIP155Signer(config.ChainID)
 	msg, err := tx.AsMessage(signer)
 	if err != nil {
@@ -93,5 +93,5 @@ func ApplyTransaction(config *params.ChainConfig, bc store.LedgerStore, gp *GasP
 	// Create a new context to be used in the EVM environment
 	blockContext := NewEVMBlockContext(header, bc)
 	vmenv := evm.NewEVM(blockContext, evm.TxContext{}, statedb, config, cfg)
-	return applyTransaction(msg, gp, statedb, header, tx, usedGas, vmenv, feeReceiver)
+	return applyTransaction(msg, statedb, header, tx, usedGas, vmenv, feeReceiver)
 }

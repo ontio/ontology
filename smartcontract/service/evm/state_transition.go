@@ -56,7 +56,6 @@ The state transitioning model does all the necessary work to work out a valid ne
 6) Derive new state root
 */
 type StateTransition struct {
-	gp         *GasPool
 	msg        Message
 	gas        uint64
 	gasPrice   *big.Int
@@ -119,7 +118,7 @@ func (result *ExecutionResult) Revert() []byte {
 }
 
 // IntrinsicGas computes the 'intrinsic gas' for a message with the given data.
-func IntrinsicGas(data []byte, contractCreation, isHomestead bool, isEIP2028 bool) (uint64, error) {
+func IntrinsicGas(data []byte, contractCreation, isHomestead bool, isEIP2028 bool) uint64 {
 	// Set the starting gas for the raw transaction
 	var gas uint64
 	if contractCreation && isHomestead {
@@ -141,24 +140,25 @@ func IntrinsicGas(data []byte, contractCreation, isHomestead bool, isEIP2028 boo
 		if isEIP2028 {
 			nonZeroGas = params.TxDataNonZeroGasEIP2028
 		}
+
+		// transaction size is limited, so overflow should never happen.
 		if (math.MaxUint64-gas)/nonZeroGas < nz {
-			return 0, ErrGasUintOverflow
+			panic(ErrGasUintOverflow)
 		}
 		gas += nz * nonZeroGas
 
 		z := uint64(len(data)) - nz
 		if (math.MaxUint64-gas)/params.TxDataZeroGas < z {
-			return 0, ErrGasUintOverflow
+			panic(ErrGasUintOverflow)
 		}
 		gas += z * params.TxDataZeroGas
 	}
-	return gas, nil
+	return gas
 }
 
 // NewStateTransition initialises and returns a new state transition object.
-func NewStateTransition(evm *evm.EVM, msg Message, gp *GasPool, feeReceiver common.Address) *StateTransition {
+func NewStateTransition(evm *evm.EVM, msg Message, feeReceiver common.Address) *StateTransition {
 	return &StateTransition{
-		gp:          gp,
 		evm:         evm,
 		msg:         msg,
 		gasPrice:    msg.GasPrice(),
@@ -176,8 +176,8 @@ func NewStateTransition(evm *evm.EVM, msg Message, gp *GasPool, feeReceiver comm
 // the gas used (which includes gas refunds) and an error if it failed. An error always
 // indicates a core error meaning that the message would always fail for that particular
 // state and would never be accepted within a block.
-func ApplyMessage(evm *evm.EVM, msg Message, gp *GasPool, feeReceiver common.Address) (*ExecutionResult, error) {
-	return NewStateTransition(evm, msg, gp, feeReceiver).TransitionDb()
+func ApplyMessage(evm *evm.EVM, msg Message, feeReceiver common.Address) (*ExecutionResult, error) {
+	return NewStateTransition(evm, msg, feeReceiver).TransitionDb()
 }
 
 // to returns the recipient of the message.
@@ -188,19 +188,17 @@ func (st *StateTransition) to() common.Address {
 	return *st.msg.To()
 }
 
-func (st *StateTransition) buyGas() error {
-	mgval := new(big.Int).Mul(new(big.Int).SetUint64(st.msg.Gas()), st.gasPrice)
+func (st *StateTransition) buyGas() {
+	gas := st.msg.Gas()
+	mgval := new(big.Int).Mul(new(big.Int).SetUint64(gas), st.gasPrice)
 	if have, want := st.state.GetBalance(st.msg.From()), mgval; have.Cmp(want) < 0 {
-		return fmt.Errorf("%w: address %v have %v want %v", ErrInsufficientFunds, st.msg.From().Hex(), have, want)
+		mgval = have
+		gas = have.Div(have, st.gasPrice).Uint64()
 	}
-	if err := st.gp.SubGas(st.msg.Gas()); err != nil {
-		return err
-	}
-	st.gas += st.msg.Gas()
 
-	st.initialGas = st.msg.Gas()
+	st.gas += gas
+	st.initialGas = gas
 	st.state.SubBalance(st.msg.From(), mgval)
-	return nil
 }
 
 func (st *StateTransition) preCheck() error {
@@ -215,7 +213,8 @@ func (st *StateTransition) preCheck() error {
 				st.msg.From().Hex(), msgNonce, stNonce)
 		}
 	}
-	return st.buyGas()
+	st.buyGas()
+	return nil
 }
 
 // TransitionDb will transition the state by applying the current message and
@@ -252,33 +251,31 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 	istanbul := st.evm.ChainConfig().IsIstanbul(st.evm.Context.BlockNumber)
 	contractCreation := msg.To() == nil
 
-	// Check clauses 4-5, subtract intrinsic gas if everything is correct
-	gas, err := IntrinsicGas(st.data, contractCreation, homestead, istanbul)
-	if err != nil {
-		return nil, err
-	}
-	if st.gas < gas {
-		return nil, fmt.Errorf("%w: have %d, want %d", ErrIntrinsicGas, st.gas, gas)
-	}
-	st.gas -= gas
-
-	// Check clause 6
-	if msg.Value().Sign() > 0 && !st.evm.Context.CanTransfer(st.state, msg.From(), msg.Value()) {
-		return nil, fmt.Errorf("%w: address %v", ErrInsufficientFundsForTransfer, msg.From().Hex())
-	}
 	var (
 		ret   []byte
 		vmerr error // vm errors do not effect consensus and are therefore not assigned to err
 	)
-	if contractCreation {
-		ret, _, st.gas, vmerr = st.evm.Create(sender, st.data, st.gas, st.value)
-	} else {
-		// Increment the nonce for the next transaction
-		// todo : handle nonce
-		st.state.SetNonce(msg.From(), st.state.GetNonce(sender.Address())+1)
-		ret, st.gas, vmerr = st.evm.Call(sender, st.to(), st.data, st.gas, st.value)
+	// Check clauses 4-5, subtract intrinsic gas if everything is correct
+	gas := IntrinsicGas(st.data, contractCreation, homestead, istanbul)
+	if st.gas < gas {
+		vmerr = fmt.Errorf("%w: have %d, want %d", ErrIntrinsicGas, st.gas, gas)
+		gas = st.gas
+		// Check clause 6
+	} else if msg.Value().Sign() > 0 && !st.evm.Context.CanTransfer(st.state, msg.From(), msg.Value()) {
+		vmerr = fmt.Errorf("%w: address %v", ErrInsufficientFundsForTransfer, msg.From().Hex())
 	}
-	st.refundGas()
+	st.gas -= gas
+	if vmerr == nil {
+		if contractCreation {
+			ret, _, st.gas, vmerr = st.evm.Create(sender, st.data, st.gas, st.value)
+		} else {
+			// Increment the nonce for the next transaction
+			// todo : handle nonce
+			st.state.SetNonce(msg.From(), st.state.GetNonce(sender.Address())+1)
+			ret, st.gas, vmerr = st.evm.Call(sender, st.to(), st.data, st.gas, st.value)
+		}
+		st.refundGas()
+	}
 	st.state.AddBalance(st.GasReceiver, new(big.Int).Mul(new(big.Int).SetUint64(st.gasUsed()), st.gasPrice))
 
 	return &ExecutionResult{
@@ -299,10 +296,6 @@ func (st *StateTransition) refundGas() {
 	// Return ETH for remaining gas, exchanged at the original rate.
 	remaining := new(big.Int).Mul(new(big.Int).SetUint64(st.gas), st.gasPrice)
 	st.state.AddBalance(st.msg.From(), remaining)
-
-	// Also return remaining gas to the block gas counter so it is
-	// available for the next transaction.
-	st.gp.AddGas(st.gas)
 }
 
 // gasUsed returns the amount of gas used up by the state transition.

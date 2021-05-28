@@ -415,11 +415,10 @@ func calcGasByCodeLen(codeLen int, codeGas uint64) uint64 {
 func (self *StateStore) HandleEIP155Transaction(store store.LedgerStore, overlay *overlaydb.OverlayDB, cache *storage.CacheDB,
 	tx *types2.Transaction, txIndex uint, header *types.Header, notify *event.ExecuteNotify) error {
 
-	gp := evm2.GasPool(math.MaxUint64)
 	usedGas := uint64(0)
 	config := params.MainnetChainConfig //todo use config based on network
 	statedb := storage.NewStateDB(cache, tx.Hash(), common2.Hash(header.Hash()), int(txIndex), ong.OngBalanceHandle{})
-	_, receipt, err := evm2.ApplyTransaction(config, store, &gp, statedb, header, tx, &usedGas, utils.GovernanceContractAddress, evm.Config{})
+	_, receipt, err := evm2.ApplyTransaction(config, store, statedb, header, tx, &usedGas, utils.GovernanceContractAddress, evm.Config{})
 
 	if err != nil {
 		overlay.SetError(err)

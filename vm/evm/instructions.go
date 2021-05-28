@@ -18,8 +18,8 @@ package evm
 
 import (
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/holiman/uint256"
+	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/vm/evm/params"
 	"golang.org/x/crypto/sha3"
 )
@@ -836,13 +836,10 @@ func makeLog(size int) executionFunc {
 		}
 
 		d := callContext.memory.GetCopy(int64(mStart.Uint64()), int64(mSize.Uint64()))
-		interpreter.evm.StateDB.AddLog(&types.Log{
+		interpreter.evm.StateDB.AddLog(&types.StorageLog{
 			Address: callContext.contract.Address(),
 			Topics:  topics,
 			Data:    d,
-			// This is a non-consensus field, but assigned here because
-			// core/state doesn't know the current block number.
-			BlockNumber: interpreter.evm.Context.BlockNumber.Uint64(),
 		})
 
 		return nil, nil
