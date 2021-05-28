@@ -102,7 +102,7 @@ func TransactionFromEIP155(eiptx *types.Transaction) (*Transaction, error) {
 	}
 
 	if eiptx.Nonce() > uint64(math.MaxUint32) ||
-		eiptx.GasPrice().Cmp(big.NewInt(math.MaxUint64)) > 0 {
+		eiptx.GasPrice().Cmp(big.NewInt(0).SetUint64(math.MaxUint64)) > 0 {
 		return nil, fmt.Errorf("nonce :%d or GasPrice :%d is too big", eiptx.Nonce(), eiptx.GasPrice())
 	}
 

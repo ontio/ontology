@@ -570,9 +570,24 @@ func (s *TXPoolServer) getTxHashList() []common.Uint256 {
 	return ret
 }
 
+//clean the EIP txpool and eip pending txpool under the tx nonce
+func (s *TXPoolServer) cleanEipTxPool(txs []*txtypes.Transaction) {
+	for _, tx := range txs {
+		if tx.TxType == txtypes.EIP155 {
+			if tl := s.eipTxPool[tx.Payer]; tl != nil {
+				tl.Forward(uint64(tx.Nonce))
+			}
+			if tpl := s.pendingEipTxs[tx.Payer]; tpl != nil {
+				tpl.Forward(uint64(tx.Nonce))
+			}
+		}
+	}
+}
+
 // cleanTransactionList cleans the txs in the block from the ledger
 func (s *TXPoolServer) cleanTransactionList(txs []*txtypes.Transaction, height uint32) {
 	s.txPool.CleanTransactionList(txs)
+	s.cleanEipTxPool(txs)
 
 	// Check whether to update the gas price and remove txs below the
 	// threshold
