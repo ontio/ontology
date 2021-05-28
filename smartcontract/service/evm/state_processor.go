@@ -54,8 +54,8 @@ func applyTransaction(msg types.Message, statedb *storage.StateDB, header *otype
 	if err != nil {
 		return nil, nil, err
 	}
-	// Update the state with pending changes
-	err = statedb.Finalise()
+	// flush changes to overlay db
+	err = statedb.Commit()
 	if err != nil {
 		return nil, nil, err
 	}

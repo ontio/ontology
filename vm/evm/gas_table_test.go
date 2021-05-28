@@ -89,7 +89,7 @@ func TestEIP2200(t *testing.T) {
 		statedb.CreateAccount(address)
 		statedb.SetCode(address, hexutil.MustDecode(tt.input))
 		statedb.SetState(address, common.Hash{}, common.BytesToHash([]byte{tt.original}))
-		_ = statedb.Finalise() // Push the state into the "original" slot
+		_ = statedb.Commit() // Push the state into the "original" slot
 
 		vmctx := BlockContext{
 			CanTransfer: func(StateDB, common.Address, *big.Int) bool { return true },

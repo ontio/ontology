@@ -44,26 +44,42 @@ func NewStateDB(cacheDB *CacheDB, thash, bhash common.Hash, balanceHandle OngBal
 	}
 }
 
-func (s *StateDB) Prepare(thash, bhash common.Hash) {
-	s.thash = thash
-	s.bhash = bhash
+func (self *StateDB) Prepare(thash, bhash common.Hash) {
+	self.thash = thash
+	self.bhash = bhash
 	//	s.accessList = newAccessList()
 }
 
-func (s *StateDB) DbErr() error {
-	return s.cacheDB.backend.Error()
+func (self *StateDB) DbErr() error {
+	return self.cacheDB.backend.Error()
 }
 
-func (s *StateDB) BlockHash() common.Hash {
-	return s.bhash
+func (self *StateDB) BlockHash() common.Hash {
+	return self.bhash
 }
 
-func (s *StateDB) GetLogs() []*types.StorageLog {
-	return s.logs
+func (self *StateDB) GetLogs() []*types.StorageLog {
+	return self.logs
 }
 
-func (s *StateDB) Finalise() error {
-	s.cacheDB.Commit()
+func (self *StateDB) Commit() error {
+	err := self.CommitToCacheDB()
+	if err != nil {
+		return err
+	}
+	self.cacheDB.Commit()
+	return nil
+}
+
+func (self *StateDB) CommitToCacheDB() error {
+	for addr := range self.suicided {
+		self.cacheDB.DelEthAccount(addr) //todo : check consistence with ethereum
+		err := self.cacheDB.CleanContractStorageData(comm.Address(addr))
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
@@ -74,18 +90,18 @@ type snapshot struct {
 	refund   uint64
 }
 
-func (s *StateDB) AddRefund(gas uint64) {
-	s.refund += gas
+func (self *StateDB) AddRefund(gas uint64) {
+	self.refund += gas
 }
 
 // SubRefund removes gas from the refund counter.
 // This method will panic if the refund counter goes below zero
-func (s *StateDB) SubRefund(gas uint64) {
-	if gas > s.refund {
-		panic(fmt.Sprintf("Refund counter below zero (gas: %d > refund: %d)", gas, s.refund))
+func (self *StateDB) SubRefund(gas uint64) {
+	if gas > self.refund {
+		panic(fmt.Sprintf("Refund counter below zero (gas: %d > refund: %d)", gas, self.refund))
 	}
 
-	s.refund -= gas
+	self.refund -= gas
 }
 
 func genKey(contract common.Address, key common.Hash) []byte {
@@ -95,28 +111,28 @@ func genKey(contract common.Address, key common.Hash) []byte {
 	return result
 }
 
-func (s *StateDB) GetState(contract common.Address, key common.Hash) common.Hash {
-	val, err := s.cacheDB.Get(genKey(contract, key))
+func (self *StateDB) GetState(contract common.Address, key common.Hash) common.Hash {
+	val, err := self.cacheDB.Get(genKey(contract, key))
 	if err != nil {
-		s.cacheDB.SetDbErr(err)
+		self.cacheDB.SetDbErr(err)
 	}
 
 	return common.BytesToHash(val)
 }
 
 // GetRefund returns the current value of the refund counter.
-func (s *StateDB) GetRefund() uint64 {
-	return s.refund
+func (self *StateDB) GetRefund() uint64 {
+	return self.refund
 }
 
-func (s *StateDB) SetState(contract common.Address, key, value common.Hash) {
-	s.cacheDB.Put(genKey(contract, key), value[:])
+func (self *StateDB) SetState(contract common.Address, key, value common.Hash) {
+	self.cacheDB.Put(genKey(contract, key), value[:])
 }
 
-func (s *StateDB) GetCommittedState(addr common.Address, key common.Hash) common.Hash {
-	val, err := s.cacheDB.backend.Get(genKey(addr, key))
+func (self *StateDB) GetCommittedState(addr common.Address, key common.Hash) common.Hash {
+	val, err := self.cacheDB.backend.Get(genKey(addr, key))
 	if err != nil {
-		s.cacheDB.SetDbErr(err)
+		self.cacheDB.SetDbErr(err)
 	}
 
 	return common.BytesToHash(val)
@@ -170,6 +186,10 @@ func (self *CacheDB) PutEthAccount(addr common.Address, val EthAcount) {
 	}
 
 	self.put(common2.ST_ETH_ACCOUNT, addr[:], raw)
+}
+
+func (self *CacheDB) DelEthAccount(addr common.Address) {
+	self.put(common2.ST_ETH_ACCOUNT, addr[:], nil)
 }
 
 func (self *CacheDB) GetEthCode(codeHash common.Hash) (val []byte, err error) {

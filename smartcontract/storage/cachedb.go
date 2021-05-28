@@ -223,6 +223,10 @@ func (self *CacheDB) MigrateContractStorage(oldAddress, newAddress comm.Address,
 
 func (self *CacheDB) CleanContractStorage(addr comm.Address, height uint32) error {
 	self.DeleteContract(addr, height)
+	return self.CleanContractStorageData(addr)
+}
+
+func (self *CacheDB) CleanContractStorageData(addr comm.Address) error {
 	iter := self.NewIterator(addr[:])
 
 	for has := iter.First(); has; has = iter.Next() {

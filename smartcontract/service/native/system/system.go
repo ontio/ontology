@@ -76,6 +76,11 @@ func EVMInvoke(native *native.NativeService) ([]byte, error) {
 	caller := evm.AccountRef(callerCtx.ContractAddress)
 	ret, leftGas, err := vmenv.Call(caller, common2.Address(addr), input, gasLeft, big.NewInt(0))
 	gasUsed := gasLeft - leftGas
+	refund := gasUsed / 2
+	if refund > statedb.GetRefund() {
+		refund = statedb.GetRefund()
+	}
+	gasUsed -= refund
 	enoughGas := native.ContextRef.CheckUseGas(gasUsed)
 	if !enoughGas {
 		return utils.BYTE_FALSE, fmt.Errorf("evm invoke out of gas")
@@ -86,6 +91,11 @@ func EVMInvoke(native *native.NativeService) ([]byte, error) {
 
 	for _, log := range statedb.GetLogs() {
 		native.Notifications = append(native.Notifications, event.NotifyEventInfoFromEvmLog(log))
+	}
+
+	err = statedb.CommitToCacheDB()
+	if err != nil {
+		return utils.BYTE_FALSE, err
 	}
 
 	return utils.BYTE_TRUE, nil
