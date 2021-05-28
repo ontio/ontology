@@ -28,6 +28,7 @@ import (
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/ontio/ontology/common/log"
 	"io"
+	"math"
 	"math/big"
 
 	"github.com/ontio/ontology-crypto/keypair"
@@ -99,6 +100,12 @@ func TransactionFromEIP155(eiptx *types.Transaction) (*Transaction, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error EIP155 EncodeToBytes %s", err.Error())
 	}
+
+	if eiptx.Nonce() > uint64(math.MaxUint32) ||
+		eiptx.GasPrice().Cmp(big.NewInt(math.MaxUint64)) > 0 {
+		return nil, fmt.Errorf("nonce :%d or GasPrice :%d is too big", eiptx.Nonce(), eiptx.GasPrice())
+	}
+
 	retTx := &Transaction{
 		Version:  byte(0),
 		TxType:   EIP155,

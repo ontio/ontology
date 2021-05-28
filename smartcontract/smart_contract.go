@@ -192,8 +192,8 @@ func (this *SmartContract) NewExecuteEngine(code []byte, txtype ctypes.Transacti
 			JitMode:    this.JitMode,
 		}
 	case ctypes.EIP155:
-		//todo deal with EIP155
 		service = &evm.EvmService{
+			Store:      this.Store,
 			CacheDB:    this.CacheDB,
 			Code:       code,
 			Tx:         this.Config.Tx,
