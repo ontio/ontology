@@ -39,7 +39,7 @@ const (
 )
 
 func InitSystem() {
-	native.Contracts[utils.OntContractAddress] = RegisterSystemContract
+	native.Contracts[utils.SystemContractAddress] = RegisterSystemContract
 }
 
 func RegisterSystemContract(native *native.NativeService) {
