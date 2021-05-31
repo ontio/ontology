@@ -801,6 +801,7 @@ func (s *TXPoolServer) verifyBlock(req *tc.VerifyBlockReq, sender *actor.PID) {
 
 	// Check whether a tx's gas price is lower than the required, if yes,
 	// just return error
+	var totalGasLimit uint64 = 0
 	for _, t := range req.Txs {
 		if t.GasPrice < s.gasPrice {
 			entry := &tc.VerifyTxResult{
@@ -812,6 +813,20 @@ func (s *TXPoolServer) verifyBlock(req *tc.VerifyBlockReq, sender *actor.PID) {
 			s.sendBlkResult2Consensus()
 			return
 		}
+		if t.TxType == txtypes.EIP155{
+			totalGasLimit = totalGasLimit + t.GasLimit
+		}
+		if totalGasLimit > config.DefConfig.Common.ETHBlockGasLimit {
+			entry := &tc.VerifyTxResult{
+				Height:  s.pendingBlock.height,
+				Tx:      t,
+				ErrCode: errors.ErrGasPrice,
+			}
+			s.pendingBlock.processedTxs[t.Hash()] = entry
+			s.sendBlkResult2Consensus()
+			return
+		}
+
 		// Check whether double spent
 		if _, ok := txs[t.Hash()]; ok {
 			entry := &tc.VerifyTxResult{
@@ -850,7 +865,7 @@ func (s *TXPoolServer) verifyBlock(req *tc.VerifyBlockReq, sender *actor.PID) {
 	}
 }
 
-func (s *TXPoolServer) CurrenctNonce(addr common.Address) uint64 {
+func (s *TXPoolServer) CurrentNonce(addr common.Address) uint64 {
 	ethacct, err := ledger.DefLedger.GetStore().GetCacheDB().GetEthAccount(ethcomm.BytesToAddress(addr[:]))
 	if err != nil {
 		return 0

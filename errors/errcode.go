@@ -53,6 +53,7 @@ const (
 	ErrGasPrice             ErrCode = 45020
 	ErrVerifySignature      ErrCode = 45021
 	ErrHigherNonceExist     ErrCode = 45022
+	ErrBlockGaslimitExceed  ErrCode = 45023
 )
 
 func (err ErrCode) Error() string {
@@ -103,6 +104,8 @@ func (err ErrCode) Error() string {
 		return "transaction verify signature fail"
 	case ErrHigherNonceExist:
 		return "higher nonce exist"
+	case ErrBlockGaslimitExceed:
+		return "block gaslimit exceeded"
 
 	}
 

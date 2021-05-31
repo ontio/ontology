@@ -81,6 +81,9 @@ const (
 
 	DEFAULT_DATA_DIR      = "./Chain/"
 	DEFAULT_RESERVED_FILE = "./peers.rsv"
+
+	DEFAULT_ETH_BLOCK_GAS_LIMIT = 8000000
+	N_GAS_LIMIT = 10
 )
 
 const (

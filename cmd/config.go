@@ -139,8 +139,8 @@ func setCommonConfig(ctx *cli.Context, cfg *config.CommonConfig) {
 	cfg.GasPrice = ctx.Uint64(utils.GetFlagName(utils.GasPriceFlag))
 	cfg.DataDir = ctx.String(utils.GetFlagName(utils.DataDirFlag))
 	//todo add new flag for ethgaslimit
-	//cfg.ETHGasLimit = ctx.Uint64(utils.GetFlagName(utils.ETHGasLimit))
-	//cfg.NGasLimit =  ctx.Uint64(utils.GetFlagName(utils.NGasLimit))
+	cfg.ETHBlockGasLimit = ctx.Uint64(utils.GetFlagName(utils.ETHBlockGasLimitFlag))
+	cfg.NGasLimit =  ctx.Uint64(utils.GetFlagName(utils.NGasLimitFlag))
 }
 
 func setConsensusConfig(ctx *cli.Context, cfg *config.ConsensusConfig) {

@@ -221,7 +221,7 @@ func (ta *TxActor) handleTransaction(sender tc.SenderType, self *actor.PID,
 				return
 			}
 
-			currentNonce := ta.server.CurrenctNonce(txn.Payer)
+			currentNonce := ta.server.CurrentNonce(txn.Payer)
 			if eiptx.Nonce() < currentNonce {
 				if sender == tc.HttpSender && txResultCh != nil {
 					replyTxResult(txResultCh, txn.Hash(), errors.ErrUnknown,

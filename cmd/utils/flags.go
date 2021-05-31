@@ -82,6 +82,17 @@ var (
 		Usage: "Block data storage `<path>`",
 		Value: config.DEFAULT_DATA_DIR,
 	}
+	ETHBlockGasLimitFlag = cli.Uint64Flag{
+		Name:  "ETHBlock-GasLimit",
+		Usage: "ETH block total gas limit",
+		Value: config.DEFAULT_ETH_BLOCK_GAS_LIMIT,
+	}
+	NGasLimitFlag = cli.Uint64Flag{
+		Name:  "ETHTX-PerBlock",
+		Usage: "ETH block total gas limit",
+		Value: config.N_GAS_LIMIT,
+	}
+
 	//Consensus setting
 	EnableConsensusFlag = cli.BoolFlag{
 		Name:  "enable-consensus",
