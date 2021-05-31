@@ -38,6 +38,7 @@ import (
 	nutils "github.com/ontio/ontology/smartcontract/service/native/utils"
 	tc "github.com/ontio/ontology/txnpool/common"
 	"github.com/ontio/ontology/validator/types"
+	ethtype "github.com/ethereum/go-ethereum/core/types"
 	"sort"
 	"strconv"
 	"sync"
@@ -672,7 +673,7 @@ func (s *TXPoolServer) addEipPendingTx(tx *txtypes.Transaction) *txtypes.Transac
 	if old == nil {
 		s.pendingEipTxs[tx.Payer].txs.Put(tx)
 		s.pendingNonces.set(tx.Payer, uint64(tx.Nonce+1))
-
+		fmt.Printf("addEipPendingTx set %s nonce to :%d\n",tx.Payer.ToBase58(),s.pendingNonces.get(tx.Payer))
 	} else {
 		if old.GasPrice < tx.GasPrice {
 			s.pendingEipTxs[tx.Payer].txs.Remove(uint64(old.Nonce))
@@ -881,6 +882,19 @@ func (s *TXPoolServer) Nonce(addr common.Address) uint64 {
 	return s.pendingNonces.get(addr)
 }
 
-func (s *TXPoolServer) PendingEIPTransactions() map[common.Address]*txList {
-	return s.pendingEipTxs
+func (s *TXPoolServer) PendingEIPTransactions() map[ethcomm.Address]map[uint64]*ethtype.Transaction {
+	ret := make(map[ethcomm.Address]map[uint64]*ethtype.Transaction,0)
+	for k,v := range s.pendingEipTxs{
+		m := make(map[uint64]*ethtype.Transaction,0)
+		for kt,vt := range v.txs.items {
+			ethTx,err := vt.GetEIP155Tx()
+			if err != nil {
+				log.Errorf("error GetEIP155Tx:%s",err)
+			}
+			m[kt] =ethTx
+		}
+		ret[ethcomm.BytesToAddress(k[:])] = m
+	}
+
+	return ret
 }

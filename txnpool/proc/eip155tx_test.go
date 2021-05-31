@@ -49,6 +49,8 @@ func Test_GenEIP155tx(t *testing.T) {
 	otx, err := txtypes.TransactionFromEIP155(signedTx)
 	assert.Nil(t, err)
 
+	fmt.Printf("1. otx.payer:%s\n",otx.Payer.ToBase58())
+
 	assert.True(t, otx.TxType == txtypes.EIP155)
 
 	t.Log("Starting test tx")
@@ -68,8 +70,26 @@ func Test_GenEIP155tx(t *testing.T) {
 		Tx:    txn,
 		Attrs: []*tc.TXAttr{},
 	}
-	fmt.Println("==addTxList==")
+	fmt.Printf("before %s nonce is :%d\n",ontAddress.ToBase58(),s.pendingNonces.get(ontAddress))
 	f = s.addTxList(txEntry)
 	assert.True(t, f)
+	fmt.Printf("after %s nonce is :%d\n",ontAddress.ToBase58(),s.pendingNonces.get(ontAddress))
+
+	ret := s.checkTx(txn.Hash())
+	if ret == false {
+		t.Error("Failed to check the tx")
+		return
+	}
+
+	entry := s.getTransaction(txn.Hash())
+	if entry == nil {
+		t.Error("Failed to get the transaction")
+		return
+	}
+
+	pendingNonce := s.pendingNonces.get(ontAddress)
+	assert.Equal(t, pendingNonce,1)
+
+	t.Log("Ending test tx")
 
 }
