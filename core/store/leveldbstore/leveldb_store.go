@@ -74,7 +74,7 @@ func NewLevelDBStore(file string) (*LevelDBStore, error) {
 	}, nil
 }
 
-func NewMemLevelDBStore() (*LevelDBStore, error) {
+func NewMemLevelDBStore() *LevelDBStore {
 	store := storage.NewMemStorage()
 	// default Options
 	o := opt.Options{
@@ -83,13 +83,13 @@ func NewMemLevelDBStore() (*LevelDBStore, error) {
 	}
 	db, err := leveldb.Open(store, &o)
 	if err != nil {
-		return nil, err
+		panic(err)
 	}
 
 	return &LevelDBStore{
 		db:    db,
 		batch: nil,
-	}, nil
+	}
 }
 
 //Put a key-value pair to leveldb

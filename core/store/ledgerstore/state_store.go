@@ -79,7 +79,7 @@ func NewStateStore(dbDir, merklePath string, stateHashCheckHeight uint32) (*Stat
 
 // for test
 func NewMemStateStore(stateHashHeight uint32) *StateStore {
-	store, _ := leveldbstore.NewMemLevelDBStore()
+	store := leveldbstore.NewMemLevelDBStore()
 	stateStore := &StateStore{
 		store:                store,
 		merkleTree:           merkle.NewTree(0, nil, nil),

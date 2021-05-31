@@ -333,7 +333,7 @@ func removeAttributeByController(srvc *native.NativeService) ([]byte, error) {
 
 func getController(srvc *native.NativeService, encId []byte) (interface{}, error) {
 	key := append(encId, FIELD_CONTROLLER)
-	item, err := utils.GetStorageItem(srvc, key)
+	item, err := utils.GetStorageItem(srvc.CacheDB, key)
 	if err != nil {
 		return nil, err
 	} else if item == nil {
@@ -349,7 +349,7 @@ func getController(srvc *native.NativeService, encId []byte) (interface{}, error
 
 func getControllerJson(srvc *native.NativeService, encId []byte) (interface{}, error) {
 	key := append(encId, FIELD_CONTROLLER)
-	item, err := utils.GetStorageItem(srvc, key)
+	item, err := utils.GetStorageItem(srvc.CacheDB, key)
 	if err != nil {
 		return nil, err
 	} else if item == nil {

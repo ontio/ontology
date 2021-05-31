@@ -735,13 +735,17 @@ func (this *LedgerStoreImp) executeBlock(block *types.Block) (result store.Execu
 	})
 
 	cache := storage.NewCacheDB(overlay)
-	for _, tx := range block.Transactions {
+	for i, tx := range block.Transactions {
 		cache.Reset()
-		notify, crossStateHashes, e := this.handleTransaction(overlay, cache, gasTable, block, tx)
+		notify, crossStateHashes, e := this.handleTransaction(overlay, cache, gasTable, block, tx, uint32(i))
 		if e != nil {
 			err = e
 			return
 		}
+		if tx.GasPrice != 0 {
+			notify.GasStepUsed = notify.GasConsumed / tx.GasPrice
+		}
+		notify.TxIndex = uint32(i)
 		result.Notify = append(result.Notify, notify)
 		result.CrossStates = append(result.CrossStates, crossStateHashes...)
 	}
@@ -773,25 +777,17 @@ func (this *LedgerStoreImp) executeBlock(block *types.Block) (result store.Execu
 
 func calculateTotalStateHash(overlay *overlaydb.OverlayDB) (result common.Uint256, err error) {
 	stateDiff := sha256.New()
-	iter := overlay.NewIterator([]byte{byte(scom.ST_CONTRACT)})
-	err = accumulateHash(stateDiff, iter)
-	iter.Release()
-	if err != nil {
-		return
-	}
 
-	iter = overlay.NewIterator([]byte{byte(scom.ST_STORAGE)})
-	err = accumulateHash(stateDiff, iter)
-	iter.Release()
-	if err != nil {
-		return
-	}
+	prefix := []scom.DataEntryPrefix{scom.ST_CONTRACT, scom.ST_STORAGE, scom.ST_DESTROYED, scom.ST_ETH_CODE,
+		scom.ST_ETH_ACCOUNT}
 
-	iter = overlay.NewIterator([]byte{byte(scom.ST_DESTROYED)})
-	err = accumulateHash(stateDiff, iter)
-	iter.Release()
-	if err != nil {
-		return
+	for _, v := range prefix {
+		iter := overlay.NewIterator([]byte{byte(v)})
+		err = accumulateHash(stateDiff, iter)
+		iter.Release()
+		if err != nil {
+			return
+		}
 	}
 
 	stateDiff.Sum(result[:0])
@@ -998,9 +994,9 @@ func (this *LedgerStoreImp) saveBlock(block *types.Block, ccMsg *types.CrossChai
 }
 
 func (this *LedgerStoreImp) handleTransaction(overlay *overlaydb.OverlayDB, cache *storage.CacheDB, gasTable map[string]uint64,
-	block *types.Block, tx *types.Transaction) (*event.ExecuteNotify, []common.Uint256, error) {
+	block *types.Block, tx *types.Transaction, txIndex uint32) (*event.ExecuteNotify, []common.Uint256, error) {
 	txHash := tx.Hash()
-	notify := &event.ExecuteNotify{TxHash: txHash, State: event.CONTRACT_STATE_FAIL}
+	notify := &event.ExecuteNotify{TxHash: txHash, State: event.CONTRACT_STATE_FAIL, TxIndex: txIndex}
 	var crossStateHashes []common.Uint256
 	var err error
 	switch tx.TxType {

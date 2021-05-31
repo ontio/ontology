@@ -114,7 +114,7 @@ func (this *owner) Deserialization(source *common.ZeroCopySource) error {
 }
 
 func getAllPk(srvc *native.NativeService, key []byte) ([]*owner, error) {
-	val, err := utils.GetStorageItem(srvc, key)
+	val, err := utils.GetStorageItem(srvc.CacheDB, key)
 	if err != nil {
 		return nil, fmt.Errorf("get storage error, %s", err)
 	}
@@ -135,7 +135,7 @@ func getAllPk(srvc *native.NativeService, key []byte) ([]*owner, error) {
 }
 
 func getAllPk_Version1(srvc *native.NativeService, encId, key []byte) ([]*publicKey, error) {
-	val, err := utils.GetStorageItem(srvc, key)
+	val, err := utils.GetStorageItem(srvc.CacheDB, key)
 	if err != nil {
 		return nil, fmt.Errorf("get storage error, %s", err)
 	}

@@ -54,7 +54,7 @@ var (
 	}
 
 	getNativeFunc = func(args []byte, db *storage.CacheDB) *native.NativeService {
-		store, _ := leveldbstore.NewMemLevelDBStore()
+		store := leveldbstore.NewMemLevelDBStore()
 		if db == nil {
 			db = storage.NewCacheDB(overlaydb.NewOverlayDB(store))
 		}

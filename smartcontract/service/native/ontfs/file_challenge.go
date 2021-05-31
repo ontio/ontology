@@ -132,7 +132,7 @@ func getChallenge(native *native.NativeService, nodeAddr common.Address, fileHas
 	contract := native.ContextRef.CurrentContext().ContractAddress
 	fileChallengeKey := GenChallengeKey(contract, nodeAddr, fileHash)
 
-	item, err := utils.GetStorageItem(native, fileChallengeKey)
+	item, err := utils.GetStorageItem(native.CacheDB, fileChallengeKey)
 	if err != nil || item == nil || item.Value == nil {
 		return nil
 	}
