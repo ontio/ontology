@@ -98,6 +98,9 @@ func (self *StateDB) CommitToCacheDB() error {
 		}
 	}
 
+	self.suicided = make(map[common.Address]bool)
+	self.snapshots = self.snapshots[:0]
+
 	return nil
 }
 
@@ -148,7 +151,8 @@ func (self *StateDB) SetState(contract common.Address, key, value common.Hash) {
 }
 
 func (self *StateDB) GetCommittedState(addr common.Address, key common.Hash) common.Hash {
-	val, err := self.cacheDB.backend.Get(genKey(addr, key))
+	k := self.cacheDB.GenAccountStateKey(comm.Address(addr), key[:])
+	val, err := self.cacheDB.backend.Get(k)
 	if err != nil {
 		self.cacheDB.SetDbErr(err)
 	}

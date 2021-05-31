@@ -77,10 +77,20 @@ func (self *CacheDB) Commit() {
 			self.backend.Put(key, val)
 		}
 	})
+	self.memdb.Reset()
 }
 
 func (self *CacheDB) Put(key []byte, value []byte) {
 	self.put(common.ST_STORAGE, key, value)
+}
+
+func (self *CacheDB) GenAccountStateKey(addr comm.Address, key []byte) []byte {
+	k := make([]byte, 0, 1+20+32)
+	k = append(k, byte(common.ST_STORAGE))
+	k = append(k, addr[:]...)
+	k = append(k, key[:]...)
+
+	return k
 }
 
 func (self *CacheDB) put(prefix common.DataEntryPrefix, key []byte, value []byte) {
