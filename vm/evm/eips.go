@@ -1,3 +1,4 @@
+// Copyright (C) 2021 The Ontology Authors
 // Copyright 2019 The go-ethereum Authors
 // This file is part of the go-ethereum library.
 //
@@ -18,6 +19,7 @@ package evm
 
 import (
 	"fmt"
+
 	"github.com/holiman/uint256"
 	"github.com/ontio/ontology/vm/evm/params"
 )

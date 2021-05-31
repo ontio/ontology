@@ -1,3 +1,4 @@
+// Copyright (C) 2021 The Ontology Authors
 // Copyright 2015 The go-ethereum Authors
 // This file is part of the go-ethereum library.
 //
@@ -17,7 +18,6 @@
 package runtime
 
 import (
-	"encoding/hex"
 	"fmt"
 	"math/big"
 	"os"
@@ -25,20 +25,16 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/stretchr/testify/require"
-
-	"github.com/ontio/ontology/core/store/leveldbstore"
-	"github.com/ontio/ontology/core/store/overlaydb"
-	"github.com/ontio/ontology/smartcontract/service/native/ong"
-	"github.com/ontio/ontology/smartcontract/storage"
-
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/consensus"
 	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/core/asm"
 	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ontio/ontology/core/store/leveldbstore"
+	"github.com/ontio/ontology/core/store/overlaydb"
+	"github.com/ontio/ontology/smartcontract/service/native/ong"
+	"github.com/ontio/ontology/smartcontract/storage"
 	"github.com/ontio/ontology/vm/evm"
 	"github.com/ontio/ontology/vm/evm/params"
 )

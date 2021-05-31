@@ -1,3 +1,4 @@
+// Copyright (C) 2021 The Ontology Authors
 // Copyright 2017 The go-ethereum Authors
 // This file is part of the go-ethereum library.
 //
@@ -85,7 +86,7 @@ func TestEIP2200(t *testing.T) {
 		address := common.BytesToAddress([]byte("contract"))
 
 		db := storage.NewCacheDB(overlaydb.NewOverlayDB(leveldbstore.NewMemLevelDBStore()))
-		statedb := storage.NewStateDB(db, common.Hash{}, common.Hash{}, 1, ong.OngBalanceHandle{})
+		statedb := storage.NewStateDB(db, common.Hash{}, common.Hash{}, ong.OngBalanceHandle{})
 		statedb.CreateAccount(address)
 		statedb.SetCode(address, hexutil.MustDecode(tt.input))
 		statedb.SetState(address, common.Hash{}, common.BytesToHash([]byte{tt.original}))
