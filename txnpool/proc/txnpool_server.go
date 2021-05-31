@@ -865,3 +865,7 @@ func (s *TXPoolServer) Nonce(addr common.Address) uint64 {
 
 	return s.pendingNonces.get(addr)
 }
+
+func (s *TXPoolServer) PendingEIPTransactions() map[common.Address]*txList {
+	return s.pendingEipTxs
+}

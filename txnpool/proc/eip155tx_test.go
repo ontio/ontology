@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"math/big"
 	"testing"
+	"time"
 )
 
 func Test_GenEIP155tx(t *testing.T) {
@@ -60,6 +61,15 @@ func Test_GenEIP155tx(t *testing.T) {
 	defer s.Stop()
 
 	f := s.assignTxToWorker(otx, sender, nil)
+	assert.True(t, f)
+
+	time.Sleep(10 * time.Second)
+	txEntry := &tc.TXEntry{
+		Tx:    txn,
+		Attrs: []*tc.TXAttr{},
+	}
+	fmt.Println("==addTxList==")
+	f = s.addTxList(txEntry)
 	assert.True(t, f)
 
 }

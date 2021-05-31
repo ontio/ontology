@@ -616,6 +616,8 @@ type CommonConfig struct {
 	GasLimit         uint64
 	GasPrice         uint64
 	DataDir          string
+	ETHBlockGasLimit uint64
+	NGasLimit		 uint64
 	WasmVerifyMethod VerifyMethod
 }
 

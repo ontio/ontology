@@ -189,6 +189,28 @@ func (ta *TxActor) handleTransaction(sender tc.SenderType, self *actor.PID,
 		//todo add EIP155 tx check
 		if txn.TxType == tx.EIP155 {
 			log.Debugf("handleTransaction: EIP155tx")
+			//verify signature
+			if err := txn.VerifyEIP155Tx() ;err!= nil {
+				log.Errorf("handleTransaction GetEIP155Tx failed:%s", err.Error())
+				if sender == tc.HttpSender && txResultCh != nil {
+					replyTxResult(txResultCh, txn.Hash(), errors.ErrUnknown,
+						"Invalid EIP155 transaction signature ")
+				}
+				return
+			}
+
+			//fixme for test
+			if config.DefConfig.Common.NGasLimit == 0 {
+				config.DefConfig.Common.NGasLimit = 10
+			}
+
+			if txn.GasLimit > config.DefConfig.Common.ETHBlockGasLimit / config.DefConfig.Common.NGasLimit {
+				if sender == tc.HttpSender && txResultCh != nil {
+					replyTxResult(txResultCh, txn.Hash(), errors.ErrUnknown,
+						"EIP155 tx gaslimit exceed ")
+				}
+			}
+
 			eiptx, err := txn.GetEIP155Tx()
 			if err != nil {
 				log.Errorf("handleTransaction GetEIP155Tx failed:%s", err.Error())
@@ -198,6 +220,7 @@ func (ta *TxActor) handleTransaction(sender tc.SenderType, self *actor.PID,
 				}
 				return
 			}
+
 			currentNonce := ta.server.CurrenctNonce(txn.Payer)
 			if eiptx.Nonce() < currentNonce {
 				if sender == tc.HttpSender && txResultCh != nil {
