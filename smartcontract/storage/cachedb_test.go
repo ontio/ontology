@@ -39,7 +39,7 @@ func genRandKeyVal() (string, string) {
 func TestCacheDB(t *testing.T) {
 	N := 10000
 	mem := make(map[string]string)
-	memback, _ := leveldbstore.NewMemLevelDBStore()
+	memback := leveldbstore.NewMemLevelDBStore()
 	overlay := overlaydb.NewOverlayDB(memback)
 
 	cache := NewCacheDB(overlay)

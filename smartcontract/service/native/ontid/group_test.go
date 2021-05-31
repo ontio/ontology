@@ -83,7 +83,7 @@ func TestDeserializeGroup(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	memback, _ := leveldbstore.NewMemLevelDBStore()
+	memback := leveldbstore.NewMemLevelDBStore()
 	overlay := overlaydb.NewOverlayDB(memback)
 	cache := storage.NewCacheDB(overlay)
 

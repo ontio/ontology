@@ -140,7 +140,7 @@ func nodeInfoExist(native *native.NativeService, nodeAddr common.Address) bool {
 	contract := native.ContextRef.CurrentContext().ContractAddress
 	nodeInfoKey := GenFsNodeInfoKey(contract, nodeAddr)
 
-	item, err := utils.GetStorageItem(native, nodeInfoKey)
+	item, err := utils.GetStorageItem(native.CacheDB, nodeInfoKey)
 	if err != nil || item == nil || item.Value == nil {
 		return false
 	}
@@ -164,7 +164,7 @@ func getNodeRawInfo(native *native.NativeService, nodeAddr common.Address) []byt
 	contract := native.ContextRef.CurrentContext().ContractAddress
 	nodeInfoKey := GenFsNodeInfoKey(contract, nodeAddr)
 
-	item, err := utils.GetStorageItem(native, nodeInfoKey)
+	item, err := utils.GetStorageItem(native.CacheDB, nodeInfoKey)
 	if err != nil || item == nil || item.Value == nil {
 		return nil
 	}

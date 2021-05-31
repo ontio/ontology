@@ -109,7 +109,7 @@ func getGlobalParam(native *native.NativeService) (*FsGlobalParam, error) {
 	var globalParam FsGlobalParam
 
 	globalParamKey := GenGlobalParamKey(native.ContextRef.CurrentContext().ContractAddress)
-	item, err := utils.GetStorageItem(native, globalParamKey)
+	item, err := utils.GetStorageItem(native.CacheDB, globalParamKey)
 	if err != nil {
 		return nil, errors.NewDetailErr(err, errors.ErrNoCode, "getGlobalParam GetStorageItem error!")
 	}

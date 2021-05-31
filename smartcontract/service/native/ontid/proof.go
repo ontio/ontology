@@ -31,7 +31,7 @@ func addProof(srvc *native.NativeService) ([]byte, error) {
 
 func getProof(srvc *native.NativeService, encId []byte) (string, error) {
 	key := append(encId, FIELD_PROOF)
-	proofStore, err := utils.GetStorageItem(srvc, key)
+	proofStore, err := utils.GetStorageItem(srvc.CacheDB, key)
 	if err != nil {
 		return "", errors.New("getProof error:" + err.Error())
 	}

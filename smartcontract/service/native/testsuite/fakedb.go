@@ -23,6 +23,6 @@ import (
 )
 
 func NewOverlayDB() *overlaydb.OverlayDB {
-	store, _ := leveldbstore.NewMemLevelDBStore()
+	store := leveldbstore.NewMemLevelDBStore()
 	return overlaydb.NewOverlayDB(store)
 }

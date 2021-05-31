@@ -153,7 +153,7 @@ func removeDuplicate(params *Context) {
 }
 
 func getContexts(srvc *native.NativeService, key []byte) ([][]byte, error) {
-	contextsStore, err := utils.GetStorageItem(srvc, key)
+	contextsStore, err := utils.GetStorageItem(srvc.CacheDB, key)
 	if err != nil {
 		return nil, errors.New("getContexts error:" + err.Error())
 	}

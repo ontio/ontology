@@ -144,7 +144,7 @@ func removeService(srvc *native.NativeService) ([]byte, error) {
 
 func getServices(srvc *native.NativeService, encId []byte) (Services, error) {
 	key := append(encId, FIELD_SERVICE)
-	servicesStore, err := utils.GetStorageItem(srvc, key)
+	servicesStore, err := utils.GetStorageItem(srvc.CacheDB, key)
 	if err != nil {
 		return nil, errors.New("getServices error:" + err.Error())
 	}
@@ -178,7 +178,7 @@ func storeServices(services Services, srvc *native.NativeService, key []byte) {
 
 func putService(srvc *native.NativeService, encId []byte, params *ServiceParam) error {
 	key := append(encId, FIELD_SERVICE)
-	servicesStore, err := utils.GetStorageItem(srvc, key)
+	servicesStore, err := utils.GetStorageItem(srvc.CacheDB, key)
 	if err != nil {
 		return fmt.Errorf("putService error: get storage error, %s", err)
 	}

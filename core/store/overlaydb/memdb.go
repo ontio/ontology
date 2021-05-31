@@ -200,6 +200,21 @@ type MemDB struct {
 	kvSize    int
 }
 
+func (self *MemDB) DeepClone() *MemDB {
+	cloned := &MemDB{
+		cmp:       self.cmp,
+		rnd:       self.rnd,
+		kvData:    append([]byte{}, self.kvData...),
+		nodeData:  append([]int{}, self.nodeData...),
+		prevNode:  self.prevNode,
+		maxHeight: self.maxHeight,
+		n:         self.n,
+		kvSize:    self.kvSize,
+	}
+
+	return cloned
+}
+
 func (p *MemDB) randHeight() (h int) {
 	const branching = 4
 	h = 1

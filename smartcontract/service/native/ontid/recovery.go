@@ -294,7 +294,7 @@ func putRecovery(srvc *native.NativeService, encId, data []byte) (*Group, error)
 
 func getRecovery(srvc *native.NativeService, encId []byte) (*Group, error) {
 	key := append(encId, FIELD_RECOVERY)
-	item, err := utils.GetStorageItem(srvc, key)
+	item, err := utils.GetStorageItem(srvc.CacheDB, key)
 	if err != nil {
 		return nil, err
 	} else if item == nil {
@@ -308,7 +308,7 @@ func getRecovery(srvc *native.NativeService, encId []byte) (*Group, error) {
 
 func getRecoveryJson(srvc *native.NativeService, encId []byte) (*GroupJson, error) {
 	key := append(encId, FIELD_RECOVERY)
-	item, err := utils.GetStorageItem(srvc, key)
+	item, err := utils.GetStorageItem(srvc.CacheDB, key)
 	if err != nil {
 		return nil, err
 	} else if item == nil {
@@ -436,7 +436,7 @@ func setOldRecovery(srvc *native.NativeService, encId []byte, recovery common.Ad
 // retain for conpatibility
 func getOldRecovery(srvc *native.NativeService, encId []byte) ([]byte, error) {
 	key := append(encId, FIELD_RECOVERY)
-	item, err := utils.GetStorageItem(srvc, key)
+	item, err := utils.GetStorageItem(srvc.CacheDB, key)
 	if err != nil {
 		return nil, errors.New("get recovery error: " + err.Error())
 	} else if item == nil {
