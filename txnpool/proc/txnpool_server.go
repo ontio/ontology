@@ -83,6 +83,7 @@ type TXPoolServer struct {
 	//restore for the evm tx only
 	eipTxPool     map[common.Address]*txList // The tx pool that holds the valid transaction
 	pendingEipTxs map[common.Address]*txList // The tx pool that holds the valid transaction
+	pendingNonces *txNoncer
 
 	allPendingTxs         map[common.Uint256]*serverPendingTx // The txs that server is processing
 	pendingBlock          *pendingBlock                       // The block that server is processing
@@ -173,6 +174,8 @@ func (s *TXPoolServer) init(num uint8, disablePreExec, disableBroadcastNetTx boo
 	}
 	//init queue
 	s.eipTxPool = make(map[common.Address]*txList)
+	s.pendingEipTxs = make(map[common.Address]*txList)
+	s.pendingNonces = newTxNoncer(ledger.DefLedger.GetStore().GetCacheDB())
 
 	s.pendingBlock = &pendingBlock{
 		processedTxs:   make(map[common.Uint256]*tc.VerifyTxResult, 0),
@@ -668,6 +671,8 @@ func (s *TXPoolServer) addEipPendingTx(tx *txtypes.Transaction) *txtypes.Transac
 	old := s.pendingEipTxs[tx.Payer].txs.Get(uint64(tx.Nonce))
 	if old == nil {
 		s.pendingEipTxs[tx.Payer].txs.Put(tx)
+		s.pendingNonces.set(tx.Payer, uint64(tx.Nonce+1))
+
 	} else {
 		if old.GasPrice < tx.GasPrice {
 			s.pendingEipTxs[tx.Payer].txs.Remove(uint64(old.Nonce))
@@ -852,4 +857,11 @@ func (s *TXPoolServer) CurrenctNonce(addr common.Address) uint64 {
 	}
 	return ethacct.Nonce
 
+}
+
+func (s *TXPoolServer) Nonce(addr common.Address) uint64 {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	return s.pendingNonces.get(addr)
 }

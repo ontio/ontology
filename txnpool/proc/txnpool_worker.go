@@ -107,6 +107,9 @@ func (worker *txPoolWorker) handleRsp(rsp *types.CheckResponse) {
 		delete(worker.pendingTxList, rsp.Hash)
 		atomic.StoreInt64(&worker.pendingTxLen, int64(len(worker.pendingTxList)))
 		worker.server.removePendingTx(rsp.Hash, rsp.ErrCode)
+		if pt.tx.TxType == tx.EIP155 {
+			worker.server.pendingNonces.setIfLower(pt.tx.Payer, uint64(pt.tx.Nonce))
+		}
 		return
 	}
 
@@ -159,6 +162,9 @@ func (worker *txPoolWorker) handleTimeoutEvent() {
 				delete(worker.pendingTxList, k)
 				worker.mu.Unlock()
 				worker.server.removePendingTx(k, errors.ErrRetryExhausted)
+				if v.tx.TxType == tx.EIP155 {
+					worker.server.pendingNonces.setIfLower(v.tx.Payer, uint64(v.tx.Nonce))
+				}
 			}
 		}
 	}

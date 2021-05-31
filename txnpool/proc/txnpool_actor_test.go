@@ -19,6 +19,11 @@
 package proc
 
 import (
+	"github.com/ontio/ontology/common/config"
+	"github.com/ontio/ontology/common/log"
+	"github.com/ontio/ontology/core/genesis"
+	"github.com/ontio/ontology/core/ledger"
+	"os"
 	"testing"
 	"time"
 
@@ -30,33 +35,33 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-//func TestMain(m *testing.M) {
-//log.InitLog(log.InfoLog, log.Stdout)
-//var err error
-//ledger.DefLedger, err = ledger.NewLedger(config.DEFAULT_DATA_DIR, 0)
-//if err != nil {
-//	return
-//}
-//
-//bookKeepers, err := config.DefConfig.GetBookkeepers()
-//if err != nil {
-//	return
-//}
-//genesisConfig := config.DefConfig.Genesis
-//genesisBlock, err := genesis.BuildGenesisBlock(bookKeepers, genesisConfig)
-//if err != nil {
-//	return
-//}
-//err = ledger.DefLedger.Init(bookKeepers, genesisBlock)
-//if err != nil {
-//	return
-//}
-//
-//m.Run()
-//
-//ledger.DefLedger.Close()
-//os.RemoveAll(config.DEFAULT_DATA_DIR)
-//}
+func TestMain(m *testing.M) {
+	log.InitLog(log.InfoLog, log.Stdout)
+	var err error
+	ledger.DefLedger, err = ledger.NewLedger(config.DEFAULT_DATA_DIR, 0)
+	if err != nil {
+		return
+	}
+
+	bookKeepers, err := config.DefConfig.GetBookkeepers()
+	if err != nil {
+		return
+	}
+	genesisConfig := config.DefConfig.Genesis
+	genesisBlock, err := genesis.BuildGenesisBlock(bookKeepers, genesisConfig)
+	if err != nil {
+		return
+	}
+	err = ledger.DefLedger.Init(bookKeepers, genesisBlock)
+	if err != nil {
+		return
+	}
+
+	m.Run()
+
+	ledger.DefLedger.Close()
+	os.RemoveAll(config.DEFAULT_DATA_DIR)
+}
 
 func TestTxActor(t *testing.T) {
 	t.Log("Starting tx actor test")

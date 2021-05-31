@@ -8,6 +8,7 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ontio/ontology/common"
 	txtypes "github.com/ontio/ontology/core/types"
+	tc "github.com/ontio/ontology/txnpool/common"
 	"github.com/stretchr/testify/assert"
 	"math/big"
 	"testing"
@@ -48,5 +49,17 @@ func Test_GenEIP155tx(t *testing.T) {
 	assert.Nil(t, err)
 
 	assert.True(t, otx.TxType == txtypes.EIP155)
+
+	t.Log("Starting test tx")
+	var s *TXPoolServer
+	s = NewTxPoolServer(tc.MAX_WORKER_NUM, true, false)
+	if s == nil {
+		t.Error("Test case: new tx pool server failed")
+		return
+	}
+	defer s.Stop()
+
+	f := s.assignTxToWorker(otx, sender, nil)
+	assert.True(t, f)
 
 }
