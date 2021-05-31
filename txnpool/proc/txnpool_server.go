@@ -24,6 +24,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	ethcomm "github.com/ethereum/go-ethereum/common"
+	ethtype "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ontio/ontology-eventbus/actor"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
@@ -38,7 +39,6 @@ import (
 	nutils "github.com/ontio/ontology/smartcontract/service/native/utils"
 	tc "github.com/ontio/ontology/txnpool/common"
 	"github.com/ontio/ontology/validator/types"
-	ethtype "github.com/ethereum/go-ethereum/core/types"
 	"sort"
 	"strconv"
 	"sync"
@@ -329,7 +329,6 @@ func (s *TXPoolServer) setPendingTx(tx *txtypes.Transaction,
 			s.removePendingTx(old.Hash(), errors.ErrHigherNonceExist)
 		}
 	}
-
 	pt := &serverPendingTx{
 		tx:     tx,
 		sender: sender,
@@ -673,7 +672,6 @@ func (s *TXPoolServer) addEipPendingTx(tx *txtypes.Transaction) *txtypes.Transac
 	if old == nil {
 		s.pendingEipTxs[tx.Payer].txs.Put(tx)
 		s.pendingNonces.set(tx.Payer, uint64(tx.Nonce+1))
-		fmt.Printf("addEipPendingTx set %s nonce to :%d\n",tx.Payer.ToBase58(),s.pendingNonces.get(tx.Payer))
 	} else {
 		if old.GasPrice < tx.GasPrice {
 			s.pendingEipTxs[tx.Payer].txs.Remove(uint64(old.Nonce))
@@ -814,7 +812,7 @@ func (s *TXPoolServer) verifyBlock(req *tc.VerifyBlockReq, sender *actor.PID) {
 			s.sendBlkResult2Consensus()
 			return
 		}
-		if t.TxType == txtypes.EIP155{
+		if t.TxType == txtypes.EIP155 {
 			totalGasLimit = totalGasLimit + t.GasLimit
 		}
 		if totalGasLimit > config.DefConfig.Common.ETHBlockGasLimit {
@@ -883,15 +881,15 @@ func (s *TXPoolServer) Nonce(addr common.Address) uint64 {
 }
 
 func (s *TXPoolServer) PendingEIPTransactions() map[ethcomm.Address]map[uint64]*ethtype.Transaction {
-	ret := make(map[ethcomm.Address]map[uint64]*ethtype.Transaction,0)
-	for k,v := range s.pendingEipTxs{
-		m := make(map[uint64]*ethtype.Transaction,0)
-		for kt,vt := range v.txs.items {
-			ethTx,err := vt.GetEIP155Tx()
+	ret := make(map[ethcomm.Address]map[uint64]*ethtype.Transaction, 0)
+	for k, v := range s.pendingEipTxs {
+		m := make(map[uint64]*ethtype.Transaction, 0)
+		for kt, vt := range v.txs.items {
+			ethTx, err := vt.GetEIP155Tx()
 			if err != nil {
-				log.Errorf("error GetEIP155Tx:%s",err)
+				log.Errorf("error GetEIP155Tx:%s", err)
 			}
-			m[kt] =ethTx
+			m[kt] = ethTx
 		}
 		ret[ethcomm.BytesToAddress(k[:])] = m
 	}

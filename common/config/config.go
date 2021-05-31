@@ -83,7 +83,7 @@ const (
 	DEFAULT_RESERVED_FILE = "./peers.rsv"
 
 	DEFAULT_ETH_BLOCK_GAS_LIMIT = 8000000
-	N_GAS_LIMIT = 10
+	N_GAS_LIMIT                 = 10
 )
 
 const (
@@ -620,7 +620,7 @@ type CommonConfig struct {
 	GasPrice         uint64
 	DataDir          string
 	ETHBlockGasLimit uint64
-	NGasLimit		 uint64
+	NGasLimit        uint64
 	WasmVerifyMethod VerifyMethod
 }
 

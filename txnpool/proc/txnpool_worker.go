@@ -180,6 +180,8 @@ func (worker *txPoolWorker) putTxPool(pt *pendingTx) bool {
 	}
 	worker.server.addTxList(txEntry)
 	worker.server.removePendingTx(pt.tx.Hash(), errors.ErrNoError)
+	//remove from pendingEipTxs
+	worker.server.pendingEipTxs[pt.tx.Payer].txs.Remove(uint64(pt.tx.Nonce))
 	return true
 }
 

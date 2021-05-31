@@ -190,7 +190,7 @@ func (ta *TxActor) handleTransaction(sender tc.SenderType, self *actor.PID,
 		if txn.TxType == tx.EIP155 {
 			log.Debugf("handleTransaction: EIP155tx")
 			//verify signature
-			if err := txn.VerifyEIP155Tx() ;err!= nil {
+			if err := txn.VerifyEIP155Tx(); err != nil {
 				log.Errorf("handleTransaction GetEIP155Tx failed:%s", err.Error())
 				if sender == tc.HttpSender && txResultCh != nil {
 					replyTxResult(txResultCh, txn.Hash(), errors.ErrUnknown,
@@ -204,7 +204,7 @@ func (ta *TxActor) handleTransaction(sender tc.SenderType, self *actor.PID,
 				config.DefConfig.Common.NGasLimit = 10
 			}
 
-			if txn.GasLimit > config.DefConfig.Common.ETHBlockGasLimit / config.DefConfig.Common.NGasLimit {
+			if txn.GasLimit > config.DefConfig.Common.ETHBlockGasLimit/config.DefConfig.Common.NGasLimit {
 				if sender == tc.HttpSender && txResultCh != nil {
 					replyTxResult(txResultCh, txn.Hash(), errors.ErrUnknown,
 						"EIP155 tx gaslimit exceed ")

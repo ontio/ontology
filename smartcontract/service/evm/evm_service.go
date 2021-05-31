@@ -46,7 +46,7 @@ func (this *EvmService) Invoke() (interface{}, error) {
 	config := params.MainnetChainConfig //todo use config based on network
 	txhash := this.Tx.Hash()
 	thash := ethcom.BytesToHash(txhash[:])
-	statedb := storage.NewStateDB(this.CacheDB, thash, ethcom.BytesToHash(this.BlockHash[:]),ong.OngBalanceHandle{})
+	statedb := storage.NewStateDB(this.CacheDB, thash, ethcom.BytesToHash(this.BlockHash[:]), ong.OngBalanceHandle{})
 	usedGas := uint64(0)
 
 	block, err := this.Store.GetBlockByHash(this.BlockHash)
