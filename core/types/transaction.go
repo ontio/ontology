@@ -84,34 +84,26 @@ func TransactionFromEIP155(eiptx *types.Transaction) (*Transaction, error) {
 		return nil, fmt.Errorf("error EIP155 get sender:%s", err.Error())
 	}
 
-	addr, err := common.AddressParseFromBytes(from[:])
-	if err != nil {
-		return nil, fmt.Errorf("error EIP155 parse sender address:%s", err.Error())
-	}
-	eiphash := eiptx.Hash()
-	txhash, err := common.Uint256ParseFromBytes(eiphash[:])
-	if err != nil {
-		return nil, fmt.Errorf("error EIP155 parse txhash:%s", err.Error())
-	}
+	addr := common.Address(from)
+	txhash := common.Uint256(eiptx.Hash())
 	raw, err := rlp.EncodeToBytes(eiptx)
 	if err != nil {
 		return nil, fmt.Errorf("error EIP155 EncodeToBytes %s", err.Error())
 	}
 
-	if eiptx.Nonce() > uint64(math.MaxUint32) ||
-		eiptx.GasPrice().Cmp(big.NewInt(0).SetUint64(math.MaxUint64)) > 0 {
+	if eiptx.Nonce() > uint64(math.MaxUint32) || !eiptx.GasPrice().IsUint64() {
 		return nil, fmt.Errorf("nonce :%d or GasPrice :%d is too big", eiptx.Nonce(), eiptx.GasPrice())
 	}
 
+	// raw = version + txtype + rlp(eiptx)
 	retTx := &Transaction{
-		Version:  byte(0),
-		TxType:   EIP155,
-		Nonce:    uint32(eiptx.Nonce()),
-		GasPrice: eiptx.GasPrice().Uint64(),
-		GasLimit: eiptx.Gas(),
-		Payer:    addr,
-		Payload:  &payload.EIP155Code{EIPTx: eiptx},
-		//Sigs: ???
+		Version:              byte(0),
+		TxType:               EIP155,
+		Nonce:                uint32(eiptx.Nonce()),
+		GasPrice:             eiptx.GasPrice().Uint64(),
+		GasLimit:             eiptx.Gas(),
+		Payer:                addr,
+		Payload:              &payload.EIP155Code{EIPTx: eiptx},
 		Raw:                  raw,
 		hashUnsigned:         common.Uint256{},
 		hash:                 txhash,
@@ -199,7 +191,6 @@ func deriveChainId(v *big.Int) *big.Int {
 
 // Transaction has internal reference of param `source`
 func (tx *Transaction) Deserialization(source *common.ZeroCopySource) error {
-
 	pstart := source.Pos()
 	err := tx.deserializationUnsigned(source)
 	if err != nil {
