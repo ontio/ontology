@@ -739,6 +739,7 @@ func NewOntologyConfig() *OntologyConfig {
 			MaxConnInBound:            DEFAULT_MAX_CONN_IN_BOUND,
 			MaxConnOutBound:           DEFAULT_MAX_CONN_OUT_BOUND,
 			MaxConnInBoundForSingleIP: DEFAULT_MAX_CONN_IN_BOUND_FOR_SINGLE_IP,
+			EVMChainId:                constants.EVM_CHAIN_ID_MAINNET,
 		},
 		Rpc: &RpcConfig{
 			EnableHttpJsonRpc: true,
