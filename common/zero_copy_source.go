@@ -209,6 +209,18 @@ func (self *ZeroCopySource) ReadVarBytes() (data []byte, err error) {
 	return data, nil
 }
 
+func (self *ZeroCopySource) ReadVarUint() (uint64, error) {
+	length, _, irregular, eof := self.NextVarUint()
+	if irregular {
+		return 0, ErrIrregularData
+	}
+	if eof {
+		return 0, io.ErrUnexpectedEOF
+	}
+
+	return length, nil
+}
+
 func (self *ZeroCopySource) NextAddress() (data Address, eof bool) {
 	var buf []byte
 	buf, eof = self.NextBytes(ADDR_LEN)
