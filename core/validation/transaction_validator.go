@@ -55,7 +55,6 @@ func VerifyTransactionWithLedger(tx *types.Transaction, ledger *ledger.Ledger) o
 }
 
 func checkTransactionSignatures(tx *types.Transaction) error {
-
 	if tx.TxType == types.EIP155 {
 		return tx.VerifyEIP155Tx()
 	}
@@ -118,7 +117,6 @@ func checkTransactionSignatures(tx *types.Transaction) error {
 }
 
 func checkTransactionPayload(tx *types.Transaction) error {
-
 	switch pld := tx.Payload.(type) {
 	case *payload.DeployCode:
 		deploy := tx.Payload.(*payload.DeployCode)

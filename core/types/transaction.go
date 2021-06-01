@@ -195,6 +195,7 @@ func isEip155TxBytes(source *common.ZeroCopySource) bool {
 }
 
 func (tx *Transaction) decodeEip155(source *common.ZeroCopySource) error {
+	pstart := source.Pos()
 	tx.Version, _ = source.NextByte()
 	txtype, eof := source.NextByte()
 	if eof {
@@ -215,6 +216,12 @@ func (tx *Transaction) decodeEip155(source *common.ZeroCopySource) error {
 		return err
 	}
 	*tx = *decoded
+
+	pend := source.Pos()
+	lenAll := pend - pstart
+	if lenAll > MAX_TX_SIZE {
+		return fmt.Errorf("execced max transaction size:%d", lenAll)
+	}
 
 	return nil
 }
