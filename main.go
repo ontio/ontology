@@ -260,10 +260,6 @@ func initLedger(ctx *cli.Context, stateHashHeight uint32) (*ledger.Ledger, error
 
 	var err error
 	dbDir := utils.GetStoreDirPath(config.DefConfig.Common.DataDir, config.DefConfig.P2PNode.NetworkName)
-	ledger.DefLedger, err = ledger.NewLedger(dbDir, stateHashHeight)
-	if err != nil {
-		return nil, fmt.Errorf("NewLedger error: %s", err)
-	}
 	bookKeepers, err := config.DefConfig.GetBookkeepers()
 	if err != nil {
 		return nil, fmt.Errorf("GetBookkeepers error: %s", err)
@@ -273,9 +269,9 @@ func initLedger(ctx *cli.Context, stateHashHeight uint32) (*ledger.Ledger, error
 	if err != nil {
 		return nil, fmt.Errorf("genesisBlock error %s", err)
 	}
-	err = ledger.DefLedger.Init(bookKeepers, genesisBlock)
+	ledger.DefLedger, err = ledger.InitLedger(dbDir, stateHashHeight, bookKeepers, genesisBlock)
 	if err != nil {
-		return nil, fmt.Errorf("init ledger error: %s", err)
+		return nil, fmt.Errorf("NewLedger error: %s", err)
 	}
 
 	log.Infof("Ledger init success")

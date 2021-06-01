@@ -38,11 +38,6 @@ import (
 func TestMain(m *testing.M) {
 	log.InitLog(log.InfoLog, log.Stdout)
 	var err error
-	ledger.DefLedger, err = ledger.NewLedger(config.DEFAULT_DATA_DIR, 0)
-	if err != nil {
-		return
-	}
-
 	bookKeepers, err := config.DefConfig.GetBookkeepers()
 	if err != nil {
 		return
@@ -52,7 +47,7 @@ func TestMain(m *testing.M) {
 	if err != nil {
 		return
 	}
-	err = ledger.DefLedger.Init(bookKeepers, genesisBlock)
+	ledger.DefLedger, err = ledger.InitLedger(config.DEFAULT_DATA_DIR, 0, bookKeepers, genesisBlock)
 	if err != nil {
 		return
 	}

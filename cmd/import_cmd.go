@@ -65,10 +65,6 @@ func importBlocks(ctx *cli.Context) error {
 	dbDir := utils.GetStoreDirPath(config.DefConfig.Common.DataDir, config.DefConfig.P2PNode.NetworkName)
 
 	stateHashHeight := config.GetStateHashCheckHeight(cfg.P2PNode.NetworkId)
-	ledger.DefLedger, err = ledger.NewLedger(dbDir, stateHashHeight)
-	if err != nil {
-		return fmt.Errorf("NewLedger error:%s", err)
-	}
 	bookKeepers, err := config.DefConfig.GetBookkeepers()
 	if err != nil {
 		return fmt.Errorf("GetBookkeepers error:%s", err)
@@ -78,9 +74,9 @@ func importBlocks(ctx *cli.Context) error {
 	if err != nil {
 		return fmt.Errorf("BuildGenesisBlock error %s", err)
 	}
-	err = ledger.DefLedger.Init(bookKeepers, genesisBlock)
+	ledger.DefLedger, err = ledger.InitLedger(dbDir, stateHashHeight, bookKeepers, genesisBlock)
 	if err != nil {
-		return fmt.Errorf("init ledger error:%s", err)
+		return fmt.Errorf("NewLedger error:%s", err)
 	}
 
 	dataDir := ctx.String(utils.GetFlagName(utils.DataDirFlag))

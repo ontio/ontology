@@ -41,9 +41,17 @@ func TestMain(m *testing.M) {
 	log.InitLog(log.InfoLog, log.Stdout)
 
 	var err error
-	ledger.DefLedger, err = ledger.NewLedger(config.DEFAULT_DATA_DIR, 0)
+	bookKeepers, err := config.DefConfig.GetBookkeepers()
 	if err != nil {
-		log.Errorf("failed  to new ledger")
+		return
+	}
+	genesisConfig := config.DefConfig.Genesis
+	genesisBlock, err := genesis.BuildGenesisBlock(bookKeepers, genesisConfig)
+	if err != nil {
+		return
+	}
+	ledger.DefLedger, err = ledger.InitLedger(config.DEFAULT_DATA_DIR, 0, bookKeepers, genesisBlock)
+	if err != nil {
 		return
 	}
 
@@ -80,23 +88,6 @@ func startActor(obj interface{}) *actor.PID {
 func Test_RCV(t *testing.T) {
 	var s *tp.TXPoolServer
 	var wg sync.WaitGroup
-
-	bookKeepers, err := config.DefConfig.GetBookkeepers()
-	if err != nil {
-		t.Error("failed to get bookkeepers")
-		return
-	}
-	genesisConfig := config.DefConfig.Genesis
-	genesisBlock, err := genesis.BuildGenesisBlock(bookKeepers, genesisConfig)
-	if err != nil {
-		t.Error("failed to build genesis block", err)
-		return
-	}
-	err = ledger.DefLedger.Init(bookKeepers, genesisBlock)
-	if err != nil {
-		t.Error("failed to initialize default ledger", err)
-		return
-	}
 
 	// Start txnpool server to receive msgs from p2p, consensus and valdiators
 	s = tp.NewTxPoolServer(tc.MAX_WORKER_NUM, true, false)

@@ -286,12 +286,9 @@ func main() {
 	events.Init()
 
 	log.Info("1. Loading the Ledger")
-	database, err := ledger.NewLedger(datadir, 1000000)
-	checkErr(err)
-	ledger.DefLedger = database
 	genblock, err := genesis.BuildGenesisBlock(bookkeepers, config.DefConfig.Genesis)
 	checkErr(err)
-	err = database.Init(bookkeepers, genblock)
+	database, err := ledger.InitLedger(datadir, 1000000, bookkeepers, genblock)
 	checkErr(err)
 
 	log.Info("loading wasm contract")

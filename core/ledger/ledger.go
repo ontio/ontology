@@ -33,24 +33,23 @@ type Ledger struct {
 	store.LedgerStore
 }
 
-func NewLedger(dataDir string, stateHashHeight uint32) (*Ledger, error) {
-	ldgStore, err := ledgerstore.NewLedgerStore(dataDir, stateHashHeight)
-	if err != nil {
-		return nil, fmt.Errorf("NewLedgerStore error %s", err)
-	}
-	return &Ledger{
-		LedgerStore: ldgStore,
-	}, nil
-}
-
 func (self *Ledger) GetStore() store.LedgerStore {
 	return self.LedgerStore
 }
 
-func (self *Ledger) Init(defaultBookkeeper []keypair.PublicKey, genesisBlock *types.Block) error {
-	err := self.LedgerStore.InitLedgerStoreWithGenesisBlock(genesisBlock, defaultBookkeeper)
+func InitLedger(dataDir string, stateHashHeight uint32, defaultBookkeeper []keypair.PublicKey,
+	genesisBlock *types.Block) (*Ledger, error) {
+	ldgStore, err := ledgerstore.NewLedgerStore(dataDir, stateHashHeight)
 	if err != nil {
-		return fmt.Errorf("InitLedgerStoreWithGenesisBlock error %s", err)
+		return nil, fmt.Errorf("NewLedgerStore error %s", err)
 	}
-	return nil
+
+	err = ldgStore.InitLedgerStoreWithGenesisBlock(genesisBlock, defaultBookkeeper)
+	if err != nil {
+		return nil, err
+	}
+
+	return &Ledger{
+		LedgerStore: ldgStore,
+	}, nil
 }
