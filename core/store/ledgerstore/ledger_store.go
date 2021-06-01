@@ -31,7 +31,16 @@ import (
 	"sync"
 	"time"
 
+	types4 "github.com/ontio/ontology/smartcontract/service/evm/types"
+
+	common2 "github.com/ethereum/go-ethereum/common"
+	evm2 "github.com/ontio/ontology/smartcontract/service/evm"
+	"github.com/ontio/ontology/smartcontract/service/native/ong"
+	evm3 "github.com/ontio/ontology/vm/evm"
+	"github.com/ontio/ontology/vm/evm/params"
+
 	types3 "github.com/ethereum/go-ethereum/core/types"
+
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
@@ -1372,6 +1381,24 @@ func (this *LedgerStoreImp) PreExecuteContract(tx *types.Transaction) (*sstate.P
 	}
 
 	return this.PreExecuteContractWithParam(tx, param)
+}
+
+func (this *LedgerStoreImp) PreExecuteEip155Tx(tx *types3.Transaction) (*types4.ExecutionResult, error) {
+	overlay := this.stateStore.NewOverlayDB()
+	cache := storage.NewCacheDB(overlay)
+	statedb := storage.NewStateDB(cache, tx.Hash(), common2.Hash{}, ong.OngBalanceHandle{})
+	config := params.MainnetChainConfig //todo use config based on network
+	usedGas := uint64(0)
+	res, _, err := evm2.ApplyTransaction(config, this, statedb, &types.Header{}, tx, &usedGas, utils.GovernanceContractAddress, evm3.Config{})
+	if err != nil {
+		overlay.SetError(err)
+		return nil, err
+	}
+	if err = statedb.DbErr(); err != nil {
+		overlay.SetError(statedb.DbErr())
+		return nil, err
+	}
+	return res, err
 }
 
 //Close ledger store.

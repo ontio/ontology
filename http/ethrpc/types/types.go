@@ -18,16 +18,18 @@
 package types
 
 import (
+	"math"
+	"math/big"
+
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ontio/ontology/common/log"
 )
 
 const (
 	// BloomByteLength represents the number of bytes used in a header log bloom.
 	BloomByteLength = 256
-
-	// BloomBitLength represents the number of bits used in a header log bloom.
-	BloomBitLength = 8 * BloomByteLength
 )
 
 // Bloom represents a 2048 bit bloom filter.
@@ -40,6 +42,35 @@ type CallArgs struct {
 	GasPrice *hexutil.Big    `json:"gasPrice"`
 	Value    *hexutil.Big    `json:"value"`
 	Data     *hexutil.Bytes  `json:"data"`
+}
+
+func (args CallArgs) AsTransaction(globalGasCap uint64) *types.Transaction {
+	// Set default gas & gas price if none were set
+	gas := globalGasCap
+	if gas == 0 {
+		gas = uint64(math.MaxUint64 / 2)
+	}
+	if args.Gas != nil {
+		gas = uint64(*args.Gas)
+	}
+	if globalGasCap != 0 && globalGasCap < gas {
+		log.Warn("Caller gas above allowance, capping", "requested", gas, "cap", globalGasCap)
+		gas = globalGasCap
+	}
+	gasPrice := new(big.Int)
+	if args.GasPrice != nil {
+		gasPrice = args.GasPrice.ToInt()
+	}
+	value := new(big.Int)
+	if args.Value != nil {
+		value = args.Value.ToInt()
+	}
+	var data []byte
+	if args.Data != nil {
+		data = *args.Data
+	}
+	tx := types.NewTransaction(0, *args.To, value, gas, gasPrice, data)
+	return tx
 }
 
 type Account struct {

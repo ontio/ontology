@@ -191,7 +191,7 @@ func startOntology(ctx *cli.Context) {
 		log.Errorf("initRpc error: %s", err)
 		return
 	}
-	err = initETHRpc()
+	err = initETHRpc(txpool)
 	if err != nil {
 		log.Errorf("initEthRpc error: %s", err)
 		return
@@ -372,14 +372,14 @@ func initRpc(ctx *cli.Context) error {
 	return nil
 }
 
-func initETHRpc() error {
+func initETHRpc(txpool *proc.TXPoolServer) error {
 	if !config.DefConfig.Rpc.EnableHttpJsonRpc {
 		return nil
 	}
 	var err error
 	exitCh := make(chan interface{}, 0)
 	go func() {
-		err = ethrpc.StartEthServer()
+		err = ethrpc.StartEthServer(txpool)
 		close(exitCh)
 	}()
 

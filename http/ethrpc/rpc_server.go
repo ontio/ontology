@@ -23,12 +23,13 @@ import (
 
 	"github.com/ethereum/go-ethereum/rpc"
 	cfg "github.com/ontio/ontology/common/config"
+	tp "github.com/ontio/ontology/txnpool/proc"
 )
 
-func StartEthServer() error {
-	calculator := new(EthereumAPI)
+func StartEthServer(txpool *tp.TXPoolServer) error {
+	ethAPI := NewEthereumAPI(txpool)
 	server := rpc.NewServer()
-	err := server.RegisterName("eth", calculator)
+	err := server.RegisterName("eth", ethAPI)
 	if err != nil {
 		return err
 	}

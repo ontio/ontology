@@ -19,6 +19,7 @@
 package store
 
 import (
+	types2 "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/payload"
@@ -26,6 +27,7 @@ import (
 	"github.com/ontio/ontology/core/store/overlaydb"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract/event"
+	types3 "github.com/ontio/ontology/smartcontract/service/evm/types"
 	cstates "github.com/ontio/ontology/smartcontract/states"
 	"github.com/ontio/ontology/smartcontract/storage"
 )
@@ -68,6 +70,7 @@ type LedgerStore interface {
 	GetStorageItem(codeHash common.Address, key []byte) ([]byte, error)
 	PreExecuteContract(tx *types.Transaction) (*cstates.PreExecResult, error)
 	PreExecuteContractBatch(txes []*types.Transaction, atomic bool) ([]*cstates.PreExecResult, uint32, error)
+	PreExecuteEip155Tx(tx *types2.Transaction) (*types3.ExecutionResult, error)
 	GetEventNotifyByTx(tx common.Uint256) (*event.ExecuteNotify, error)
 	GetEventNotifyByBlock(height uint32) ([]*event.ExecuteNotify, error)
 

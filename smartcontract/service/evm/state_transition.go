@@ -23,6 +23,8 @@ import (
 	"math"
 	"math/big"
 
+	"github.com/ontio/ontology/smartcontract/service/evm/types"
+
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ontio/ontology/vm/evm"
 	"github.com/ontio/ontology/vm/evm/params"
@@ -108,41 +110,6 @@ type Message interface {
 	Data() []byte
 }
 
-// ExecutionResult includes all output after executing given evm
-// message no matter the execution itself is successful or not.
-type ExecutionResult struct {
-	UsedGas    uint64 // Total used gas but include the refunded gas
-	Err        error  // Any error encountered during the execution(listed in core/vm/errors.go)
-	ReturnData []byte // Returned data from evm(function result or data supplied with revert opcode)
-}
-
-// Unwrap returns the internal evm error which allows us for further
-// analysis outside.
-func (result *ExecutionResult) Unwrap() error {
-	return result.Err
-}
-
-// Failed returns the indicator whether the execution is successful or not
-func (result *ExecutionResult) Failed() bool { return result.Err != nil }
-
-// Return is a helper function to help caller distinguish between revert reason
-// and function return. Return returns the data after execution if no error occurs.
-func (result *ExecutionResult) Return() []byte {
-	if result.Err != nil {
-		return nil
-	}
-	return common.CopyBytes(result.ReturnData)
-}
-
-// Revert returns the concrete revert reason if the execution is aborted by `REVERT`
-// opcode. Note the reason can be nil if no data supplied with revert opcode.
-func (result *ExecutionResult) Revert() []byte {
-	if result.Err != evm.ErrExecutionReverted {
-		return nil
-	}
-	return common.CopyBytes(result.ReturnData)
-}
-
 // IntrinsicGas computes the 'intrinsic gas' for a message with the given data.
 func IntrinsicGas(data []byte, contractCreation, isHomestead bool, isEIP2028 bool) uint64 {
 	// Set the starting gas for the raw transaction
@@ -202,7 +169,7 @@ func NewStateTransition(evm *evm.EVM, msg Message, feeReceiver common.Address) *
 // the gas used (which includes gas refunds) and an error if it failed. An error always
 // indicates a core error meaning that the message would always fail for that particular
 // state and would never be accepted within a block.
-func ApplyMessage(evm *evm.EVM, msg Message, feeReceiver common.Address) (*ExecutionResult, error) {
+func ApplyMessage(evm *evm.EVM, msg Message, feeReceiver common.Address) (*types.ExecutionResult, error) {
 	return NewStateTransition(evm, msg, feeReceiver).TransitionDb()
 }
 
@@ -256,7 +223,7 @@ func (st *StateTransition) preCheck() error {
 //
 // However if any consensus issue encountered, return the error directly with
 // nil evm execution result.
-func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
+func (st *StateTransition) TransitionDb() (*types.ExecutionResult, error) {
 	// First check this message satisfies all consensus rules before
 	// applying the message. The rules include these clauses
 	//
@@ -304,7 +271,7 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 	}
 	st.state.AddBalance(st.GasReceiver, new(big.Int).Mul(new(big.Int).SetUint64(st.gasUsed()), st.gasPrice))
 
-	return &ExecutionResult{
+	return &types.ExecutionResult{
 		UsedGas:    st.gasUsed(),
 		Err:        vmerr,
 		ReturnData: ret,
