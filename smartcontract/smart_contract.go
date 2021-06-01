@@ -20,7 +20,6 @@ package smartcontract
 import (
 	"errors"
 	"fmt"
-	"github.com/ontio/ontology/smartcontract/service/evm"
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
@@ -191,18 +190,6 @@ func (this *SmartContract) NewExecuteEngine(code []byte, txtype ctypes.Transacti
 			GasFactor:  gasFactor,
 			JitMode:    this.JitMode,
 		}
-	case ctypes.EIP155:
-		service = &evm.EvmService{
-			Store:      this.Store,
-			CacheDB:    this.CacheDB,
-			Code:       code,
-			Tx:         this.Config.Tx,
-			ContextRef: this,
-			Time:       this.Config.Time,
-			Height:     this.Config.Height,
-			BlockHash:  this.Config.BlockHash,
-		}
-
 	default:
 		return nil, errors.New("failed to construct execute engine, wrong transaction type")
 	}

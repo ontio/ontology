@@ -27,7 +27,7 @@ import (
 )
 
 // NewEVMBlockContext creates a new context for use in the EVM.
-func NewEVMBlockContext(height uint32, timestamp uint32, chain store.LedgerStore) evm.BlockContext {
+func NewEVMBlockContext(height, timestamp uint32, chain store.LedgerStore) evm.BlockContext {
 	return evm.BlockContext{
 		CanTransfer: CanTransfer,
 		Transfer:    Transfer,

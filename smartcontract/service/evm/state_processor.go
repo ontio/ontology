@@ -31,7 +31,7 @@ import (
 	"github.com/ontio/ontology/vm/evm/params"
 )
 
-func applyTransaction(msg types.Message, statedb *storage.StateDB, header *otypes.Header, tx *types.Transaction, usedGas *uint64, evm *evm.EVM, feeReceiver common.Address) (*ExecutionResult, *otypes.Receipt, error) {
+func applyTransaction(msg types.Message, statedb *storage.StateDB, blockHeight uint32, tx *types.Transaction, usedGas *uint64, evm *evm.EVM, feeReceiver common.Address) (*ExecutionResult, *otypes.Receipt, error) {
 	// Create a new context to be used in the EVM environment
 	txContext := NewEVMTxContext(msg)
 	// Add addresses to access list if applicable
@@ -67,7 +67,7 @@ func applyTransaction(msg types.Message, statedb *storage.StateDB, header *otype
 	receipt := otypes.NewReceipt(result.Failed(), *usedGas)
 	receipt.TxHash = tx.Hash()
 	receipt.GasUsed = result.UsedGas
-	receipt.GasPrice = tx.GasPrice().Uint64() //safe since ong should be in uint64 range
+	receipt.GasPrice = tx.GasPrice().Uint64() // safe since ong should be in uint64 range
 	// if the transaction created a contract, store the creation address in the receipt.
 	if msg.To() == nil {
 		receipt.ContractAddress = crypto.CreateAddress(evm.TxContext.Origin, tx.Nonce())
@@ -75,23 +75,23 @@ func applyTransaction(msg types.Message, statedb *storage.StateDB, header *otype
 	// Set the receipt logs and create a bloom for filtering
 	receipt.Logs = statedb.GetLogs()
 	receipt.BlockHash = statedb.BlockHash()
-	receipt.BlockNumber = big.NewInt(int64(header.Height))
+	receipt.BlockNumber = big.NewInt(int64(blockHeight))
 
-	return nil, receipt, err
+	return result, receipt, err
 }
 
 // ApplyTransaction attempts to apply a transaction to the given state database
 // and uses the input parameters for its environment. It returns the receipt
 // for the transaction, gas used and an error if the transaction failed,
 // indicating the block was invalid.
-func ApplyTransaction(config *params.ChainConfig, bc store.LedgerStore, statedb *storage.StateDB, header *otypes.Header, tx *types.Transaction, usedGas *uint64, feeReceiver common.Address, cfg evm.Config) (*ExecutionResult, *otypes.Receipt, error) {
+func ApplyTransaction(config *params.ChainConfig, bc store.LedgerStore, statedb *storage.StateDB, blockHeight, timestamp uint32, tx *types.Transaction, usedGas *uint64, feeReceiver common.Address, cfg evm.Config) (*ExecutionResult, *otypes.Receipt, error) {
 	signer := types.NewEIP155Signer(config.ChainID)
 	msg, err := tx.AsMessage(signer)
 	if err != nil {
 		return nil, nil, err
 	}
 	// Create a new context to be used in the EVM environment
-	blockContext := NewEVMBlockContext(header.Height, header.Timestamp, bc)
+	blockContext := NewEVMBlockContext(blockHeight, timestamp, bc)
 	vmenv := evm.NewEVM(blockContext, evm.TxContext{}, statedb, config, cfg)
-	return applyTransaction(msg, statedb, header, tx, usedGas, vmenv, feeReceiver)
+	return applyTransaction(msg, statedb, blockHeight, tx, usedGas, vmenv, feeReceiver)
 }

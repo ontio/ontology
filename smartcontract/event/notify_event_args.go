@@ -54,7 +54,7 @@ func ExecuteNotifyFromEthReceipt(receipt *types.Receipt) *ExecuteNotify {
 		State:           byte(receipt.Status),
 		GasConsumed:     receipt.GasUsed * receipt.GasPrice,
 		GasStepUsed:     receipt.GasUsed,
-		TxIndex:         uint32(receipt.TxIndex),
+		TxIndex:         receipt.TxIndex,
 		CreatedContract: common.Address(receipt.ContractAddress),
 	}
 

@@ -31,6 +31,7 @@ import (
 	"sync"
 	"time"
 
+	types3 "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
@@ -49,6 +50,7 @@ import (
 	"github.com/ontio/ontology/merkle"
 	"github.com/ontio/ontology/smartcontract"
 	"github.com/ontio/ontology/smartcontract/event"
+	"github.com/ontio/ontology/smartcontract/service/evm"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 	"github.com/ontio/ontology/smartcontract/service/neovm"
 	"github.com/ontio/ontology/smartcontract/service/wasmvm"
@@ -1021,7 +1023,13 @@ func (this *LedgerStoreImp) handleTransaction(overlay *overlaydb.OverlayDB, cach
 			return nil, nil, fmt.Errorf("HandleInvokeTransaction tx %s error %s", txHash.ToHexString(), err.Error())
 		}
 
-		err = this.stateStore.HandleEIP155Transaction(this, overlay, cache, eiptx, uint(txIndex), block.Header, notify)
+		ctx := Eip155Context{
+			BlockHash: block.Hash(),
+			TxIndex:   txIndex,
+			Height:    block.Header.Height,
+			Timestamp: block.Header.Timestamp,
+		}
+		_, err = this.stateStore.HandleEIP155Transaction(this, cache, eiptx, ctx, notify)
 		if overlay.Error() != nil {
 			return nil, nil, fmt.Errorf("HandleInvokeTransaction tx %s error %s", txHash.ToHexString(), overlay.Error())
 		}
@@ -1213,6 +1221,15 @@ func (this *LedgerStoreImp) PreExecuteContractBatch(txes []*types.Transaction, a
 	return results, height, nil
 }
 
+func (this *LedgerStoreImp) PreExecuteEIP155(tx *types3.Transaction, ctx Eip155Context) (*evm.ExecutionResult, *event.ExecuteNotify, error) {
+	overlay := this.stateStore.NewOverlayDB()
+	cache := storage.NewCacheDB(overlay)
+
+	notify := &event.ExecuteNotify{State: event.CONTRACT_STATE_FAIL, TxIndex: ctx.TxIndex}
+	result, err := this.stateStore.HandleEIP155Transaction(this, cache, tx, ctx, notify)
+	return result, notify, err
+}
+
 //PreExecuteContract return the result of smart contract execution without commit to store
 func (this *LedgerStoreImp) PreExecuteContractWithParam(tx *types.Transaction, preParam PrexecuteParam) (*sstate.PreExecResult, error) {
 	height := this.GetCurrentBlockHeight()
@@ -1221,7 +1238,28 @@ func (this *LedgerStoreImp) PreExecuteContractWithParam(tx *types.Transaction, p
 	if header, err := this.GetHeaderByHeight(height); err == nil {
 		blockTime = header.Timestamp + 1
 	}
+	blockHash := this.GetBlockHash(height)
 	stf := &sstate.PreExecResult{State: event.CONTRACT_STATE_FAIL, Gas: neovm.MIN_TRANSACTION_GAS, Result: nil}
+
+	if tx.TxType == types.EIP155 {
+		invoke := tx.Payload.(*payload.EIP155Code)
+		ctx := Eip155Context{
+			BlockHash: blockHash,
+			TxIndex:   0,
+			Height:    height,
+			Timestamp: blockTime,
+		}
+
+		result, notify, err := this.PreExecuteEIP155(invoke.EIPTx, ctx)
+		if err != nil {
+			return nil, err
+		}
+		stf.State = notify.State
+		stf.Notify = notify.Notify
+		stf.Result = result.ReturnData
+		stf.Gas = result.UsedGas
+		return stf, nil
+	}
 
 	sconfig := &smartcontract.Config{
 		Time:      blockTime,
@@ -1309,37 +1347,6 @@ func (this *LedgerStoreImp) PreExecuteContractWithParam(tx *types.Transaction, p
 		}
 
 		return &sstate.PreExecResult{State: event.CONTRACT_STATE_SUCCESS, Gas: gasTable[neovm.CONTRACT_CREATE_NAME] + calcGasByCodeLen(len(deploy.GetRawCode()), gasTable[neovm.UINT_DEPLOY_CODE_LEN_NAME]), Result: nil}, nil
-	} else if tx.TxType == types.EIP155 {
-		//todo deal with EIP155
-		invoke := tx.Payload.(*payload.EIP155Code)
-
-		sc := smartcontract.SmartContract{
-			Config:   sconfig,
-			Store:    this,
-			CacheDB:  cache,
-			GasTable: gasTable,
-			Gas:      math.MaxUint64 - calcGasByCodeLen(len(invoke.EIPTx.Data()), gasTable[neovm.UINT_INVOKE_CODE_LEN_NAME]),
-			//WasmExecStep: config.DEFAULT_WASM_MAX_STEPCOUNT,
-			//JitMode:      preParam.JitMode,
-			PreExec: true,
-		}
-		engine, _ := sc.NewExecuteEngine(invoke.EIPTx.Data(), tx.TxType)
-		cv, err := engine.Invoke()
-		if err != nil {
-			return stf, err
-		}
-		gasCost := math.MaxUint64 - sc.Gas
-
-		if preParam.MinGas {
-			mixGas := neovm.MIN_TRANSACTION_GAS
-			if gasCost < mixGas {
-				gasCost = mixGas
-			}
-			gasCost = tuneGasFeeByHeight(sconfig.Height, gasCost, neovm.MIN_TRANSACTION_GAS, math.MaxUint64)
-		}
-
-		return &sstate.PreExecResult{State: event.CONTRACT_STATE_SUCCESS, Gas: gasCost, Result: cv, Notify: nil}, nil
-
 	} else {
 		return stf, errors.NewErr("transaction type error")
 	}
