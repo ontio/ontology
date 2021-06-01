@@ -21,24 +21,19 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/ontio/ontology/common"
-	"io"
 )
 
 type EIP155Code struct {
-	//Code []byte
 	EIPTx *types.Transaction
 }
 
 func (self *EIP155Code) Deserialization(source *common.ZeroCopySource) error {
-	code, _, irregular, eof := source.NextVarBytes()
-	if eof {
-		return io.ErrUnexpectedEOF
-	}
-	if irregular {
-		return common.ErrIrregularData
+	code, err := source.ReadVarBytes()
+	if err != nil {
+		return err
 	}
 	tx := new(types.Transaction)
-	err := rlp.DecodeBytes(code, tx)
+	err = rlp.DecodeBytes(code, tx)
 	if err != nil {
 		return err
 	}
@@ -50,7 +45,7 @@ func (self *EIP155Code) Deserialization(source *common.ZeroCopySource) error {
 func (self *EIP155Code) Serialization(sink *common.ZeroCopySink) {
 	bts, err := rlp.EncodeToBytes(self.EIPTx)
 	if err != nil {
-		//todo
+		panic(err)
 	}
 	sink.WriteVarBytes(bts)
 }

@@ -22,18 +22,18 @@ import (
 	"crypto/sha256"
 	"errors"
 	"fmt"
-	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/rlp"
-	"github.com/ontio/ontology/common/log"
 	"io"
 	"math"
 	"math/big"
 
+	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
 	sysconfig "github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/constants"
+	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/program"
 )
@@ -76,7 +76,6 @@ func TransactionFromRawBytes(raw []byte) (*Transaction, error) {
 }
 
 func TransactionFromEIP155(eiptx *types.Transaction) (*Transaction, error) {
-
 	evmChainId := sysconfig.DefConfig.P2PNode.EVMChainId
 
 	signer := types.NewEIP155Signer(big.NewInt(int64(evmChainId)))

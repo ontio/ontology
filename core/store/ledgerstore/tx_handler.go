@@ -414,7 +414,6 @@ func calcGasByCodeLen(codeLen int, codeGas uint64) uint64 {
 
 func (self *StateStore) HandleEIP155Transaction(store store.LedgerStore, overlay *overlaydb.OverlayDB, cache *storage.CacheDB,
 	tx *types2.Transaction, txIndex uint, header *types.Header, notify *event.ExecuteNotify) error {
-	//todo check nonce
 
 	usedGas := uint64(0)
 	config := params.MainnetChainConfig //todo use config based on network

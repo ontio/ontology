@@ -57,6 +57,7 @@ const (
 	CONSENSUS_TYPE_VBFT = "vbft"
 
 	DEFAULT_LOG_LEVEL                       = log.InfoLog
+	DEFAULT_ETH_RPC_PORT                    = 20339
 	DEFAULT_NODE_PORT                       = 20338
 	DEFAULT_RPC_PORT                        = 20336
 	DEFAULT_RPC_LOCAL_PORT                  = 20337
@@ -80,6 +81,9 @@ const (
 
 	DEFAULT_DATA_DIR      = "./Chain/"
 	DEFAULT_RESERVED_FILE = "./peers.rsv"
+
+	DEFAULT_ETH_BLOCK_GAS_LIMIT = 8000000
+	N_GAS_LIMIT                 = 10
 )
 
 const (
@@ -615,6 +619,8 @@ type CommonConfig struct {
 	GasLimit         uint64
 	GasPrice         uint64
 	DataDir          string
+	ETHBlockGasLimit uint64
+	NGasLimit        uint64
 	WasmVerifyMethod VerifyMethod
 }
 
@@ -644,12 +650,14 @@ type P2PNodeConfig struct {
 	MaxConnInBound            uint
 	MaxConnOutBound           uint
 	MaxConnInBoundForSingleIP uint
+	EVMChainId                uint32
 }
 
 type RpcConfig struct {
 	EnableHttpJsonRpc bool
 	HttpJsonPort      uint
 	HttpLocalPort     uint
+	EthJsonPort       uint
 }
 
 type RestfulConfig struct {
