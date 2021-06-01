@@ -85,17 +85,11 @@ func TransactionFromEIP155(eiptx *types.Transaction) (*Transaction, error) {
 	}
 
 	addr := common.Address(from)
-	txhash := common.Uint256(eiptx.Hash())
-	raw, err := rlp.EncodeToBytes(eiptx)
-	if err != nil {
-		return nil, fmt.Errorf("error EIP155 EncodeToBytes %s", err.Error())
-	}
 
 	if eiptx.Nonce() > uint64(math.MaxUint32) || !eiptx.GasPrice().IsUint64() {
 		return nil, fmt.Errorf("nonce :%d or GasPrice :%d is too big", eiptx.Nonce(), eiptx.GasPrice())
 	}
 
-	// raw = version + txtype + rlp(eiptx)
 	retTx := &Transaction{
 		Version:              byte(0),
 		TxType:               EIP155,
@@ -104,19 +98,21 @@ func TransactionFromEIP155(eiptx *types.Transaction) (*Transaction, error) {
 		GasLimit:             eiptx.Gas(),
 		Payer:                addr,
 		Payload:              &payload.EIP155Code{EIPTx: eiptx},
-		Raw:                  raw,
-		hashUnsigned:         common.Uint256{},
-		hash:                 txhash,
+		hashUnsigned:         common.Uint256(signer.Hash(eiptx)),
+		hash:                 common.Uint256(eiptx.Hash()),
 		SignedAddr:           []common.Address{addr},
 		nonDirectConstracted: true,
 	}
 
 	//raw = version + txtype + rlp(ethtx)
+	raw, err := rlp.EncodeToBytes(eiptx)
+	if err != nil {
+		return nil, fmt.Errorf("error EIP155 EncodeToBytes %s", err.Error())
+	}
 	sink := new(common.ZeroCopySink)
 	sink.WriteByte(retTx.Version)
 	sink.WriteByte(byte(retTx.TxType))
 	sink.WriteVarBytes(raw)
-	sink.WriteVarUint(0)
 
 	retTx.Raw = sink.Bytes()
 
@@ -368,6 +364,7 @@ func (tx *Transaction) deserializationUnsigned(source *common.ZeroCopySource) er
 			return fmt.Errorf("nonce is exceeded max uint64")
 		}
 		tx.Nonce = uint32(pl.EIPTx.Nonce())
+		return nil
 
 	default:
 		return fmt.Errorf("unsupported tx type %v", tx.TxType)
@@ -530,6 +527,15 @@ func (tx *Transaction) Hash() common.Uint256 {
 // calculate a hash for another chain to sign.
 // and take the chain id of ontology as 0.
 func (tx *Transaction) SigHashForChain(id uint32) common.Uint256 {
+	if tx.TxType == EIP155 {
+		eiptx, err := tx.GetEIP155Tx()
+		if err != nil {
+			panic(err)
+		}
+		signer := types.NewEIP155Signer(big.NewInt(int64(id)))
+		return common.Uint256(signer.Hash(eiptx))
+	}
+
 	sink := common.NewZeroCopySink(nil)
 	sink.WriteHash(tx.hashUnsigned)
 	if id != 0 {
