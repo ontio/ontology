@@ -55,6 +55,10 @@ func VerifyTransactionWithLedger(tx *types.Transaction, ledger *ledger.Ledger) o
 }
 
 func checkTransactionSignatures(tx *types.Transaction) error {
+	if tx.TxType == types.EIP155 {
+		return tx.VerifyEIP155Tx()
+	}
+
 	hash := tx.Hash()
 
 	lensig := len(tx.Sigs)
@@ -113,7 +117,6 @@ func checkTransactionSignatures(tx *types.Transaction) error {
 }
 
 func checkTransactionPayload(tx *types.Transaction) error {
-
 	switch pld := tx.Payload.(type) {
 	case *payload.DeployCode:
 		deploy := tx.Payload.(*payload.DeployCode)
@@ -125,6 +128,8 @@ func checkTransactionPayload(tx *types.Transaction) error {
 		}
 		return nil
 	case *payload.InvokeCode:
+		return nil
+	case *payload.EIP155Code:
 		return nil
 	default:
 		return errors.New(fmt.Sprint("[txValidator], unimplemented transaction payload type.", pld))

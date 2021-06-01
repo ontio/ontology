@@ -109,7 +109,7 @@ type Receipt struct {
 	// transaction corresponding to this receipt.
 	BlockHash   common.Hash `json:"blockHash,omitempty"`
 	BlockNumber *big.Int    `json:"blockNumber,omitempty"`
-	TxIndex     uint        `json:"transactionIndex"`
+	TxIndex     uint32      `json:"transactionIndex"`
 }
 
 const (
