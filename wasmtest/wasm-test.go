@@ -290,6 +290,7 @@ func main() {
 	checkErr(err)
 	database, err := ledger.InitLedger(datadir, 1000000, bookkeepers, genblock)
 	checkErr(err)
+	ledger.DefLedger = database
 
 	log.Info("loading wasm contract")
 	contract, err := LoadContracts(contractDir)
