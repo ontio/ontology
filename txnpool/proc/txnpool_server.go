@@ -313,20 +313,21 @@ func (s *TXPoolServer) removePendingTx(hash common.Uint256,
 // setPendingTx adds a transaction to the pending list, if the
 // transaction is already in the pending list, just return false.
 func (s *TXPoolServer) setPendingTx(tx *txtypes.Transaction,
-	sender tc.SenderType, txResultCh chan *tc.TxResult) bool {
-
+	sender tc.SenderType, txResultCh chan *tc.TxResult) (bool,common.Uint256) {
+	replacedTxHash :=common.UINT256_EMPTY
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if ok := s.allPendingTxs[tx.Hash()]; ok != nil {
 		log.Debugf("setPendingTx: transaction %x already in the verifying process",
 			tx.Hash())
-		return false
+		return false,replacedTxHash
 	}
 	// replace the same nonce tx
 	if tx.TxType == txtypes.EIP155 {
 		old := s.addEipPendingTx(tx)
 		if old != nil {
-			s.removePendingTx(old.Hash(), errors.ErrHigherNonceExist)
+			//s.removePendingTx(old.Hash(), errors.ErrHigherNonceExist)
+			replacedTxHash = old.Hash()
 		}
 	}
 	pt := &serverPendingTx{
@@ -336,7 +337,7 @@ func (s *TXPoolServer) setPendingTx(tx *txtypes.Transaction,
 	}
 
 	s.allPendingTxs[tx.Hash()] = pt
-	return true
+	return true,replacedTxHash
 }
 
 // assignTxToWorker assigns a new transaction to a worker by LB
@@ -346,14 +347,19 @@ func (s *TXPoolServer) assignTxToWorker(tx *txtypes.Transaction,
 	if tx == nil {
 		return false
 	}
+	replaced := common.UINT256_EMPTY
+	ok := false
 
-	if ok := s.setPendingTx(tx, sender, txResultCh); !ok {
+	if ok,replaced = s.setPendingTx(tx, sender, txResultCh); !ok {
 		s.increaseStats(tc.DuplicateStats)
 		if sender == tc.HttpSender && txResultCh != nil {
 			replyTxResult(txResultCh, tx.Hash(), errors.ErrDuplicateInput,
 				"duplicated transaction input detected")
 		}
 		return false
+	}
+	if replaced != common.UINT256_EMPTY{
+		s.removePendingTx(replaced,errors.ErrHigherNonceExist)
 	}
 	// Add the rcvTxn to the worker
 	lb := make(tc.LBSlice, len(s.workers))
@@ -736,9 +742,14 @@ func (s *TXPoolServer) getTransactionCount() int {
 
 // reVerifyStateful re-verify a transaction's stateful data.
 func (s *TXPoolServer) reVerifyStateful(tx *txtypes.Transaction, sender tc.SenderType) {
-	if ok := s.setPendingTx(tx, sender, nil); !ok {
+	replaced := common.UINT256_EMPTY
+	ok := false
+	if ok,replaced = s.setPendingTx(tx, sender, nil); !ok {
 		s.increaseStats(tc.DuplicateStats)
 		return
+	}
+	if replaced != common.UINT256_EMPTY{
+		s.removePendingTx(replaced,errors.ErrHigherNonceExist)
 	}
 
 	// Add the rcvTxn to the worker
