@@ -23,7 +23,7 @@ import (
 	ethcomm "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/ontio/ontology/common"
+	sysconfig "github.com/ontio/ontology/common/config"
 	txtypes "github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/errors"
 	tc "github.com/ontio/ontology/txnpool/common"
@@ -35,43 +35,71 @@ import (
 	"time"
 )
 
-func GenTx(nonce uint64) *txtypes.Transaction {
+func initCfg() {
+	sysconfig.DefConfig.P2PNode.EVMChainId = 1
+}
+
+func genTxWithNonceAndPrice(nonce uint64, gp int64) *txtypes.Transaction {
 	privateKey, _ := crypto.HexToECDSA("fad9c8855b740a0b7ed4c221dbad0f33a83a49cad6b3fe8d5817ac83d38b6a19")
 	//assert.Nil(t, err)
 
 	publicKey := privateKey.Public()
 	publicKeyECDSA, ok := publicKey.(*ecdsa.PublicKey)
 	if !ok {
-		//assert.True(t, ok)
+		return nil
 	}
 
 	fromAddress := crypto.PubkeyToAddress(*publicKeyECDSA)
 	fmt.Printf("addr:%s\n", fromAddress.Hex())
 
-	ontAddress, _ := common.AddressParseFromBytes(fromAddress[:])
+	//ontAddress, _ := common.AddressParseFromBytes(fromAddress[:])
 	//assert.Nil(t, err)
-	fmt.Printf("ont addr:%s\n", ontAddress.ToBase58())
+	//fmt.Printf("ont addr:%s\n", ontAddress.ToBase58())
 
 	value := big.NewInt(1000000000)
 	gaslimit := uint64(21000)
-	gasPrice := big.NewInt(2500)
+	gasPrice := big.NewInt(gp)
 
 	toAddress := ethcomm.HexToAddress("0x4592d8f8d7b001e72cb26a73e4fa1806a51ac79d")
 
 	var data []byte
 	tx := types.NewTransaction(nonce, toAddress, value, gaslimit, gasPrice, data)
 
-	chainId := big.NewInt(0)
-	signedTx, _ := types.SignTx(tx, types.NewEIP155Signer(chainId), privateKey)
-	//assert.Nil(t, err)
+	chainId := big.NewInt(int64(sysconfig.DefConfig.P2PNode.EVMChainId))
+	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(chainId), privateKey)
+	if err != nil {
+		fmt.Printf("err:%s\n", err.Error())
+		return nil
+	}
 
-	otx, _ := txtypes.TransactionFromEIP155(signedTx)
-	//assert.Nil(t, err)
+	otx, err := txtypes.TransactionFromEIP155(signedTx)
+	if err != nil {
+		fmt.Printf("err:%s\n", err.Error())
+		return nil
+	}
 	return otx
 }
 
+func Test_From(t *testing.T) {
+	initCfg()
+	otx1 := genTxWithNonceAndPrice(0, 2500)
+	//fmt.Println(otx.Payer)
+	otx2 := genTxWithNonceAndPrice(0, 2500)
+	//fmt.Println(otx.Payer)
+	otx3 := genTxWithNonceAndPrice(0, 3000)
+	//fmt.Println(otx.Payer)
+	otx4 := genTxWithNonceAndPrice(1, 2500)
+	assert.Equal(t, otx1.Payer, otx2.Payer)
+	assert.Equal(t, otx2.Payer, otx3.Payer)
+	assert.Equal(t, otx3.Payer, otx4.Payer)
+	assert.Equal(t, otx1.Payer, otx4.Payer)
+
+}
+
 func Test_GenEIP155tx(t *testing.T) {
-	otx := GenTx(0)
+	initCfg()
+
+	otx := genTxWithNonceAndPrice(0, 2500)
 
 	fmt.Printf("1. otx.payer:%s\n", otx.Payer.ToBase58())
 
@@ -123,6 +151,74 @@ func Test_GenEIP155tx(t *testing.T) {
 	assert.Equal(t, pendingNonce, uint64(1))
 
 	t.Log("Ending test tx")
+
+}
+
+func Test_higherNonce(t *testing.T) {
+	initCfg()
+	otx1 := genTxWithNonceAndPrice(0, 2500)
+	var s *TXPoolServer
+	s = NewTxPoolServer(tc.MAX_WORKER_NUM, true, false)
+	if s == nil {
+		t.Error("Test case: new tx pool server failed")
+		return
+	}
+	defer s.Stop()
+
+	f := s.assignTxToWorker(otx1, sender, nil)
+	assert.True(t, f)
+
+	tmptx := s.pendingEipTxs[otx1.Payer].txs.Get(0)
+	assert.True(t, tmptx.GasPrice == 2500)
+
+	otx2 := genTxWithNonceAndPrice(1, 2500)
+	assert.Equal(t, otx1.Payer, otx2.Payer)
+	f = s.assignTxToWorker(otx2, sender, nil)
+	assert.True(t, f)
+
+	tmptx = s.pendingEipTxs[otx1.Payer].txs.Get(1)
+	assert.True(t, tmptx.GasPrice == 2500 && tmptx.Nonce == 1)
+
+	otx3 := genTxWithNonceAndPrice(0, 3000)
+	f = s.assignTxToWorker(otx3, sender, nil)
+	assert.True(t, f)
+
+	tmptx = s.pendingEipTxs[otx1.Payer].txs.Get(0)
+	assert.True(t, tmptx.GasPrice == 3000 && tmptx.Nonce == 0)
+
+}
+
+func Test_TxActor(t *testing.T) {
+	t.Log("Starting tx actor test")
+	s := NewTxPoolServer(tc.MAX_WORKER_NUM, true, false)
+	if s == nil {
+		t.Error("Test case: new tx pool server failed")
+		return
+	}
+
+	otx := genTxWithNonceAndPrice(0, 2500)
+
+	txActor := NewTxActor(s)
+	txPid := startActor(txActor)
+	if txPid == nil {
+		t.Error("Test case: start tx actor failed")
+		s.Stop()
+		return
+	}
+
+	txReq := &tc.TxReq{
+		Tx:     otx,
+		Sender: tc.NilSender,
+	}
+	txPid.Tell(txReq)
+
+	time.Sleep(1 * time.Second)
+
+	future := txPid.RequestFuture(&tc.GetTxnReq{Hash: txn.Hash()}, 1*time.Second)
+	result, err := future.Result()
+	assert.Nil(t, err)
+	rsp := (result).(*tc.GetTxnRsp)
+	assert.Nil(t, rsp.Txn)
 
 }
 

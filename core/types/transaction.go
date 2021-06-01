@@ -78,6 +78,9 @@ func TransactionFromRawBytes(raw []byte) (*Transaction, error) {
 func TransactionFromEIP155(eiptx *types.Transaction) (*Transaction, error) {
 
 	evmChainId := sysconfig.DefConfig.P2PNode.EVMChainId
+	if eiptx.ChainId().Cmp(big.NewInt(int64(evmChainId))) != 0 {
+		return nil, fmt.Errorf("not a acceptable chainId:%d", eiptx.ChainId())
+	}
 
 	signer := types.NewEIP155Signer(big.NewInt(int64(evmChainId)))
 	from, err := signer.Sender(eiptx)
@@ -125,7 +128,6 @@ func TransactionFromEIP155(eiptx *types.Transaction) (*Transaction, error) {
 	sink.WriteByte(retTx.Version)
 	sink.WriteByte(byte(retTx.TxType))
 	sink.WriteVarBytes(raw)
-	sink.WriteVarUint(0)
 
 	retTx.Raw = sink.Bytes()
 
@@ -378,6 +380,7 @@ func (tx *Transaction) deserializationUnsigned(source *common.ZeroCopySource) er
 			return fmt.Errorf("nonce is exceeded max uint64")
 		}
 		tx.Nonce = uint32(pl.EIPTx.Nonce())
+		return nil
 
 	default:
 		return fmt.Errorf("unsupported tx type %v", tx.TxType)

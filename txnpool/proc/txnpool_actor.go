@@ -186,7 +186,6 @@ func (ta *TxActor) handleTransaction(sender tc.SenderType, self *actor.PID,
 			}
 			return
 		}
-		//todo add EIP155 tx check
 		if txn.TxType == tx.EIP155 {
 			log.Debugf("handleTransaction: EIP155tx")
 			//verify signature
@@ -197,11 +196,6 @@ func (ta *TxActor) handleTransaction(sender tc.SenderType, self *actor.PID,
 						"Invalid EIP155 transaction signature ")
 				}
 				return
-			}
-
-			//fixme for test
-			if config.DefConfig.Common.NGasLimit == 0 {
-				config.DefConfig.Common.NGasLimit = 10
 			}
 
 			if txn.GasLimit > config.DefConfig.Common.ETHBlockGasLimit/config.DefConfig.Common.NGasLimit {
@@ -239,7 +233,6 @@ func (ta *TxActor) handleTransaction(sender tc.SenderType, self *actor.PID,
 				}
 				return
 			}
-
 			if balance.Cmp(txn.Cost()) < 0 {
 				if sender == tc.HttpSender && txResultCh != nil {
 					replyTxResult(txResultCh, txn.Hash(), errors.ErrUnknown,
@@ -247,7 +240,6 @@ func (ta *TxActor) handleTransaction(sender tc.SenderType, self *actor.PID,
 				}
 				return
 			}
-
 		}
 
 		if !ta.server.disablePreExec {

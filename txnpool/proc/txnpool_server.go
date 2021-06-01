@@ -819,7 +819,7 @@ func (s *TXPoolServer) verifyBlock(req *tc.VerifyBlockReq, sender *actor.PID) {
 			entry := &tc.VerifyTxResult{
 				Height:  s.pendingBlock.height,
 				Tx:      t,
-				ErrCode: errors.ErrGasPrice,
+				ErrCode: errors.ErrBlockGaslimitExceed,
 			}
 			s.pendingBlock.processedTxs[t.Hash()] = entry
 			s.sendBlkResult2Consensus()

@@ -33,6 +33,7 @@ type IncrementValidator struct {
 	blocks     []map[common.Uint256]bool
 	baseHeight uint32
 	maxBlocks  int
+	nonces     map[common.Address]uint64
 }
 
 func NewIncrementValidator(maxBlocks int) *IncrementValidator {
@@ -41,6 +42,7 @@ func NewIncrementValidator(maxBlocks int) *IncrementValidator {
 	}
 	return &IncrementValidator{
 		maxBlocks: maxBlocks,
+		nonces:    make(map[common.Address]uint64),
 	}
 }
 
@@ -48,6 +50,7 @@ func (self *IncrementValidator) Clean() {
 	self.mutex.Lock()
 	self.blocks = nil
 	self.baseHeight = 0
+	self.nonces = nil
 	self.mutex.Unlock()
 }
 
@@ -84,6 +87,9 @@ func (self *IncrementValidator) AddBlock(block *types.Block) {
 	txHashes := make(map[common.Uint256]bool)
 	for _, tx := range block.Transactions {
 		txHashes[tx.Hash()] = true
+		if tx.TxType == types.EIP155 {
+			self.nonces[tx.Payer] = uint64(tx.Nonce)
+		}
 	}
 	self.blocks = append(self.blocks, txHashes)
 }
@@ -99,6 +105,13 @@ func (self *IncrementValidator) Verify(tx *types.Transaction, startHeight uint32
 	for i := int(startHeight - self.baseHeight); i < len(self.blocks); i++ {
 		if _, ok := self.blocks[i][tx.Hash()]; ok {
 			return fmt.Errorf("tx duplicated")
+		}
+	}
+
+	//check nonce
+	if tx.TxType == types.EIP155 {
+		if uint64(tx.Nonce) < self.nonces[tx.Payer] {
+			return fmt.Errorf("nonce is to low")
 		}
 	}
 
