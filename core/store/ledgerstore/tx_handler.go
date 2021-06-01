@@ -412,25 +412,32 @@ func calcGasByCodeLen(codeLen int, codeGas uint64) uint64 {
 	return uint64(codeLen/neovm.PER_UNIT_CODE_LEN) * codeGas
 }
 
-func (self *StateStore) HandleEIP155Transaction(store store.LedgerStore, overlay *overlaydb.OverlayDB, cache *storage.CacheDB,
-	tx *types2.Transaction, txIndex uint, header *types.Header, notify *event.ExecuteNotify) error {
+type Eip155Context struct {
+	BlockHash common.Uint256
+	TxIndex   uint32
+	Height    uint32
+	Timestamp uint32
+}
 
+func (self *StateStore) HandleEIP155Transaction(store store.LedgerStore, cache *storage.CacheDB,
+	tx *types2.Transaction, ctx Eip155Context, notify *event.ExecuteNotify) (*evm2.ExecutionResult, error) {
 	usedGas := uint64(0)
-	config := params.MainnetChainConfig //todo use config based on network
-	statedb := storage.NewStateDB(cache, tx.Hash(), common2.Hash(header.Hash()), ong.OngBalanceHandle{})
-	_, receipt, err := evm2.ApplyTransaction(config, store, statedb, header, tx, &usedGas, utils.GovernanceContractAddress, evm.Config{})
+	config := params.MainnetChainConfig // todo use config based on network
+	statedb := storage.NewStateDB(cache, tx.Hash(), common2.Hash(ctx.BlockHash), ong.OngBalanceHandle{})
+	result, receipt, err := evm2.ApplyTransaction(config, store, statedb, ctx.Height, ctx.Timestamp, tx, &usedGas,
+		utils.GovernanceContractAddress, evm.Config{})
 
 	if err != nil {
-		overlay.SetError(err)
-		return err
+		cache.SetDbErr(err)
+		return nil, err
 	}
 	if err = statedb.DbErr(); err != nil {
-		overlay.SetError(statedb.DbErr())
-		return err
+		cache.SetDbErr(err)
+		return nil, err
 	}
-	receipt.TxIndex = txIndex
+	receipt.TxIndex = ctx.TxIndex
 
 	*notify = *event.ExecuteNotifyFromEthReceipt(receipt)
 
-	return nil
+	return result, nil
 }

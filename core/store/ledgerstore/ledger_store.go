@@ -31,6 +31,7 @@ import (
 	"sync"
 	"time"
 
+	types3 "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
@@ -49,6 +50,7 @@ import (
 	"github.com/ontio/ontology/merkle"
 	"github.com/ontio/ontology/smartcontract"
 	"github.com/ontio/ontology/smartcontract/event"
+	"github.com/ontio/ontology/smartcontract/service/evm"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 	"github.com/ontio/ontology/smartcontract/service/neovm"
 	"github.com/ontio/ontology/smartcontract/service/wasmvm"
@@ -733,7 +735,6 @@ func (this *LedgerStoreImp) executeBlock(block *types.Block) (result store.Execu
 
 		return true
 	})
-
 	cache := storage.NewCacheDB(overlay)
 	for i, tx := range block.Transactions {
 		cache.Reset()
@@ -1016,6 +1017,25 @@ func (this *LedgerStoreImp) handleTransaction(overlay *overlaydb.OverlayDB, cach
 		if err != nil {
 			log.Debugf("HandleInvokeTransaction tx %s error %s", txHash.ToHexString(), err)
 		}
+	case types.EIP155:
+		eiptx, err := tx.GetEIP155Tx()
+		if err != nil {
+			return nil, nil, fmt.Errorf("HandleInvokeTransaction tx %s error %s", txHash.ToHexString(), err.Error())
+		}
+
+		ctx := Eip155Context{
+			BlockHash: block.Hash(),
+			TxIndex:   txIndex,
+			Height:    block.Header.Height,
+			Timestamp: block.Header.Timestamp,
+		}
+		_, err = this.stateStore.HandleEIP155Transaction(this, cache, eiptx, ctx, notify)
+		if overlay.Error() != nil {
+			return nil, nil, fmt.Errorf("HandleInvokeTransaction tx %s error %s", txHash.ToHexString(), overlay.Error())
+		}
+		if err != nil {
+			log.Debugf("HandleInvokeTransaction tx %s error %s", txHash.ToHexString(), err)
+		}
 	}
 	return notify, crossStateHashes, nil
 }
@@ -1201,6 +1221,15 @@ func (this *LedgerStoreImp) PreExecuteContractBatch(txes []*types.Transaction, a
 	return results, height, nil
 }
 
+func (this *LedgerStoreImp) PreExecuteEIP155(tx *types3.Transaction, ctx Eip155Context) (*evm.ExecutionResult, *event.ExecuteNotify, error) {
+	overlay := this.stateStore.NewOverlayDB()
+	cache := storage.NewCacheDB(overlay)
+
+	notify := &event.ExecuteNotify{State: event.CONTRACT_STATE_FAIL, TxIndex: ctx.TxIndex}
+	result, err := this.stateStore.HandleEIP155Transaction(this, cache, tx, ctx, notify)
+	return result, notify, err
+}
+
 //PreExecuteContract return the result of smart contract execution without commit to store
 func (this *LedgerStoreImp) PreExecuteContractWithParam(tx *types.Transaction, preParam PrexecuteParam) (*sstate.PreExecResult, error) {
 	height := this.GetCurrentBlockHeight()
@@ -1209,7 +1238,28 @@ func (this *LedgerStoreImp) PreExecuteContractWithParam(tx *types.Transaction, p
 	if header, err := this.GetHeaderByHeight(height); err == nil {
 		blockTime = header.Timestamp + 1
 	}
+	blockHash := this.GetBlockHash(height)
 	stf := &sstate.PreExecResult{State: event.CONTRACT_STATE_FAIL, Gas: neovm.MIN_TRANSACTION_GAS, Result: nil}
+
+	if tx.TxType == types.EIP155 {
+		invoke := tx.Payload.(*payload.EIP155Code)
+		ctx := Eip155Context{
+			BlockHash: blockHash,
+			TxIndex:   0,
+			Height:    height,
+			Timestamp: blockTime,
+		}
+
+		result, notify, err := this.PreExecuteEIP155(invoke.EIPTx, ctx)
+		if err != nil {
+			return nil, err
+		}
+		stf.State = notify.State
+		stf.Notify = notify.Notify
+		stf.Result = result.ReturnData
+		stf.Gas = result.UsedGas
+		return stf, nil
+	}
 
 	sconfig := &smartcontract.Config{
 		Time:      blockTime,
@@ -1365,4 +1415,10 @@ func (this *LedgerStoreImp) maxAllowedPruneHeight(currHeader *types.Header) uint
 		return 0
 	}
 	return lastReferHeight - 1
+}
+
+func (this *LedgerStoreImp) GetCacheDB() *storage.CacheDB {
+	overlay := this.stateStore.NewOverlayDB()
+	return storage.NewCacheDB(overlay)
+
 }
