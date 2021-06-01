@@ -880,6 +880,12 @@ func (s *TXPoolServer) Nonce(addr common.Address) uint64 {
 	return s.pendingNonces.get(addr)
 }
 
+func (s *TXPoolServer) removeEIPPendingTx(tx *txtypes.Transaction) {
+	if _, ok := s.pendingEipTxs[tx.Payer]; ok {
+		s.pendingEipTxs[tx.Payer].txs.Remove(uint64(tx.Nonce))
+	}
+}
+
 func (s *TXPoolServer) PendingEIPTransactions() map[ethcomm.Address]map[uint64]*ethtype.Transaction {
 	ret := make(map[ethcomm.Address]map[uint64]*ethtype.Transaction, 0)
 	for k, v := range s.pendingEipTxs {
