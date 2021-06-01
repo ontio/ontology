@@ -35,7 +35,7 @@ import (
 	"time"
 )
 
-func genTx(nonce uint64) *txtypes.Transaction {
+func GenTx(nonce uint64) *txtypes.Transaction {
 	privateKey, _ := crypto.HexToECDSA("fad9c8855b740a0b7ed4c221dbad0f33a83a49cad6b3fe8d5817ac83d38b6a19")
 	//assert.Nil(t, err)
 
@@ -71,7 +71,7 @@ func genTx(nonce uint64) *txtypes.Transaction {
 }
 
 func Test_GenEIP155tx(t *testing.T) {
-	otx := genTx(0)
+	otx := GenTx(0)
 
 	fmt.Printf("1. otx.payer:%s\n", otx.Payer.ToBase58())
 
