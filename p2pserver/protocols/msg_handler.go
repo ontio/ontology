@@ -306,7 +306,7 @@ func DataReqHandle(ctx *p2p.Context, dataReq *msgTypes.DataReq) {
 		}
 
 	case common.TRANSACTION:
-		txn, err := ledger.DefLedger.GetTransaction(hash)
+		txn, _, err := ledger.DefLedger.GetTransaction(hash)
 		if err != nil {
 			log.Debug("[p2p]Can't get transaction by hash: ",
 				hash, " ,send not found message")
@@ -345,7 +345,7 @@ func InvHandle(ctx *p2p.Context, inv *msgTypes.Inv) {
 		log.Debug("[p2p]receive transaction message", id)
 		// TODO check the ID queue
 		id = inv.P.Blk[0]
-		trn, err := ledger.DefLedger.GetTransaction(id)
+		trn, _, err := ledger.DefLedger.GetTransaction(id)
 		if trn == nil || err != nil {
 			msg := msgpack.NewTxnDataReq(id)
 			err = remotePeer.Send(msg)

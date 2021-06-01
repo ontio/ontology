@@ -65,7 +65,7 @@ type LedgerStore interface {
 	GetMerkleProof(m, n uint32) ([]common.Uint256, error)
 	GetContractState(contractHash common.Address) (*payload.DeployCode, error)
 	GetBookkeeperState() (*states.BookkeeperState, error)
-	GetStorageItem(key *states.StorageKey) (*states.StorageItem, error)
+	GetStorageItem(codeHash common.Address, key []byte) ([]byte, error)
 	PreExecuteContract(tx *types.Transaction) (*cstates.PreExecResult, error)
 	PreExecuteContractBatch(txes []*types.Transaction, atomic bool) ([]*cstates.PreExecResult, uint32, error)
 	GetEventNotifyByTx(tx common.Uint256) (*event.ExecuteNotify, error)

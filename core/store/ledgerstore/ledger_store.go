@@ -1187,8 +1187,19 @@ func (this *LedgerStoreImp) GetContractState(contractHash common.Address) (*payl
 }
 
 //GetStorageItem return the storage value of the key in smart contract. Wrap function of StateStore.GetStorageState
-func (this *LedgerStoreImp) GetStorageItem(key *states.StorageKey) (*states.StorageItem, error) {
-	return this.stateStore.GetStorageState(key)
+func (this *LedgerStoreImp) GetStorageItem(contract common.Address, key []byte) ([]byte, error) {
+	storageKey := &states.StorageKey{
+		ContractAddress: contract,
+		Key:             key,
+	}
+	storageItem, err := this.stateStore.GetStorageState(storageKey)
+	if err != nil {
+		return nil, err
+	}
+	if storageItem == nil {
+		return nil, nil
+	}
+	return storageItem.Value, nil
 }
 
 //GetEventNotifyByTx return the events notify gen by executing of smart contract.  Wrap function of EventStore.GetEventNotifyByTx
