@@ -41,11 +41,6 @@ func newTestChainStore(t *testing.T) *ChainStore {
 		t.Fatalf("GetDefaultAccount error: acc is nil")
 	}
 	os.RemoveAll(config.DEFAULT_DATA_DIR)
-	db, err := ledger.NewLedger(config.DEFAULT_DATA_DIR, 0)
-	if err != nil {
-		t.Fatalf("NewLedger error %s", err)
-	}
-
 	var bookkeepers []keypair.PublicKey
 	if len(testBookkeeperAccounts) == 0 {
 		for i := 0; i < 7; i++ {
@@ -68,10 +63,11 @@ func newTestChainStore(t *testing.T) *ChainStore {
 		t.Fatalf("BuildGenesisBlock error %s", err)
 	}
 
-	err = db.Init(bookkeepers, block)
+	db, err := ledger.InitLedger(config.DEFAULT_DATA_DIR, 0, bookkeepers, block)
 	if err != nil {
-		t.Fatalf("InitLedgerStoreWithGenesisBlock error %s", err)
+		t.Fatalf("NewLedger error %s", err)
 	}
+
 	chainstore, err := OpenBlockStore(db, nil)
 	if err != nil {
 		t.Fatalf("openblockstore failed: %v\n", err)

@@ -64,7 +64,8 @@ func GetCurrentBlockHeight() uint32 {
 
 //GetTransaction from ledger
 func GetTransaction(hash common.Uint256) (*types.Transaction, error) {
-	return ledger.DefLedger.GetTransaction(hash)
+	tx, _, err := ledger.DefLedger.GetTransaction(hash)
+	return tx, err
 }
 
 //GetStorageItem from ledger
@@ -80,7 +81,7 @@ func GetContractStateFromStore(hash common.Address) (*payload.DeployCode, error)
 
 //GetTxnWithHeightByTxHash from ledger
 func GetTxnWithHeightByTxHash(hash common.Uint256) (uint32, *types.Transaction, error) {
-	tx, height, err := ledger.DefLedger.GetTransactionWithHeight(hash)
+	tx, height, err := ledger.DefLedger.GetTransaction(hash)
 	return height, tx, err
 }
 

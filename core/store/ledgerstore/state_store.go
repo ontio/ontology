@@ -297,11 +297,7 @@ func (self *StateStore) SaveBookkeeperState(bookkeeperState *states.BookkeeperSt
 
 //GetStorageItem return the storage value of the key in smart contract.
 func (self *StateStore) GetStorageState(key *states.StorageKey) (*states.StorageItem, error) {
-	storeKey, err := self.getStorageKey(key)
-	if err != nil {
-		return nil, err
-	}
-
+	storeKey := self.genStorageKey(key)
 	data, err := self.store.Get(storeKey)
 	if err != nil {
 		return nil, err
@@ -415,12 +411,12 @@ func (self *StateStore) getContractStateKey(contractHash common.Address) ([]byte
 	return key, nil
 }
 
-func (self *StateStore) getStorageKey(key *states.StorageKey) ([]byte, error) {
+func (self *StateStore) genStorageKey(key *states.StorageKey) []byte {
 	buf := bytes.NewBuffer(nil)
 	buf.WriteByte(byte(scom.ST_STORAGE))
 	buf.Write(key.ContractAddress[:])
 	buf.Write(key.Key)
-	return buf.Bytes(), nil
+	return buf.Bytes()
 }
 
 func (self *StateStore) GetStateMerkleRootWithNewHash(writeSetHash common.Uint256) common.Uint256 {
