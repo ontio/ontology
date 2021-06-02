@@ -23,8 +23,6 @@ import (
 	"fmt"
 	"math/big"
 
-	types3 "github.com/ontio/ontology/smartcontract/service/evm/types"
-
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -34,8 +32,8 @@ import (
 	bactor "github.com/ontio/ontology/http/base/actor"
 	hComm "github.com/ontio/ontology/http/base/common"
 	types2 "github.com/ontio/ontology/http/ethrpc/types"
+	types3 "github.com/ontio/ontology/smartcontract/service/evm/types"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
-	tp "github.com/ontio/ontology/txnpool/proc"
 )
 
 const (
@@ -44,11 +42,16 @@ const (
 	RPCGasCap       = 0
 )
 
-type EthereumAPI struct {
-	txpool *tp.TXPoolServer
+type TxPoolService interface {
+	Nonce(addr oComm.Address) uint64
+	PendingEIPTransactions() map[common.Address]map[uint64]*types.Transaction
 }
 
-func NewEthereumAPI(txpool *tp.TXPoolServer) EthereumAPI {
+type EthereumAPI struct {
+	txpool TxPoolService
+}
+
+func NewEthereumAPI(txpool TxPoolService) EthereumAPI {
 	return EthereumAPI{txpool: txpool}
 }
 
