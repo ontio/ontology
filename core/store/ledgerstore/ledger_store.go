@@ -33,12 +33,6 @@ import (
 
 	types4 "github.com/ontio/ontology/smartcontract/service/evm/types"
 
-	common2 "github.com/ethereum/go-ethereum/common"
-	evm2 "github.com/ontio/ontology/smartcontract/service/evm"
-	"github.com/ontio/ontology/smartcontract/service/native/ong"
-	evm3 "github.com/ontio/ontology/vm/evm"
-	"github.com/ontio/ontology/vm/evm/params"
-
 	types3 "github.com/ethereum/go-ethereum/core/types"
 
 	"github.com/ontio/ontology-crypto/keypair"
@@ -59,7 +53,6 @@ import (
 	"github.com/ontio/ontology/merkle"
 	"github.com/ontio/ontology/smartcontract"
 	"github.com/ontio/ontology/smartcontract/event"
-	"github.com/ontio/ontology/smartcontract/service/evm"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 	"github.com/ontio/ontology/smartcontract/service/neovm"
 	"github.com/ontio/ontology/smartcontract/service/wasmvm"
@@ -1241,7 +1234,7 @@ func (this *LedgerStoreImp) PreExecuteContractBatch(txes []*types.Transaction, a
 	return results, height, nil
 }
 
-func (this *LedgerStoreImp) PreExecuteEIP155(tx *types3.Transaction, ctx Eip155Context) (*evm.ExecutionResult, *event.ExecuteNotify, error) {
+func (this *LedgerStoreImp) PreExecuteEIP155(tx *types3.Transaction, ctx Eip155Context) (*types4.ExecutionResult, *event.ExecuteNotify, error) {
 	overlay := this.stateStore.NewOverlayDB()
 	cache := storage.NewCacheDB(overlay)
 
@@ -1384,20 +1377,20 @@ func (this *LedgerStoreImp) PreExecuteContract(tx *types.Transaction) (*sstate.P
 }
 
 func (this *LedgerStoreImp) PreExecuteEip155Tx(tx *types3.Transaction) (*types4.ExecutionResult, error) {
-	overlay := this.stateStore.NewOverlayDB()
-	cache := storage.NewCacheDB(overlay)
-	statedb := storage.NewStateDB(cache, tx.Hash(), common2.Hash{}, ong.OngBalanceHandle{})
-	config := params.MainnetChainConfig //todo use config based on network
-	usedGas := uint64(0)
-	res, _, err := evm2.ApplyTransaction(config, this, statedb, &types.Header{}, tx, &usedGas, utils.GovernanceContractAddress, evm3.Config{})
-	if err != nil {
-		overlay.SetError(err)
-		return nil, err
+	height := this.GetCurrentBlockHeight()
+	// use previous block time to make it predictable for easy test
+	blockTime := uint32(time.Now().Unix())
+	if header, err := this.GetHeaderByHeight(height); err == nil {
+		blockTime = header.Timestamp + 1
 	}
-	if err = statedb.DbErr(); err != nil {
-		overlay.SetError(statedb.DbErr())
-		return nil, err
+	blockHash := this.GetBlockHash(height)
+	ctx := Eip155Context{
+		BlockHash: blockHash,
+		TxIndex:   0,
+		Height:    height,
+		Timestamp: blockTime,
 	}
+	res, _, err := this.PreExecuteEIP155(tx, ctx)
 	return res, err
 }
 

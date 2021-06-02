@@ -23,9 +23,8 @@ import (
 	"math"
 	"math/big"
 
-	"github.com/ontio/ontology/smartcontract/service/evm/types"
-
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ontio/ontology/smartcontract/service/evm/types"
 	"github.com/ontio/ontology/vm/evm"
 	"github.com/ontio/ontology/vm/evm/params"
 )
