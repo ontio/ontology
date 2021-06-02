@@ -519,17 +519,6 @@ func (s *TXPoolServer) getTxCount() []uint32 {
 	return ret
 }
 
-// getPendingTxs returns a currently pending tx list
-func (s *TXPoolServer) getPendingTxs(byCount bool) []*tx.Transaction {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-	ret := make([]*tx.Transaction, 0, len(s.allPendingTxs))
-	for _, v := range s.allPendingTxs {
-		ret = append(ret, v.tx)
-	}
-	return ret
-}
-
 // getTxHashList returns a currently pending tx hash list
 func (s *TXPoolServer) getTxHashList() []common.Uint256 {
 	s.mu.RLock()
@@ -604,16 +593,6 @@ func (s *TXPoolServer) increaseStats(v tc.TxnStatsType) {
 	s.stats.Lock()
 	defer s.stats.Unlock()
 	s.stats.count[v-1]++
-}
-
-// getStats returns the transaction statistics
-func (s *TXPoolServer) getStats() []uint64 {
-	s.stats.RLock()
-	defer s.stats.RUnlock()
-	ret := make([]uint64, 0, len(s.stats.count))
-	ret = append(ret, s.stats.count...)
-
-	return ret
 }
 
 // checkTx checks whether a transaction is in the pending list or

@@ -26,7 +26,6 @@ import (
 	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/errors"
-	"github.com/ontio/ontology/validator/db"
 	vatypes "github.com/ontio/ontology/validator/types"
 )
 
@@ -38,9 +37,8 @@ type Validator interface {
 }
 
 type validator struct {
-	pid       *actor.PID
-	id        string
-	bestBlock db.BestBlock
+	pid *actor.PID
+	id  string
 }
 
 // NewValidator returns Validator for stateful check of tx

@@ -27,6 +27,7 @@ import (
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/genesis"
 	"github.com/ontio/ontology/core/ledger"
+
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/events/message"
@@ -38,6 +39,7 @@ import (
 func TestMain(m *testing.M) {
 	log.InitLog(log.InfoLog, log.Stdout)
 	var err error
+	ledger.DefLedger, err = ledger.NewLedger(config.DEFAULT_DATA_DIR, 0)
 	bookKeepers, err := config.DefConfig.GetBookkeepers()
 	if err != nil {
 		return
@@ -88,13 +90,6 @@ func TestTxActor(t *testing.T) {
 	rsp := (result).(*tc.GetTxnRsp)
 	assert.Nil(t, rsp.Txn)
 
-	future = txPid.RequestFuture(&tc.GetTxnStats{}, 2*time.Second)
-	result, err = future.Result()
-	assert.Nil(t, err)
-	future = txPid.RequestFuture(&tc.CheckTxnReq{Hash: txn.Hash()}, 1*time.Second)
-	result, err = future.Result()
-	assert.Nil(t, err)
-
 	future = txPid.RequestFuture(&tc.GetTxnStatusReq{Hash: txn.Hash()}, 1*time.Second)
 	result, err = future.Result()
 	assert.Nil(t, err)
@@ -107,13 +102,6 @@ func TestTxActor(t *testing.T) {
 	s.addTxList(txEntry)
 
 	future = txPid.RequestFuture(&tc.GetTxnReq{Hash: txn.Hash()}, 1*time.Second)
-	result, err = future.Result()
-	assert.Nil(t, err)
-
-	future = txPid.RequestFuture(&tc.GetTxnStats{}, 2*time.Second)
-	result, err = future.Result()
-	assert.Nil(t, err)
-	future = txPid.RequestFuture(&tc.CheckTxnReq{Hash: txn.Hash()}, 1*time.Second)
 	result, err = future.Result()
 	assert.Nil(t, err)
 
@@ -160,10 +148,6 @@ func TestTxPoolActor(t *testing.T) {
 	assert.Nil(t, err)
 	rsp := (result).(*tc.GetTxnPoolRsp)
 	assert.NotNil(t, rsp.TxnPool)
-
-	future = txPoolPid.RequestFuture(&tc.GetPendingTxnReq{ByCount: false}, 2*time.Second)
-	result, err = future.Result()
-	assert.Nil(t, err)
 
 	bk := &tc.VerifyBlockReq{
 		Height: 0,

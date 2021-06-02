@@ -180,8 +180,7 @@ func (worker *txPoolWorker) putTxPool(pt *pendingTx) bool {
 // verifyTx prepares a check request and sends it to the validators.
 func (worker *txPoolWorker) verifyTx(tx *tx.Transaction) {
 	if tx := worker.server.getTransaction(tx.Hash()); tx != nil {
-		log.Debugf("verifyTx: transaction %x already in the txn pool",
-			tx.Hash())
+		log.Debugf("verifyTx: transaction %x already in the txn pool", tx.Hash())
 		worker.server.removePendingTx(tx.Hash(), errors.ErrDuplicateInput)
 		return
 	}

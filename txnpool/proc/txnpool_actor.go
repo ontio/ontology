@@ -23,7 +23,6 @@ import (
 	"reflect"
 
 	"github.com/ontio/ontology-eventbus/actor"
-
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
@@ -41,22 +40,19 @@ import (
 // NewTxActor creates an actor to handle the transaction-based messages from
 // network and http
 func NewTxActor(s *TXPoolServer) *TxActor {
-	a := &TxActor{}
-	a.setServer(s)
+	a := &TxActor{server: s}
 	return a
 }
 
 // NewTxPoolActor creates an actor to handle the messages from the consensus
 func NewTxPoolActor(s *TXPoolServer) *TxPoolActor {
-	a := &TxPoolActor{}
-	a.setServer(s)
+	a := &TxPoolActor{server: s}
 	return a
 }
 
 // NewVerifyRspActor creates an actor to handle the verified result from validators
 func NewVerifyRspActor(s *TXPoolServer) *VerifyRspActor {
-	a := &VerifyRspActor{}
-	a.setServer(s)
+	a := &VerifyRspActor{server: s}
 	return a
 }
 
@@ -71,8 +67,7 @@ func isBalanceEnough(address common.Address, gas uint64) bool {
 	return balance[0] >= gas
 }
 
-func replyTxResult(txResultCh chan *tc.TxResult, hash common.Uint256,
-	err errors.ErrCode, desc string) {
+func replyTxResult(txResultCh chan *tc.TxResult, hash common.Uint256, err errors.ErrCode, desc string) {
 	result := &tc.TxResult{
 		Err:  err,
 		Hash: hash,
@@ -230,28 +225,6 @@ func (ta *TxActor) Receive(context actor.Context) {
 				context.Self())
 		}
 
-	case *tc.GetTxnStats:
-		sender := context.Sender()
-
-		log.Debugf("txpool-tx actor receives getting tx stats from %v", sender)
-
-		res := ta.server.getStats()
-		if sender != nil {
-			sender.Request(&tc.GetTxnStatsRsp{Count: res},
-				context.Self())
-		}
-
-	case *tc.CheckTxnReq:
-		sender := context.Sender()
-
-		log.Debugf("txpool-tx actor receives checking tx req from %v", sender)
-
-		res := ta.server.checkTx(msg.Hash)
-		if sender != nil {
-			sender.Request(&tc.CheckTxnRsp{Ok: res},
-				context.Self())
-		}
-
 	case *tc.GetTxnStatusReq:
 		sender := context.Sender()
 
@@ -293,10 +266,6 @@ func (ta *TxActor) Receive(context actor.Context) {
 	}
 }
 
-func (ta *TxActor) setServer(s *TXPoolServer) {
-	ta.server = s
-}
-
 // TxnPoolActor: Handle the high priority request from Consensus
 type TxPoolActor struct {
 	server *TXPoolServer
@@ -324,15 +293,6 @@ func (tpa *TxPoolActor) Receive(context actor.Context) {
 			sender.Request(&tc.GetTxnPoolRsp{TxnPool: res}, context.Self())
 		}
 
-	case *tc.GetPendingTxnReq:
-		sender := context.Sender()
-
-		log.Debugf("txpool actor receives getting pedning tx req from %v", sender)
-
-		res := tpa.server.getPendingTxs(msg.ByCount)
-		if sender != nil {
-			sender.Request(&tc.GetPendingTxnRsp{Txs: res}, context.Self())
-		}
 	case *tc.VerifyBlockReq:
 		sender := context.Sender()
 

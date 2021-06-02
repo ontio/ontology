@@ -115,13 +115,6 @@ type TxReq struct {
 	TxResultCh chan *TxResult
 }
 
-// TxRsp returns the result of submitting tx, including
-// a transaction hash and error code.
-type TxRsp struct {
-	Hash    common.Uint256
-	ErrCode errors.ErrCode
-}
-
 // restful api
 
 // GetTxnReq specifies the api that how to get the transaction.
@@ -133,19 +126,6 @@ type GetTxnReq struct {
 // GetTxnRsp returns a transaction for the specified tx hash.
 type GetTxnRsp struct {
 	Txn *types.Transaction
-}
-
-// CheckTxnReq specifies the api that how to check whether a
-// transaction in the pool.
-// Input: a transaction hash
-type CheckTxnReq struct {
-	Hash common.Uint256
-}
-
-// CheckTxnRsp returns a value for the CheckTxnReq, if the
-// transaction in the pool, value is true, or false.
-type CheckTxnRsp struct {
-	Ok bool
 }
 
 // GetTxnStatusReq specifies the api that how to get a transaction
@@ -162,15 +142,6 @@ type GetTxnStatusRsp struct {
 	TxStatus []*TXAttr
 }
 
-// GetTxnStats specifies the api that how to get the tx statistics.
-type GetTxnStats struct {
-}
-
-// GetTxnStatsRso returns the tx statistics.
-type GetTxnStatsRsp struct {
-	Count []uint64
-}
-
 // GetTxnCountReq specifies the api that how to get the tx count
 type GetTxnCountReq struct {
 }
@@ -178,17 +149,6 @@ type GetTxnCountReq struct {
 // GetTxnCountRsp returns current tx count, including pending, and verified
 type GetTxnCountRsp struct {
 	Count []uint32
-}
-
-// GetPendingTxnReq specifies the api that how to get a pending tx list
-// in the pool.
-type GetPendingTxnReq struct {
-	ByCount bool
-}
-
-// GetPendingTxnRsp returns a transaction list for GetPendingTxnReq.
-type GetPendingTxnRsp struct {
-	Txs []*types.Transaction
 }
 
 // GetPendingTxnHashReq specifies the api that how to get a pending txHash list
