@@ -117,7 +117,6 @@ type TxActor struct {
 // handleTransaction handles a transaction from network and http
 func (ta *TxActor) handleTransaction(sender tc.SenderType, self *actor.PID,
 	txn *tx.Transaction, txResultCh chan *tc.TxResult) {
-	ta.server.increaseStats(tc.RcvStats)
 	if len(txn.ToArray()) > tc.MAX_TX_SIZE {
 		log.Debugf("handleTransaction: reject a transaction due to size over 1M")
 		if sender == tc.HttpSender && txResultCh != nil {
@@ -127,27 +126,21 @@ func (ta *TxActor) handleTransaction(sender tc.SenderType, self *actor.PID,
 	}
 
 	if ta.server.getTransaction(txn.Hash()) != nil {
-		log.Debugf("handleTransaction: transaction %x already in the txn pool",
-			txn.Hash())
+		log.Debugf("handleTransaction: transaction %x already in the txn pool", txn.Hash())
 
-		ta.server.increaseStats(tc.DuplicateStats)
 		if sender == tc.HttpSender && txResultCh != nil {
 			replyTxResult(txResultCh, txn.Hash(), errors.ErrDuplicateInput,
 				fmt.Sprintf("transaction %x is already in the tx pool", txn.Hash()))
 		}
 	} else if ta.server.getTransactionCount() >= tc.MAX_CAPACITY {
-		log.Debugf("handleTransaction: transaction pool is full for tx %x",
-			txn.Hash())
+		log.Debugf("handleTransaction: transaction pool is full for tx %x", txn.Hash())
 
-		ta.server.increaseStats(tc.FailureStats)
 		if sender == tc.HttpSender && txResultCh != nil {
-			replyTxResult(txResultCh, txn.Hash(), errors.ErrTxPoolFull,
-				"transaction pool is full")
+			replyTxResult(txResultCh, txn.Hash(), errors.ErrTxPoolFull, "transaction pool is full")
 		}
 	} else {
 		if _, overflow := common.SafeMul(txn.GasLimit, txn.GasPrice); overflow {
-			log.Debugf("handleTransaction: gasLimit %v, gasPrice %v overflow",
-				txn.GasLimit, txn.GasPrice)
+			log.Debugf("handleTransaction: gasLimit %v, gasPrice %v overflow", txn.GasLimit, txn.GasPrice)
 			if sender == tc.HttpSender && txResultCh != nil {
 				replyTxResult(txResultCh, txn.Hash(), errors.ErrUnknown,
 					fmt.Sprintf("gasLimit %d * gasPrice %d overflow",
@@ -159,8 +152,7 @@ func (ta *TxActor) handleTransaction(sender tc.SenderType, self *actor.PID,
 		gasLimitConfig := config.DefConfig.Common.GasLimit
 		gasPriceConfig := ta.server.getGasPrice()
 		if txn.GasLimit < gasLimitConfig || txn.GasPrice < gasPriceConfig {
-			log.Debugf("handleTransaction: invalid gasLimit %v, gasPrice %v",
-				txn.GasLimit, txn.GasPrice)
+			log.Debugf("handleTransaction: invalid gasLimit %v, gasPrice %v", txn.GasLimit, txn.GasPrice)
 			if sender == tc.HttpSender && txResultCh != nil {
 				replyTxResult(txResultCh, txn.Hash(), errors.ErrUnknown,
 					fmt.Sprintf("Please input gasLimit >= %d and gasPrice >= %d",
@@ -170,8 +162,7 @@ func (ta *TxActor) handleTransaction(sender tc.SenderType, self *actor.PID,
 		}
 
 		if txn.TxType == tx.Deploy && txn.GasLimit < neovm.CONTRACT_CREATE_GAS {
-			log.Debugf("handleTransaction: deploy tx invalid gasLimit %v, gasPrice %v",
-				txn.GasLimit, txn.GasPrice)
+			log.Debugf("handleTransaction: deploy tx invalid gasLimit %v, gasPrice %v", txn.GasLimit, txn.GasPrice)
 			if sender == tc.HttpSender && txResultCh != nil {
 				replyTxResult(txResultCh, txn.Hash(), errors.ErrUnknown,
 					fmt.Sprintf("Deploy tx gaslimit should >= %d",
