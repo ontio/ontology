@@ -270,15 +270,5 @@ func TestValidator(t *testing.T) {
 		assert.NotNil(t, v)
 	}
 
-	statelessV1.UnRegister(rspPid)
-	statelessV2.UnRegister(rspPid)
-
-	time.Sleep(1 * time.Second)
-
-	ret = s.getNextValidatorPIDs()
-	for _, v := range ret {
-		assert.NotNil(t, v)
-	}
-
 	t.Log("Ending validator testing")
 }

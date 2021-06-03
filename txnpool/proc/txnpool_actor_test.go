@@ -182,9 +182,6 @@ func TestVerifyRspActor(t *testing.T) {
 	registerMsg := &vt.RegisterValidator{}
 	validatorPid.Tell(registerMsg)
 
-	unRegisterMsg := &vt.UnRegisterValidator{}
-	validatorPid.Tell(unRegisterMsg)
-
 	rsp := &vt.CheckResponse{}
 	validatorPid.Tell(rsp)
 
