@@ -27,7 +27,6 @@ import (
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/genesis"
 	"github.com/ontio/ontology/core/ledger"
-
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/events/message"
@@ -38,8 +37,6 @@ import (
 
 func TestMain(m *testing.M) {
 	log.InitLog(log.InfoLog, log.Stdout)
-	var err error
-	ledger.DefLedger, err = ledger.NewLedger(config.DEFAULT_DATA_DIR, 0)
 	bookKeepers, err := config.DefConfig.GetBookkeepers()
 	if err != nil {
 		return
