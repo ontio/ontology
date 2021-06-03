@@ -314,10 +314,6 @@ func (tpa *TxPoolActor) Receive(context actor.Context) {
 	}
 }
 
-func (tpa *TxPoolActor) setServer(s *TXPoolServer) {
-	tpa.server = s
-}
-
 // VerifyRspActor: Handle the response from the validators
 type VerifyRspActor struct {
 	server *TXPoolServer
@@ -352,8 +348,4 @@ func (vpa *VerifyRspActor) Receive(context actor.Context) {
 	default:
 		log.Debugf("txpool-verify actor:Unknown msg %v type %v", msg, reflect.TypeOf(msg))
 	}
-}
-
-func (vpa *VerifyRspActor) setServer(s *TXPoolServer) {
-	vpa.server = s
 }
