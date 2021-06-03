@@ -472,12 +472,13 @@ func GetMerkleProof(cmd map[string]interface{}) map[string]interface{} {
 
 //get avg gas price in block
 func GetGasPrice(cmd map[string]interface{}) map[string]interface{} {
-	result, err := bcomn.GetGasPrice()
+	gasPrice, height, err := bcomn.GetGasPrice()
 	if err != nil {
 		return ResponsePack(berr.INTERNAL_ERROR)
 	}
 	resp := ResponsePack(berr.SUCCESS)
-	resp["Result"] = result
+	res := map[string]interface{}{"gasprice": gasPrice, "height": height}
+	resp["Result"] = res
 	return resp
 }
 

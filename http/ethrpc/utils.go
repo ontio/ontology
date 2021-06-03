@@ -115,6 +115,14 @@ func EthToOntAddr(address common.Address) oComm.Address {
 	return oComm.Address(address)
 }
 
+func EthToOntHash(txHash common.Hash) oComm.Uint256 {
+	return oComm.Uint256(txHash)
+}
+
+func OntToEthHash(txHash oComm.Uint256) common.Hash {
+	return common.Hash(txHash)
+}
+
 func NewTransaction(tx *types2.Transaction, txHash, blockHash common.Hash, blockNumber, index uint64) (*types3.Transaction, error) {
 	signer := types2.NewEIP155Signer(big.NewInt(int64(getChainId())))
 	from, err := signer.Sender(tx)
