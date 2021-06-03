@@ -32,7 +32,6 @@ import (
 // Validator is an interface for tx validation actor
 type Validator interface {
 	Register(poolId *actor.PID)
-	UnRegister(poolId *actor.PID)
 	VerifyType() vatypes.VerifyType
 }
 
@@ -86,21 +85,11 @@ func (self *validator) Receive(context actor.Context) {
 		}
 
 		sender.Tell(response)
-	case *vatypes.UnRegisterAck:
-		context.Self().Stop()
 	case *types.Block:
-
-		//bestBlock, _ := self.db.GetBestBlock()
-		//if bestBlock.Height+1 < msg.Header.Height {
-		//	// add sync block request
-		//} else if bestBlock.Height+1 == msg.Header.Height {
-		//	self.db.PersistBlock(msg)
-		//}
 
 	default:
 		log.Info("stateful-validator: unknown msg ", msg, "type", reflect.TypeOf(msg))
 	}
-
 }
 
 func (self *validator) VerifyType() vatypes.VerifyType {
@@ -112,11 +101,5 @@ func (self *validator) Register(poolId *actor.PID) {
 		Sender: self.pid,
 		Type:   self.VerifyType(),
 		Id:     self.id,
-	})
-}
-
-func (self *validator) UnRegister(poolId *actor.PID) {
-	poolId.Tell(&vatypes.UnRegisterValidator{
-		Id: self.id,
 	})
 }

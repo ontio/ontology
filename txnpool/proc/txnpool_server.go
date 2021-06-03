@@ -371,34 +371,6 @@ func (s *TXPoolServer) registerValidator(v *types.RegisterValidator) {
 	s.validators.entries[v.Type] = append(s.validators.entries[v.Type], v)
 }
 
-// unRegisterValidator cancels a validator with the verify type and id.
-func (s *TXPoolServer) unRegisterValidator(checkType types.VerifyType,
-	id string) {
-
-	s.validators.Lock()
-	defer s.validators.Unlock()
-
-	tmpSlice, ok := s.validators.entries[checkType]
-	if !ok {
-		log.Errorf("unRegisterValidator: validator not found with type:%d, id:%s",
-			checkType, id)
-		return
-	}
-
-	for i, v := range tmpSlice {
-		if v.Id == id {
-			s.validators.entries[checkType] =
-				append(tmpSlice[0:i], tmpSlice[i+1:]...)
-			if v.Sender != nil {
-				v.Sender.Tell(&types.UnRegisterAck{Id: id, Type: checkType})
-			}
-			if len(s.validators.entries[checkType]) == 0 {
-				delete(s.validators.entries, checkType)
-			}
-		}
-	}
-}
-
 // getNextValidatorPIDs returns the next pids to verify the transaction using
 // roundRobin LB.
 func (s *TXPoolServer) getNextValidatorPIDs() []*actor.PID {

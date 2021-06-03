@@ -31,8 +31,6 @@ import (
 type Validator interface {
 	// Register send a register message to poolId
 	Register(poolId *actor.PID)
-	// UnRegister send an unregister message to poolId
-	UnRegister(poolId *actor.PID)
 	// VerifyType returns the type of validator
 	VerifyType() vatypes.VerifyType
 }
@@ -77,12 +75,9 @@ func (self *validator) Receive(context actor.Context) {
 		}
 
 		sender.Tell(response)
-	case *vatypes.UnRegisterAck:
-		context.Self().Stop()
 	default:
 		log.Info("stateless-validator: unknown msg ", msg, "type", reflect.TypeOf(msg))
 	}
-
 }
 
 func (self *validator) VerifyType() vatypes.VerifyType {
@@ -96,12 +91,4 @@ func (self *validator) Register(poolId *actor.PID) {
 		Type:   self.VerifyType(),
 		Id:     self.id,
 	})
-}
-
-// UnRegister send UnRegisterValidator message to txpool
-func (self *validator) UnRegister(poolId *actor.PID) {
-	poolId.Tell(&vatypes.UnRegisterValidator{
-		Id: self.id,
-	})
-
 }

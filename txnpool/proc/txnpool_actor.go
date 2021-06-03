@@ -149,7 +149,7 @@ func (ta *TxActor) handleTransaction(sender tc.SenderType, self *actor.PID,
 			return
 		}
 
-		gasLimitConfig := config.DefConfig.Common.GasLimit
+		gasLimitConfig := config.DefConfig.Common.MinGasLimit
 		gasPriceConfig := ta.server.getGasPrice()
 		if txn.GasLimit < gasLimitConfig || txn.GasPrice < gasPriceConfig {
 			log.Debugf("handleTransaction: invalid gasLimit %v, gasPrice %v", txn.GasLimit, txn.GasPrice)
@@ -325,11 +325,6 @@ func (vpa *VerifyRspActor) Receive(context actor.Context) {
 	case *types.RegisterValidator:
 		log.Debugf("txpool-verify actor:: validator %v connected", msg.Sender)
 		vpa.server.registerValidator(msg)
-
-	case *types.UnRegisterValidator:
-		log.Debugf("txpool-verify actor:: validator %d:%v disconnected", msg.Type, msg.Id)
-
-		vpa.server.unRegisterValidator(msg.Type, msg.Id)
 
 	case *types.CheckResponse:
 		log.Debug("txpool-verify actor:: Receives verify rsp message")

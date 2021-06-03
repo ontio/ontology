@@ -616,7 +616,7 @@ type CommonConfig struct {
 	NodeType         string
 	EnableEventLog   bool
 	SystemFee        map[string]int64
-	GasLimit         uint64
+	MinGasLimit      uint64
 	GasPrice         uint64
 	DataDir          string
 	ETHBlockGasLimit uint64
@@ -699,7 +699,7 @@ func NewOntologyConfig() *OntologyConfig {
 			LogLevel:         DEFAULT_LOG_LEVEL,
 			EnableEventLog:   DEFAULT_ENABLE_EVENT_LOG,
 			SystemFee:        make(map[string]int64),
-			GasLimit:         DEFAULT_GAS_LIMIT,
+			MinGasLimit:      DEFAULT_GAS_LIMIT,
 			DataDir:          DEFAULT_DATA_DIR,
 			WasmVerifyMethod: InterpVerifyMethod,
 		},

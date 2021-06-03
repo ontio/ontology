@@ -32,16 +32,6 @@ type RegisterValidator struct {
 	Id     string
 }
 
-type UnRegisterValidator struct {
-	Id   string
-	Type VerifyType
-}
-
-type UnRegisterAck struct {
-	Id   string
-	Type VerifyType
-}
-
 type CheckTx struct {
 	Tx *types.Transaction
 }

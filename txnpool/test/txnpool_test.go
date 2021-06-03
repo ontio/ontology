@@ -175,9 +175,5 @@ func Test_RCV(t *testing.T) {
 	txPoolPid.Tell(&tc.GetTxnPoolReq{ByCount: true})
 	time.Sleep(2 * time.Second)
 
-	statelessV.UnRegister(rspPid)
-	statelessV2.UnRegister(rspPid)
-	statelessV3.UnRegister(rspPid)
-	statefulV.UnRegister(rspPid)
 	s.Stop()
 }
