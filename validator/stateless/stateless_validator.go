@@ -19,76 +19,32 @@
 package stateless
 
 import (
-	"reflect"
+	"github.com/ontio/ontology/core/types"
 
-	"github.com/ontio/ontology-eventbus/actor"
-	"github.com/ontio/ontology/common/log"
+	"github.com/gammazero/workerpool"
 	"github.com/ontio/ontology/core/validation"
 	vatypes "github.com/ontio/ontology/validator/types"
 )
 
-// Validator wraps validator actor's pid
-type Validator interface {
-	// Register send a register message to poolId
-	Register(poolId *actor.PID)
-	// VerifyType returns the type of validator
-	VerifyType() vatypes.VerifyType
+type ValidatorPool struct {
+	pool *workerpool.WorkerPool
 }
 
-type validator struct {
-	pid *actor.PID
-	id  string
+func NewValidatorPool(maxWorkers int) *ValidatorPool {
+	return &ValidatorPool{pool: workerpool.New(maxWorkers)}
 }
 
-// NewValidator spawns a validator actor and return its pid wraped in Validator
-func NewValidator(id string) (Validator, error) {
-	validator := &validator{id: id}
-	props := actor.FromProducer(func() actor.Actor {
-		return validator
-	})
-
-	pid, err := actor.SpawnNamed(props, id)
-	validator.pid = pid
-	return validator, err
-}
-
-func (self *validator) Receive(context actor.Context) {
-	switch msg := context.Message().(type) {
-	case *actor.Started:
-		log.Info("stateless-validator: started and be ready to receive txn")
-	case *actor.Stopping:
-		log.Info("stateless-validator: stopping")
-	case *actor.Restarting:
-		log.Info("stateless-validator: restarting")
-	case *actor.Stopped:
-		log.Info("stateless-validator: stopped")
-	case *vatypes.CheckTx:
-		log.Debugf("stateless-validator receive tx %x", msg.Tx.Hash())
-		sender := context.Sender()
-		errCode := validation.VerifyTransaction(msg.Tx)
-
+func (self *ValidatorPool) SubmitVerifyTask(tx *types.Transaction, rspCh chan<- *vatypes.CheckResponse) {
+	task := func() {
+		errCode := validation.VerifyTransaction(tx)
 		response := &vatypes.CheckResponse{
 			ErrCode: errCode,
-			Hash:    msg.Tx.Hash(),
-			Type:    self.VerifyType(),
+			Hash:    tx.Hash(),
+			Type:    vatypes.Stateless,
 			Height:  0,
 		}
 
-		sender.Tell(response)
-	default:
-		log.Info("stateless-validator: unknown msg ", msg, "type", reflect.TypeOf(msg))
+		rspCh <- response
 	}
-}
-
-func (self *validator) VerifyType() vatypes.VerifyType {
-	return vatypes.Stateless
-}
-
-// Register send RegisterValidator message to txpool
-func (self *validator) Register(poolId *actor.PID) {
-	poolId.Tell(&vatypes.RegisterValidator{
-		Sender: self.pid,
-		Type:   self.VerifyType(),
-		Id:     self.id,
-	})
+	self.pool.Submit(task)
 }

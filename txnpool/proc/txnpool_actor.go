@@ -34,7 +34,6 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 	"github.com/ontio/ontology/smartcontract/service/neovm"
 	tc "github.com/ontio/ontology/txnpool/common"
-	"github.com/ontio/ontology/validator/types"
 )
 
 // NewTxActor creates an actor to handle the transaction-based messages from
@@ -47,12 +46,6 @@ func NewTxActor(s *TXPoolServer) *TxActor {
 // NewTxPoolActor creates an actor to handle the messages from the consensus
 func NewTxPoolActor(s *TXPoolServer) *TxPoolActor {
 	a := &TxPoolActor{server: s}
-	return a
-}
-
-// NewVerifyRspActor creates an actor to handle the verified result from validators
-func NewVerifyRspActor(s *TXPoolServer) *VerifyRspActor {
-	a := &VerifyRspActor{server: s}
 	return a
 }
 
@@ -302,36 +295,5 @@ func (tpa *TxPoolActor) Receive(context actor.Context) {
 
 	default:
 		log.Debugf("txpool actor: unknown msg %v type %v", msg, reflect.TypeOf(msg))
-	}
-}
-
-// VerifyRspActor: Handle the response from the validators
-type VerifyRspActor struct {
-	server *TXPoolServer
-}
-
-// Receive implements the actor interface
-func (vpa *VerifyRspActor) Receive(context actor.Context) {
-	switch msg := context.Message().(type) {
-	case *actor.Started:
-		log.Info("txpool-verify actor: started and be ready to receive validator's msg")
-
-	case *actor.Stopping:
-		log.Warn("txpool-verify actor: stopping")
-
-	case *actor.Restarting:
-		log.Warn("txpool-verify actor: Restarting")
-
-	case *types.RegisterValidator:
-		log.Debugf("txpool-verify actor:: validator %v connected", msg.Sender)
-		vpa.server.registerValidator(msg)
-
-	case *types.CheckResponse:
-		log.Debug("txpool-verify actor:: Receives verify rsp message")
-
-		vpa.server.assignRspToWorker(msg)
-
-	default:
-		log.Debugf("txpool-verify actor:Unknown msg %v type %v", msg, reflect.TypeOf(msg))
 	}
 }

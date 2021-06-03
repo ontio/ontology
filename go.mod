@@ -8,6 +8,7 @@ require (
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/emirpasic/gods v1.12.0 // indirect
 	github.com/ethereum/go-ethereum v1.9.25
+	github.com/gammazero/workerpool v1.1.2
 	github.com/gorilla/websocket v1.4.1
 	github.com/gosuri/uilive v0.0.3 // indirect
 	github.com/gosuri/uiprogress v0.0.1
@@ -28,7 +29,6 @@ require (
 	github.com/stretchr/testify v1.4.0
 	github.com/syndtr/goleveldb v1.0.1-0.20200815110645-5c35d600f0ca
 	github.com/urfave/cli v1.22.1
-	github.com/valyala/bytebufferpool v1.0.0
 	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
 	golang.org/x/net v0.0.0-20200822124328-c89045814202
 )

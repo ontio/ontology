@@ -41,10 +41,9 @@ const (
 type ActorType uint8
 
 const (
-	_              ActorType = iota
-	TxActor                  // Actor that handles new transaction
-	TxPoolActor              // Actor that handles consensus msg
-	VerifyRspActor           // Actor that handles the response from valdiators
+	_           ActorType = iota
+	TxActor               // Actor that handles new transaction
+	TxPoolActor           // Actor that handles consensus msg
 	MaxActor
 )
 

@@ -20,7 +20,6 @@ package txnpool
 
 import (
 	"os"
-	"sync"
 	"testing"
 	"time"
 
@@ -31,10 +30,6 @@ import (
 	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/types"
-	tc "github.com/ontio/ontology/txnpool/common"
-	tp "github.com/ontio/ontology/txnpool/proc"
-	"github.com/ontio/ontology/validator/stateful"
-	"github.com/ontio/ontology/validator/stateless"
 )
 
 func TestMain(m *testing.M) {
@@ -83,97 +78,4 @@ func startActor(obj interface{}) *actor.PID {
 
 	pid := actor.Spawn(props)
 	return pid
-}
-
-func Test_RCV(t *testing.T) {
-	var s *tp.TXPoolServer
-	var wg sync.WaitGroup
-
-	// Start txnpool server to receive msgs from p2p, consensus and valdiators
-	s = tp.NewTxPoolServer(true, false)
-
-	// Initialize an actor to handle the msgs from valdiators
-	rspActor := tp.NewVerifyRspActor(s)
-	rspPid := startActor(rspActor)
-	if rspPid == nil {
-		t.Error("Fail to start verify rsp actor")
-		return
-	}
-	s.RegisterActor(tc.VerifyRspActor, rspPid)
-
-	// Initialize an actor to handle the msgs from consensus
-	tpa := tp.NewTxPoolActor(s)
-	txPoolPid := startActor(tpa)
-	if txPoolPid == nil {
-		t.Error("Fail to start txnpool actor")
-		return
-	}
-	s.RegisterActor(tc.TxPoolActor, txPoolPid)
-
-	// Initialize an actor to handle the msgs from p2p and api
-	ta := tp.NewTxActor(s)
-	txPid := startActor(ta)
-	if txPid == nil {
-		t.Error("Fail to start txn actor")
-		return
-	}
-	s.RegisterActor(tc.TxActor, txPid)
-
-	// Start stateless validator
-	statelessV, err := stateless.NewValidator("stateless")
-	if err != nil {
-		t.Errorf("failed to new stateless valdiator: %s", err)
-		return
-	}
-	statelessV.Register(rspPid)
-
-	statelessV2, err := stateless.NewValidator("stateless2")
-	if err != nil {
-		t.Errorf("failed to new stateless valdiator: %s", err)
-		return
-	}
-	statelessV2.Register(rspPid)
-
-	statelessV3, err := stateless.NewValidator("stateless3")
-	if err != nil {
-		t.Errorf("failed to new stateless valdiator: %s", err)
-		return
-	}
-	statelessV3.Register(rspPid)
-
-	statefulV, err := stateful.NewValidator("stateful")
-	if err != nil {
-		t.Errorf("failed to new stateful valdiator: %s", err)
-		return
-	}
-	statefulV.Register(rspPid)
-
-	for i := 0; i < 2; i++ {
-		wg.Add(1)
-		go func() {
-			var j int
-			defer wg.Done()
-
-			tx := initTestTx()
-			for {
-				j++
-				txReq := &tc.TxReq{
-					Tx:     tx,
-					Sender: tc.NilSender,
-				}
-				txPid.Tell(txReq)
-
-				if j >= 4 {
-					return
-				}
-			}
-		}()
-	}
-
-	wg.Wait()
-	time.Sleep(1 * time.Second)
-	txPoolPid.Tell(&tc.GetTxnPoolReq{ByCount: true})
-	time.Sleep(2 * time.Second)
-
-	s.Stop()
 }

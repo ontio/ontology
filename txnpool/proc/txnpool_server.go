@@ -76,12 +76,11 @@ type TXPoolServer struct {
 	pendingBlock          *pendingBlock                       // The block that server is processing
 	actors                map[tc.ActorType]*actor.PID         // The actors running in the server
 	Net                   p2p.P2P
-	validators            *registerValidators // The registered validators
-	slots                 chan struct{}       // The limited slots for the new transaction
-	height                uint32              // The current block height
-	gasPrice              uint64              // Gas price to enforce for acceptance into the pool
-	disablePreExec        bool                // Disbale PreExecute a transaction
-	disableBroadcastNetTx bool                // Disable broadcast tx from network
+	slots                 chan struct{} // The limited slots for the new transaction
+	height                uint32        // The current block height
+	gasPrice              uint64        // Gas price to enforce for acceptance into the pool
+	disablePreExec        bool          // Disbale PreExecute a transaction
+	disableBroadcastNetTx bool          // Disable broadcast tx from network
 }
 
 // NewTxPoolServer creates a new tx pool server to schedule workers to
@@ -151,13 +150,6 @@ func (s *TXPoolServer) init(disablePreExec, disableBroadcastNetTx bool) {
 	s.txPool.Init()
 	s.allPendingTxs = make(map[common.Uint256]*serverPendingTx)
 	s.actors = make(map[tc.ActorType]*actor.PID)
-
-	s.validators = &registerValidators{
-		entries: make(map[types.VerifyType][]*types.RegisterValidator),
-		state: roundRobinState{
-			state: make(map[types.VerifyType]int),
-		},
-	}
 
 	s.pendingBlock = &pendingBlock{
 		processedTxs:   make(map[common.Uint256]*tc.VerifyTxResult, 0),
@@ -326,18 +318,6 @@ func (s *TXPoolServer) assignTxToWorker(tx *tx.Transaction,
 	return true
 }
 
-// assignRspToWorker assigns a check response from the validator to
-// the correct worker.
-func (s *TXPoolServer) assignRspToWorker(rsp *types.CheckResponse) bool {
-	if rsp == nil {
-		return false
-	}
-
-	s.worker.rspCh <- rsp
-
-	return true
-}
-
 // GetPID returns an actor pid with the actor type, If the type
 // doesn't exist, return nil.
 func (s *TXPoolServer) GetPID(actor tc.ActorType) *actor.PID {
@@ -356,56 +336,6 @@ func (s *TXPoolServer) RegisterActor(actor tc.ActorType, pid *actor.PID) {
 // UnRegisterActor cancels the actor with the actor type.
 func (s *TXPoolServer) UnRegisterActor(actor tc.ActorType) {
 	delete(s.actors, actor)
-}
-
-// registerValidator registers a validator to verify a transaction.
-func (s *TXPoolServer) registerValidator(v *types.RegisterValidator) {
-	s.validators.Lock()
-	defer s.validators.Unlock()
-
-	_, ok := s.validators.entries[v.Type]
-
-	if !ok {
-		s.validators.entries[v.Type] = make([]*types.RegisterValidator, 0, 1)
-	}
-	s.validators.entries[v.Type] = append(s.validators.entries[v.Type], v)
-}
-
-// getNextValidatorPIDs returns the next pids to verify the transaction using
-// roundRobin LB.
-func (s *TXPoolServer) getNextValidatorPIDs() []*actor.PID {
-	s.validators.Lock()
-	defer s.validators.Unlock()
-
-	if len(s.validators.entries) == 0 {
-		return nil
-	}
-
-	ret := make([]*actor.PID, 0, len(s.validators.entries))
-	for k, v := range s.validators.entries {
-		lastIdx := s.validators.state.state[k]
-		next := (lastIdx + 1) % len(v)
-		s.validators.state.state[k] = next
-		ret = append(ret, v[next].Sender)
-	}
-	return ret
-}
-
-// getNextValidatorPID returns the next pid with the verify type using roundRobin LB
-func (s *TXPoolServer) getNextValidatorPID(key types.VerifyType) *actor.PID {
-	s.validators.Lock()
-	defer s.validators.Unlock()
-
-	length := len(s.validators.entries[key])
-	if length == 0 {
-		return nil
-	}
-
-	entries := s.validators.entries[key]
-	lastIdx := s.validators.state.state[key]
-	next := (lastIdx + 1) % length
-	s.validators.state.state[key] = next
-	return entries[next].Sender
 }
 
 // Stop stops server and workers.
