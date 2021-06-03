@@ -43,16 +43,14 @@ type UnRegisterAck struct {
 }
 
 type CheckTx struct {
-	WorkerId uint8
-	Tx       *types.Transaction
+	Tx *types.Transaction
 }
 
 type CheckResponse struct {
-	WorkerId uint8
-	Type     VerifyType
-	Hash     common.Uint256
-	Height   uint32
-	ErrCode  errors.ErrCode
+	Type    VerifyType
+	Hash    common.Uint256
+	Height  uint32
+	ErrCode errors.ErrCode
 }
 
 // VerifyType of validator

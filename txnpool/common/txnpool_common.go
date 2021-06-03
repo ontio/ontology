@@ -25,18 +25,16 @@ import (
 )
 
 const (
-	MAX_CAPACITY     = 100140                           // The tx pool's capacity that holds the verified txs
-	MAX_PENDING_TXN  = 4096 * 10                        // The max length of pending txs
-	MAX_WORKER_NUM   = 2                                // The max concurrent workers
-	MAX_RCV_TXN_LEN  = MAX_WORKER_NUM * MAX_PENDING_TXN // The max length of the queue that server can hold
-	MAX_RETRIES      = 0                                // The retry times to verify tx
-	EXPIRE_INTERVAL  = 9                                // The timeout that verify tx
-	STATELESS_MASK   = 0x1                              // The mask of stateless validator
-	STATEFUL_MASK    = 0x2                              // The mask of stateful validator
-	VERIFY_MASK      = STATELESS_MASK | STATEFUL_MASK   // The mask that indicates tx valid
-	MAX_LIMITATION   = 10000                            // The length of pending tx from net and http
-	UPDATE_FREQUENCY = 100                              // The frequency to update gas price from global params
-	MAX_TX_SIZE      = 1024 * 1024                      // The max size of a transaction to prevent DOS attacks
+	MAX_CAPACITY     = 100140                         // The tx pool's capacity that holds the verified txs
+	MAX_PENDING_TXN  = 4096 * 10                      // The max length of pending txs
+	MAX_RETRIES      = 0                              // The retry times to verify tx
+	EXPIRE_INTERVAL  = 9                              // The timeout that verify tx
+	STATELESS_MASK   = 0x1                            // The mask of stateless validator
+	STATEFUL_MASK    = 0x2                            // The mask of stateful validator
+	VERIFY_MASK      = STATELESS_MASK | STATEFUL_MASK // The mask that indicates tx valid
+	MAX_LIMITATION   = 10000                          // The length of pending tx from net and http
+	UPDATE_FREQUENCY = 100                            // The frequency to update gas price from global params
+	MAX_TX_SIZE      = 1024 * 1024                    // The max size of a transaction to prevent DOS attacks
 )
 
 // ActorType enumerates the kind of actor
@@ -174,29 +172,6 @@ type VerifyTxResult struct {
 // VerifyBlockRsp returns a verified result for VerifyBlockReq.
 type VerifyBlockRsp struct {
 	TxnPool []*VerifyTxResult
-}
-
-/*
- * Implement sort.Interface
- */
-type LB struct {
-	Size     int
-	WorkerID uint8
-}
-
-type LBSlice []LB
-
-func (this LBSlice) Len() int {
-	return len(this)
-}
-
-func (this LBSlice) Swap(i, j int) {
-	this[i].Size, this[j].Size = this[j].Size, this[i].Size
-	this[i].WorkerID, this[j].WorkerID = this[j].WorkerID, this[i].WorkerID
-}
-
-func (this LBSlice) Less(i, j int) bool {
-	return this[i].Size < this[j].Size
 }
 
 type OrderByNetWorkFee []*TXEntry

@@ -70,11 +70,10 @@ func (self *validator) Receive(context actor.Context) {
 		errCode := validation.VerifyTransaction(msg.Tx)
 
 		response := &vatypes.CheckResponse{
-			WorkerId: msg.WorkerId,
-			ErrCode:  errCode,
-			Hash:     msg.Tx.Hash(),
-			Type:     self.VerifyType(),
-			Height:   0,
+			ErrCode: errCode,
+			Hash:    msg.Tx.Hash(),
+			Type:    self.VerifyType(),
+			Height:  0,
 		}
 
 		sender.Tell(response)

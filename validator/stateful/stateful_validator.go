@@ -79,11 +79,10 @@ func (self *validator) Receive(context actor.Context) {
 		}
 
 		response := &vatypes.CheckResponse{
-			WorkerId: msg.WorkerId,
-			Type:     self.VerifyType(),
-			Hash:     msg.Tx.Hash(),
-			Height:   height,
-			ErrCode:  errCode,
+			Type:    self.VerifyType(),
+			Hash:    msg.Tx.Hash(),
+			Height:  height,
+			ErrCode: errCode,
 		}
 
 		sender.Tell(response)

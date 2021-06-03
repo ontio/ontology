@@ -20,7 +20,6 @@ package proc
 
 import (
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"github.com/ontio/ontology/common"
@@ -46,7 +45,6 @@ type pendingTx struct {
 // txPoolWorker handles the tasks scheduled by server
 type txPoolWorker struct {
 	mu            sync.RWMutex
-	workId        uint8                         // Worker ID
 	rcvTXCh       chan *tx.Transaction          // The channel of receive transaction
 	stfTxCh       chan *tx.Transaction          // The channel of txs to be re-verified stateful
 	rspCh         chan *types.CheckResponse     // The channel of verified response
@@ -54,18 +52,18 @@ type txPoolWorker struct {
 	timer         *time.Timer                   // The timer of reverifying
 	stopCh        chan bool                     // stop routine
 	pendingTxList map[common.Uint256]*pendingTx // The transaction on the verifying process
-	pendingTxLen  int64                         // atomic accessed by other routine
 }
 
-// init initializes the worker with the configured settings
-func (worker *txPoolWorker) init(workID uint8, s *TXPoolServer) {
+func NewTxPoolWoker(s *TXPoolServer) *txPoolWorker {
+	worker := &txPoolWorker{}
 	worker.rcvTXCh = make(chan *tx.Transaction, tc.MAX_PENDING_TXN)
 	worker.stfTxCh = make(chan *tx.Transaction, tc.MAX_PENDING_TXN)
 	worker.pendingTxList = make(map[common.Uint256]*pendingTx)
 	worker.rspCh = make(chan *types.CheckResponse, tc.MAX_PENDING_TXN)
 	worker.stopCh = make(chan bool)
-	worker.workId = workID
 	worker.server = s
+
+	return worker
 }
 
 // GetTxStatus returns the status in the pending list with the transaction hash
@@ -89,10 +87,6 @@ func (worker *txPoolWorker) GetTxStatus(hash common.Uint256) *tc.TxStatus {
 // the tx is valid, add it to the tx pool, or remove it from the pending
 // list
 func (worker *txPoolWorker) handleRsp(rsp *types.CheckResponse) {
-	if rsp.WorkerId != worker.workId {
-		return
-	}
-
 	worker.mu.Lock()
 	defer worker.mu.Unlock()
 
@@ -105,7 +99,6 @@ func (worker *txPoolWorker) handleRsp(rsp *types.CheckResponse) {
 		log.Debugf("handleRsp: validator %d transaction %x invalid: %s",
 			rsp.Type, rsp.Hash, rsp.ErrCode.Error())
 		delete(worker.pendingTxList, rsp.Hash)
-		atomic.StoreInt64(&worker.pendingTxLen, int64(len(worker.pendingTxList)))
 		worker.server.removePendingTx(rsp.Hash, rsp.ErrCode)
 		return
 	}
@@ -130,7 +123,6 @@ func (worker *txPoolWorker) handleRsp(rsp *types.CheckResponse) {
 	if pt.flag&0xf == tc.VERIFY_MASK {
 		worker.putTxPool(pt)
 		delete(worker.pendingTxList, rsp.Hash)
-		atomic.StoreInt64(&worker.pendingTxLen, int64(len(worker.pendingTxList)))
 	}
 }
 
@@ -148,8 +140,7 @@ func (worker *txPoolWorker) handleTimeoutEvent() {
 	 * resend them to the validators
 	 */
 	for k, v := range worker.pendingTxList {
-		if v.flag&0xf != tc.VERIFY_MASK && (time.Now().Sub(v.valTime)/time.Second) >=
-			tc.EXPIRE_INTERVAL {
+		if v.flag&0xf != tc.VERIFY_MASK && (time.Now().Sub(v.valTime)/time.Second) >= tc.EXPIRE_INTERVAL {
 			if v.retries < tc.MAX_RETRIES {
 				worker.reVerifyTx(k)
 				v.retries++
@@ -162,7 +153,6 @@ func (worker *txPoolWorker) handleTimeoutEvent() {
 			}
 		}
 	}
-	atomic.StoreInt64(&worker.pendingTxLen, int64(len(worker.pendingTxList)))
 }
 
 // putTxPool adds a valid transaction to the tx pool and removes it from
@@ -192,8 +182,7 @@ func (worker *txPoolWorker) verifyTx(tx *tx.Transaction) {
 	}
 	// Construct the request and send it to each validator server to verify
 	req := &types.CheckTx{
-		WorkerId: worker.workId,
-		Tx:       tx,
+		Tx: tx,
 	}
 
 	worker.sendReq2Validator(req)
@@ -208,7 +197,6 @@ func (worker *txPoolWorker) verifyTx(tx *tx.Transaction) {
 	// Add it to the pending transaction list
 	worker.mu.Lock()
 	worker.pendingTxList[tx.Hash()] = pt
-	atomic.StoreInt64(&worker.pendingTxLen, int64(len(worker.pendingTxList)))
 	worker.mu.Unlock()
 	// Record the time per a txn
 	pt.valTime = time.Now()
@@ -270,8 +258,7 @@ func (worker *txPoolWorker) sendReq2StatefulV(req *types.CheckTx) {
 // stateful validator
 func (worker *txPoolWorker) verifyStateful(tx *tx.Transaction) {
 	req := &types.CheckTx{
-		WorkerId: worker.workId,
-		Tx:       tx,
+		Tx: tx,
 	}
 
 	// Construct the pending transaction
@@ -295,7 +282,6 @@ func (worker *txPoolWorker) verifyStateful(tx *tx.Transaction) {
 	// Add it to the pending transaction list
 	worker.mu.Lock()
 	worker.pendingTxList[tx.Hash()] = pt
-	atomic.StoreInt64(&worker.pendingTxLen, int64(len(worker.pendingTxList)))
 	worker.mu.Unlock()
 
 	worker.sendReq2StatefulV(req)

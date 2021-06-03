@@ -23,10 +23,8 @@ package proc
 import (
 	"encoding/hex"
 	"fmt"
-	"sort"
 	"strconv"
 	"sync"
-	"sync/atomic"
 
 	"github.com/ontio/ontology-eventbus/actor"
 	"github.com/ontio/ontology/common"
@@ -72,7 +70,7 @@ type registerValidators struct {
 type TXPoolServer struct {
 	mu                    sync.RWMutex                        // Sync mutex
 	wg                    sync.WaitGroup                      // Worker sync
-	workers               []txPoolWorker                      // Worker pool
+	worker                *txPoolWorker                       // Worker pool
 	txPool                *tc.TXPool                          // The tx pool that holds the valid transaction
 	allPendingTxs         map[common.Uint256]*serverPendingTx // The txs that server is processing
 	pendingBlock          *pendingBlock                       // The block that server is processing
@@ -88,9 +86,9 @@ type TXPoolServer struct {
 
 // NewTxPoolServer creates a new tx pool server to schedule workers to
 // handle and filter inbound transactions from the network, http, and consensus.
-func NewTxPoolServer(num uint8, disablePreExec, disableBroadcastNetTx bool) *TXPoolServer {
+func NewTxPoolServer(disablePreExec, disableBroadcastNetTx bool) *TXPoolServer {
 	s := &TXPoolServer{}
-	s.init(num, disablePreExec, disableBroadcastNetTx)
+	s.init(disablePreExec, disableBroadcastNetTx)
 	return s
 }
 
@@ -147,7 +145,7 @@ func getGasPriceConfig() uint64 {
 }
 
 // init initializes the server with the configured settings
-func (s *TXPoolServer) init(num uint8, disablePreExec, disableBroadcastNetTx bool) {
+func (s *TXPoolServer) init(disablePreExec, disableBroadcastNetTx bool) {
 	// Initial txnPool
 	s.txPool = &tc.TXPool{}
 	s.txPool.Init()
@@ -177,14 +175,9 @@ func (s *TXPoolServer) init(num uint8, disablePreExec, disableBroadcastNetTx boo
 	s.disablePreExec = disablePreExec
 	s.disableBroadcastNetTx = disableBroadcastNetTx
 	// Create the given concurrent workers
-	s.workers = make([]txPoolWorker, num)
-	// Initial and start the workers
-	var i uint8
-	for i = 0; i < num; i++ {
-		s.wg.Add(1)
-		s.workers[i].init(i, s)
-		go s.workers[i].start()
-	}
+	s.wg.Add(1)
+	s.worker = NewTxPoolWoker(s)
+	go s.worker.start()
 }
 
 // checkPendingBlockOk checks whether a block from consensus is verified.
@@ -213,8 +206,7 @@ func (s *TXPoolServer) checkPendingBlockOk(hash common.Uint256,
 	delete(s.pendingBlock.unProcessedTxs, hash)
 
 	// if the tx is invalid, send the response at once
-	if err != errors.ErrNoError ||
-		len(s.pendingBlock.unProcessedTxs) == 0 {
+	if err != errors.ErrNoError || len(s.pendingBlock.unProcessedTxs) == 0 {
 		s.sendBlkResult2Consensus()
 	}
 }
@@ -324,23 +316,13 @@ func (s *TXPoolServer) assignTxToWorker(tx *tx.Transaction,
 
 	if ok := s.setPendingTx(tx, sender, txResultCh); !ok {
 		if sender == tc.HttpSender && txResultCh != nil {
-			replyTxResult(txResultCh, tx.Hash(), errors.ErrDuplicateInput,
-				"duplicated transaction input detected")
+			replyTxResult(txResultCh, tx.Hash(), errors.ErrDuplicateInput, "duplicated transaction input detected")
 		}
 		return false
 	}
+
 	// Add the rcvTxn to the worker
-	lb := make(tc.LBSlice, len(s.workers))
-	for i := 0; i < len(s.workers); i++ {
-		pending := atomic.LoadInt64(&s.workers[i].pendingTxLen)
-		entry := tc.LB{
-			Size:     len(s.workers[i].rcvTXCh) + int(pending),
-			WorkerID: uint8(i),
-		}
-		lb[i] = entry
-	}
-	sort.Sort(lb)
-	s.workers[lb[0].WorkerID].rcvTXCh <- tx
+	s.worker.rcvTXCh <- tx
 	return true
 }
 
@@ -351,9 +333,7 @@ func (s *TXPoolServer) assignRspToWorker(rsp *types.CheckResponse) bool {
 		return false
 	}
 
-	if rsp.WorkerId < uint8(len(s.workers)) {
-		s.workers[rsp.WorkerId].rspCh <- rsp
-	}
+	s.worker.rspCh <- rsp
 
 	return true
 }
@@ -462,9 +442,7 @@ func (s *TXPoolServer) Stop() {
 		v.Stop()
 	}
 	//Stop worker
-	for i := 0; i < len(s.workers); i++ {
-		s.workers[i].stop()
-	}
+	s.worker.stop()
 	s.wg.Wait()
 
 	if s.slots != nil {
@@ -586,11 +564,8 @@ func (s *TXPoolServer) checkTx(hash common.Uint256) bool {
 
 // getTxStatusReq returns a transaction's status with the transaction hash.
 func (s *TXPoolServer) getTxStatusReq(hash common.Uint256) *tc.TxStatus {
-	for i := 0; i < len(s.workers); i++ {
-		ret := s.workers[i].GetTxStatus(hash)
-		if ret != nil {
-			return ret
-		}
+	if ret := s.worker.GetTxStatus(hash); ret != nil {
+		return ret
 	}
 
 	return s.txPool.GetTxStatus(hash)
@@ -608,18 +583,7 @@ func (s *TXPoolServer) reVerifyStateful(tx *tx.Transaction, sender tc.SenderType
 	}
 
 	// Add the rcvTxn to the worker
-	lb := make(tc.LBSlice, len(s.workers))
-	for i := 0; i < len(s.workers); i++ {
-		pending := atomic.LoadInt64(&s.workers[i].pendingTxLen)
-		entry := tc.LB{
-			Size:     len(s.workers[i].stfTxCh) + int(pending),
-			WorkerID: uint8(i),
-		}
-		lb[i] = entry
-	}
-
-	sort.Sort(lb)
-	s.workers[lb[0].WorkerID].stfTxCh <- tx
+	s.worker.stfTxCh <- tx
 }
 
 // sendBlkResult2Consensus sends the result of verifying block to  consensus
