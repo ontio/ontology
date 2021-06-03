@@ -93,9 +93,5 @@ func TestTxPool(t *testing.T) {
 	count := txPool.GetTransactionCount()
 	assert.Equal(t, count, 1)
 
-	err := txPool.CleanTransactionList([]*types.Transaction{txn})
-	if err != nil {
-		t.Error("Failed to clean transaction list")
-		return
-	}
+	txPool.CleanTransactionList([]*types.Transaction{txn})
 }

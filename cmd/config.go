@@ -135,7 +135,7 @@ func setGenesis(ctx *cli.Context, cfg *config.OntologyConfig) error {
 func setCommonConfig(ctx *cli.Context, cfg *config.CommonConfig) {
 	cfg.LogLevel = ctx.Uint(utils.GetFlagName(utils.LogLevelFlag))
 	cfg.EnableEventLog = !ctx.Bool(utils.GetFlagName(utils.DisableEventLogFlag))
-	cfg.GasLimit = ctx.Uint64(utils.GetFlagName(utils.GasLimitFlag))
+	cfg.MinGasLimit = ctx.Uint64(utils.GetFlagName(utils.GasLimitFlag))
 	cfg.GasPrice = ctx.Uint64(utils.GetFlagName(utils.GasPriceFlag))
 	cfg.DataDir = ctx.String(utils.GetFlagName(utils.DataDirFlag))
 }

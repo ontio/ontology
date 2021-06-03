@@ -68,7 +68,7 @@ func TestStatelessValidator(t *testing.T) {
 	pid, err := actor.SpawnNamed(props, validator.id)
 	assert.Nil(t, err)
 
-	msg := &types2.CheckTx{WorkerId: 1, Tx: tx}
+	msg := &types2.CheckTx{Tx: tx}
 	fut := pid.RequestFuture(msg, time.Second)
 
 	res, err := fut.Result()

@@ -45,7 +45,7 @@ func SetTxnPoolPid(actr *actor.PID) {
 //append transaction to pool to txpool actor
 func AppendTxToPool(txn *types.Transaction) (ontErrors.ErrCode, string) {
 	if DisableSyncVerifyTx {
-		txReq := &tcomn.TxReq{txn, tcomn.HttpSender, nil}
+		txReq := &tcomn.TxReq{Tx: txn, Sender: tcomn.HttpSender, TxResultCh: nil}
 		txnPid.Tell(txReq)
 		return ontErrors.ErrNoError, ""
 	}
@@ -55,7 +55,7 @@ func AppendTxToPool(txn *types.Transaction) (ontErrors.ErrCode, string) {
 		return ontErrors.ErrUnknown, err.Error()
 	}
 	ch := make(chan *tcomn.TxResult, 1)
-	txReq := &tcomn.TxReq{txn, tcomn.HttpSender, ch}
+	txReq := &tcomn.TxReq{Tx: txn, Sender: tcomn.HttpSender, TxResultCh: ch}
 	txnPid.Tell(txReq)
 	if msg, ok := <-ch; ok {
 		return msg.Err, msg.Desc

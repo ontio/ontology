@@ -71,7 +71,7 @@ func startActor(obj interface{}) *actor.PID {
 func TestTxn(t *testing.T) {
 	t.Log("Starting test tx")
 	var s *TXPoolServer
-	s = NewTxPoolServer(tc.MAX_WORKER_NUM, true, false)
+	s = NewTxPoolServer(true, false)
 	if s == nil {
 		t.Error("Test case: new tx pool server failed")
 		return
@@ -120,7 +120,7 @@ func TestTxn(t *testing.T) {
 func TestAssignRsp2Worker(t *testing.T) {
 	t.Log("Starting assign response to the worker testing")
 	var s *TXPoolServer
-	s = NewTxPoolServer(tc.MAX_WORKER_NUM, true, false)
+	s = NewTxPoolServer(true, false)
 	if s == nil {
 		t.Error("Test case: new tx pool server failed")
 		return
@@ -131,29 +131,26 @@ func TestAssignRsp2Worker(t *testing.T) {
 	s.assignRspToWorker(nil)
 
 	statelessRsp := &vt.CheckResponse{
-		WorkerId: 0,
-		ErrCode:  errors.ErrNoError,
-		Hash:     txn.Hash(),
-		Type:     vt.Stateless,
-		Height:   0,
+		ErrCode: errors.ErrNoError,
+		Hash:    txn.Hash(),
+		Type:    vt.Stateless,
+		Height:  0,
 	}
 
 	statefulRsp := &vt.CheckResponse{
-		WorkerId: 0,
-		ErrCode:  errors.ErrUnknown,
-		Hash:     txn.Hash(),
-		Type:     vt.Stateful,
-		Height:   0,
+		ErrCode: errors.ErrUnknown,
+		Hash:    txn.Hash(),
+		Type:    vt.Stateful,
+		Height:  0,
 	}
 	s.assignRspToWorker(statelessRsp)
 	s.assignRspToWorker(statefulRsp)
 
 	statelessRsp = &vt.CheckResponse{
-		WorkerId: 0,
-		ErrCode:  errors.ErrUnknown,
-		Hash:     txn.Hash(),
-		Type:     vt.Stateless,
-		Height:   0,
+		ErrCode: errors.ErrUnknown,
+		Hash:    txn.Hash(),
+		Type:    vt.Stateless,
+		Height:  0,
 	}
 	s.assignRspToWorker(statelessRsp)
 
@@ -163,7 +160,7 @@ func TestAssignRsp2Worker(t *testing.T) {
 func TestActor(t *testing.T) {
 	t.Log("Starting actor testing")
 	var s *TXPoolServer
-	s = NewTxPoolServer(tc.MAX_WORKER_NUM, true, false)
+	s = NewTxPoolServer(true, false)
 	if s == nil {
 		t.Error("Test case: new tx pool server failed")
 		return
@@ -231,7 +228,7 @@ func TestActor(t *testing.T) {
 func TestValidator(t *testing.T) {
 	t.Log("Starting validator testing")
 	var s *TXPoolServer
-	s = NewTxPoolServer(tc.MAX_WORKER_NUM, true, false)
+	s = NewTxPoolServer(true, false)
 	if s == nil {
 		t.Error("Test case: new tx pool server failed")
 		return
@@ -267,16 +264,6 @@ func TestValidator(t *testing.T) {
 	for _, v := range ret {
 		assert.NotNil(t, v)
 	}
-
-	ret = s.getNextValidatorPIDs()
-	for _, v := range ret {
-		assert.NotNil(t, v)
-	}
-
-	statelessV1.UnRegister(rspPid)
-	statelessV2.UnRegister(rspPid)
-
-	time.Sleep(1 * time.Second)
 
 	ret = s.getNextValidatorPIDs()
 	for _, v := range ret {

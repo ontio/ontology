@@ -76,7 +76,7 @@ func (tp *TXPool) AddTxList(txEntry *TXEntry) bool {
 }
 
 // CleanTransactionList cleans the transaction list included in the ledger.
-func (tp *TXPool) CleanTransactionList(txs []*types.Transaction) error {
+func (tp *TXPool) CleanTransactionList(txs []*types.Transaction) {
 	cleaned := 0
 	txsNum := len(txs)
 	tp.Lock()
@@ -88,9 +88,7 @@ func (tp *TXPool) CleanTransactionList(txs []*types.Transaction) error {
 		}
 	}
 
-	log.Debugf("CleanTransactionList: transaction %d requested,%d cleaned, remains %d in TxPool",
-		txsNum, cleaned, len(tp.txList))
-	return nil
+	log.Debugf("CleanTransactionList: total %d, cleaned %d, remains %d in TxPool", txsNum, cleaned, len(tp.txList))
 }
 
 // DelTxList removes a single transaction from the pool.
@@ -105,13 +103,12 @@ func (tp *TXPool) DelTxList(tx *types.Transaction) bool {
 	return true
 }
 
-// compareTxHeight compares a verifed transaction's height with the next
+// isVerfiyExpired compares a verifed transaction's height with the next
 // block height from consensus. If the height is less than the next block
 // height, re-verify it.
-func (tp *TXPool) compareTxHeight(txEntry *TXEntry, height uint32) bool {
+func (tp *TXPool) isVerfiyExpired(txEntry *TXEntry, height uint32) bool {
 	for _, v := range txEntry.Attrs {
-		if v.Type == vt.Stateful &&
-			v.Height < height {
+		if v.Type == vt.Stateful && v.Height < height {
 			return false
 		}
 	}
@@ -140,17 +137,15 @@ func (tp *TXPool) GetTxPool(byCount bool, height uint32) ([]*TXEntry,
 		count = len(tp.txList)
 	}
 
-	var num int
 	txList := make([]*TXEntry, 0, count)
 	oldTxList := make([]*types.Transaction, 0)
 	for _, txEntry := range orderByFee {
-		if !tp.compareTxHeight(txEntry, height) {
+		if !tp.isVerfiyExpired(txEntry, height) {
 			oldTxList = append(oldTxList, txEntry.Tx)
 			continue
 		}
 		txList = append(txList, txEntry)
-		num++
-		if num >= count {
+		if len(txList) >= count {
 			break
 		}
 	}
@@ -206,8 +201,7 @@ func (tp *TXPool) GetTransactionHashList() []common.Uint256 {
 // GetUnverifiedTxs checks the tx list in the block from consensus,
 // and returns verified tx list, unverified tx list, and
 // the tx list to be re-verified
-func (tp *TXPool) GetUnverifiedTxs(txs []*types.Transaction,
-	height uint32) *CheckBlkResult {
+func (tp *TXPool) GetUnverifiedTxs(txs []*types.Transaction, height uint32) *CheckBlkResult {
 	tp.Lock()
 	defer tp.Unlock()
 	res := &CheckBlkResult{
@@ -218,12 +212,11 @@ func (tp *TXPool) GetUnverifiedTxs(txs []*types.Transaction,
 	for _, tx := range txs {
 		txEntry := tp.txList[tx.Hash()]
 		if txEntry == nil {
-			res.UnverifiedTxs = append(res.UnverifiedTxs,
-				tx)
+			res.UnverifiedTxs = append(res.UnverifiedTxs, tx)
 			continue
 		}
 
-		if !tp.compareTxHeight(txEntry, height) {
+		if !tp.isVerfiyExpired(txEntry, height) {
 			delete(tp.txList, tx.Hash())
 			res.OldTxs = append(res.OldTxs, txEntry.Tx)
 			continue
@@ -236,8 +229,7 @@ func (tp *TXPool) GetUnverifiedTxs(txs []*types.Transaction,
 					Height:  v.Height,
 					ErrCode: v.ErrCode,
 				}
-				res.VerifiedTxs = append(res.VerifiedTxs,
-					entry)
+				res.VerifiedTxs = append(res.VerifiedTxs, entry)
 				break
 			}
 		}

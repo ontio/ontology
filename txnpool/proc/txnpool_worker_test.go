@@ -27,21 +27,19 @@ import (
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/errors"
-	tc "github.com/ontio/ontology/txnpool/common"
 	vt "github.com/ontio/ontology/validator/types"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestWorker(t *testing.T) {
 	t.Log("Starting worker test")
-	s := NewTxPoolServer(tc.MAX_WORKER_NUM, true, false)
+	s := NewTxPoolServer(true, false)
 	if s == nil {
 		t.Error("Test case: new tx pool server failed")
 		return
 	}
 
-	worker := &txPoolWorker{}
-	worker.init(tc.MAX_WORKER_NUM, s)
+	worker := NewTxPoolWoker(s)
 
 	s.wg.Add(1)
 
@@ -55,19 +53,17 @@ func TestWorker(t *testing.T) {
 	time.Sleep(1 * time.Second)
 
 	statelessRsp := &vt.CheckResponse{
-		WorkerId: tc.MAX_WORKER_NUM,
-		ErrCode:  errors.ErrNoError,
-		Hash:     txn.Hash(),
-		Type:     vt.Stateless,
-		Height:   0,
+		ErrCode: errors.ErrNoError,
+		Hash:    txn.Hash(),
+		Type:    vt.Stateless,
+		Height:  0,
 	}
 
 	statefulRsp := &vt.CheckResponse{
-		WorkerId: tc.MAX_WORKER_NUM,
-		ErrCode:  errors.ErrNoError,
-		Hash:     txn.Hash(),
-		Type:     vt.Stateful,
-		Height:   0,
+		ErrCode: errors.ErrNoError,
+		Hash:    txn.Hash(),
+		Type:    vt.Stateful,
+		Height:  0,
 	}
 	worker.rspCh <- statelessRsp
 	worker.rspCh <- statefulRsp
@@ -92,19 +88,17 @@ func TestWorker(t *testing.T) {
 	time.Sleep(1 * time.Second)
 
 	statelessRsp = &vt.CheckResponse{
-		WorkerId: tc.MAX_WORKER_NUM,
-		ErrCode:  errors.ErrUnknown,
-		Hash:     txn.Hash(),
-		Type:     vt.Stateless,
-		Height:   0,
+		ErrCode: errors.ErrUnknown,
+		Hash:    txn.Hash(),
+		Type:    vt.Stateless,
+		Height:  0,
 	}
 
 	statefulRsp = &vt.CheckResponse{
-		WorkerId: tc.MAX_WORKER_NUM,
-		ErrCode:  errors.ErrUnknown,
-		Hash:     txn.Hash(),
-		Type:     vt.Stateful,
-		Height:   0,
+		ErrCode: errors.ErrUnknown,
+		Hash:    txn.Hash(),
+		Type:    vt.Stateful,
+		Height:  0,
 	}
 	worker.rspCh <- statelessRsp
 	worker.rspCh <- statefulRsp
@@ -114,19 +108,17 @@ func TestWorker(t *testing.T) {
 	 */
 	time.Sleep(2 * time.Second)
 	statelessRsp = &vt.CheckResponse{
-		WorkerId: tc.MAX_WORKER_NUM,
-		ErrCode:  errors.ErrUnknown,
-		Hash:     txn.Hash(),
-		Type:     vt.Stateless,
-		Height:   0,
+		ErrCode: errors.ErrUnknown,
+		Hash:    txn.Hash(),
+		Type:    vt.Stateless,
+		Height:  0,
 	}
 
 	statefulRsp = &vt.CheckResponse{
-		WorkerId: tc.MAX_WORKER_NUM + 1,
-		ErrCode:  errors.ErrUnknown,
-		Hash:     txn.Hash(),
-		Type:     vt.Stateful,
-		Height:   0,
+		ErrCode: errors.ErrUnknown,
+		Hash:    txn.Hash(),
+		Type:    vt.Stateful,
+		Height:  0,
 	}
 	worker.rspCh <- statelessRsp
 	worker.rspCh <- statefulRsp
