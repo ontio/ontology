@@ -44,11 +44,6 @@ import (
 	"github.com/ontio/ontology/validator/types"
 )
 
-type txStats struct {
-	sync.RWMutex
-	count []uint64
-}
-
 type serverPendingTx struct {
 	tx     *tx.Transaction   // Pending tx
 	sender tc.SenderType     // Indicate which sender tx is from
@@ -84,7 +79,6 @@ type TXPoolServer struct {
 	actors                map[tc.ActorType]*actor.PID         // The actors running in the server
 	Net                   p2p.P2P
 	validators            *registerValidators // The registered validators
-	stats                 txStats             // The transaction statstics
 	slots                 chan struct{}       // The limited slots for the new transaction
 	height                uint32              // The current block height
 	gasPrice              uint64              // Gas price to enforce for acceptance into the pool
@@ -171,8 +165,6 @@ func (s *TXPoolServer) init(num uint8, disablePreExec, disableBroadcastNetTx boo
 		processedTxs:   make(map[common.Uint256]*tc.VerifyTxResult, 0),
 		unProcessedTxs: make(map[common.Uint256]*tx.Transaction, 0),
 	}
-
-	s.stats = txStats{count: make([]uint64, tc.MaxStats-1)}
 
 	s.slots = make(chan struct{}, tc.MAX_LIMITATION)
 	for i := 0; i < tc.MAX_LIMITATION; i++ {
@@ -331,7 +323,6 @@ func (s *TXPoolServer) assignTxToWorker(tx *tx.Transaction,
 	}
 
 	if ok := s.setPendingTx(tx, sender, txResultCh); !ok {
-		s.increaseStats(tc.DuplicateStats)
 		if sender == tc.HttpSender && txResultCh != nil {
 			replyTxResult(txResultCh, tx.Hash(), errors.ErrDuplicateInput,
 				"duplicated transaction input detected")
@@ -356,25 +347,14 @@ func (s *TXPoolServer) assignTxToWorker(tx *tx.Transaction,
 // assignRspToWorker assigns a check response from the validator to
 // the correct worker.
 func (s *TXPoolServer) assignRspToWorker(rsp *types.CheckResponse) bool {
-
 	if rsp == nil {
 		return false
 	}
 
-	if rsp.WorkerId >= 0 && rsp.WorkerId < uint8(len(s.workers)) {
+	if rsp.WorkerId < uint8(len(s.workers)) {
 		s.workers[rsp.WorkerId].rspCh <- rsp
 	}
 
-	if rsp.ErrCode == errors.ErrNoError {
-		s.increaseStats(tc.SuccessStats)
-	} else {
-		s.increaseStats(tc.FailureStats)
-		if rsp.Type == types.Stateless {
-			s.increaseStats(tc.SigErrStats)
-		} else {
-			s.increaseStats(tc.StateErrStats)
-		}
-	}
 	return true
 }
 
@@ -582,17 +562,7 @@ func (s *TXPoolServer) delTransaction(t *tx.Transaction) {
 // addTxList adds a valid transaction to the tx pool.
 func (s *TXPoolServer) addTxList(txEntry *tc.TXEntry) bool {
 	ret := s.txPool.AddTxList(txEntry)
-	if !ret {
-		s.increaseStats(tc.DuplicateStats)
-	}
 	return ret
-}
-
-// increaseStats increases the count with the stats type
-func (s *TXPoolServer) increaseStats(v tc.TxnStatsType) {
-	s.stats.Lock()
-	defer s.stats.Unlock()
-	s.stats.count[v-1]++
 }
 
 // checkTx checks whether a transaction is in the pending list or
@@ -634,7 +604,6 @@ func (s *TXPoolServer) getTransactionCount() int {
 // reVerifyStateful re-verify a transaction's stateful data.
 func (s *TXPoolServer) reVerifyStateful(tx *tx.Transaction, sender tc.SenderType) {
 	if ok := s.setPendingTx(tx, sender, nil); !ok {
-		s.increaseStats(tc.DuplicateStats)
 		return
 	}
 

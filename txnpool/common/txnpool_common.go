@@ -72,21 +72,6 @@ func (sender SenderType) Sender() string {
 	}
 }
 
-// TxnStatsType enumerates the kind of tx statistics
-type TxnStatsType uint8
-
-const (
-	_              TxnStatsType = iota
-	RcvStats                    // The count that the tx pool receive from the actor bus
-	SuccessStats                // The count that the transactions are verified successfully
-	FailureStats                // The count that the transactions are invalid
-	DuplicateStats              // The count that the transactions are duplicated input
-	SigErrStats                 // The count that the transactions' signature error
-	StateErrStats               // The count that the transactions are invalid in database
-
-	MaxStats
-)
-
 // CheckBlkResult contains a verifed tx list,
 // an unverified tx list and an old tx list
 // to be re-verifed
