@@ -37,7 +37,6 @@ import (
 
 func TestMain(m *testing.M) {
 	log.InitLog(log.InfoLog, log.Stdout)
-	var err error
 	bookKeepers, err := config.DefConfig.GetBookkeepers()
 	if err != nil {
 		return
@@ -60,7 +59,7 @@ func TestMain(m *testing.M) {
 
 func TestTxActor(t *testing.T) {
 	t.Log("Starting tx actor test")
-	s := NewTxPoolServer(tc.MAX_WORKER_NUM, true, false)
+	s := NewTxPoolServer(true, false)
 	if s == nil {
 		t.Error("Test case: new tx pool server failed")
 		return
@@ -88,13 +87,6 @@ func TestTxActor(t *testing.T) {
 	rsp := (result).(*tc.GetTxnRsp)
 	assert.Nil(t, rsp.Txn)
 
-	future = txPid.RequestFuture(&tc.GetTxnStats{}, 2*time.Second)
-	result, err = future.Result()
-	assert.Nil(t, err)
-	future = txPid.RequestFuture(&tc.CheckTxnReq{Hash: txn.Hash()}, 1*time.Second)
-	result, err = future.Result()
-	assert.Nil(t, err)
-
 	future = txPid.RequestFuture(&tc.GetTxnStatusReq{Hash: txn.Hash()}, 1*time.Second)
 	result, err = future.Result()
 	assert.Nil(t, err)
@@ -110,13 +102,6 @@ func TestTxActor(t *testing.T) {
 	result, err = future.Result()
 	assert.Nil(t, err)
 
-	future = txPid.RequestFuture(&tc.GetTxnStats{}, 2*time.Second)
-	result, err = future.Result()
-	assert.Nil(t, err)
-	future = txPid.RequestFuture(&tc.CheckTxnReq{Hash: txn.Hash()}, 1*time.Second)
-	result, err = future.Result()
-	assert.Nil(t, err)
-
 	future = txPid.RequestFuture(&tc.GetTxnStatusReq{Hash: txn.Hash()}, 1*time.Second)
 	result, err = future.Result()
 	assert.Nil(t, err)
@@ -128,7 +113,7 @@ func TestTxActor(t *testing.T) {
 
 func TestTxPoolActor(t *testing.T) {
 	t.Log("Starting tx pool actor test")
-	s := NewTxPoolServer(tc.MAX_WORKER_NUM, true, false)
+	s := NewTxPoolServer(true, false)
 	if s == nil {
 		t.Error("Test case: new tx pool server failed")
 		return
@@ -161,10 +146,6 @@ func TestTxPoolActor(t *testing.T) {
 	rsp := (result).(*tc.GetTxnPoolRsp)
 	assert.NotNil(t, rsp.TxnPool)
 
-	future = txPoolPid.RequestFuture(&tc.GetPendingTxnReq{ByCount: false}, 2*time.Second)
-	result, err = future.Result()
-	assert.Nil(t, err)
-
 	bk := &tc.VerifyBlockReq{
 		Height: 0,
 		Txs:    []*types.Transaction{txn},
@@ -182,7 +163,7 @@ func TestTxPoolActor(t *testing.T) {
 
 func TestVerifyRspActor(t *testing.T) {
 	t.Log("Starting validator response actor test")
-	s := NewTxPoolServer(tc.MAX_WORKER_NUM, true, false)
+	s := NewTxPoolServer(true, false)
 	if s == nil {
 		t.Error("Test case: new tx pool server failed")
 		return
@@ -200,9 +181,6 @@ func TestVerifyRspActor(t *testing.T) {
 
 	registerMsg := &vt.RegisterValidator{}
 	validatorPid.Tell(registerMsg)
-
-	unRegisterMsg := &vt.UnRegisterValidator{}
-	validatorPid.Tell(unRegisterMsg)
 
 	rsp := &vt.CheckResponse{}
 	validatorPid.Tell(rsp)
