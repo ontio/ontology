@@ -21,6 +21,7 @@ import (
 	"crypto/sha256"
 	"encoding/binary"
 	"errors"
+	errors2 "github.com/ontio/ontology/vm/evm/errors"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -132,7 +133,7 @@ func init() {
 func RunPrecompiledContract(p PrecompiledContract, input []byte, suppliedGas uint64) (ret []byte, remainingGas uint64, err error) {
 	gasCost := p.RequiredGas(input)
 	if suppliedGas < gasCost {
-		return nil, 0, ErrOutOfGas
+		return nil, 0, errors2.ErrOutOfGas
 	}
 	suppliedGas -= gasCost
 	output, err := p.Run(input)

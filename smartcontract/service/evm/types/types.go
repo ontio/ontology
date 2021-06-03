@@ -19,7 +19,7 @@ package types
 
 import (
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ontio/ontology/vm/evm"
+	"github.com/ontio/ontology/vm/evm/errors"
 )
 
 // ExecutionResult includes all output after executing given evm
@@ -51,7 +51,7 @@ func (result *ExecutionResult) Return() []byte {
 // Revert returns the concrete revert reason if the execution is aborted by `REVERT`
 // opcode. Note the reason can be nil if no data supplied with revert opcode.
 func (result *ExecutionResult) Revert() []byte {
-	if result.Err != evm.ErrExecutionReverted {
+	if result.Err != errors.ErrExecutionReverted {
 		return nil
 	}
 	return common.CopyBytes(result.ReturnData)
