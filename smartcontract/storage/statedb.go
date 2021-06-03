@@ -40,7 +40,7 @@ type OngBalanceHandle interface {
 
 type StateDB struct {
 	cacheDB          *CacheDB
-	suicided         map[common.Address]bool
+	Suicided         map[common.Address]bool
 	logs             []*types.StorageLog
 	thash, bhash     common.Hash
 	txIndex          int
@@ -52,7 +52,7 @@ type StateDB struct {
 func NewStateDB(cacheDB *CacheDB, thash, bhash common.Hash, balanceHandle OngBalanceHandle) *StateDB {
 	return &StateDB{
 		cacheDB:          cacheDB,
-		suicided:         make(map[common.Address]bool),
+		Suicided:         make(map[common.Address]bool),
 		logs:             nil,
 		thash:            thash,
 		bhash:            bhash,
@@ -90,7 +90,7 @@ func (self *StateDB) Commit() error {
 }
 
 func (self *StateDB) CommitToCacheDB() error {
-	for addr := range self.suicided {
+	for addr := range self.Suicided {
 		self.cacheDB.DelEthAccount(addr) //todo : check consistence with ethereum
 		err := self.cacheDB.CleanContractStorageData(comm.Address(addr))
 		if err != nil {
@@ -98,7 +98,7 @@ func (self *StateDB) CommitToCacheDB() error {
 		}
 	}
 
-	self.suicided = make(map[common.Address]bool)
+	self.Suicided = make(map[common.Address]bool)
 	self.snapshots = self.snapshots[:0]
 
 	return nil
@@ -275,7 +275,7 @@ func (self *StateDB) Suicide(addr common.Address) bool {
 	if acct.IsEmpty() {
 		return false
 	}
-	self.suicided[addr] = true
+	self.Suicided[addr] = true
 	err := self.OngBalanceHandle.SetBalance(self.cacheDB, comm.Address(addr), big.NewInt(0))
 	if err != nil {
 		self.cacheDB.SetDbErr(err)
@@ -284,11 +284,11 @@ func (self *StateDB) Suicide(addr common.Address) bool {
 }
 
 func (self *StateDB) HasSuicided(addr common.Address) bool {
-	return self.suicided[addr]
+	return self.Suicided[addr]
 }
 
 func (self *StateDB) Exist(addr common.Address) bool {
-	if self.suicided[addr] {
+	if self.Suicided[addr] {
 		return true
 	}
 	acct := self.getEthAccount(addr)
@@ -335,7 +335,7 @@ func (self *StateDB) CreateAccount(address common.Address) {
 func (self *StateDB) Snapshot() int {
 	changes := self.cacheDB.memdb.DeepClone()
 	suicided := make(map[common.Address]bool)
-	for k, v := range self.suicided {
+	for k, v := range self.Suicided {
 		suicided[k] = v
 	}
 
@@ -360,7 +360,7 @@ func (self *StateDB) RevertToSnapshot(idx int) {
 
 	self.snapshots = self.snapshots[:idx]
 	self.cacheDB.memdb = sn.changes
-	self.suicided = sn.suicided
+	self.Suicided = sn.suicided
 	self.refund = sn.refund
 	self.logs = self.logs[:sn.logsSize]
 }

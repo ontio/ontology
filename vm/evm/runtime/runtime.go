@@ -1,5 +1,4 @@
 // Copyright (C) 2021 The Ontology Authors
-// Copyright 2015 The go-ethereum Authors
 // This file is part of the go-ethereum library.
 //
 // The go-ethereum library is free software: you can redistribute it and/or modify
@@ -24,6 +23,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/holiman/uint256"
 	"github.com/ontio/ontology/core/store/leveldbstore"
 	"github.com/ontio/ontology/core/store/overlaydb"
 	"github.com/ontio/ontology/smartcontract/service/native/ong"
@@ -154,6 +154,33 @@ func Create(input []byte, cfg *Config) ([]byte, common.Address, uint64, error) {
 		input,
 		cfg.GasLimit,
 		cfg.Value,
+	)
+	return code, address, leftOverGas, err
+}
+
+// Create2 executes the code using the EVM create2 method
+func Create2(input []byte, cfg *Config, salt *uint256.Int) ([]byte, common.Address, uint64, error) {
+	if cfg == nil {
+		cfg = new(Config)
+	}
+	setDefaults(cfg)
+
+	if cfg.State == nil {
+		db := storage.NewCacheDB(overlaydb.NewOverlayDB(leveldbstore.NewMemLevelDBStore()))
+		cfg.State = storage.NewStateDB(db, common.Hash{}, common.Hash{}, ong.OngBalanceHandle{})
+	}
+	var (
+		vmenv  = NewEnv(cfg)
+		sender = evm.AccountRef(cfg.Origin)
+	)
+
+	// Call the code with the given configuration.
+	code, address, leftOverGas, err := vmenv.Create2(
+		sender,
+		input,
+		cfg.GasLimit,
+		cfg.Value,
+		salt,
 	)
 	return code, address, leftOverGas, err
 }
