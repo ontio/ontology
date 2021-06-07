@@ -44,7 +44,7 @@ func TestEtherAccount(t *testing.T) {
 
 	h := crypto.Keccak256Hash([]byte("hello"))
 
-	ea := &EthAcount{
+	ea := &EthAccount{
 		Nonce:    1023,
 		CodeHash: h,
 	}
@@ -53,7 +53,7 @@ func TestEtherAccount(t *testing.T) {
 	sink := comm.NewZeroCopySink(nil)
 	ea.Serialization(sink)
 
-	clone := &EthAcount{}
+	clone := &EthAccount{}
 	source := comm.NewZeroCopySource(sink.Bytes())
 	err := clone.Deserialization(source)
 	a.Nil(err, "fail")
