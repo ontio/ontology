@@ -19,8 +19,6 @@
 package proc
 
 import (
-	"bytes"
-	"encoding/hex"
 	"testing"
 	"time"
 
@@ -52,23 +50,6 @@ func TestWorker(t *testing.T) {
 	worker.rcvTXCh <- txn
 	time.Sleep(1 * time.Second)
 
-	statelessRsp := &vt.CheckResponse{
-		ErrCode: errors.ErrNoError,
-		Hash:    txn.Hash(),
-		Type:    vt.Stateless,
-		Height:  0,
-	}
-
-	statefulRsp := &vt.CheckResponse{
-		ErrCode: errors.ErrNoError,
-		Hash:    txn.Hash(),
-		Type:    vt.Stateful,
-		Height:  0,
-	}
-	worker.rspCh <- statelessRsp
-	worker.rspCh <- statefulRsp
-
-	time.Sleep(1 * time.Second)
 	ret := worker.server.getTransaction(txn.Hash())
 	assert.NotNil(t, ret)
 	assert.Equal(t, ret.Hash(), txn.Hash())
@@ -84,37 +65,21 @@ func TestWorker(t *testing.T) {
 	time.Sleep(1 * time.Second)
 	worker.server.cleanTransactionList([]*types.Transaction{txn}, 0)
 
-	worker.rcvTXCh <- txn
+	worker.rcvTXCh <- invalidTx
 	time.Sleep(1 * time.Second)
-
-	statelessRsp = &vt.CheckResponse{
-		ErrCode: errors.ErrUnknown,
-		Hash:    txn.Hash(),
-		Type:    vt.Stateless,
-		Height:  0,
-	}
-
-	statefulRsp = &vt.CheckResponse{
-		ErrCode: errors.ErrUnknown,
-		Hash:    txn.Hash(),
-		Type:    vt.Stateful,
-		Height:  0,
-	}
-	worker.rspCh <- statelessRsp
-	worker.rspCh <- statefulRsp
 
 	/* Case 4: valdiators reply with invalid tx hash or invalid work id,
 	 * worker should reject it
 	 */
 	time.Sleep(2 * time.Second)
-	statelessRsp = &vt.CheckResponse{
+	statelessRsp := &vt.CheckResponse{
 		ErrCode: errors.ErrUnknown,
 		Hash:    txn.Hash(),
 		Type:    vt.Stateless,
 		Height:  0,
 	}
 
-	statefulRsp = &vt.CheckResponse{
+	statefulRsp := &vt.CheckResponse{
 		ErrCode: errors.ErrUnknown,
 		Hash:    txn.Hash(),
 		Type:    vt.Stateful,
@@ -122,18 +87,6 @@ func TestWorker(t *testing.T) {
 	}
 	worker.rspCh <- statelessRsp
 	worker.rspCh <- statefulRsp
-
-	/* Case 5: For the given tx, response time out, worker should
-	 * retry verifying it till retries exhausted, and then remove
-	 * it from the pending list
-	 */
-	time.Sleep(2 * time.Second)
-	worker.rcvTXCh <- txn
-
-	time.Sleep(15 * time.Second)
-	txStatus := worker.GetTxStatus(txn.Hash())
-	t.Log(txStatus)
-	assert.Nil(t, txStatus)
 
 	/* Case 6: For the given tx, worker handle it once, if
 	 * duplicate input the tx, worker should reject it with
@@ -141,22 +94,13 @@ func TestWorker(t *testing.T) {
 	 */
 	worker.rcvTXCh <- txn
 	worker.rcvTXCh <- txn
+	time.Sleep(time.Second * 1)
 
-	/* Case 7: For the pending tx, worker should get the entry
-	 * with the valid hash
-	 */
-	time.Sleep(1 * time.Second)
-	txStatus = worker.GetTxStatus(txn.Hash())
-	t.Log(txStatus)
-	assert.NotNil(t, txStatus)
-	assert.Equal(t, txStatus.Hash, txn.Hash())
 	/* Case 8: Given the invalid hash, worker should return nil
 	 */
 	tempStr := "3369930accc1ddd067245e8edadcd9bea207ba5e1753ac18a51df77a343bfe83"
-	hex, _ := hex.DecodeString(tempStr)
-	var hash common.Uint256
-	hash.Deserialize(bytes.NewReader(hex))
-	txStatus = worker.GetTxStatus(hash)
+	hash, _ := common.Uint256FromHexString(tempStr)
+	txStatus := worker.GetTxStatus(hash)
 	assert.Nil(t, txStatus)
 
 	worker.stop()

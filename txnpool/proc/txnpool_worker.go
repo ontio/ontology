@@ -22,14 +22,13 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ontio/ontology/validator/stateful"
-	"github.com/ontio/ontology/validator/stateless"
-
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
 	tx "github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/errors"
 	tc "github.com/ontio/ontology/txnpool/common"
+	"github.com/ontio/ontology/validator/stateful"
+	"github.com/ontio/ontology/validator/stateless"
 	"github.com/ontio/ontology/validator/types"
 )
 
@@ -102,8 +101,7 @@ func (worker *txPoolWorker) handleRsp(rsp *types.CheckResponse) {
 	}
 	if rsp.ErrCode != errors.ErrNoError {
 		//Verify fail
-		log.Debugf("handleRsp: validator %d transaction %x invalid: %s",
-			rsp.Type, rsp.Hash, rsp.ErrCode.Error())
+		log.Debugf("handleRsp: validator %d transaction %x invalid: %s", rsp.Type, rsp.Hash, rsp.ErrCode.Error())
 		delete(worker.pendingTxList, rsp.Hash)
 		worker.server.removePendingTx(rsp.Hash, rsp.ErrCode)
 		return
@@ -138,13 +136,7 @@ func (worker *txPoolWorker) handleRsp(rsp *types.CheckResponse) {
  * long, need to change the algorithm later
  */
 func (worker *txPoolWorker) handleTimeoutEvent() {
-	if len(worker.pendingTxList) <= 0 {
-		return
-	}
-
-	/* Go through the pending list, for those unverified txns,
-	 * resend them to the validators
-	 */
+	// Go through the pending list, for those unverified txns, resend them to the validators
 	for k, v := range worker.pendingTxList {
 		if v.flag&0xf != tc.VERIFY_MASK && (time.Now().Sub(v.valTime)/time.Second) >= tc.EXPIRE_INTERVAL {
 			if v.retries < tc.MAX_RETRIES {
@@ -277,9 +269,6 @@ func (worker *txPoolWorker) start() {
 			worker.timer.Reset(time.Second * tc.EXPIRE_INTERVAL)
 		case rsp, ok := <-worker.rspCh:
 			if ok {
-				/* Handle the response from validator, if all of cases
-				 * are verified, put it to txnPool
-				 */
 				worker.handleRsp(rsp)
 			}
 		}

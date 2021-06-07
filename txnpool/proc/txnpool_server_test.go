@@ -22,31 +22,42 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ontio/ontology/cmd/utils"
+
 	"github.com/ontio/ontology-eventbus/actor"
+	"github.com/ontio/ontology/account"
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/types"
 	tc "github.com/ontio/ontology/txnpool/common"
 )
 
 var (
-	txn    *types.Transaction
-	topic  string
-	sender tc.SenderType
+	txn       *types.Transaction
+	invalidTx *types.Transaction
+	sender    tc.SenderType
 )
 
 func init() {
-	topic = "TXN"
-
 	code := []byte("ont")
 
 	invokeCodePayload := &payload.InvokeCode{
 		Code: code,
 	}
 
+	acct := account.NewAccount("")
+
 	mutable := &types.MutableTransaction{
 		TxType:  types.InvokeNeo,
 		Nonce:   uint32(time.Now().Unix()),
 		Payload: invokeCodePayload,
+		Payer:   acct.Address,
+	}
+
+	invalidTx, _ = mutable.IntoImmutable()
+
+	err := utils.SignTransaction(acct, mutable)
+	if err != nil {
+		panic(err)
 	}
 
 	txn, _ = mutable.IntoImmutable()
