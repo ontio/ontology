@@ -19,87 +19,45 @@
 package stateful
 
 import (
-	"reflect"
+	"github.com/gammazero/workerpool"
 
-	"github.com/ontio/ontology-eventbus/actor"
-	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/errors"
 	vatypes "github.com/ontio/ontology/validator/types"
 )
 
-// Validator is an interface for tx validation actor
-type Validator interface {
-	Register(poolId *actor.PID)
-	VerifyType() vatypes.VerifyType
+type ValidatorPool struct {
+	pool *workerpool.WorkerPool
 }
 
-type validator struct {
-	pid *actor.PID
-	id  string
+func NewValidatorPool(maxWorkers int) *ValidatorPool {
+	return &ValidatorPool{pool: workerpool.New(maxWorkers)}
 }
 
-// NewValidator returns Validator for stateful check of tx
-func NewValidator(id string) (Validator, error) {
-
-	validator := &validator{id: id}
-	props := actor.FromProducer(func() actor.Actor {
-		return validator
-	})
-
-	pid, err := actor.SpawnNamed(props, id)
-	validator.pid = pid
-	return validator, err
-}
-
-func (self *validator) Receive(context actor.Context) {
-	switch msg := context.Message().(type) {
-	case *actor.Started:
-		log.Info("stateful-validator: started and be ready to receive txn")
-	case *actor.Stopping:
-		log.Info("stateful-validator: stopping")
-	case *actor.Restarting:
-		log.Info("stateful-validator: restarting")
-	case *vatypes.CheckTx:
-		log.Debugf("stateful-validator: receive tx %x", msg.Tx.Hash())
-		sender := context.Sender()
+func (self *ValidatorPool) SubmitVerifyTask(tx *types.Transaction, rspCh chan<- *vatypes.CheckResponse) {
+	task := func() {
 		height := ledger.DefLedger.GetCurrentBlockHeight()
 
 		errCode := errors.ErrNoError
-		hash := msg.Tx.Hash()
+		hash := tx.Hash()
 
 		exist, err := ledger.DefLedger.IsContainTransaction(hash)
 		if err != nil {
-			log.Warn("query db error:", err)
 			errCode = errors.ErrUnknown
 		} else if exist {
 			errCode = errors.ErrDuplicatedTx
 		}
 
 		response := &vatypes.CheckResponse{
-			Type:    self.VerifyType(),
-			Hash:    msg.Tx.Hash(),
+			Type:    vatypes.Stateful,
+			Hash:    tx.Hash(),
 			Height:  height,
 			ErrCode: errCode,
 		}
 
-		sender.Tell(response)
-	case *types.Block:
-
-	default:
-		log.Info("stateful-validator: unknown msg ", msg, "type", reflect.TypeOf(msg))
+		rspCh <- response
 	}
-}
 
-func (self *validator) VerifyType() vatypes.VerifyType {
-	return vatypes.Stateful
-}
-
-func (self *validator) Register(poolId *actor.PID) {
-	poolId.Tell(&vatypes.RegisterValidator{
-		Sender: self.pid,
-		Type:   self.VerifyType(),
-		Id:     self.id,
-	})
+	self.pool.Submit(task)
 }

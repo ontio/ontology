@@ -57,8 +57,6 @@ import (
 	"github.com/ontio/ontology/txnpool"
 	tc "github.com/ontio/ontology/txnpool/common"
 	"github.com/ontio/ontology/txnpool/proc"
-	"github.com/ontio/ontology/validator/stateful"
-	"github.com/ontio/ontology/validator/stateless"
 	"github.com/urfave/cli"
 )
 
@@ -293,12 +291,6 @@ func initTxPool(ctx *cli.Context) (*proc.TXPoolServer, error) {
 	if err != nil {
 		return nil, fmt.Errorf("init txpool error: %s", err)
 	}
-	stlValidator, _ := stateless.NewValidator("stateless_validator")
-	stlValidator.Register(txPoolServer.GetPID(tc.VerifyRspActor))
-	stlValidator2, _ := stateless.NewValidator("stateless_validator2")
-	stlValidator2.Register(txPoolServer.GetPID(tc.VerifyRspActor))
-	stfValidator, _ := stateful.NewValidator("stateful_validator")
-	stfValidator.Register(txPoolServer.GetPID(tc.VerifyRspActor))
 
 	bactor.SetTxnPoolPid(txPoolServer.GetPID(tc.TxPoolActor))
 	bactor.SetTxPid(txPoolServer.GetPID(tc.TxActor))

@@ -25,26 +25,20 @@ import (
 )
 
 const (
-	MAX_CAPACITY     = 100140                         // The tx pool's capacity that holds the verified txs
-	MAX_PENDING_TXN  = 4096 * 10                      // The max length of pending txs
-	MAX_RETRIES      = 0                              // The retry times to verify tx
-	EXPIRE_INTERVAL  = 9                              // The timeout that verify tx
-	STATELESS_MASK   = 0x1                            // The mask of stateless validator
-	STATEFUL_MASK    = 0x2                            // The mask of stateful validator
-	VERIFY_MASK      = STATELESS_MASK | STATEFUL_MASK // The mask that indicates tx valid
-	MAX_LIMITATION   = 10000                          // The length of pending tx from net and http
-	UPDATE_FREQUENCY = 100                            // The frequency to update gas price from global params
-	MAX_TX_SIZE      = 1024 * 1024                    // The max size of a transaction to prevent DOS attacks
+	MAX_CAPACITY     = 100140      // The tx pool's capacity that holds the verified txs
+	MAX_PENDING_TXN  = 4096 * 10   // The max length of pending txs
+	MAX_LIMITATION   = 10000       // The length of pending tx from net and http
+	UPDATE_FREQUENCY = 100         // The frequency to update gas price from global params
+	MAX_TX_SIZE      = 1024 * 1024 // The max size of a transaction to prevent DOS attacks
 )
 
 // ActorType enumerates the kind of actor
 type ActorType uint8
 
 const (
-	_              ActorType = iota
-	TxActor                  // Actor that handles new transaction
-	TxPoolActor              // Actor that handles consensus msg
-	VerifyRspActor           // Actor that handles the response from valdiators
+	_           ActorType = iota
+	TxActor               // Actor that handles new transaction
+	TxPoolActor           // Actor that handles consensus msg
 	MaxActor
 )
 

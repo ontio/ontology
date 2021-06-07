@@ -160,32 +160,3 @@ func TestTxPoolActor(t *testing.T) {
 	s.Stop()
 	t.Log("Ending tx pool actor test")
 }
-
-func TestVerifyRspActor(t *testing.T) {
-	t.Log("Starting validator response actor test")
-	s := NewTxPoolServer(true, false)
-	if s == nil {
-		t.Error("Test case: new tx pool server failed")
-		return
-	}
-
-	validatorActor := NewVerifyRspActor(s)
-	validatorPid := startActor(validatorActor)
-	if validatorPid == nil {
-		t.Error("Test case: start tx actor failed")
-		s.Stop()
-		return
-	}
-
-	validatorPid.Tell(txn)
-
-	registerMsg := &vt.RegisterValidator{}
-	validatorPid.Tell(registerMsg)
-
-	rsp := &vt.CheckResponse{}
-	validatorPid.Tell(rsp)
-
-	time.Sleep(1 * time.Second)
-	s.Stop()
-	t.Log("Ending validator response actor test")
-}

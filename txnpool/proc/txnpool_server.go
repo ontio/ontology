@@ -25,6 +25,7 @@ import (
 	"fmt"
 	"strconv"
 	"sync"
+	"sync/atomic"
 
 	"github.com/ontio/ontology-eventbus/actor"
 	"github.com/ontio/ontology/common"
@@ -39,7 +40,6 @@ import (
 	params "github.com/ontio/ontology/smartcontract/service/native/global_params"
 	nutils "github.com/ontio/ontology/smartcontract/service/native/utils"
 	tc "github.com/ontio/ontology/txnpool/common"
-	"github.com/ontio/ontology/validator/types"
 )
 
 type serverPendingTx struct {
@@ -56,16 +56,6 @@ type pendingBlock struct {
 	unProcessedTxs map[common.Uint256]*tx.Transaction    // Transaction which is not processed
 }
 
-type roundRobinState struct {
-	state map[types.VerifyType]int // Keep the round robin index for each verify type
-}
-
-type registerValidators struct {
-	sync.RWMutex
-	entries map[types.VerifyType][]*types.RegisterValidator // Registered validator container
-	state   roundRobinState                                 // For loadbance
-}
-
 // TXPoolServer contains all api to external modules
 type TXPoolServer struct {
 	mu                    sync.RWMutex                        // Sync mutex
@@ -76,12 +66,11 @@ type TXPoolServer struct {
 	pendingBlock          *pendingBlock                       // The block that server is processing
 	actors                map[tc.ActorType]*actor.PID         // The actors running in the server
 	Net                   p2p.P2P
-	validators            *registerValidators // The registered validators
-	slots                 chan struct{}       // The limited slots for the new transaction
-	height                uint32              // The current block height
-	gasPrice              uint64              // Gas price to enforce for acceptance into the pool
-	disablePreExec        bool                // Disbale PreExecute a transaction
-	disableBroadcastNetTx bool                // Disable broadcast tx from network
+	slots                 chan struct{} // The limited slots for the new transaction
+	height                uint32        // The current block height
+	gasPrice              uint64        // Gas price to enforce for acceptance into the pool
+	disablePreExec        bool          // Disbale PreExecute a transaction
+	disableBroadcastNetTx bool          // Disable broadcast tx from network
 }
 
 // NewTxPoolServer creates a new tx pool server to schedule workers to
@@ -152,13 +141,6 @@ func (s *TXPoolServer) init(disablePreExec, disableBroadcastNetTx bool) {
 	s.allPendingTxs = make(map[common.Uint256]*serverPendingTx)
 	s.actors = make(map[tc.ActorType]*actor.PID)
 
-	s.validators = &registerValidators{
-		entries: make(map[types.VerifyType][]*types.RegisterValidator),
-		state: roundRobinState{
-			state: make(map[types.VerifyType]int),
-		},
-	}
-
 	s.pendingBlock = &pendingBlock{
 		processedTxs:   make(map[common.Uint256]*tc.VerifyTxResult, 0),
 		unProcessedTxs: make(map[common.Uint256]*tx.Transaction, 0),
@@ -218,18 +200,15 @@ func (s *TXPoolServer) getPendingListSize() int {
 	return len(s.allPendingTxs)
 }
 
-// getHeight return current block height
 func (s *TXPoolServer) getHeight() uint32 {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-	return s.height
+	return atomic.LoadUint32(&s.height)
 }
 
-// setHeight set current block height
 func (s *TXPoolServer) setHeight(height uint32) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	s.height = height
+	if height == 0 {
+		return
+	}
+	atomic.StoreUint32(&s.height, height)
 }
 
 // getGasPrice returns the current gas price enforced by the transaction pool
@@ -243,9 +222,7 @@ func (s *TXPoolServer) getGasPrice() uint64 {
 // when it is handled. And if the submitter of the valid transaction
 // is from http, broadcast it to the network. Meanwhile, check if it
 // is in the block from consensus.
-func (s *TXPoolServer) removePendingTx(hash common.Uint256,
-	err errors.ErrCode) {
-
+func (s *TXPoolServer) removePendingTx(hash common.Uint256, err errors.ErrCode) {
 	s.mu.Lock()
 
 	pt, ok := s.allPendingTxs[hash]
@@ -262,9 +239,7 @@ func (s *TXPoolServer) removePendingTx(hash common.Uint256,
 		}
 	}
 
-	if pt.sender == tc.HttpSender && pt.ch != nil {
-		replyTxResult(pt.ch, hash, err, err.Error())
-	}
+	replyTxResult(pt.sender, pt.ch, hash, err, err.Error())
 
 	delete(s.allPendingTxs, hash)
 
@@ -285,9 +260,7 @@ func (s *TXPoolServer) removePendingTx(hash common.Uint256,
 
 // setPendingTx adds a transaction to the pending list, if the
 // transaction is already in the pending list, just return false.
-func (s *TXPoolServer) setPendingTx(tx *tx.Transaction,
-	sender tc.SenderType, txResultCh chan *tc.TxResult) bool {
-
+func (s *TXPoolServer) setPendingTx(tx *tx.Transaction, sender tc.SenderType, txResultCh chan *tc.TxResult) bool {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if ok := s.allPendingTxs[tx.Hash()]; ok != nil {
@@ -307,34 +280,14 @@ func (s *TXPoolServer) setPendingTx(tx *tx.Transaction,
 }
 
 // assignTxToWorker assigns a new transaction to a worker by LB
-func (s *TXPoolServer) assignTxToWorker(tx *tx.Transaction,
-	sender tc.SenderType, txResultCh chan *tc.TxResult) bool {
-
-	if tx == nil {
-		return false
-	}
-
+func (s *TXPoolServer) assignTxToWorker(tx *tx.Transaction, sender tc.SenderType, txResultCh chan *tc.TxResult) bool {
 	if ok := s.setPendingTx(tx, sender, txResultCh); !ok {
-		if sender == tc.HttpSender && txResultCh != nil {
-			replyTxResult(txResultCh, tx.Hash(), errors.ErrDuplicateInput, "duplicated transaction input detected")
-		}
+		replyTxResult(sender, txResultCh, tx.Hash(), errors.ErrDuplicateInput, "duplicated transaction input detected")
 		return false
 	}
 
 	// Add the rcvTxn to the worker
 	s.worker.rcvTXCh <- tx
-	return true
-}
-
-// assignRspToWorker assigns a check response from the validator to
-// the correct worker.
-func (s *TXPoolServer) assignRspToWorker(rsp *types.CheckResponse) bool {
-	if rsp == nil {
-		return false
-	}
-
-	s.worker.rspCh <- rsp
-
 	return true
 }
 
@@ -356,56 +309,6 @@ func (s *TXPoolServer) RegisterActor(actor tc.ActorType, pid *actor.PID) {
 // UnRegisterActor cancels the actor with the actor type.
 func (s *TXPoolServer) UnRegisterActor(actor tc.ActorType) {
 	delete(s.actors, actor)
-}
-
-// registerValidator registers a validator to verify a transaction.
-func (s *TXPoolServer) registerValidator(v *types.RegisterValidator) {
-	s.validators.Lock()
-	defer s.validators.Unlock()
-
-	_, ok := s.validators.entries[v.Type]
-
-	if !ok {
-		s.validators.entries[v.Type] = make([]*types.RegisterValidator, 0, 1)
-	}
-	s.validators.entries[v.Type] = append(s.validators.entries[v.Type], v)
-}
-
-// getNextValidatorPIDs returns the next pids to verify the transaction using
-// roundRobin LB.
-func (s *TXPoolServer) getNextValidatorPIDs() []*actor.PID {
-	s.validators.Lock()
-	defer s.validators.Unlock()
-
-	if len(s.validators.entries) == 0 {
-		return nil
-	}
-
-	ret := make([]*actor.PID, 0, len(s.validators.entries))
-	for k, v := range s.validators.entries {
-		lastIdx := s.validators.state.state[k]
-		next := (lastIdx + 1) % len(v)
-		s.validators.state.state[k] = next
-		ret = append(ret, v[next].Sender)
-	}
-	return ret
-}
-
-// getNextValidatorPID returns the next pid with the verify type using roundRobin LB
-func (s *TXPoolServer) getNextValidatorPID(key types.VerifyType) *actor.PID {
-	s.validators.Lock()
-	defer s.validators.Unlock()
-
-	length := len(s.validators.entries[key])
-	if length == 0 {
-		return nil
-	}
-
-	entries := s.validators.entries[key]
-	lastIdx := s.validators.state.state[key]
-	next := (lastIdx + 1) % length
-	s.validators.state.state[key] = next
-	return entries[next].Sender
 }
 
 // Stop stops server and workers.

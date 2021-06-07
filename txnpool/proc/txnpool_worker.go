@@ -27,19 +27,41 @@ import (
 	tx "github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/errors"
 	tc "github.com/ontio/ontology/txnpool/common"
+	"github.com/ontio/ontology/validator/stateful"
+	"github.com/ontio/ontology/validator/stateless"
 	"github.com/ontio/ontology/validator/types"
 )
 
 // pendingTx contains the transaction, the time of starting verifying,
-// the cache of check request, the flag indicating the verified status,
-// the verified result and retry mechanism
+// the cache of check request, the verified result and retry mechanism
 type pendingTx struct {
-	tx      *tx.Transaction // That is unverified or on the verifying process
-	valTime time.Time       // The start time
-	req     *types.CheckTx  // Req cache
-	flag    uint8           // For different types of verification
-	retries uint8           // For resend to validator when time out before verified
-	ret     []*tc.TXAttr    // verified results
+	tx              *tx.Transaction // That is unverified or on the verifying process
+	valTime         time.Time       // The start time
+	passedStateless bool
+	passedStateful  bool
+	CheckHeight     uint32
+}
+
+func (self *pendingTx) GetTxAttr() []*tc.TXAttr {
+	var res []*tc.TXAttr
+	if self.passedStateless {
+		res = append(res,
+			&tc.TXAttr{
+				Height:  0,
+				Type:    types.Stateless,
+				ErrCode: errors.ErrNoError,
+			})
+	}
+	if self.passedStateful {
+		res = append(res,
+			&tc.TXAttr{
+				Height:  self.CheckHeight,
+				Type:    types.Stateful,
+				ErrCode: errors.ErrNoError,
+			})
+	}
+
+	return res
 }
 
 // txPoolWorker handles the tasks scheduled by server
@@ -49,9 +71,10 @@ type txPoolWorker struct {
 	stfTxCh       chan *tx.Transaction          // The channel of txs to be re-verified stateful
 	rspCh         chan *types.CheckResponse     // The channel of verified response
 	server        *TXPoolServer                 // The txn pool server pointer
-	timer         *time.Timer                   // The timer of reverifying
 	stopCh        chan bool                     // stop routine
 	pendingTxList map[common.Uint256]*pendingTx // The transaction on the verifying process
+	stateless     *stateless.ValidatorPool
+	stateful      *stateful.ValidatorPool
 }
 
 func NewTxPoolWoker(s *TXPoolServer) *txPoolWorker {
@@ -62,6 +85,8 @@ func NewTxPoolWoker(s *TXPoolServer) *txPoolWorker {
 	worker.rspCh = make(chan *types.CheckResponse, tc.MAX_PENDING_TXN)
 	worker.stopCh = make(chan bool)
 	worker.server = s
+	worker.stateless = stateless.NewValidatorPool(2)
+	worker.stateful = stateful.NewValidatorPool(1)
 
 	return worker
 }
@@ -78,7 +103,7 @@ func (worker *txPoolWorker) GetTxStatus(hash common.Uint256) *tc.TxStatus {
 
 	txStatus := &tc.TxStatus{
 		Hash:  hash,
-		Attrs: pt.ret,
+		Attrs: pt.GetTxAttr(),
 	}
 	return txStatus
 }
@@ -96,75 +121,38 @@ func (worker *txPoolWorker) handleRsp(rsp *types.CheckResponse) {
 	}
 	if rsp.ErrCode != errors.ErrNoError {
 		//Verify fail
-		log.Debugf("handleRsp: validator %d transaction %x invalid: %s",
-			rsp.Type, rsp.Hash, rsp.ErrCode.Error())
+		log.Debugf("handleRsp: validator %d transaction %x invalid: %s", rsp.Type, rsp.Hash, rsp.ErrCode.Error())
 		delete(worker.pendingTxList, rsp.Hash)
 		worker.server.removePendingTx(rsp.Hash, rsp.ErrCode)
 		return
 	}
 
-	if tc.STATEFUL_MASK&(0x1<<rsp.Type) != 0 && rsp.Height < worker.server.getHeight() {
+	if rsp.Type == types.Stateful && rsp.Height < worker.server.getHeight() {
 		// If validator's height is less than the required one, re-validate it.
-		worker.sendReq2StatefulV(pt.req)
+		worker.startStatefulVerify(pt.tx)
 		pt.valTime = time.Now()
 		return
 	}
 
-	if pt.flag&(0x1<<rsp.Type) == 0 {
-		retAttr := &tc.TXAttr{
-			Height:  rsp.Height,
-			Type:    rsp.Type,
-			ErrCode: rsp.ErrCode,
+	switch rsp.Type {
+	case types.Stateful:
+		pt.passedStateful = true
+		if rsp.Height > pt.CheckHeight {
+			pt.CheckHeight = rsp.Height
 		}
-		pt.flag |= 0x1 << rsp.Type
-		pt.ret = append(pt.ret, retAttr)
+	case types.Stateless:
+		pt.passedStateless = true
 	}
 
-	if pt.flag&0xf == tc.VERIFY_MASK {
-		worker.putTxPool(pt)
+	if pt.passedStateless && pt.passedStateful {
+		txEntry := &tc.TXEntry{
+			Tx:    pt.tx,
+			Attrs: pt.GetTxAttr(),
+		}
+		worker.server.addTxList(txEntry)
+		worker.server.removePendingTx(pt.tx.Hash(), errors.ErrNoError)
 		delete(worker.pendingTxList, rsp.Hash)
 	}
-}
-
-/* Check if the transaction need to be sent to validator to verify
- * when time out.
- * Todo: Going through the list will take time if the list is too
- * long, need to change the algorithm later
- */
-func (worker *txPoolWorker) handleTimeoutEvent() {
-	if len(worker.pendingTxList) <= 0 {
-		return
-	}
-
-	/* Go through the pending list, for those unverified txns,
-	 * resend them to the validators
-	 */
-	for k, v := range worker.pendingTxList {
-		if v.flag&0xf != tc.VERIFY_MASK && (time.Now().Sub(v.valTime)/time.Second) >= tc.EXPIRE_INTERVAL {
-			if v.retries < tc.MAX_RETRIES {
-				worker.reVerifyTx(k)
-				v.retries++
-			} else {
-				log.Debugf("retry to verify transaction exhausted %x", k.ToArray())
-				worker.mu.Lock()
-				delete(worker.pendingTxList, k)
-				worker.mu.Unlock()
-				worker.server.removePendingTx(k, errors.ErrRetryExhausted)
-			}
-		}
-	}
-}
-
-// putTxPool adds a valid transaction to the tx pool and removes it from
-// the pending list.
-func (worker *txPoolWorker) putTxPool(pt *pendingTx) bool {
-	txEntry := &tc.TXEntry{
-		Tx:    pt.tx,
-		Attrs: pt.ret,
-	}
-	worker.server.addTxList(txEntry)
-	worker.server.removePendingTx(pt.tx.Hash(), errors.ErrNoError)
-	return true
 }
 
 // verifyTx prepares a check request and sends it to the validators.
@@ -176,120 +164,56 @@ func (worker *txPoolWorker) verifyTx(tx *tx.Transaction) {
 	}
 
 	if _, ok := worker.pendingTxList[tx.Hash()]; ok {
-		log.Debugf("verifyTx: transaction %x already in the verifying process",
-			tx.Hash())
+		log.Debugf("verifyTx: transaction %x already in the verifying process", tx.Hash())
 		return
 	}
-	// Construct the request and send it to each validator server to verify
-	req := &types.CheckTx{
-		Tx: tx,
-	}
-
-	worker.sendReq2Validator(req)
 
 	// Construct the pending transaction
 	pt := &pendingTx{
-		tx:      tx,
-		req:     req,
-		flag:    0,
-		retries: 0,
+		tx: tx,
 	}
+	pt.valTime = time.Now()
+
 	// Add it to the pending transaction list
 	worker.mu.Lock()
 	worker.pendingTxList[tx.Hash()] = pt
 	worker.mu.Unlock()
-	// Record the time per a txn
-	pt.valTime = time.Now()
+
+	// need register tx to pending list first to avoid races caused by too fast verification
+	worker.startFullVerify(tx)
 }
 
-// reVerifyTx re-sends a check request to the validators.
-func (worker *txPoolWorker) reVerifyTx(txHash common.Uint256) {
-	pt, ok := worker.pendingTxList[txHash]
-	if !ok {
-		return
-	}
-
-	if pt.flag&0xf != tc.VERIFY_MASK {
-		worker.sendReq2Validator(pt.req)
-	}
-
-	// Update the verifying time
-	pt.valTime = time.Now()
+func (worker *txPoolWorker) startFullVerify(tx *tx.Transaction) {
+	worker.stateless.SubmitVerifyTask(tx, worker.rspCh)
+	worker.stateful.SubmitVerifyTask(tx, worker.rspCh)
 }
 
-// sendReq2Validator sends a check request to the validators
-func (worker *txPoolWorker) sendReq2Validator(req *types.CheckTx) bool {
-	rspPid := worker.server.GetPID(tc.VerifyRspActor)
-	if rspPid == nil {
-		log.Info("sendReq2Validator: VerifyRspActor not exist")
-		return false
-	}
-
-	pids := worker.server.getNextValidatorPIDs()
-	if pids == nil {
-		return false
-	}
-	for _, pid := range pids {
-		pid.Request(req, rspPid)
-	}
-
-	return true
-}
-
-// sendReq2StatefulV sends a check request to the stateful validator
-func (worker *txPoolWorker) sendReq2StatefulV(req *types.CheckTx) {
-	rspPid := worker.server.GetPID(tc.VerifyRspActor)
-	if rspPid == nil {
-		log.Info("sendReq2StatefulV: VerifyRspActor not exist")
-		return
-	}
-
-	pid := worker.server.getNextValidatorPID(types.Stateful)
-	if pid == nil {
-		log.Info("sendReq2StatefulV: get stateful validator failed")
-		return
-	}
-
-	pid.Request(req, rspPid)
-
+func (worker *txPoolWorker) startStatefulVerify(tx *tx.Transaction) {
+	worker.stateful.SubmitVerifyTask(tx, worker.rspCh)
 }
 
 // verifyStateful prepares a check request and sends it to the
 // stateful validator
 func (worker *txPoolWorker) verifyStateful(tx *tx.Transaction) {
-	req := &types.CheckTx{
-		Tx: tx,
-	}
-
 	// Construct the pending transaction
 	pt := &pendingTx{
 		tx:      tx,
-		req:     req,
-		retries: 0,
 		valTime: time.Now(),
 	}
 
-	retAttr := &tc.TXAttr{
-		Height:  0,
-		Type:    types.Stateless,
-		ErrCode: errors.ErrNoError,
-	}
-
-	pt.ret = append(pt.ret, retAttr)
 	// Since the signature has been already verified, mark stateless as true
-	pt.flag |= tc.STATELESS_MASK
+	pt.passedStateless = true
 
 	// Add it to the pending transaction list
 	worker.mu.Lock()
 	worker.pendingTxList[tx.Hash()] = pt
 	worker.mu.Unlock()
 
-	worker.sendReq2StatefulV(req)
+	worker.startStatefulVerify(tx)
 }
 
 // Start is the main event loop.
 func (worker *txPoolWorker) start() {
-	worker.timer = time.NewTimer(time.Second * tc.EXPIRE_INTERVAL)
 	for {
 		select {
 		case <-worker.stopCh:
@@ -304,26 +228,16 @@ func (worker *txPoolWorker) start() {
 			if ok {
 				worker.verifyStateful(stfTx)
 			}
-		case <-worker.timer.C:
-			worker.handleTimeoutEvent()
-			worker.timer.Stop()
-			worker.timer.Reset(time.Second * tc.EXPIRE_INTERVAL)
 		case rsp, ok := <-worker.rspCh:
 			if ok {
-				/* Handle the response from validator, if all of cases
-				 * are verified, put it to txnPool
-				 */
 				worker.handleRsp(rsp)
 			}
 		}
 	}
 }
 
-// stop closes/releases channels and stops timer
+// stop closes/releases channels
 func (worker *txPoolWorker) stop() {
-	if worker.timer != nil {
-		worker.timer.Stop()
-	}
 	if worker.rcvTXCh != nil {
 		close(worker.rcvTXCh)
 	}
