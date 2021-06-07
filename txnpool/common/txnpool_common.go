@@ -32,16 +32,6 @@ const (
 	MAX_TX_SIZE      = 1024 * 1024 // The max size of a transaction to prevent DOS attacks
 )
 
-// ActorType enumerates the kind of actor
-type ActorType uint8
-
-const (
-	_           ActorType = iota
-	TxActor               // Actor that handles new transaction
-	TxPoolActor           // Actor that handles consensus msg
-	MaxActor
-)
-
 // SenderType enumerates the kind of tx submitter
 type SenderType uint8
 

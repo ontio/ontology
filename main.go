@@ -55,7 +55,6 @@ import (
 	netreqactor "github.com/ontio/ontology/p2pserver/actor/req"
 	p2p "github.com/ontio/ontology/p2pserver/net/protocol"
 	"github.com/ontio/ontology/txnpool"
-	tc "github.com/ontio/ontology/txnpool/common"
 	"github.com/ontio/ontology/txnpool/proc"
 	"github.com/urfave/cli"
 )
@@ -292,7 +291,7 @@ func initTxPool(ctx *cli.Context) (*proc.TXPoolServer, error) {
 		return nil, fmt.Errorf("init txpool error: %s", err)
 	}
 
-	bactor.SetTxnPoolPid(txPoolServer.GetPID(tc.TxPoolActor))
+	bactor.SetTxnPoolPid(txPoolServer.GetPID())
 	bactor.SetTxPoolService(proc.NewTxPoolService(txPoolServer))
 
 	log.Infof("TxPool init success")
@@ -323,7 +322,7 @@ func initConsensus(ctx *cli.Context, net p2p.P2P, txpoolSvr *proc.TXPoolServer, 
 	if !config.DefConfig.Consensus.EnableConsensus {
 		return nil, nil
 	}
-	pool := txpoolSvr.GetPID(tc.TxPoolActor)
+	pool := txpoolSvr.GetPID()
 
 	consensusType := strings.ToLower(config.DefConfig.Genesis.ConsensusType)
 	consensusService, err := consensus.NewConsensusService(consensusType, acc, pool, nil, net)

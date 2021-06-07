@@ -64,7 +64,7 @@ type TXPoolServer struct {
 	txPool                *tc.TXPool                          // The tx pool that holds the valid transaction
 	allPendingTxs         map[common.Uint256]*serverPendingTx // The txs that server is processing
 	pendingBlock          *pendingBlock                       // The block that server is processing
-	actors                map[tc.ActorType]*actor.PID         // The actors running in the server
+	actor                 *actor.PID
 	Net                   p2p.P2P
 	slots                 chan struct{} // The limited slots for the new transaction
 	height                uint32        // The current block height
@@ -139,7 +139,6 @@ func (s *TXPoolServer) init(disablePreExec, disableBroadcastNetTx bool) {
 	s.txPool = &tc.TXPool{}
 	s.txPool.Init()
 	s.allPendingTxs = make(map[common.Uint256]*serverPendingTx)
-	s.actors = make(map[tc.ActorType]*actor.PID)
 
 	s.pendingBlock = &pendingBlock{
 		processedTxs:   make(map[common.Uint256]*tc.VerifyTxResult, 0),
@@ -293,29 +292,18 @@ func (s *TXPoolServer) assignTxToWorker(tx *tx.Transaction, sender tc.SenderType
 
 // GetPID returns an actor pid with the actor type, If the type
 // doesn't exist, return nil.
-func (s *TXPoolServer) GetPID(actor tc.ActorType) *actor.PID {
-	if actor < tc.TxActor || actor >= tc.MaxActor {
-		return nil
-	}
-
-	return s.actors[actor]
+func (s *TXPoolServer) GetPID() *actor.PID {
+	return s.actor
 }
 
-// RegisterActor registers an actor with the actor type and pid.
-func (s *TXPoolServer) RegisterActor(actor tc.ActorType, pid *actor.PID) {
-	s.actors[actor] = pid
-}
-
-// UnRegisterActor cancels the actor with the actor type.
-func (s *TXPoolServer) UnRegisterActor(actor tc.ActorType) {
-	delete(s.actors, actor)
+// registers an actor with the actor type and pid.
+func (s *TXPoolServer) RegisterActor(pid *actor.PID) {
+	s.actor = pid
 }
 
 // Stop stops server and workers.
 func (s *TXPoolServer) Stop() {
-	for _, v := range s.actors {
-		v.Stop()
-	}
+	s.actor.Stop()
 	//Stop worker
 	s.worker.stop()
 	s.wg.Wait()

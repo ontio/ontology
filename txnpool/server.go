@@ -53,9 +53,7 @@ func startActor(obj interface{}, id string) (*actor.PID, error) {
 func StartTxnPoolServer(disablePreExec, disableBroadcastNetTx bool) (*tp.TXPoolServer, error) {
 	var s *tp.TXPoolServer
 
-	/* Start txnpool server to receive msgs from p2p,
-	 * consensus and valdiators
-	 */
+	// Start txnpool server to receive msgs from p2p, consensus and valdiators
 	s = tp.NewTxPoolServer(disablePreExec, disableBroadcastNetTx)
 
 	// Initialize an actor to handle the msgs from consensus
@@ -64,15 +62,7 @@ func StartTxnPoolServer(disablePreExec, disableBroadcastNetTx bool) (*tp.TXPoolS
 	if txPoolPid == nil {
 		return nil, err
 	}
-	s.RegisterActor(tc.TxPoolActor, txPoolPid)
-
-	// Initialize an actor to handle the msgs from p2p and api
-	ta := tp.NewTxPoolService(s)
-	txPid, err := startActor(ta, "tx")
-	if txPid == nil {
-		return nil, err
-	}
-	s.RegisterActor(tc.TxActor, txPid)
+	s.RegisterActor(txPoolPid)
 
 	// Subscribe the block complete event
 	var sub = events.NewActorSubscriber(txPoolPid)
