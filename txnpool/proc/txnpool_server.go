@@ -244,9 +244,7 @@ func (s *TXPoolServer) removePendingTx(hash common.Uint256, err errors.ErrCode) 
 		}
 	}
 
-	if pt.sender == tc.HttpSender && pt.ch != nil {
-		replyTxResult(pt.ch, hash, err, err.Error())
-	}
+	replyTxResult(pt.sender, pt.ch, hash, err, err.Error())
 
 	delete(s.allPendingTxs, hash)
 
@@ -289,9 +287,7 @@ func (s *TXPoolServer) setPendingTx(tx *tx.Transaction, sender tc.SenderType, tx
 // assignTxToWorker assigns a new transaction to a worker by LB
 func (s *TXPoolServer) assignTxToWorker(tx *tx.Transaction, sender tc.SenderType, txResultCh chan *tc.TxResult) bool {
 	if ok := s.setPendingTx(tx, sender, txResultCh); !ok {
-		if sender == tc.HttpSender && txResultCh != nil {
-			replyTxResult(txResultCh, tx.Hash(), errors.ErrDuplicateInput, "duplicated transaction input detected")
-		}
+		replyTxResult(sender, txResultCh, tx.Hash(), errors.ErrDuplicateInput, "duplicated transaction input detected")
 		return false
 	}
 
