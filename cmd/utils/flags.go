@@ -163,6 +163,11 @@ var (
 		Usage: "Json rpc server listening port `<number>`",
 		Value: config.DEFAULT_RPC_PORT,
 	}
+	ETHRPCPortFlag = cli.UintFlag{
+		Name:  "ethrpcport",
+		Usage: "Eth json rpc server listening port `<number>`",
+		Value: config.DEFAULT_ETH_RPC_PORT,
+	}
 	RPCLocalEnableFlag = cli.BoolFlag{
 		Name:  "localrpc",
 		Usage: "Enable local rpc server",

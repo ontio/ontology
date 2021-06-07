@@ -18,6 +18,7 @@
 package evm
 
 import (
+	"github.com/ontio/ontology/vm/evm/errors"
 	"hash"
 	"sync/atomic"
 
@@ -223,13 +224,13 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 			// account to the others means the state is modified and should also
 			// return with an error.
 			if operation.writes || (op == CALL && stack.Back(2).Sign() != 0) {
-				return nil, ErrWriteProtection
+				return nil, errors.ErrWriteProtection
 			}
 		}
 		// Static portion of gas
 		cost = operation.constantGas // For tracing
 		if !contract.UseGas(operation.constantGas) {
-			return nil, ErrOutOfGas
+			return nil, errors.ErrOutOfGas
 		}
 
 		var memorySize uint64
@@ -240,12 +241,12 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 		if operation.memorySize != nil {
 			memSize, overflow := operation.memorySize(stack)
 			if overflow {
-				return nil, ErrGasUintOverflow
+				return nil, errors.ErrGasUintOverflow
 			}
 			// memory is expanded in words of 32 bytes. Gas
 			// is also calculated in words.
 			if memorySize, overflow = math.SafeMul(toWordSize(memSize), 32); overflow {
-				return nil, ErrGasUintOverflow
+				return nil, errors.ErrGasUintOverflow
 			}
 		}
 		// Dynamic portion of gas
@@ -256,7 +257,7 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 			dynamicCost, err = operation.dynamicGas(in.evm, contract, stack, mem, memorySize)
 			cost += dynamicCost // total cost, for debug tracing
 			if err != nil || !contract.UseGas(dynamicCost) {
-				return nil, ErrOutOfGas
+				return nil, errors.ErrOutOfGas
 			}
 		}
 		if memorySize > 0 {
@@ -280,7 +281,7 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 		case err != nil:
 			return nil, err
 		case operation.reverts:
-			return res, ErrExecutionReverted
+			return res, errors.ErrExecutionReverted
 		case operation.halts:
 			return res, nil
 		case !operation.jumps:

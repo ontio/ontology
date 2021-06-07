@@ -160,21 +160,21 @@ func (self *StateDB) GetCommittedState(addr common.Address, key common.Hash) com
 	return common.BytesToHash(val)
 }
 
-type EthAcount struct {
+type EthAccount struct {
 	Nonce    uint64
 	CodeHash common.Hash
 }
 
-func (self *EthAcount) IsEmpty() bool {
+func (self *EthAccount) IsEmpty() bool {
 	return self.Nonce == 0 && self.CodeHash == common.Hash{}
 }
 
-func (self *EthAcount) Serialization(sink *comm.ZeroCopySink) {
+func (self *EthAccount) Serialization(sink *comm.ZeroCopySink) {
 	sink.WriteUint64(self.Nonce)
 	sink.WriteHash(comm.Uint256(self.CodeHash))
 }
 
-func (self *EthAcount) Deserialization(source *comm.ZeroCopySource) error {
+func (self *EthAccount) Deserialization(source *comm.ZeroCopySource) error {
 	nonce, _ := source.NextUint64()
 	hash, eof := source.NextHash()
 	if eof {
@@ -186,7 +186,7 @@ func (self *EthAcount) Deserialization(source *comm.ZeroCopySource) error {
 	return nil
 }
 
-func (self *CacheDB) GetEthAccount(addr common.Address) (val EthAcount, err error) {
+func (self *CacheDB) GetEthAccount(addr common.Address) (val EthAccount, err error) {
 	value, err := self.get(common2.ST_ETH_ACCOUNT, addr[:])
 	if err != nil {
 		return val, err
@@ -201,7 +201,7 @@ func (self *CacheDB) GetEthAccount(addr common.Address) (val EthAcount, err erro
 	return val, err
 }
 
-func (self *CacheDB) PutEthAccount(addr common.Address, val EthAcount) {
+func (self *CacheDB) PutEthAccount(addr common.Address, val EthAccount) {
 	var raw []byte
 	if !val.IsEmpty() {
 		raw = comm.SerializeToBytes(&val)
@@ -222,7 +222,7 @@ func (self *CacheDB) PutEthCode(codeHash common.Hash, val []byte) {
 	self.put(common2.ST_ETH_CODE, codeHash[:], val)
 }
 
-func (self *StateDB) getEthAccount(addr common.Address) (val EthAcount) {
+func (self *StateDB) getEthAccount(addr common.Address) (val EthAccount) {
 	account, err := self.cacheDB.GetEthAccount(addr)
 	if err != nil {
 		self.cacheDB.SetDbErr(err)

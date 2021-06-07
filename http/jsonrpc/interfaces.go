@@ -591,11 +591,12 @@ func GetBlockTxsByHeight(params []interface{}) map[string]interface{} {
 
 //get gas price in block
 func GetGasPrice(params []interface{}) map[string]interface{} {
-	result, err := bcomn.GetGasPrice()
+	gasPrice, height, err := bcomn.GetGasPrice()
 	if err != nil {
 		return rpc.ResponsePack(berr.INTERNAL_ERROR, "")
 	}
-	return rpc.ResponseSuccess(result)
+	res := map[string]interface{}{"gasprice": gasPrice, "height": height}
+	return rpc.ResponseSuccess(res)
 }
 
 // get unbound ong of address
