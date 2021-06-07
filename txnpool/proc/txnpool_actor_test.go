@@ -57,60 +57,6 @@ func TestMain(m *testing.M) {
 	os.RemoveAll(config.DEFAULT_DATA_DIR)
 }
 
-func TestTxActor(t *testing.T) {
-	t.Log("Starting tx actor test")
-	s := NewTxPoolServer(true, false)
-	if s == nil {
-		t.Error("Test case: new tx pool server failed")
-		return
-	}
-
-	txActor := NewTxActor(s)
-	txPid := startActor(txActor)
-	if txPid == nil {
-		t.Error("Test case: start tx actor failed")
-		s.Stop()
-		return
-	}
-
-	txReq := &tc.TxReq{
-		Tx:     txn,
-		Sender: tc.NilSender,
-	}
-	txPid.Tell(txReq)
-
-	time.Sleep(1 * time.Second)
-
-	future := txPid.RequestFuture(&tc.GetTxnReq{Hash: txn.Hash()}, 1*time.Second)
-	result, err := future.Result()
-	assert.Nil(t, err)
-	rsp := (result).(*tc.GetTxnRsp)
-	assert.Nil(t, rsp.Txn)
-
-	future = txPid.RequestFuture(&tc.GetTxnStatusReq{Hash: txn.Hash()}, 1*time.Second)
-	result, err = future.Result()
-	assert.Nil(t, err)
-
-	// Given the tx in the pool, test again
-	txEntry := &tc.TXEntry{
-		Tx:    txn,
-		Attrs: []*tc.TXAttr{},
-	}
-	s.addTxList(txEntry)
-
-	future = txPid.RequestFuture(&tc.GetTxnReq{Hash: txn.Hash()}, 1*time.Second)
-	result, err = future.Result()
-	assert.Nil(t, err)
-
-	future = txPid.RequestFuture(&tc.GetTxnStatusReq{Hash: txn.Hash()}, 1*time.Second)
-	result, err = future.Result()
-	assert.Nil(t, err)
-
-	txPid.Tell("test")
-	s.Stop()
-	t.Log("Ending tx actor test")
-}
-
 func TestTxPoolActor(t *testing.T) {
 	t.Log("Starting tx pool actor test")
 	s := NewTxPoolServer(true, false)

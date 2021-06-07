@@ -293,7 +293,7 @@ func initTxPool(ctx *cli.Context) (*proc.TXPoolServer, error) {
 	}
 
 	bactor.SetTxnPoolPid(txPoolServer.GetPID(tc.TxPoolActor))
-	bactor.SetTxPid(txPoolServer.GetPID(tc.TxActor))
+	bactor.SetTxPoolService(proc.NewTxPoolService(txPoolServer))
 
 	log.Infof("TxPool init success")
 	return txPoolServer, nil
@@ -303,7 +303,7 @@ func initP2PNode(ctx *cli.Context, txpoolSvr *proc.TXPoolServer, acct *account.A
 	if config.DefConfig.Genesis.ConsensusType == config.CONSENSUS_TYPE_SOLO {
 		return nil, nil, nil
 	}
-	p2p, err := p2pserver.NewServer(acct)
+	p2p, err := p2pserver.NewServer(acct, proc.NewTxPoolService(txpoolSvr))
 	if err != nil {
 		return nil, nil, err
 	}
@@ -312,7 +312,6 @@ func initP2PNode(ctx *cli.Context, txpoolSvr *proc.TXPoolServer, acct *account.A
 	if err != nil {
 		return nil, nil, fmt.Errorf("p2p service start error %s", err)
 	}
-	netreqactor.SetTxnPoolPid(txpoolSvr.GetPID(tc.TxActor))
 	txpoolSvr.Net = p2p.GetNetwork()
 	bactor.SetNetServer(p2p.GetNetwork())
 	p2p.WaitForPeersStart()

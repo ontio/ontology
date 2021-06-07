@@ -67,7 +67,7 @@ func StartTxnPoolServer(disablePreExec, disableBroadcastNetTx bool) (*tp.TXPoolS
 	s.RegisterActor(tc.TxPoolActor, txPoolPid)
 
 	// Initialize an actor to handle the msgs from p2p and api
-	ta := tp.NewTxActor(s)
+	ta := tp.NewTxPoolService(s)
 	txPid, err := startActor(ta, "tx")
 	if txPid == nil {
 		return nil, err
