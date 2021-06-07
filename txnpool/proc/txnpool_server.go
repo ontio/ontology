@@ -281,7 +281,7 @@ func (s *TXPoolServer) setPendingTx(tx *tx.Transaction, sender tc.SenderType, tx
 // assignTxToWorker assigns a new transaction to a worker by LB
 func (s *TXPoolServer) assignTxToWorker(tx *tx.Transaction, sender tc.SenderType, txResultCh chan *tc.TxResult) bool {
 	if ok := s.setPendingTx(tx, sender, txResultCh); !ok {
-		replyTxResult(sender, txResultCh, tx.Hash(), errors.ErrDuplicateInput, "duplicated transaction input detected")
+		replyTxResult(txResultCh, tx.Hash(), errors.ErrDuplicateInput, "duplicated transaction input detected")
 		return false
 	}
 

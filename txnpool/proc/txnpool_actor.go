@@ -58,8 +58,8 @@ func isBalanceEnough(address common.Address, gas uint64) bool {
 	return balance[0] >= gas
 }
 
-func replyTxResult(sender tc.SenderType, txResultCh chan *tc.TxResult, hash common.Uint256, err errors.ErrCode, desc string) {
-	if sender == tc.HttpSender && txResultCh != nil {
+func replyTxResult(txResultCh chan *tc.TxResult, hash common.Uint256, err errors.ErrCode, desc string) {
+	if txResultCh != nil {
 		result := &tc.TxResult{
 			Err:  err,
 			Hash: hash,
@@ -111,26 +111,26 @@ type TxPoolService struct {
 func (ta *TxPoolService) handleTransaction(sender tc.SenderType, txn *tx.Transaction, txResultCh chan *tc.TxResult) {
 	if len(txn.ToArray()) > tc.MAX_TX_SIZE {
 		log.Debugf("handleTransaction: reject a transaction due to size over 1M")
-		replyTxResult(sender, txResultCh, txn.Hash(), errors.ErrUnknown, "size is over 1M")
+		replyTxResult(txResultCh, txn.Hash(), errors.ErrUnknown, "size is over 1M")
 		return
 	}
 
 	if ta.server.getTransaction(txn.Hash()) != nil {
 		log.Debugf("handleTransaction: transaction %x already in the txn pool", txn.Hash())
 
-		replyTxResult(sender, txResultCh, txn.Hash(), errors.ErrDuplicateInput,
+		replyTxResult(txResultCh, txn.Hash(), errors.ErrDuplicateInput,
 			fmt.Sprintf("transaction %x is already in the tx pool", txn.Hash()))
 		return
 	}
 	if ta.server.getTransactionCount() >= tc.MAX_CAPACITY {
 		log.Debugf("handleTransaction: transaction pool is full for tx %x", txn.Hash())
 
-		replyTxResult(sender, txResultCh, txn.Hash(), errors.ErrTxPoolFull, "transaction pool is full")
+		replyTxResult(txResultCh, txn.Hash(), errors.ErrTxPoolFull, "transaction pool is full")
 		return
 	}
 	if _, overflow := common.SafeMul(txn.GasLimit, txn.GasPrice); overflow {
 		log.Debugf("handleTransaction: gasLimit %v, gasPrice %v overflow", txn.GasLimit, txn.GasPrice)
-		replyTxResult(sender, txResultCh, txn.Hash(), errors.ErrUnknown,
+		replyTxResult(txResultCh, txn.Hash(), errors.ErrUnknown,
 			fmt.Sprintf("gasLimit %d * gasPrice %d overflow", txn.GasLimit, txn.GasPrice))
 		return
 	}
@@ -139,14 +139,14 @@ func (ta *TxPoolService) handleTransaction(sender tc.SenderType, txn *tx.Transac
 	gasPriceConfig := ta.server.getGasPrice()
 	if txn.GasLimit < gasLimitConfig || txn.GasPrice < gasPriceConfig {
 		log.Debugf("handleTransaction: invalid gasLimit %v, gasPrice %v", txn.GasLimit, txn.GasPrice)
-		replyTxResult(sender, txResultCh, txn.Hash(), errors.ErrUnknown,
+		replyTxResult(txResultCh, txn.Hash(), errors.ErrUnknown,
 			fmt.Sprintf("Please input gasLimit >= %d and gasPrice >= %d", gasLimitConfig, gasPriceConfig))
 		return
 	}
 
 	if txn.TxType == tx.Deploy && txn.GasLimit < neovm.CONTRACT_CREATE_GAS {
 		log.Debugf("handleTransaction: deploy tx invalid gasLimit %v, gasPrice %v", txn.GasLimit, txn.GasPrice)
-		replyTxResult(sender, txResultCh, txn.Hash(), errors.ErrUnknown,
+		replyTxResult(txResultCh, txn.Hash(), errors.ErrUnknown,
 			fmt.Sprintf("Deploy tx gaslimit should >= %d", neovm.CONTRACT_CREATE_GAS))
 		return
 	}
@@ -154,7 +154,7 @@ func (ta *TxPoolService) handleTransaction(sender tc.SenderType, txn *tx.Transac
 	if !ta.server.disablePreExec {
 		if ok, desc := preExecCheck(txn); !ok {
 			log.Debugf("handleTransaction: preExecCheck tx %x failed", txn.Hash())
-			replyTxResult(sender, txResultCh, txn.Hash(), errors.ErrUnknown, desc)
+			replyTxResult(txResultCh, txn.Hash(), errors.ErrUnknown, desc)
 			return
 		}
 		log.Debugf("handleTransaction: preExecCheck tx %x passed", txn.Hash())
