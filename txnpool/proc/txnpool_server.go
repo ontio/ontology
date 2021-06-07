@@ -238,7 +238,7 @@ func (s *TXPoolServer) removePendingTx(hash common.Uint256, err errors.ErrCode) 
 		}
 	}
 
-	replyTxResult(pt.sender, pt.ch, hash, err, err.Error())
+	replyTxResult(pt.ch, hash, err, err.Error())
 
 	delete(s.allPendingTxs, hash)
 
