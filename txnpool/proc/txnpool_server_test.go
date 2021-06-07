@@ -22,35 +22,42 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ontio/ontology/cmd/utils"
+
 	"github.com/ontio/ontology-eventbus/actor"
+	"github.com/ontio/ontology/account"
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/types"
-	"github.com/ontio/ontology/errors"
 	tc "github.com/ontio/ontology/txnpool/common"
-	"github.com/ontio/ontology/validator/stateless"
-	vt "github.com/ontio/ontology/validator/types"
-	"github.com/stretchr/testify/assert"
 )
 
 var (
-	txn    *types.Transaction
-	topic  string
-	sender tc.SenderType
+	txn       *types.Transaction
+	invalidTx *types.Transaction
+	sender    tc.SenderType
 )
 
 func init() {
-	topic = "TXN"
-
 	code := []byte("ont")
 
 	invokeCodePayload := &payload.InvokeCode{
 		Code: code,
 	}
 
+	acct := account.NewAccount("")
+
 	mutable := &types.MutableTransaction{
 		TxType:  types.InvokeNeo,
 		Nonce:   uint32(time.Now().Unix()),
 		Payload: invokeCodePayload,
+		Payer:   acct.Address,
+	}
+
+	invalidTx, _ = mutable.IntoImmutable()
+
+	err := utils.SignTransaction(acct, mutable)
+	if err != nil {
+		panic(err)
 	}
 
 	txn, _ = mutable.IntoImmutable()
@@ -78,8 +85,6 @@ func TestTxn(t *testing.T) {
 	}
 	defer s.Stop()
 
-	// Case 1: Send nil txn to the server, server should reject it
-	s.assignTxToWorker(nil, sender, nil)
 	/* Case 2: send non-nil txn to the server, server should assign
 	 * it to the worker
 	 */
@@ -117,46 +122,6 @@ func TestTxn(t *testing.T) {
 	t.Log("Ending test tx")
 }
 
-func TestAssignRsp2Worker(t *testing.T) {
-	t.Log("Starting assign response to the worker testing")
-	var s *TXPoolServer
-	s = NewTxPoolServer(true, false)
-	if s == nil {
-		t.Error("Test case: new tx pool server failed")
-		return
-	}
-
-	defer s.Stop()
-
-	s.assignRspToWorker(nil)
-
-	statelessRsp := &vt.CheckResponse{
-		ErrCode: errors.ErrNoError,
-		Hash:    txn.Hash(),
-		Type:    vt.Stateless,
-		Height:  0,
-	}
-
-	statefulRsp := &vt.CheckResponse{
-		ErrCode: errors.ErrUnknown,
-		Hash:    txn.Hash(),
-		Type:    vt.Stateful,
-		Height:  0,
-	}
-	s.assignRspToWorker(statelessRsp)
-	s.assignRspToWorker(statefulRsp)
-
-	statelessRsp = &vt.CheckResponse{
-		ErrCode: errors.ErrUnknown,
-		Hash:    txn.Hash(),
-		Type:    vt.Stateless,
-		Height:  0,
-	}
-	s.assignRspToWorker(statelessRsp)
-
-	t.Log("Ending assign response to the worker testing")
-}
-
 func TestActor(t *testing.T) {
 	t.Log("Starting actor testing")
 	var s *TXPoolServer
@@ -168,14 +133,6 @@ func TestActor(t *testing.T) {
 
 	defer s.Stop()
 
-	rspActor := NewVerifyRspActor(s)
-	rspPid := startActor(rspActor)
-	if rspPid == nil {
-		t.Error("Fail to start verify rsp actor")
-		return
-	}
-	s.RegisterActor(tc.VerifyRspActor, rspPid)
-
 	tpa := NewTxPoolActor(s)
 	txPoolPid := startActor(tpa)
 	if txPoolPid == nil {
@@ -184,13 +141,7 @@ func TestActor(t *testing.T) {
 	}
 	s.RegisterActor(tc.TxPoolActor, txPoolPid)
 
-	pid := s.GetPID(tc.VerifyRspActor)
-	if pid == nil {
-		t.Error("Fail to get the pid")
-		return
-	}
-
-	pid = s.GetPID(tc.TxPoolActor)
+	pid := s.GetPID(tc.TxPoolActor)
 	if pid == nil {
 		t.Error("Fail to get the pid")
 		return
@@ -203,14 +154,7 @@ func TestActor(t *testing.T) {
 	}
 
 	s.UnRegisterActor(tc.TxPoolActor)
-	s.UnRegisterActor(tc.VerifyRspActor)
 	pid = s.GetPID(tc.TxPoolActor)
-	if pid != nil {
-		t.Error("Pid was not registered")
-		return
-	}
-
-	pid = s.GetPID(tc.VerifyRspActor)
 	if pid != nil {
 		t.Error("Pid was not registered")
 		return
@@ -223,52 +167,4 @@ func TestActor(t *testing.T) {
 	}
 
 	t.Log("Ending actor testing")
-}
-
-func TestValidator(t *testing.T) {
-	t.Log("Starting validator testing")
-	var s *TXPoolServer
-	s = NewTxPoolServer(true, false)
-	if s == nil {
-		t.Error("Test case: new tx pool server failed")
-		return
-	}
-
-	defer s.Stop()
-
-	rspActor := NewVerifyRspActor(s)
-	rspPid := startActor(rspActor)
-	if rspPid == nil {
-		t.Error("Fail to start verify rsp actor")
-		return
-	}
-	s.RegisterActor(tc.VerifyRspActor, rspPid)
-
-	statelessV1, err := stateless.NewValidator("stateless1")
-	if err != nil {
-		t.Error("failed to new stateless valdiator", err)
-		return
-	}
-	statelessV1.Register(rspPid)
-
-	statelessV2, err := stateless.NewValidator("stateless2")
-	if err != nil {
-		t.Error("failed to new stateless valdiator", err)
-		return
-	}
-	statelessV2.Register(rspPid)
-
-	time.Sleep(1 * time.Second)
-
-	ret := s.getNextValidatorPIDs()
-	for _, v := range ret {
-		assert.NotNil(t, v)
-	}
-
-	ret = s.getNextValidatorPIDs()
-	for _, v := range ret {
-		assert.NotNil(t, v)
-	}
-
-	t.Log("Ending validator testing")
 }
