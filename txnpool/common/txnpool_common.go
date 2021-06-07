@@ -41,19 +41,6 @@ const (
 	HttpSender            // Http sends tx req
 )
 
-func (sender SenderType) Sender() string {
-	switch sender {
-	case NilSender:
-		return "nil sender"
-	case NetSender:
-		return "net sender"
-	case HttpSender:
-		return "http sender"
-	default:
-		return "unknown sender"
-	}
-}
-
 // CheckBlkResult contains a verifed tx list,
 // an unverified tx list and an old tx list
 // to be re-verifed
