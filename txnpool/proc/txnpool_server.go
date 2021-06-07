@@ -219,6 +219,9 @@ func (s *TXPoolServer) getHeight() uint32 {
 
 // setHeight set current block height
 func (s *TXPoolServer) setHeight(height uint32) {
+	if height == 0 {
+		return
+	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.height = height
