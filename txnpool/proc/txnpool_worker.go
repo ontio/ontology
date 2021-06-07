@@ -33,13 +33,35 @@ import (
 )
 
 // pendingTx contains the transaction, the time of starting verifying,
-// the cache of check request, the flag indicating the verified status,
-// the verified result and retry mechanism
+// the cache of check request, the verified result and retry mechanism
 type pendingTx struct {
-	tx      *tx.Transaction // That is unverified or on the verifying process
-	valTime time.Time       // The start time
-	flag    uint8           // For different types of verification
-	ret     []*tc.TXAttr    // verified results
+	tx              *tx.Transaction // That is unverified or on the verifying process
+	valTime         time.Time       // The start time
+	passedStateless bool
+	passedStateful  bool
+	CheckHeight     uint32
+}
+
+func (self *pendingTx) GetTxAttr() []*tc.TXAttr {
+	var res []*tc.TXAttr
+	if self.passedStateless {
+		res = append(res,
+			&tc.TXAttr{
+				Height:  0,
+				Type:    types.Stateless,
+				ErrCode: errors.ErrNoError,
+			})
+	}
+	if self.passedStateful {
+		res = append(res,
+			&tc.TXAttr{
+				Height:  self.CheckHeight,
+				Type:    types.Stateful,
+				ErrCode: errors.ErrNoError,
+			})
+	}
+
+	return res
 }
 
 // txPoolWorker handles the tasks scheduled by server
@@ -81,7 +103,7 @@ func (worker *txPoolWorker) GetTxStatus(hash common.Uint256) *tc.TxStatus {
 
 	txStatus := &tc.TxStatus{
 		Hash:  hash,
-		Attrs: pt.ret,
+		Attrs: pt.GetTxAttr(),
 	}
 	return txStatus
 }
@@ -105,39 +127,32 @@ func (worker *txPoolWorker) handleRsp(rsp *types.CheckResponse) {
 		return
 	}
 
-	if tc.STATEFUL_MASK&(0x1<<rsp.Type) != 0 && rsp.Height < worker.server.getHeight() {
+	if rsp.Type == types.Stateful && rsp.Height < worker.server.getHeight() {
 		// If validator's height is less than the required one, re-validate it.
 		worker.startStatefulVerify(pt.tx)
 		pt.valTime = time.Now()
 		return
 	}
 
-	if pt.flag&(0x1<<rsp.Type) == 0 {
-		retAttr := &tc.TXAttr{
-			Height:  rsp.Height,
-			Type:    rsp.Type,
-			ErrCode: rsp.ErrCode,
+	switch rsp.Type {
+	case types.Stateful:
+		pt.passedStateful = true
+		if rsp.Height > pt.CheckHeight {
+			pt.CheckHeight = rsp.Height
 		}
-		pt.flag |= 0x1 << rsp.Type
-		pt.ret = append(pt.ret, retAttr)
+	case types.Stateless:
+		pt.passedStateless = true
 	}
 
-	if pt.flag&0xf == tc.VERIFY_MASK {
-		worker.putTxPool(pt)
+	if pt.passedStateless && pt.passedStateful {
+		txEntry := &tc.TXEntry{
+			Tx:    pt.tx,
+			Attrs: pt.GetTxAttr(),
+		}
+		worker.server.addTxList(txEntry)
+		worker.server.removePendingTx(pt.tx.Hash(), errors.ErrNoError)
 		delete(worker.pendingTxList, rsp.Hash)
 	}
-}
-
-// putTxPool adds a valid transaction to the tx pool and removes it from
-// the pending list.
-func (worker *txPoolWorker) putTxPool(pt *pendingTx) bool {
-	txEntry := &tc.TXEntry{
-		Tx:    pt.tx,
-		Attrs: pt.ret,
-	}
-	worker.server.addTxList(txEntry)
-	worker.server.removePendingTx(pt.tx.Hash(), errors.ErrNoError)
-	return true
 }
 
 // verifyTx prepares a check request and sends it to the validators.
@@ -157,8 +172,7 @@ func (worker *txPoolWorker) verifyTx(tx *tx.Transaction) {
 
 	// Construct the pending transaction
 	pt := &pendingTx{
-		tx:   tx,
-		flag: 0,
+		tx: tx,
 	}
 	// Add it to the pending transaction list
 	worker.mu.Lock()
@@ -175,7 +189,7 @@ func (worker *txPoolWorker) reVerifyTx(txHash common.Uint256) {
 		return
 	}
 
-	if pt.flag&0xf != tc.VERIFY_MASK {
+	if !pt.passedStateful || !pt.passedStateless {
 		worker.startFullVerify(pt.tx)
 	}
 
@@ -201,15 +215,8 @@ func (worker *txPoolWorker) verifyStateful(tx *tx.Transaction) {
 		valTime: time.Now(),
 	}
 
-	retAttr := &tc.TXAttr{
-		Height:  0,
-		Type:    types.Stateless,
-		ErrCode: errors.ErrNoError,
-	}
-
-	pt.ret = append(pt.ret, retAttr)
 	// Since the signature has been already verified, mark stateless as true
-	pt.flag |= tc.STATELESS_MASK
+	pt.passedStateless = true
 
 	// Add it to the pending transaction list
 	worker.mu.Lock()
