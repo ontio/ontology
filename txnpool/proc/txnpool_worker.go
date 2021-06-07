@@ -182,21 +182,6 @@ func (worker *txPoolWorker) verifyTx(tx *tx.Transaction) {
 	pt.valTime = time.Now()
 }
 
-// reVerifyTx re-sends a check request to the validators.
-func (worker *txPoolWorker) reVerifyTx(txHash common.Uint256) {
-	pt, ok := worker.pendingTxList[txHash]
-	if !ok {
-		return
-	}
-
-	if !pt.passedStateful || !pt.passedStateless {
-		worker.startFullVerify(pt.tx)
-	}
-
-	// Update the verifying time
-	pt.valTime = time.Now()
-}
-
 func (worker *txPoolWorker) startFullVerify(tx *tx.Transaction) {
 	worker.stateless.SubmitVerifyTask(tx, worker.rspCh)
 	worker.stateful.SubmitVerifyTask(tx, worker.rspCh)

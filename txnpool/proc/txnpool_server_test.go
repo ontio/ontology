@@ -85,8 +85,6 @@ func TestTxn(t *testing.T) {
 	}
 	defer s.Stop()
 
-	// Case 1: Send nil txn to the server, server should reject it
-	s.assignTxToWorker(nil, sender, nil)
 	/* Case 2: send non-nil txn to the server, server should assign
 	 * it to the worker
 	 */

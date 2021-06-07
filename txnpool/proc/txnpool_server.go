@@ -227,9 +227,7 @@ func (s *TXPoolServer) getGasPrice() uint64 {
 // when it is handled. And if the submitter of the valid transaction
 // is from http, broadcast it to the network. Meanwhile, check if it
 // is in the block from consensus.
-func (s *TXPoolServer) removePendingTx(hash common.Uint256,
-	err errors.ErrCode) {
-
+func (s *TXPoolServer) removePendingTx(hash common.Uint256, err errors.ErrCode) {
 	s.mu.Lock()
 
 	pt, ok := s.allPendingTxs[hash]
@@ -269,9 +267,7 @@ func (s *TXPoolServer) removePendingTx(hash common.Uint256,
 
 // setPendingTx adds a transaction to the pending list, if the
 // transaction is already in the pending list, just return false.
-func (s *TXPoolServer) setPendingTx(tx *tx.Transaction,
-	sender tc.SenderType, txResultCh chan *tc.TxResult) bool {
-
+func (s *TXPoolServer) setPendingTx(tx *tx.Transaction, sender tc.SenderType, txResultCh chan *tc.TxResult) bool {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if ok := s.allPendingTxs[tx.Hash()]; ok != nil {
@@ -291,13 +287,7 @@ func (s *TXPoolServer) setPendingTx(tx *tx.Transaction,
 }
 
 // assignTxToWorker assigns a new transaction to a worker by LB
-func (s *TXPoolServer) assignTxToWorker(tx *tx.Transaction,
-	sender tc.SenderType, txResultCh chan *tc.TxResult) bool {
-
-	if tx == nil {
-		return false
-	}
-
+func (s *TXPoolServer) assignTxToWorker(tx *tx.Transaction, sender tc.SenderType, txResultCh chan *tc.TxResult) bool {
 	if ok := s.setPendingTx(tx, sender, txResultCh); !ok {
 		if sender == tc.HttpSender && txResultCh != nil {
 			replyTxResult(txResultCh, tx.Hash(), errors.ErrDuplicateInput, "duplicated transaction input detected")
