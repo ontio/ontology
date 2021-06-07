@@ -25,6 +25,7 @@ import (
 	"fmt"
 	"strconv"
 	"sync"
+	"sync/atomic"
 
 	"github.com/ontio/ontology-eventbus/actor"
 	"github.com/ontio/ontology/common"
@@ -199,21 +200,15 @@ func (s *TXPoolServer) getPendingListSize() int {
 	return len(s.allPendingTxs)
 }
 
-// getHeight return current block height
 func (s *TXPoolServer) getHeight() uint32 {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-	return s.height
+	return atomic.LoadUint32(&s.height)
 }
 
-// setHeight set current block height
 func (s *TXPoolServer) setHeight(height uint32) {
 	if height == 0 {
 		return
 	}
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	s.height = height
+	atomic.StoreUint32(&s.height, height)
 }
 
 // getGasPrice returns the current gas price enforced by the transaction pool

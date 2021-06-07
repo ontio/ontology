@@ -168,18 +168,19 @@ func (worker *txPoolWorker) verifyTx(tx *tx.Transaction) {
 		return
 	}
 
-	worker.startFullVerify(tx)
-
 	// Construct the pending transaction
 	pt := &pendingTx{
 		tx: tx,
 	}
+	pt.valTime = time.Now()
+
 	// Add it to the pending transaction list
 	worker.mu.Lock()
 	worker.pendingTxList[tx.Hash()] = pt
 	worker.mu.Unlock()
-	// Record the time per a txn
-	pt.valTime = time.Now()
+
+	// need register tx to pending list first to avoid races caused by too fast verification
+	worker.startFullVerify(tx)
 }
 
 func (worker *txPoolWorker) startFullVerify(tx *tx.Transaction) {

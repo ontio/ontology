@@ -53,8 +53,7 @@ func NewTxPoolActor(s *TXPoolServer) *TxPoolActor {
 func isBalanceEnough(address common.Address, gas uint64) bool {
 	balance, _, err := hComm.GetContractBalance(0, []common.Address{utils.OngContractAddress}, address, false)
 	if err != nil {
-		log.Debugf("failed to get contract balance %s err %v",
-			address.ToHexString(), err)
+		log.Debugf("failed to get contract balance %s err %v", address.ToHexString(), err)
 		return false
 	}
 	return balance[0] >= gas
@@ -109,9 +108,8 @@ type TxActor struct {
 	server *TXPoolServer
 }
 
-// handleTransaction handles a transaction from network and http
-func (ta *TxActor) handleTransaction(sender tc.SenderType, self *actor.PID,
-	txn *tx.Transaction, txResultCh chan *tc.TxResult) {
+// handles a transaction from network and http
+func (ta *TxActor) handleTransaction(sender tc.SenderType, txn *tx.Transaction, txResultCh chan *tc.TxResult) {
 	if len(txn.ToArray()) > tc.MAX_TX_SIZE {
 		log.Debugf("handleTransaction: reject a transaction due to size over 1M")
 		replyTxResult(sender, txResultCh, txn.Hash(), errors.ErrUnknown, "size is over 1M")
@@ -164,7 +162,6 @@ func (ta *TxActor) handleTransaction(sender tc.SenderType, self *actor.PID,
 	}
 	<-ta.server.slots
 	ta.server.assignTxToWorker(txn, sender, txResultCh)
-
 }
 
 // Receive implements the actor interface
@@ -184,7 +181,7 @@ func (ta *TxActor) Receive(context actor.Context) {
 
 		log.Debugf("txpool-tx actor receives tx from %v ", sender.Sender())
 
-		ta.handleTransaction(sender, context.Self(), msg.Tx, msg.TxResultCh)
+		ta.handleTransaction(sender, msg.Tx, msg.TxResultCh)
 
 	case *tc.GetTxnReq:
 		sender := context.Sender()
@@ -193,8 +190,7 @@ func (ta *TxActor) Receive(context actor.Context) {
 
 		res := ta.server.getTransaction(msg.Hash)
 		if sender != nil {
-			sender.Request(&tc.GetTxnRsp{Txn: res},
-				context.Self())
+			sender.Request(&tc.GetTxnRsp{Txn: res}, context.Self())
 		}
 
 	case *tc.GetTxnStatusReq:
