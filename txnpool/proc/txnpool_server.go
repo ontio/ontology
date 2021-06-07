@@ -39,7 +39,6 @@ import (
 	params "github.com/ontio/ontology/smartcontract/service/native/global_params"
 	nutils "github.com/ontio/ontology/smartcontract/service/native/utils"
 	tc "github.com/ontio/ontology/txnpool/common"
-	"github.com/ontio/ontology/validator/types"
 )
 
 type serverPendingTx struct {
@@ -54,16 +53,6 @@ type pendingBlock struct {
 	height         uint32                                // The block height
 	processedTxs   map[common.Uint256]*tc.VerifyTxResult // Transaction which has been processed
 	unProcessedTxs map[common.Uint256]*tx.Transaction    // Transaction which is not processed
-}
-
-type roundRobinState struct {
-	state map[types.VerifyType]int // Keep the round robin index for each verify type
-}
-
-type registerValidators struct {
-	sync.RWMutex
-	entries map[types.VerifyType][]*types.RegisterValidator // Registered validator container
-	state   roundRobinState                                 // For loadbance
 }
 
 // TXPoolServer contains all api to external modules

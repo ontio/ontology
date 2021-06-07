@@ -19,17 +19,9 @@
 package types
 
 import (
-	"github.com/ontio/ontology-eventbus/actor"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/errors"
 )
-
-// message
-type RegisterValidator struct {
-	Sender *actor.PID
-	Type   VerifyType
-	Id     string
-}
 
 type CheckResponse struct {
 	Type    VerifyType
