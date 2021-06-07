@@ -27,8 +27,6 @@ import (
 const (
 	MAX_CAPACITY     = 100140                         // The tx pool's capacity that holds the verified txs
 	MAX_PENDING_TXN  = 4096 * 10                      // The max length of pending txs
-	MAX_RETRIES      = 0                              // The retry times to verify tx
-	EXPIRE_INTERVAL  = 9                              // The timeout that verify tx
 	STATELESS_MASK   = 0x1                            // The mask of stateless validator
 	STATEFUL_MASK    = 0x2                            // The mask of stateful validator
 	VERIFY_MASK      = STATELESS_MASK | STATEFUL_MASK // The mask that indicates tx valid

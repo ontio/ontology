@@ -39,7 +39,6 @@ type pendingTx struct {
 	tx      *tx.Transaction // That is unverified or on the verifying process
 	valTime time.Time       // The start time
 	flag    uint8           // For different types of verification
-	retries uint8           // For resend to validator when time out before verified
 	ret     []*tc.TXAttr    // verified results
 }
 
@@ -50,7 +49,6 @@ type txPoolWorker struct {
 	stfTxCh       chan *tx.Transaction          // The channel of txs to be re-verified stateful
 	rspCh         chan *types.CheckResponse     // The channel of verified response
 	server        *TXPoolServer                 // The txn pool server pointer
-	timer         *time.Timer                   // The timer of reverifying
 	stopCh        chan bool                     // stop routine
 	pendingTxList map[common.Uint256]*pendingTx // The transaction on the verifying process
 	stateless     *stateless.ValidatorPool
@@ -130,29 +128,6 @@ func (worker *txPoolWorker) handleRsp(rsp *types.CheckResponse) {
 	}
 }
 
-/* Check if the transaction need to be sent to validator to verify
- * when time out.
- * Todo: Going through the list will take time if the list is too
- * long, need to change the algorithm later
- */
-func (worker *txPoolWorker) handleTimeoutEvent() {
-	// Go through the pending list, for those unverified txns, resend them to the validators
-	for k, v := range worker.pendingTxList {
-		if v.flag&0xf != tc.VERIFY_MASK && (time.Now().Sub(v.valTime)/time.Second) >= tc.EXPIRE_INTERVAL {
-			if v.retries < tc.MAX_RETRIES {
-				worker.reVerifyTx(k)
-				v.retries++
-			} else {
-				log.Debugf("retry to verify transaction exhausted %x", k.ToArray())
-				worker.mu.Lock()
-				delete(worker.pendingTxList, k)
-				worker.mu.Unlock()
-				worker.server.removePendingTx(k, errors.ErrRetryExhausted)
-			}
-		}
-	}
-}
-
 // putTxPool adds a valid transaction to the tx pool and removes it from
 // the pending list.
 func (worker *txPoolWorker) putTxPool(pt *pendingTx) bool {
@@ -182,9 +157,8 @@ func (worker *txPoolWorker) verifyTx(tx *tx.Transaction) {
 
 	// Construct the pending transaction
 	pt := &pendingTx{
-		tx:      tx,
-		flag:    0,
-		retries: 0,
+		tx:   tx,
+		flag: 0,
 	}
 	// Add it to the pending transaction list
 	worker.mu.Lock()
@@ -224,7 +198,6 @@ func (worker *txPoolWorker) verifyStateful(tx *tx.Transaction) {
 	// Construct the pending transaction
 	pt := &pendingTx{
 		tx:      tx,
-		retries: 0,
 		valTime: time.Now(),
 	}
 
@@ -248,7 +221,6 @@ func (worker *txPoolWorker) verifyStateful(tx *tx.Transaction) {
 
 // Start is the main event loop.
 func (worker *txPoolWorker) start() {
-	worker.timer = time.NewTimer(time.Second * tc.EXPIRE_INTERVAL)
 	for {
 		select {
 		case <-worker.stopCh:
@@ -263,10 +235,6 @@ func (worker *txPoolWorker) start() {
 			if ok {
 				worker.verifyStateful(stfTx)
 			}
-		case <-worker.timer.C:
-			worker.handleTimeoutEvent()
-			worker.timer.Stop()
-			worker.timer.Reset(time.Second * tc.EXPIRE_INTERVAL)
 		case rsp, ok := <-worker.rspCh:
 			if ok {
 				worker.handleRsp(rsp)
@@ -275,11 +243,8 @@ func (worker *txPoolWorker) start() {
 	}
 }
 
-// stop closes/releases channels and stops timer
+// stop closes/releases channels
 func (worker *txPoolWorker) stop() {
-	if worker.timer != nil {
-		worker.timer.Stop()
-	}
 	if worker.rcvTXCh != nil {
 		close(worker.rcvTXCh)
 	}
