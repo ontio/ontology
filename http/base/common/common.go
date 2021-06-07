@@ -486,10 +486,8 @@ func GetContractAllowance(cVersion byte, contractAddr, fromAddr, toAddr common.A
 	return allowance.Uint64(), nil
 }
 
-func GetGasPrice() (map[string]interface{}, error) {
+func GetGasPrice() (gasPrice uint64, height uint32, err error) {
 	start := bactor.GetCurrentBlockHeight()
-	var gasPrice uint64 = 0
-	var height uint32 = 0
 	var end uint32 = 0
 	if start > MAX_SEARCH_HEIGHT {
 		end = start - MAX_SEARCH_HEIGHT
@@ -500,7 +498,7 @@ func GetGasPrice() (map[string]interface{}, error) {
 			height = i
 			blk, err := bactor.GetBlockByHeight(i)
 			if err != nil {
-				return nil, err
+				return 0, 0, err
 			}
 			for _, v := range blk.Transactions {
 				gasPrice += v.GasPrice
@@ -509,8 +507,7 @@ func GetGasPrice() (map[string]interface{}, error) {
 			break
 		}
 	}
-	result := map[string]interface{}{"gasprice": gasPrice, "height": height}
-	return result, nil
+	return
 }
 
 func GetBlockTransactions(block *types.Block) interface{} {

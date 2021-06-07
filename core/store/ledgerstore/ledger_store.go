@@ -31,6 +31,7 @@ import (
 	"sync"
 	"time"
 
+	common2 "github.com/ethereum/go-ethereum/common"
 	types3 "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
@@ -50,7 +51,7 @@ import (
 	"github.com/ontio/ontology/merkle"
 	"github.com/ontio/ontology/smartcontract"
 	"github.com/ontio/ontology/smartcontract/event"
-	"github.com/ontio/ontology/smartcontract/service/evm"
+	types4 "github.com/ontio/ontology/smartcontract/service/evm/types"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 	"github.com/ontio/ontology/smartcontract/service/neovm"
 	"github.com/ontio/ontology/smartcontract/service/wasmvm"
@@ -1232,13 +1233,25 @@ func (this *LedgerStoreImp) PreExecuteContractBatch(txes []*types.Transaction, a
 	return results, height, nil
 }
 
-func (this *LedgerStoreImp) PreExecuteEIP155(tx *types3.Transaction, ctx Eip155Context) (*evm.ExecutionResult, *event.ExecuteNotify, error) {
+func (this *LedgerStoreImp) PreExecuteEIP155(tx *types3.Transaction, ctx Eip155Context) (*types4.ExecutionResult, *event.ExecuteNotify, error) {
 	overlay := this.stateStore.NewOverlayDB()
 	cache := storage.NewCacheDB(overlay)
 
 	notify := &event.ExecuteNotify{State: event.CONTRACT_STATE_FAIL, TxIndex: ctx.TxIndex}
 	result, err := this.stateStore.HandleEIP155Transaction(this, cache, tx, ctx, notify)
 	return result, notify, err
+}
+
+func (this *LedgerStoreImp) GetEthCode(hash common2.Hash) ([]byte, error) {
+	return this.stateStore.GetEthCode(hash)
+}
+
+func (this *LedgerStoreImp) GetEthState(address common2.Address, key common2.Hash) ([]byte, error) {
+	return this.stateStore.GetEthState(address, key)
+}
+
+func (this *LedgerStoreImp) GetEthAccount(address common2.Address) (*storage.EthAccount, error) {
+	return this.stateStore.GetEthAccount(address)
 }
 
 //PreExecuteContract return the result of smart contract execution without commit to store
@@ -1372,6 +1385,24 @@ func (this *LedgerStoreImp) PreExecuteContract(tx *types.Transaction) (*sstate.P
 	}
 
 	return this.PreExecuteContractWithParam(tx, param)
+}
+
+func (this *LedgerStoreImp) PreExecuteEip155Tx(tx *types3.Transaction) (*types4.ExecutionResult, error) {
+	height := this.GetCurrentBlockHeight()
+	// use previous block time to make it predictable for easy test
+	blockTime := uint32(time.Now().Unix())
+	if header, err := this.GetHeaderByHeight(height); err == nil {
+		blockTime = header.Timestamp + 1
+	}
+	blockHash := this.GetBlockHash(height)
+	ctx := Eip155Context{
+		BlockHash: blockHash,
+		TxIndex:   0,
+		Height:    height,
+		Timestamp: blockTime,
+	}
+	res, _, err := this.PreExecuteEIP155(tx, ctx)
+	return res, err
 }
 
 //Close ledger store.
