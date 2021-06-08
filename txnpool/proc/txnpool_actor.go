@@ -36,10 +36,9 @@ import (
 	tc "github.com/ontio/ontology/txnpool/common"
 )
 
-// NewTxActor creates an actor to handle the transaction-based messages from
-// network and http
-func NewTxActor(s *TXPoolServer) *TxActor {
-	a := &TxActor{server: s}
+// creates an actor to handle the transaction-based messages from network and http
+func NewTxPoolService(s *TXPoolServer) *TxPoolService {
+	a := &TxPoolService{server: s}
 	return a
 }
 
@@ -59,8 +58,8 @@ func isBalanceEnough(address common.Address, gas uint64) bool {
 	return balance[0] >= gas
 }
 
-func replyTxResult(sender tc.SenderType, txResultCh chan *tc.TxResult, hash common.Uint256, err errors.ErrCode, desc string) {
-	if sender == tc.HttpSender && txResultCh != nil {
+func replyTxResult(txResultCh chan *tc.TxResult, hash common.Uint256, err errors.ErrCode, desc string) {
+	if txResultCh != nil {
 		result := &tc.TxResult{
 			Err:  err,
 			Hash: hash,
@@ -104,34 +103,34 @@ func preExecCheck(txn *tx.Transaction) (bool, string) {
 }
 
 // TxnActor: Handle the low priority msg from P2P and API
-type TxActor struct {
+type TxPoolService struct {
 	server *TXPoolServer
 }
 
 // handles a transaction from network and http
-func (ta *TxActor) handleTransaction(sender tc.SenderType, txn *tx.Transaction, txResultCh chan *tc.TxResult) {
+func (ta *TxPoolService) handleTransaction(sender tc.SenderType, txn *tx.Transaction, txResultCh chan *tc.TxResult) {
 	if len(txn.ToArray()) > tc.MAX_TX_SIZE {
 		log.Debugf("handleTransaction: reject a transaction due to size over 1M")
-		replyTxResult(sender, txResultCh, txn.Hash(), errors.ErrUnknown, "size is over 1M")
+		replyTxResult(txResultCh, txn.Hash(), errors.ErrUnknown, "size is over 1M")
 		return
 	}
 
 	if ta.server.getTransaction(txn.Hash()) != nil {
 		log.Debugf("handleTransaction: transaction %x already in the txn pool", txn.Hash())
 
-		replyTxResult(sender, txResultCh, txn.Hash(), errors.ErrDuplicateInput,
+		replyTxResult(txResultCh, txn.Hash(), errors.ErrDuplicateInput,
 			fmt.Sprintf("transaction %x is already in the tx pool", txn.Hash()))
 		return
 	}
 	if ta.server.getTransactionCount() >= tc.MAX_CAPACITY {
 		log.Debugf("handleTransaction: transaction pool is full for tx %x", txn.Hash())
 
-		replyTxResult(sender, txResultCh, txn.Hash(), errors.ErrTxPoolFull, "transaction pool is full")
+		replyTxResult(txResultCh, txn.Hash(), errors.ErrTxPoolFull, "transaction pool is full")
 		return
 	}
 	if _, overflow := common.SafeMul(txn.GasLimit, txn.GasPrice); overflow {
 		log.Debugf("handleTransaction: gasLimit %v, gasPrice %v overflow", txn.GasLimit, txn.GasPrice)
-		replyTxResult(sender, txResultCh, txn.Hash(), errors.ErrUnknown,
+		replyTxResult(txResultCh, txn.Hash(), errors.ErrUnknown,
 			fmt.Sprintf("gasLimit %d * gasPrice %d overflow", txn.GasLimit, txn.GasPrice))
 		return
 	}
@@ -140,14 +139,14 @@ func (ta *TxActor) handleTransaction(sender tc.SenderType, txn *tx.Transaction, 
 	gasPriceConfig := ta.server.getGasPrice()
 	if txn.GasLimit < gasLimitConfig || txn.GasPrice < gasPriceConfig {
 		log.Debugf("handleTransaction: invalid gasLimit %v, gasPrice %v", txn.GasLimit, txn.GasPrice)
-		replyTxResult(sender, txResultCh, txn.Hash(), errors.ErrUnknown,
+		replyTxResult(txResultCh, txn.Hash(), errors.ErrUnknown,
 			fmt.Sprintf("Please input gasLimit >= %d and gasPrice >= %d", gasLimitConfig, gasPriceConfig))
 		return
 	}
 
 	if txn.TxType == tx.Deploy && txn.GasLimit < neovm.CONTRACT_CREATE_GAS {
 		log.Debugf("handleTransaction: deploy tx invalid gasLimit %v, gasPrice %v", txn.GasLimit, txn.GasPrice)
-		replyTxResult(sender, txResultCh, txn.Hash(), errors.ErrUnknown,
+		replyTxResult(txResultCh, txn.Hash(), errors.ErrUnknown,
 			fmt.Sprintf("Deploy tx gaslimit should >= %d", neovm.CONTRACT_CREATE_GAS))
 		return
 	}
@@ -155,7 +154,7 @@ func (ta *TxActor) handleTransaction(sender tc.SenderType, txn *tx.Transaction, 
 	if !ta.server.disablePreExec {
 		if ok, desc := preExecCheck(txn); !ok {
 			log.Debugf("handleTransaction: preExecCheck tx %x failed", txn.Hash())
-			replyTxResult(sender, txResultCh, txn.Hash(), errors.ErrUnknown, desc)
+			replyTxResult(txResultCh, txn.Hash(), errors.ErrUnknown, desc)
 			return
 		}
 		log.Debugf("handleTransaction: preExecCheck tx %x passed", txn.Hash())
@@ -164,74 +163,32 @@ func (ta *TxActor) handleTransaction(sender tc.SenderType, txn *tx.Transaction, 
 	ta.server.assignTxToWorker(txn, sender, txResultCh)
 }
 
-// Receive implements the actor interface
-func (ta *TxActor) Receive(context actor.Context) {
-	switch msg := context.Message().(type) {
-	case *actor.Started:
-		log.Info("txpool-tx actor started and be ready to receive tx msg")
+func (ta *TxPoolService) GetTransaction(hash common.Uint256) *tx.Transaction {
+	res := ta.server.getTransaction(hash)
+	return res
+}
 
-	case *actor.Stopping:
-		log.Warn("txpool-tx actor stopping")
+func (ta *TxPoolService) GetTransactionStatus(hash common.Uint256) *tc.TxStatus {
+	res := ta.server.getTxStatusReq(hash)
+	return res
+}
 
-	case *actor.Restarting:
-		log.Warn("txpool-tx actor restarting")
+func (ta *TxPoolService) GetTxAmount() []uint32 {
+	return ta.server.getTxCount()
+}
 
-	case *tc.TxReq:
-		sender := msg.Sender
+func (ta *TxPoolService) GetTxList() []common.Uint256 {
+	return ta.server.getTxHashList()
+}
 
-		log.Debugf("txpool-tx actor receives tx from %v ", sender.Sender())
+func (ta *TxPoolService) AppendTransaction(sender tc.SenderType, txn *tx.Transaction) *tc.TxResult {
+	ch := make(chan *tc.TxResult)
+	ta.handleTransaction(sender, txn, ch)
+	return <-ch
+}
 
-		ta.handleTransaction(sender, msg.Tx, msg.TxResultCh)
-
-	case *tc.GetTxnReq:
-		sender := context.Sender()
-
-		log.Debugf("txpool-tx actor receives getting tx req from %v", sender)
-
-		res := ta.server.getTransaction(msg.Hash)
-		if sender != nil {
-			sender.Request(&tc.GetTxnRsp{Txn: res}, context.Self())
-		}
-
-	case *tc.GetTxnStatusReq:
-		sender := context.Sender()
-
-		log.Debugf("txpool-tx actor receives getting tx status req from %v", sender)
-
-		res := ta.server.getTxStatusReq(msg.Hash)
-		if sender != nil {
-			if res == nil {
-				sender.Request(&tc.GetTxnStatusRsp{Hash: msg.Hash,
-					TxStatus: nil}, context.Self())
-			} else {
-				sender.Request(&tc.GetTxnStatusRsp{Hash: res.Hash,
-					TxStatus: res.Attrs}, context.Self())
-			}
-		}
-
-	case *tc.GetTxnCountReq:
-		sender := context.Sender()
-
-		log.Debugf("txpool-tx actor receives getting tx count req from %v", sender)
-
-		res := ta.server.getTxCount()
-		if sender != nil {
-			sender.Request(&tc.GetTxnCountRsp{Count: res},
-				context.Self())
-		}
-	case *tc.GetPendingTxnHashReq:
-		sender := context.Sender()
-
-		log.Debugf("txpool-tx actor receives getting pedning tx hash req from %v", sender)
-
-		res := ta.server.getTxHashList()
-		if sender != nil {
-			sender.Request(&tc.GetPendingTxnHashRsp{TxHashs: res}, context.Self())
-		}
-
-	default:
-		log.Debugf("txpool-tx actor: unknown msg %v type %v", msg, reflect.TypeOf(msg))
-	}
+func (ta *TxPoolService) AppendTransactionAsync(sender tc.SenderType, txn *tx.Transaction) {
+	ta.handleTransaction(sender, txn, nil)
 }
 
 // TxnPoolActor: Handle the high priority request from Consensus

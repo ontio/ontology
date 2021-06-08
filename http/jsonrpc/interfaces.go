@@ -144,19 +144,13 @@ func GetRawMemPool(params []interface{}) map[string]interface{} {
 
 //get memory pool transaction count
 func GetMemPoolTxCount(params []interface{}) map[string]interface{} {
-	count, err := bactor.GetTxnCount()
-	if err != nil {
-		return rpc.ResponsePack(berr.INTERNAL_ERROR, nil)
-	}
+	count := bactor.GetTxnCount()
 	return rpc.ResponseSuccess(count)
 }
 
 //get memory pool transaction hash
 func GetMemPoolTxHashList(params []interface{}) map[string]interface{} {
-	txHashList, err := bactor.GetTxnHashList()
-	if err != nil {
-		return rpc.ResponsePack(berr.INTERNAL_ERROR, nil)
-	}
+	txHashList := bactor.GetTxnHashList()
 	return rpc.ResponseSuccess(txHashList)
 }
 
