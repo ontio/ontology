@@ -26,6 +26,7 @@ import (
 	"strconv"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	"github.com/ontio/ontology-eventbus/actor"
 	"github.com/ontio/ontology/common"
@@ -40,20 +41,15 @@ import (
 	params "github.com/ontio/ontology/smartcontract/service/native/global_params"
 	nutils "github.com/ontio/ontology/smartcontract/service/native/utils"
 	tc "github.com/ontio/ontology/txnpool/common"
+	"github.com/ontio/ontology/validator/stateful"
+	"github.com/ontio/ontology/validator/stateless"
+	"github.com/ontio/ontology/validator/types"
 )
 
 type serverPendingTx struct {
 	tx     *tx.Transaction   // Pending tx
 	sender tc.SenderType     // Indicate which sender tx is from
 	ch     chan *tc.TxResult // channel to send tx result
-}
-
-type pendingBlock struct {
-	mu             sync.RWMutex
-	sender         *actor.PID                            // Consensus PID
-	height         uint32                                // The block height
-	processedTxs   map[common.Uint256]*tc.VerifyTxResult // Transaction which has been processed
-	unProcessedTxs map[common.Uint256]*tx.Transaction    // Transaction which is not processed
 }
 
 // TXPoolServer contains all api to external modules
@@ -63,7 +59,6 @@ type TXPoolServer struct {
 	worker                *txPoolWorker                       // Worker pool
 	txPool                *tc.TXPool                          // The tx pool that holds the valid transaction
 	allPendingTxs         map[common.Uint256]*serverPendingTx // The txs that server is processing
-	pendingBlock          *pendingBlock                       // The block that server is processing
 	actor                 *actor.PID
 	Net                   p2p.P2P
 	slots                 chan struct{} // The limited slots for the new transaction
@@ -140,11 +135,6 @@ func (s *TXPoolServer) init(disablePreExec, disableBroadcastNetTx bool) {
 	s.txPool.Init()
 	s.allPendingTxs = make(map[common.Uint256]*serverPendingTx)
 
-	s.pendingBlock = &pendingBlock{
-		processedTxs:   make(map[common.Uint256]*tc.VerifyTxResult, 0),
-		unProcessedTxs: make(map[common.Uint256]*tx.Transaction, 0),
-	}
-
 	s.slots = make(chan struct{}, tc.MAX_LIMITATION)
 	for i := 0; i < tc.MAX_LIMITATION; i++ {
 		s.slots <- struct{}{}
@@ -159,37 +149,6 @@ func (s *TXPoolServer) init(disablePreExec, disableBroadcastNetTx bool) {
 	s.wg.Add(1)
 	s.worker = NewTxPoolWoker(s)
 	go s.worker.start()
-}
-
-// checkPendingBlockOk checks whether a block from consensus is verified.
-// If some transaction is invalid, return the result directly at once, no
-// need to wait for verifying the complete block.
-func (s *TXPoolServer) checkPendingBlockOk(hash common.Uint256,
-	err errors.ErrCode) {
-
-	// Check if the tx is in pending block, if yes, move it to
-	// the verified tx list
-	s.pendingBlock.mu.Lock()
-	defer s.pendingBlock.mu.Unlock()
-
-	tx, ok := s.pendingBlock.unProcessedTxs[hash]
-	if !ok {
-		return
-	}
-
-	entry := &tc.VerifyTxResult{
-		Height:  s.pendingBlock.height,
-		Tx:      tx,
-		ErrCode: err,
-	}
-
-	s.pendingBlock.processedTxs[hash] = entry
-	delete(s.pendingBlock.unProcessedTxs, hash)
-
-	// if the tx is invalid, send the response at once
-	if err != errors.ErrNoError || len(s.pendingBlock.unProcessedTxs) == 0 {
-		s.sendBlkResult2Consensus()
-	}
 }
 
 // getPendingListSize return the length of the pending tx list.
@@ -251,10 +210,6 @@ func (s *TXPoolServer) removePendingTx(hash common.Uint256, err errors.ErrCode) 
 	}
 
 	s.mu.Unlock()
-
-	// Check if the tx is in the pending block and
-	// the pending block is verified
-	s.checkPendingBlockOk(hash, err)
 }
 
 // setPendingTx adds a transaction to the pending list, if the
@@ -263,8 +218,7 @@ func (s *TXPoolServer) setPendingTx(tx *tx.Transaction, sender tc.SenderType, tx
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if ok := s.allPendingTxs[tx.Hash()]; ok != nil {
-		log.Debugf("setPendingTx: transaction %x already in the verifying process",
-			tx.Hash())
+		log.Debugf("setPendingTx: transaction %x already in the verifying process", tx.Hash())
 		return false
 	}
 
@@ -367,8 +321,7 @@ func (s *TXPoolServer) getTxHashList() []common.Uint256 {
 func (s *TXPoolServer) cleanTransactionList(txs []*tx.Transaction, height uint32) {
 	s.txPool.CleanTransactionList(txs)
 
-	// Check whether to update the gas price and remove txs below the
-	// threshold
+	// Check whether to update the gas price and remove txs below the threshold
 	if height%tc.UPDATE_FREQUENCY == 0 {
 		gasPrice := getGasPriceConfig()
 		s.mu.Lock()
@@ -408,25 +361,6 @@ func (s *TXPoolServer) addTxList(txEntry *tc.TXEntry) bool {
 	return ret
 }
 
-// checkTx checks whether a transaction is in the pending list or
-// the transacton pool
-func (s *TXPoolServer) checkTx(hash common.Uint256) bool {
-	// Check if the tx is in pending list
-	s.mu.RLock()
-	if ok := s.allPendingTxs[hash]; ok != nil {
-		s.mu.RUnlock()
-		return true
-	}
-	s.mu.RUnlock()
-
-	// Check if the tx is in txn pool
-	if res := s.txPool.GetTransaction(hash); res != nil {
-		return true
-	}
-
-	return false
-}
-
 // getTxStatusReq returns a transaction's status with the transaction hash.
 func (s *TXPoolServer) getTxStatusReq(hash common.Uint256) *tc.TxStatus {
 	if ret := s.worker.GetTxStatus(hash); ret != nil {
@@ -451,27 +385,7 @@ func (s *TXPoolServer) reVerifyStateful(tx *tx.Transaction, sender tc.SenderType
 	s.worker.stfTxCh <- tx
 }
 
-// sendBlkResult2Consensus sends the result of verifying block to  consensus
-func (s *TXPoolServer) sendBlkResult2Consensus() {
-	rsp := &tc.VerifyBlockRsp{
-		TxnPool: make([]*tc.VerifyTxResult,
-			0, len(s.pendingBlock.processedTxs)),
-	}
-	for _, v := range s.pendingBlock.processedTxs {
-		rsp.TxnPool = append(rsp.TxnPool, v)
-	}
-
-	if s.pendingBlock.sender != nil {
-		s.pendingBlock.sender.Tell(rsp)
-	}
-
-	// Clear the processedTxs for the next block verify req
-	for k := range s.pendingBlock.processedTxs {
-		delete(s.pendingBlock.processedTxs, k)
-	}
-}
-
-// verifyBlock verifies the block from consensus.
+// verifies the block from consensus.
 // There are three cases to handle.
 // 1, for those unverified txs, assign them to the available worker;
 // 2, for those verified txs whose height >= block's height, nothing to do;
@@ -483,63 +397,90 @@ func (s *TXPoolServer) verifyBlock(req *tc.VerifyBlockReq, sender *actor.PID) {
 	}
 
 	s.setHeight(req.Height)
-	s.pendingBlock.mu.Lock()
-	defer s.pendingBlock.mu.Unlock()
 
-	s.pendingBlock.sender = sender
-	s.pendingBlock.height = req.Height
-	s.pendingBlock.processedTxs = make(map[common.Uint256]*tc.VerifyTxResult, len(req.Txs))
-	s.pendingBlock.unProcessedTxs = make(map[common.Uint256]*tx.Transaction, 0)
+	processedTxs := make([]*tc.VerifyTxResult, len(req.Txs))
 
-	txs := make(map[common.Uint256]bool, len(req.Txs))
-
-	// Check whether a tx's gas price is lower than the required, if yes,
-	// just return error
+	// Check whether a tx's gas price is lower than the required, if yes, just return error
+	txs := make(map[common.Uint256]*tx.Transaction, len(req.Txs))
 	for _, t := range req.Txs {
 		if t.GasPrice < s.gasPrice {
 			entry := &tc.VerifyTxResult{
-				Height:  s.pendingBlock.height,
+				Height:  req.Height,
 				Tx:      t,
 				ErrCode: errors.ErrGasPrice,
 			}
-			s.pendingBlock.processedTxs[t.Hash()] = entry
-			s.sendBlkResult2Consensus()
+			processedTxs = append(processedTxs, entry)
+			sender.Tell(&tc.VerifyBlockRsp{TxnPool: processedTxs})
 			return
 		}
 		// Check whether double spent
 		if _, ok := txs[t.Hash()]; ok {
 			entry := &tc.VerifyTxResult{
-				Height:  s.pendingBlock.height,
+				Height:  req.Height,
 				Tx:      t,
 				ErrCode: errors.ErrDoubleSpend,
 			}
-			s.pendingBlock.processedTxs[t.Hash()] = entry
-			s.sendBlkResult2Consensus()
+			processedTxs = append(processedTxs, entry)
+			sender.Tell(&tc.VerifyBlockRsp{TxnPool: processedTxs})
 			return
 		}
-		txs[t.Hash()] = true
+		txs[t.Hash()] = t
 	}
 
 	checkBlkResult := s.txPool.GetUnverifiedTxs(req.Txs, req.Height)
 
-	for _, t := range checkBlkResult.UnverifiedTxs {
-		s.assignTxToWorker(t, tc.NilSender, nil)
-		s.pendingBlock.unProcessedTxs[t.Hash()] = t
+	if len(checkBlkResult.UnverifiedTxs) > 0 {
+		ch := make(chan *types.CheckResponse, len(checkBlkResult.UnverifiedTxs))
+		validator := stateless.NewValidatorPool(5)
+		for _, t := range checkBlkResult.UnverifiedTxs {
+			validator.SubmitVerifyTask(t, ch)
+		}
+		for i := 0; i < len(checkBlkResult.UnverifiedTxs); i++ {
+			response := <-ch
+			if response.ErrCode != errors.ErrNoError {
+				processedTxs = append(processedTxs, &tc.VerifyTxResult{
+					Height:  req.Height,
+					Tx:      txs[response.Hash],
+					ErrCode: response.ErrCode,
+				})
+				sender.Tell(&tc.VerifyBlockRsp{TxnPool: processedTxs})
+				return
+			}
+		}
 	}
 
-	for _, t := range checkBlkResult.OldTxs {
-		s.reVerifyStateful(t, tc.NilSender)
-		s.pendingBlock.unProcessedTxs[t.Hash()] = t
+	lenStateFul := len(checkBlkResult.UnverifiedTxs) + len(checkBlkResult.OldTxs)
+	if lenStateFul > 0 {
+		currHeight := ledger.DefLedger.GetCurrentBlockHeight()
+		for currHeight < req.Height {
+			// wait ledger sync up
+			log.Warnf("ledger need sync up for tx verification, curr height: %d, expected:%d", currHeight, req.Height)
+			time.Sleep(time.Second)
+			currHeight = ledger.DefLedger.GetCurrentBlockHeight()
+		}
+
+		ch := make(chan *types.CheckResponse, len(checkBlkResult.UnverifiedTxs))
+		validator := stateful.NewValidatorPool(1)
+		for _, tx := range checkBlkResult.UnverifiedTxs {
+			validator.SubmitVerifyTask(tx, ch)
+		}
+		for _, tx := range checkBlkResult.OldTxs {
+			validator.SubmitVerifyTask(tx, ch)
+		}
+		for i := 0; i < lenStateFul; i++ {
+			resp := <-ch
+			processedTxs = append(processedTxs, &tc.VerifyTxResult{
+				Height:  resp.Height,
+				Tx:      txs[resp.Hash],
+				ErrCode: resp.ErrCode,
+			})
+			if resp.ErrCode != errors.ErrNoError {
+				sender.Tell(&tc.VerifyBlockRsp{TxnPool: processedTxs})
+				return
+			}
+		}
 	}
 
-	for _, t := range checkBlkResult.VerifiedTxs {
-		s.pendingBlock.processedTxs[t.Tx.Hash()] = t
-	}
-
-	/* If all the txs in the blocks are verified, send response
-	 * to the consensus directly
-	 */
-	if len(s.pendingBlock.unProcessedTxs) == 0 {
-		s.sendBlkResult2Consensus()
-	}
+	processedTxs = append(processedTxs, checkBlkResult.VerifiedTxs...)
+	sender.Tell(&tc.VerifyBlockRsp{TxnPool: processedTxs})
 }
