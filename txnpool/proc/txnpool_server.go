@@ -303,7 +303,9 @@ func (s *TXPoolServer) RegisterActor(pid *actor.PID) {
 
 // Stop stops server and workers.
 func (s *TXPoolServer) Stop() {
-	s.actor.Stop()
+	if s.actor != nil {
+		s.actor.Stop()
+	}
 	//Stop worker
 	s.worker.stop()
 	s.wg.Wait()
