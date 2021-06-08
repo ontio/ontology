@@ -556,10 +556,7 @@ func GetGrantOng(cmd map[string]interface{}) map[string]interface{} {
 //get memory pool transaction count
 func GetMemPoolTxCount(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(berr.SUCCESS)
-	count, err := bactor.GetTxnCount()
-	if err != nil {
-		return ResponsePack(berr.INTERNAL_ERROR)
-	}
+	count := bactor.GetTxnCount()
 	resp["Result"] = count
 	return resp
 }
@@ -567,10 +564,7 @@ func GetMemPoolTxCount(cmd map[string]interface{}) map[string]interface{} {
 //get memory pool transaction hash list
 func GetMemPoolTxHashList(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(berr.SUCCESS)
-	txHashList, err := bactor.GetTxnHashList()
-	if err != nil {
-		return ResponsePack(berr.INTERNAL_ERROR)
-	}
+	txHashList := bactor.GetTxnHashList()
 	resp["Result"] = txHashList
 	return resp
 }

@@ -139,30 +139,11 @@ func TestActor(t *testing.T) {
 		t.Error("Fail to start txnpool actor")
 		return
 	}
-	s.RegisterActor(tc.TxPoolActor, txPoolPid)
+	s.RegisterActor(txPoolPid)
 
-	pid := s.GetPID(tc.TxPoolActor)
+	pid := s.GetPID()
 	if pid == nil {
 		t.Error("Fail to get the pid")
-		return
-	}
-
-	pid = s.GetPID(tc.TxActor)
-	if pid != nil {
-		t.Error("Fail to get the pid")
-		return
-	}
-
-	s.UnRegisterActor(tc.TxPoolActor)
-	pid = s.GetPID(tc.TxPoolActor)
-	if pid != nil {
-		t.Error("Pid was not registered")
-		return
-	}
-
-	pid = s.GetPID(tc.MaxActor)
-	if pid != nil {
-		t.Error("Invalid PID")
 		return
 	}
 

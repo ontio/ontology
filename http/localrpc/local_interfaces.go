@@ -41,10 +41,7 @@ func GetNodeState(params []interface{}) map[string]interface{} {
 	tpe := bactor.GetNodeType()
 	relay := bactor.GetRelayState()
 	height := bactor.GetCurrentBlockHeight()
-	txnCnt, err := bactor.GetTxnCount()
-	if err != nil {
-		return rpc.ResponsePack(berr.INTERNAL_ERROR, false)
-	}
+	txnCnt := bactor.GetTxnCount()
 	n := common.NodeInfo{
 		NodeTime:    t,
 		NodePort:    port,
