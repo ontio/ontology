@@ -262,7 +262,6 @@ func (st *StateTransition) TransitionDb() (*types.ExecutionResult, error) {
 			ret, _, st.gas, vmerr = st.evm.Create(sender, st.data, st.gas, st.value)
 		} else {
 			// Increment the nonce for the next transaction
-			// todo : handle nonce
 			st.state.SetNonce(msg.From(), st.state.GetNonce(sender.Address())+1)
 			ret, st.gas, vmerr = st.evm.Call(sender, st.to(), st.data, st.gas, st.value)
 		}
