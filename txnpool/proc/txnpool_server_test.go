@@ -107,12 +107,6 @@ func TestTxn(t *testing.T) {
 	}
 	s.addTxList(txEntry)
 
-	ret := s.checkTx(txn.Hash())
-	if ret == false {
-		t.Error("Failed to check the tx")
-		return
-	}
-
 	entry := s.getTransaction(txn.Hash())
 	if entry == nil {
 		t.Error("Failed to get the transaction")
