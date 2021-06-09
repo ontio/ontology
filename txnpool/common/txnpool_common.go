@@ -19,6 +19,10 @@
 package common
 
 import (
+	"sync/atomic"
+
+	types2 "github.com/ontio/ontology/validator/types"
+
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/errors"
@@ -62,6 +66,55 @@ type TxResult struct {
 	Desc string
 }
 
+type CheckingStatus struct {
+	PassedStateless uint32 // actually bool, use uint32 for atomic operation
+	PassedStateful  uint32 // actually bool, use uint32 for atomic operation
+	CheckHeight     uint32
+}
+
+func (s *CheckingStatus) SetStateless() {
+	atomic.StoreUint32(&s.PassedStateless, 1)
+}
+
+func (s *CheckingStatus) GetStateless() bool {
+	val := atomic.LoadUint32(&s.PassedStateless)
+	return val == 1
+}
+
+func (s *CheckingStatus) GetStateful() bool {
+	val := atomic.LoadUint32(&s.PassedStateful)
+	return val == 1
+}
+
+func (s *CheckingStatus) SetStateful(height uint32) {
+	if s.CheckHeight < height {
+		s.CheckHeight = height
+	}
+	atomic.StoreUint32(&s.PassedStateful, 1)
+}
+
+func (self *CheckingStatus) GetTxAttr() []*TXAttr {
+	var res []*TXAttr
+	if self.GetStateless() {
+		res = append(res,
+			&TXAttr{
+				Height:  0,
+				Type:    types2.Stateless,
+				ErrCode: errors.ErrNoError,
+			})
+	}
+	if self.GetStateful() {
+		res = append(res,
+			&TXAttr{
+				Height:  self.CheckHeight,
+				Type:    types2.Stateful,
+				ErrCode: errors.ErrNoError,
+			})
+	}
+
+	return res
+}
+
 // consensus messages
 // GetTxnPoolReq specifies the api that how to get the valid transaction list.
 type GetTxnPoolReq struct {
@@ -71,7 +124,7 @@ type GetTxnPoolReq struct {
 
 // GetTxnPoolRsp returns a transaction list for GetTxnPoolReq.
 type GetTxnPoolRsp struct {
-	TxnPool []*TXEntry
+	TxnPool []*VerifiedTx
 }
 
 type TxPoolService interface {
@@ -101,7 +154,7 @@ type VerifyBlockRsp struct {
 	TxnPool []*VerifyTxResult
 }
 
-type OrderByNetWorkFee []*TXEntry
+type OrderByNetWorkFee []*VerifiedTx
 
 func (n OrderByNetWorkFee) Len() int { return len(n) }
 

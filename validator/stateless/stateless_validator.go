@@ -40,6 +40,7 @@ func (self *ValidatorPool) SubmitVerifyTask(tx *types.Transaction, rspCh chan<- 
 		response := &vatypes.CheckResponse{
 			ErrCode: errCode,
 			Hash:    tx.Hash(),
+			Tx:      tx,
 			Type:    vatypes.Stateless,
 			Height:  0,
 		}
