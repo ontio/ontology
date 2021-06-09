@@ -459,7 +459,7 @@ func (s *TXPoolServer) verifyBlock(req *tc.VerifyBlockReq, sender *actor.PID) {
 			currHeight = ledger.DefLedger.GetCurrentBlockHeight()
 		}
 
-		ch := make(chan *types.CheckResponse, len(checkBlkResult.UnverifiedTxs))
+		ch := make(chan *types.CheckResponse, lenStateFul)
 		validator := stateful.NewValidatorPool(1)
 		for _, tx := range checkBlkResult.UnverifiedTxs {
 			validator.SubmitVerifyTask(tx, ch)
