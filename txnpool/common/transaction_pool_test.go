@@ -47,9 +47,9 @@ func init() {
 func TestTxPool(t *testing.T) {
 	txPool := NewTxPool()
 
-	txEntry := &TXEntry{
-		Tx:    txn,
-		Attrs: []*TXAttr{},
+	txEntry := &VerifiedTx{
+		Tx:             txn,
+		VerifiedHeight: 10,
 	}
 
 	ret := txPool.AddTxList(txEntry)
