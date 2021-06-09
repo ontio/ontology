@@ -19,6 +19,7 @@
 package common
 
 import (
+	"math/big"
 	"sync/atomic"
 
 	"github.com/ontio/ontology/common"
@@ -28,7 +29,6 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/native/ont"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 	types2 "github.com/ontio/ontology/validator/types"
-	"math/big"
 )
 
 const (
