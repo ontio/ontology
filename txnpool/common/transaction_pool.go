@@ -42,18 +42,37 @@ type TXEntry struct {
 	Attrs []*TXAttr          // the result from each validator
 }
 
+type VerifiedTx struct {
+	Tx             *types.Transaction // transaction which has been verified
+	VerifiedHeight uint32
+}
+
+func (self *VerifiedTx) GetAttrs() []*TXAttr {
+	return []*TXAttr{
+		{
+			Height:  0,
+			Type:    vt.Stateless,
+			ErrCode: errors.ErrNoError,
+		}, {
+			Height:  self.VerifiedHeight,
+			Type:    vt.Stateful,
+			ErrCode: errors.ErrNoError,
+		},
+	}
+}
+
 // TXPool contains all currently valid transactions. Transactions
 // enter the pool when they are valid from the network,
 // consensus or submitted. They exit the pool when they are included
 // in the ledger.
 type TXPool struct {
 	sync.RWMutex
-	txList map[common.Uint256]*TXEntry // Transactions which have been verified
+	txList map[common.Uint256]*VerifiedTx // Transactions which have been verified
 }
 
 func NewTxPool() *TXPool {
 	return &TXPool{
-		txList: make(map[common.Uint256]*TXEntry),
+		txList: make(map[common.Uint256]*VerifiedTx),
 	}
 }
 
@@ -61,7 +80,7 @@ func NewTxPool() *TXPool {
 // transaction is already in the pool, just return false. Parameter
 // txEntry includes transaction, fee, and verified information(height,
 // validator, error code).
-func (tp *TXPool) AddTxList(txEntry *TXEntry) bool {
+func (tp *TXPool) AddTxList(txEntry *VerifiedTx) bool {
 	tp.Lock()
 	defer tp.Unlock()
 	txHash := txEntry.Tx.Hash()
@@ -87,7 +106,7 @@ func (tp *TXPool) CleanTransactionList(txs []*types.Transaction) {
 		}
 	}
 
-	log.Debugf("CleanTransactionList: total %d, cleaned %d, remains %d in TxPool", txsNum, cleaned, len(tp.txList))
+	log.Debugf("clean txes: total %d, cleaned %d, remains %d in TxPool", txsNum, cleaned, len(tp.txList))
 }
 
 // DelTxList removes a single transaction from the pool.
@@ -105,24 +124,18 @@ func (tp *TXPool) DelTxList(tx *types.Transaction) bool {
 // isVerfiyExpired compares a verifed transaction's height with the next
 // block height from consensus. If the height is less than the next block
 // height, re-verify it.
-func (tp *TXPool) isVerfiyExpired(txEntry *TXEntry, height uint32) bool {
-	for _, v := range txEntry.Attrs {
-		if v.Type == vt.Stateful && v.Height < height {
-			return false
-		}
-	}
-	return true
+func (tp *TXPool) isVerfiyExpired(txEntry *VerifiedTx, height uint32) bool {
+	return txEntry.VerifiedHeight < height
 }
 
 // GetTxPool gets the transaction lists from the pool for the consensus,
 // if the byCount is marked, return the configured number at most; if the
 // the byCount is not marked, return all of the current transaction pool.
-func (tp *TXPool) GetTxPool(byCount bool, height uint32) ([]*TXEntry,
-	[]*types.Transaction) {
+func (tp *TXPool) GetTxPool(byCount bool, height uint32) ([]*VerifiedTx, []*types.Transaction) {
 	tp.RLock()
 	defer tp.RUnlock()
 
-	orderByFee := make([]*TXEntry, 0, len(tp.txList))
+	orderByFee := make([]*VerifiedTx, 0, len(tp.txList))
 	for _, txEntry := range tp.txList {
 		orderByFee = append(orderByFee, txEntry)
 	}
@@ -136,7 +149,7 @@ func (tp *TXPool) GetTxPool(byCount bool, height uint32) ([]*TXEntry,
 		count = len(tp.txList)
 	}
 
-	txList := make([]*TXEntry, 0, count)
+	txList := make([]*VerifiedTx, 0, count)
 	oldTxList := make([]*types.Transaction, 0)
 	for _, txEntry := range orderByFee {
 		if !tp.isVerfiyExpired(txEntry, height) {
@@ -174,7 +187,7 @@ func (tp *TXPool) GetTxStatus(hash common.Uint256) *TxStatus {
 	}
 	ret := &TxStatus{
 		Hash:  hash,
-		Attrs: txEntry.Attrs,
+		Attrs: txEntry.GetAttrs(),
 	}
 	return ret
 }
@@ -221,17 +234,11 @@ func (tp *TXPool) GetUnverifiedTxs(txs []*types.Transaction, height uint32) *Che
 			continue
 		}
 
-		for _, v := range txEntry.Attrs {
-			if v.Type == vt.Stateful {
-				entry := &VerifyTxResult{
-					Tx:      tx,
-					Height:  v.Height,
-					ErrCode: v.ErrCode,
-				}
-				res.VerifiedTxs = append(res.VerifiedTxs, entry)
-				break
-			}
-		}
+		res.VerifiedTxs = append(res.VerifiedTxs, &VerifyTxResult{
+			Height:  txEntry.VerifiedHeight,
+			Tx:      txEntry.Tx,
+			ErrCode: errors.ErrNoError,
+		})
 	}
 
 	return res

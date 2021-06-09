@@ -124,7 +124,7 @@ type GetTxnPoolReq struct {
 
 // GetTxnPoolRsp returns a transaction list for GetTxnPoolReq.
 type GetTxnPoolRsp struct {
-	TxnPool []*TXEntry
+	TxnPool []*VerifiedTx
 }
 
 type TxPoolService interface {
@@ -154,7 +154,7 @@ type VerifyBlockRsp struct {
 	TxnPool []*VerifyTxResult
 }
 
-type OrderByNetWorkFee []*TXEntry
+type OrderByNetWorkFee []*VerifiedTx
 
 func (n OrderByNetWorkFee) Len() int { return len(n) }
 

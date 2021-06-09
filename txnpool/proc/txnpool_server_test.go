@@ -32,9 +32,8 @@ import (
 )
 
 var (
-	txn       *types.Transaction
-	invalidTx *types.Transaction
-	sender    tc.SenderType
+	txn    *types.Transaction
+	sender tc.SenderType
 )
 
 func init() {
@@ -52,8 +51,6 @@ func init() {
 		Payload: invokeCodePayload,
 		Payer:   acct.Address,
 	}
-
-	invalidTx, _ = mutable.IntoImmutable()
 
 	err := utils.SignTransaction(acct, mutable)
 	if err != nil {
@@ -101,9 +98,9 @@ func TestTxn(t *testing.T) {
 	 * with the invalid hash
 	 */
 	time.Sleep(10 * time.Second)
-	txEntry := &tc.TXEntry{
-		Tx:    txn,
-		Attrs: []*tc.TXAttr{},
+	txEntry := &tc.VerifiedTx{
+		Tx:             txn,
+		VerifiedHeight: 10,
 	}
 	s.addTxList(txEntry)
 

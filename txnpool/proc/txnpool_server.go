@@ -243,7 +243,7 @@ func (s *TXPoolServer) getTransaction(hash common.Uint256) *ctypes.Transaction {
 }
 
 // getTxPool returns a tx list for consensus.
-func (s *TXPoolServer) getTxPool(byCount bool, height uint32) []*tc.TXEntry {
+func (s *TXPoolServer) getTxPool(byCount bool, height uint32) []*tc.VerifiedTx {
 	s.setHeight(height)
 
 	avlTxList, oldTxList := s.txPool.GetTxPool(byCount, height)
@@ -324,7 +324,7 @@ func (s *TXPoolServer) delTransaction(t *ctypes.Transaction) {
 }
 
 // adds a valid transaction to the tx pool.
-func (s *TXPoolServer) addTxList(txEntry *tc.TXEntry) bool {
+func (s *TXPoolServer) addTxList(txEntry *tc.VerifiedTx) bool {
 	ret := s.txPool.AddTxList(txEntry)
 	return ret
 }
@@ -487,9 +487,9 @@ func (server *TXPoolServer) handleRsp(rsp *types.CheckResponse) {
 	}
 
 	if pt.checkingStatus.GetStateless() && pt.checkingStatus.GetStateful() {
-		txEntry := &tc.TXEntry{
-			Tx:    pt.tx,
-			Attrs: pt.checkingStatus.GetTxAttr(),
+		txEntry := &tc.VerifiedTx{
+			Tx:             pt.tx,
+			VerifiedHeight: pt.checkingStatus.CheckHeight,
 		}
 		server.addTxList(txEntry)
 		server.removePendingTx(pt.tx.Hash(), errors.ErrNoError)

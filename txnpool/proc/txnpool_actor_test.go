@@ -28,10 +28,8 @@ import (
 	"github.com/ontio/ontology/core/genesis"
 	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/core/types"
-	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/events/message"
 	tc "github.com/ontio/ontology/txnpool/common"
-	vt "github.com/ontio/ontology/validator/types"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -73,17 +71,10 @@ func TestTxPoolActor(t *testing.T) {
 		return
 	}
 
-	txEntry := &tc.TXEntry{
-		Tx:    txn,
-		Attrs: []*tc.TXAttr{},
+	txEntry := &tc.VerifiedTx{
+		Tx:             txn,
+		VerifiedHeight: 10,
 	}
-
-	retAttr := &tc.TXAttr{
-		Height:  0,
-		Type:    vt.Stateful,
-		ErrCode: errors.ErrNoError,
-	}
-	txEntry.Attrs = append(txEntry.Attrs, retAttr)
 	s.addTxList(txEntry)
 
 	future := txPoolPid.RequestFuture(&tc.GetTxnPoolReq{ByCount: false}, 2*time.Second)
