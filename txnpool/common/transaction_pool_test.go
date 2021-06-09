@@ -45,8 +45,7 @@ func init() {
 }
 
 func TestTxPool(t *testing.T) {
-	txPool := &TXPool{}
-	txPool.Init()
+	txPool := NewTxPool()
 
 	txEntry := &TXEntry{
 		Tx:    txn,

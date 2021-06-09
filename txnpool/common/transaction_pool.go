@@ -51,11 +51,10 @@ type TXPool struct {
 	txList map[common.Uint256]*TXEntry // Transactions which have been verified
 }
 
-// Init creates a new transaction pool to gather.
-func (tp *TXPool) Init() {
-	tp.Lock()
-	defer tp.Unlock()
-	tp.txList = make(map[common.Uint256]*TXEntry)
+func NewTxPool() *TXPool {
+	return &TXPool{
+		txList: make(map[common.Uint256]*TXEntry),
+	}
 }
 
 // AddTxList adds a valid transaction to the transaction pool. If the

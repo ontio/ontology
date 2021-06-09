@@ -88,14 +88,14 @@ func TestTxn(t *testing.T) {
 	/* Case 2: send non-nil txn to the server, server should assign
 	 * it to the worker
 	 */
-	s.assignTxToWorker(txn, sender, nil)
+	s.startTxVerify(txn, sender, nil)
 
 	/* Case 3: Duplicate input the tx, server should reject the second
 	 * one
 	 */
 	time.Sleep(10 * time.Second)
-	s.assignTxToWorker(txn, sender, nil)
-	s.assignTxToWorker(txn, sender, nil)
+	s.startTxVerify(txn, sender, nil)
+	s.startTxVerify(txn, sender, nil)
 
 	/* Case 4: Given the tx is in the tx pool, server can get the tx
 	 * with the invalid hash
