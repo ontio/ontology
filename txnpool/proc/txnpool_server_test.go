@@ -32,9 +32,8 @@ import (
 )
 
 var (
-	txn       *types.Transaction
-	invalidTx *types.Transaction
-	sender    tc.SenderType
+	txn    *types.Transaction
+	sender tc.SenderType
 )
 
 func init() {
@@ -52,8 +51,6 @@ func init() {
 		Payload: invokeCodePayload,
 		Payer:   acct.Address,
 	}
-
-	invalidTx, _ = mutable.IntoImmutable()
 
 	err := utils.SignTransaction(acct, mutable)
 	if err != nil {
@@ -88,22 +85,22 @@ func TestTxn(t *testing.T) {
 	/* Case 2: send non-nil txn to the server, server should assign
 	 * it to the worker
 	 */
-	s.assignTxToWorker(txn, sender, nil)
+	s.startTxVerify(txn, sender, nil)
 
 	/* Case 3: Duplicate input the tx, server should reject the second
 	 * one
 	 */
 	time.Sleep(10 * time.Second)
-	s.assignTxToWorker(txn, sender, nil)
-	s.assignTxToWorker(txn, sender, nil)
+	s.startTxVerify(txn, sender, nil)
+	s.startTxVerify(txn, sender, nil)
 
 	/* Case 4: Given the tx is in the tx pool, server can get the tx
 	 * with the invalid hash
 	 */
 	time.Sleep(10 * time.Second)
-	txEntry := &tc.TXEntry{
-		Tx:    txn,
-		Attrs: []*tc.TXAttr{},
+	txEntry := &tc.VerifiedTx{
+		Tx:             txn,
+		VerifiedHeight: 10,
 	}
 	s.addTxList(txEntry)
 

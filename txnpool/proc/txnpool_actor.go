@@ -160,7 +160,7 @@ func (ta *TxPoolService) handleTransaction(sender tc.SenderType, txn *tx.Transac
 		log.Debugf("handleTransaction: preExecCheck tx %x passed", txn.Hash())
 	}
 	<-ta.server.slots
-	ta.server.assignTxToWorker(txn, sender, txResultCh)
+	ta.server.startTxVerify(txn, sender, txResultCh)
 }
 
 func (ta *TxPoolService) GetTransaction(hash common.Uint256) *tx.Transaction {

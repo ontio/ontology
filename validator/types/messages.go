@@ -20,12 +20,14 @@ package types
 
 import (
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/errors"
 )
 
 type CheckResponse struct {
 	Type    VerifyType
 	Hash    common.Uint256
+	Tx      *types.Transaction
 	Height  uint32
 	ErrCode errors.ErrCode
 }

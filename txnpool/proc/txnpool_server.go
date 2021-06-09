@@ -21,25 +21,18 @@
 package proc
 
 import (
-	"encoding/hex"
-	"fmt"
-	"strconv"
 	"sync"
 	"sync/atomic"
 	"time"
 
 	"github.com/ontio/ontology-eventbus/actor"
 	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/ledger"
-	tx "github.com/ontio/ontology/core/types"
+	ctypes "github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/errors"
-	httpcom "github.com/ontio/ontology/http/base/common"
 	msgpack "github.com/ontio/ontology/p2pserver/message/msg_pack"
 	p2p "github.com/ontio/ontology/p2pserver/net/protocol"
-	params "github.com/ontio/ontology/smartcontract/service/native/global_params"
-	nutils "github.com/ontio/ontology/smartcontract/service/native/utils"
 	tc "github.com/ontio/ontology/txnpool/common"
 	"github.com/ontio/ontology/validator/stateful"
 	"github.com/ontio/ontology/validator/stateless"
@@ -47,16 +40,15 @@ import (
 )
 
 type serverPendingTx struct {
-	tx     *tx.Transaction   // Pending tx
-	sender tc.SenderType     // Indicate which sender tx is from
-	ch     chan *tc.TxResult // channel to send tx result
+	tx             *ctypes.Transaction // Pending
+	sender         tc.SenderType       // Indicate which sender tx is from
+	ch             chan *tc.TxResult   // channel to send tx result
+	checkingStatus *tc.CheckingStatus
 }
 
 // TXPoolServer contains all api to external modules
 type TXPoolServer struct {
 	mu                    sync.RWMutex                        // Sync mutex
-	wg                    sync.WaitGroup                      // Worker sync
-	worker                *txPoolWorker                       // Worker pool
 	txPool                *tc.TXPool                          // The tx pool that holds the valid transaction
 	allPendingTxs         map[common.Uint256]*serverPendingTx // The txs that server is processing
 	actor                 *actor.PID
@@ -66,73 +58,19 @@ type TXPoolServer struct {
 	gasPrice              uint64        // Gas price to enforce for acceptance into the pool
 	disablePreExec        bool          // Disbale PreExecute a transaction
 	disableBroadcastNetTx bool          // Disable broadcast tx from network
+
+	stateless *stateless.ValidatorPool
+	stateful  *stateful.ValidatorPool
+	rspCh     chan *types.CheckResponse // The channel of verified response
+	stopCh    chan bool                 // stop routine
 }
 
 // NewTxPoolServer creates a new tx pool server to schedule workers to
 // handle and filter inbound transactions from the network, http, and consensus.
 func NewTxPoolServer(disablePreExec, disableBroadcastNetTx bool) *TXPoolServer {
 	s := &TXPoolServer{}
-	s.init(disablePreExec, disableBroadcastNetTx)
-	return s
-}
-
-// getGlobalGasPrice returns a global gas price
-func getGlobalGasPrice() (uint64, error) {
-	mutable, err := httpcom.NewNativeInvokeTransaction(0, 0, nutils.ParamContractAddress, 0, "getGlobalParam", []interface{}{[]interface{}{"gasPrice"}})
-	if err != nil {
-		return 0, fmt.Errorf("NewNativeInvokeTransaction error:%s", err)
-	}
-	tx, err := mutable.IntoImmutable()
-	if err != nil {
-		return 0, err
-	}
-	result, err := ledger.DefLedger.PreExecuteContract(tx)
-	if err != nil {
-		return 0, fmt.Errorf("PreExecuteContract failed %v", err)
-	}
-
-	queriedParams := new(params.Params)
-	data, err := hex.DecodeString(result.Result.(string))
-	if err != nil {
-		return 0, fmt.Errorf("decode result error %v", err)
-	}
-
-	err = queriedParams.Deserialization(common.NewZeroCopySource([]byte(data)))
-	if err != nil {
-		return 0, fmt.Errorf("deserialize result error %v", err)
-	}
-	_, param := queriedParams.GetParam("gasPrice")
-	if param.Value == "" {
-		return 0, fmt.Errorf("failed to get param for gasPrice")
-	}
-
-	gasPrice, err := strconv.ParseUint(param.Value, 10, 64)
-	if err != nil {
-		return 0, fmt.Errorf("failed to parse uint %v", err)
-	}
-
-	return gasPrice, nil
-}
-
-// getGasPriceConfig returns the bigger one between global and cmd configured
-func getGasPriceConfig() uint64 {
-	globalGasPrice, err := getGlobalGasPrice()
-	if err != nil {
-		log.Info(err)
-		return 0
-	}
-
-	if globalGasPrice < config.DefConfig.Common.GasPrice {
-		return config.DefConfig.Common.GasPrice
-	}
-	return globalGasPrice
-}
-
-// init initializes the server with the configured settings
-func (s *TXPoolServer) init(disablePreExec, disableBroadcastNetTx bool) {
 	// Initial txnPool
-	s.txPool = &tc.TXPool{}
-	s.txPool.Init()
+	s.txPool = tc.NewTxPool()
 	s.allPendingTxs = make(map[common.Uint256]*serverPendingTx)
 
 	s.slots = make(chan struct{}, tc.MAX_LIMITATION)
@@ -146,9 +84,26 @@ func (s *TXPoolServer) init(disablePreExec, disableBroadcastNetTx bool) {
 	s.disablePreExec = disablePreExec
 	s.disableBroadcastNetTx = disableBroadcastNetTx
 	// Create the given concurrent workers
-	s.wg.Add(1)
-	s.worker = NewTxPoolWoker(s)
-	go s.worker.start()
+	s.stateless = stateless.NewValidatorPool(2)
+	s.stateful = stateful.NewValidatorPool(1)
+	s.rspCh = make(chan *types.CheckResponse, tc.MAX_PENDING_TXN)
+	s.stopCh = make(chan bool)
+	go s.start()
+
+	return s
+}
+
+func (server *TXPoolServer) start() {
+	for {
+		select {
+		case <-server.stopCh:
+			return
+		case rsp, ok := <-server.rspCh:
+			if ok {
+				server.handleRsp(rsp)
+			}
+		}
+	}
 }
 
 // getPendingListSize return the length of the pending tx list.
@@ -174,6 +129,13 @@ func (s *TXPoolServer) getGasPrice() uint64 {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	return s.gasPrice
+}
+
+func (s *TXPoolServer) GetPendingTx(hash common.Uint256) *serverPendingTx {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	return s.allPendingTxs[hash]
 }
 
 // removePendingTx removes a transaction from the pending list
@@ -212,35 +174,45 @@ func (s *TXPoolServer) removePendingTx(hash common.Uint256, err errors.ErrCode) 
 	s.mu.Unlock()
 }
 
-// setPendingTx adds a transaction to the pending list, if the
+// adds a transaction to the pending list, if the
 // transaction is already in the pending list, just return false.
-func (s *TXPoolServer) setPendingTx(tx *tx.Transaction, sender tc.SenderType, txResultCh chan *tc.TxResult) bool {
+func (s *TXPoolServer) setPendingTx(tx *ctypes.Transaction, sender tc.SenderType, txResultCh chan *tc.TxResult) *serverPendingTx {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if ok := s.allPendingTxs[tx.Hash()]; ok != nil {
 		log.Debugf("setPendingTx: transaction %x already in the verifying process", tx.Hash())
-		return false
+		return nil
 	}
 
 	pt := &serverPendingTx{
 		tx:     tx,
 		sender: sender,
 		ch:     txResultCh,
+		checkingStatus: &tc.CheckingStatus{
+			PassedStateless: 0,
+			PassedStateful:  0,
+			CheckHeight:     0,
+		},
 	}
 
 	s.allPendingTxs[tx.Hash()] = pt
-	return true
+	return pt
 }
 
-// assignTxToWorker assigns a new transaction to a worker by LB
-func (s *TXPoolServer) assignTxToWorker(tx *tx.Transaction, sender tc.SenderType, txResultCh chan *tc.TxResult) bool {
-	if ok := s.setPendingTx(tx, sender, txResultCh); !ok {
+func (s *TXPoolServer) startTxVerify(tx *ctypes.Transaction, sender tc.SenderType, txResultCh chan *tc.TxResult) bool {
+	if s.setPendingTx(tx, sender, txResultCh) == nil {
 		replyTxResult(txResultCh, tx.Hash(), errors.ErrDuplicateInput, "duplicated transaction input detected")
 		return false
 	}
 
-	// Add the rcvTxn to the worker
-	s.worker.rcvTXCh <- tx
+	if tx := s.getTransaction(tx.Hash()); tx != nil {
+		log.Debugf("verifyTx: transaction %x already in the txn pool", tx.Hash())
+		s.removePendingTx(tx.Hash(), errors.ErrDuplicateInput)
+		return false
+	}
+
+	s.stateless.SubmitVerifyTask(tx, s.rspCh)
+	s.stateful.SubmitVerifyTask(tx, s.rspCh)
 	return true
 }
 
@@ -260,22 +232,18 @@ func (s *TXPoolServer) Stop() {
 	if s.actor != nil {
 		s.actor.Stop()
 	}
-	//Stop worker
-	s.worker.stop()
-	s.wg.Wait()
-
-	if s.slots != nil {
-		close(s.slots)
-	}
+	close(s.rspCh)
+	close(s.stopCh)
+	close(s.slots)
 }
 
 // getTransaction returns a transaction with the transaction hash.
-func (s *TXPoolServer) getTransaction(hash common.Uint256) *tx.Transaction {
+func (s *TXPoolServer) getTransaction(hash common.Uint256) *ctypes.Transaction {
 	return s.txPool.GetTransaction(hash)
 }
 
 // getTxPool returns a tx list for consensus.
-func (s *TXPoolServer) getTxPool(byCount bool, height uint32) []*tc.TXEntry {
+func (s *TXPoolServer) getTxPool(byCount bool, height uint32) []*tc.VerifiedTx {
 	s.setHeight(height)
 
 	avlTxList, oldTxList := s.txPool.GetTxPool(byCount, height)
@@ -318,7 +286,7 @@ func (s *TXPoolServer) getTxHashList() []common.Uint256 {
 }
 
 // cleanTransactionList cleans the txs in the block from the ledger
-func (s *TXPoolServer) cleanTransactionList(txs []*tx.Transaction, height uint32) {
+func (s *TXPoolServer) cleanTransactionList(txs []*ctypes.Transaction, height uint32) {
 	s.txPool.CleanTransactionList(txs)
 
 	// Check whether to update the gas price and remove txs below the threshold
@@ -351,20 +319,23 @@ func (s *TXPoolServer) cleanTransactionList(txs []*tx.Transaction, height uint32
 }
 
 // delTransaction deletes a transaction in the tx pool.
-func (s *TXPoolServer) delTransaction(t *tx.Transaction) {
+func (s *TXPoolServer) delTransaction(t *ctypes.Transaction) {
 	s.txPool.DelTxList(t)
 }
 
 // adds a valid transaction to the tx pool.
-func (s *TXPoolServer) addTxList(txEntry *tc.TXEntry) bool {
+func (s *TXPoolServer) addTxList(txEntry *tc.VerifiedTx) bool {
 	ret := s.txPool.AddTxList(txEntry)
 	return ret
 }
 
 // getTxStatusReq returns a transaction's status with the transaction hash.
 func (s *TXPoolServer) getTxStatusReq(hash common.Uint256) *tc.TxStatus {
-	if ret := s.worker.GetTxStatus(hash); ret != nil {
-		return ret
+	if ret := s.GetPendingTx(hash); ret != nil {
+		return &tc.TxStatus{
+			Hash:  hash,
+			Attrs: ret.checkingStatus.GetTxAttr(),
+		}
 	}
 
 	return s.txPool.GetTxStatus(hash)
@@ -375,14 +346,15 @@ func (s *TXPoolServer) getTransactionCount() int {
 	return s.txPool.GetTransactionCount()
 }
 
-// reVerifyStateful re-verify a transaction's stateful data.
-func (s *TXPoolServer) reVerifyStateful(tx *tx.Transaction, sender tc.SenderType) {
-	if ok := s.setPendingTx(tx, sender, nil); !ok {
+// re-verify a transaction's stateful data.
+func (s *TXPoolServer) reVerifyStateful(tx *ctypes.Transaction, sender tc.SenderType) {
+	pt := s.setPendingTx(tx, sender, nil)
+	if pt == nil {
 		return
 	}
 
-	// Add the rcvTxn to the worker
-	s.worker.stfTxCh <- tx
+	pt.checkingStatus.SetStateless()
+	s.stateful.SubmitVerifyTask(tx, s.rspCh)
 }
 
 // verifies the block from consensus.
@@ -401,7 +373,7 @@ func (s *TXPoolServer) verifyBlock(req *tc.VerifyBlockReq, sender *actor.PID) {
 	processedTxs := make([]*tc.VerifyTxResult, len(req.Txs))
 
 	// Check whether a tx's gas price is lower than the required, if yes, just return error
-	txs := make(map[common.Uint256]*tx.Transaction, len(req.Txs))
+	txs := make(map[common.Uint256]*ctypes.Transaction, len(req.Txs))
 	for _, t := range req.Txs {
 		if t.GasPrice < s.gasPrice {
 			entry := &tc.VerifyTxResult{
@@ -483,4 +455,43 @@ func (s *TXPoolServer) verifyBlock(req *tc.VerifyBlockReq, sender *actor.PID) {
 
 	processedTxs = append(processedTxs, checkBlkResult.VerifiedTxs...)
 	sender.Tell(&tc.VerifyBlockRsp{TxnPool: processedTxs})
+}
+
+// handles the verified response from the validator and if
+// the tx is valid, add it to the tx pool, or remove it from the pending
+// list
+func (server *TXPoolServer) handleRsp(rsp *types.CheckResponse) {
+	pt := server.GetPendingTx(rsp.Hash)
+	if pt == nil {
+		return
+	}
+
+	if rsp.ErrCode != errors.ErrNoError {
+		//Verify fail
+		log.Debugf("handleRsp: validator %d transaction %x invalid: %s", rsp.Type, rsp.Hash, rsp.ErrCode.Error())
+		server.removePendingTx(rsp.Hash, rsp.ErrCode)
+		return
+	}
+
+	if rsp.Type == types.Stateful && rsp.Height < server.getHeight() {
+		// If validator's height is less than the required one, re-validate it.
+		server.stateful.SubmitVerifyTask(rsp.Tx, server.rspCh)
+		return
+	}
+
+	switch rsp.Type {
+	case types.Stateful:
+		pt.checkingStatus.SetStateful(rsp.Height)
+	case types.Stateless:
+		pt.checkingStatus.SetStateless()
+	}
+
+	if pt.checkingStatus.GetStateless() && pt.checkingStatus.GetStateful() {
+		txEntry := &tc.VerifiedTx{
+			Tx:             pt.tx,
+			VerifiedHeight: pt.checkingStatus.CheckHeight,
+		}
+		server.addTxList(txEntry)
+		server.removePendingTx(pt.tx.Hash(), errors.ErrNoError)
+	}
 }

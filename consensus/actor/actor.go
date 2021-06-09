@@ -32,7 +32,7 @@ type TxPoolActor struct {
 	Pool *actor.PID
 }
 
-func (self *TxPoolActor) GetTxnPool(byCount bool, height uint32) []*txpool.TXEntry {
+func (self *TxPoolActor) GetTxnPool(byCount bool, height uint32) []*txpool.VerifiedTx {
 	poolmsg := &txpool.GetTxnPoolReq{ByCount: byCount, Height: height}
 	future := self.Pool.RequestFuture(poolmsg, time.Second*10)
 	entry, err := future.Result()
