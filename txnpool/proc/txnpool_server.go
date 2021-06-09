@@ -314,20 +314,26 @@ func (s *TXPoolServer) getTxHashList() []common.Uint256 {
 func (s *TXPoolServer) cleanEipTxPool(txs []*txtypes.Transaction) {
 	for _, tx := range txs {
 		if tx.TxType == txtypes.EIP155 {
-			if tl := s.eipTxPool[tx.Payer]; tl != nil {
-				tl.Forward(uint64(tx.Nonce))
-			}
-			if tpl := s.pendingEipTxs[tx.Payer]; tpl != nil {
-				tpl.Forward(uint64(tx.Nonce))
-			}
+			//if tl := s.eipTxPool[tx.Payer]; tl != nil {
+			//	tl.Forward(uint64(tx.Nonce))
+			//}
+			//if tpl := s.pendingEipTxs[tx.Payer]; tpl != nil {
+			//	tpl.Forward(uint64(tx.Nonce))
+			//}
+			delete(s.eipTxPool, tx.Payer)
+			delete(s.pendingEipTxs, tx.Payer)
 		}
 	}
+}
+func (s *TXPoolServer) cleanPendingNonce() {
+	s.pendingNonces.clean()
 }
 
 // cleanTransactionList cleans the txs in the block from the ledger
 func (s *TXPoolServer) cleanTransactionList(txs []*txtypes.Transaction, height uint32) {
 	s.txPool.CleanTransactionList(txs)
 	s.cleanEipTxPool(txs)
+	s.cleanPendingNonce()
 
 	// Check whether to update the gas price and remove txs below the threshold
 	if height%tc.UPDATE_FREQUENCY == 0 {

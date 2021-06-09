@@ -45,6 +45,10 @@ func newTxNoncer(db *ledger.Ledger) *txNoncer {
 	}
 }
 
+func (txn *txNoncer) clean() {
+	txn.nonces = make(map[common.Address]uint64)
+}
+
 // get returns the current nonce of an account, falling back to a real state
 // database if the account is unknown.
 func (txn *txNoncer) get(addr common.Address) uint64 {
