@@ -50,6 +50,7 @@ func SetOntologyConfig(ctx *cli.Context) (*config.OntologyConfig, error) {
 		cfg.P2PNode.NetworkId = config.NETWORK_ID_SOLO_NET
 		cfg.P2PNode.NetworkName = config.GetNetworkName(cfg.P2PNode.NetworkId)
 		cfg.P2PNode.NetworkMagic = config.GetNetworkMagic(cfg.P2PNode.NetworkId)
+		cfg.P2PNode.EVMChainId = config.GetEip155ChainID(cfg.P2PNode.NetworkId)
 		cfg.Common.GasPrice = 0
 	}
 	if cfg.P2PNode.NetworkId == config.NETWORK_ID_MAIN_NET ||
@@ -62,6 +63,7 @@ func SetOntologyConfig(ctx *cli.Context) (*config.OntologyConfig, error) {
 			cfg.P2PNode.NetworkId = defNetworkId
 			cfg.P2PNode.NetworkMagic = config.GetNetworkMagic(defNetworkId)
 			cfg.P2PNode.NetworkName = config.GetNetworkName(defNetworkId)
+			cfg.P2PNode.EVMChainId = config.GetEip155ChainID(defNetworkId)
 		}
 	}
 
@@ -148,6 +150,7 @@ func setConsensusConfig(ctx *cli.Context, cfg *config.ConsensusConfig) {
 func setP2PNodeConfig(ctx *cli.Context, cfg *config.P2PNodeConfig) {
 	cfg.NetworkId = uint32(ctx.Uint(utils.GetFlagName(utils.NetworkIdFlag)))
 	cfg.NetworkMagic = config.GetNetworkMagic(cfg.NetworkId)
+	cfg.EVMChainId = config.GetEip155ChainID(cfg.NetworkId)
 	cfg.NetworkName = config.GetNetworkName(cfg.NetworkId)
 	cfg.NodePort = uint16(ctx.Uint(utils.GetFlagName(utils.NodePortFlag)))
 	cfg.HttpInfoPort = uint16(ctx.Uint(utils.GetFlagName(utils.HttpInfoPortFlag)))

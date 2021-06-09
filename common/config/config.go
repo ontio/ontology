@@ -119,6 +119,21 @@ func GetNetworkMagic(id uint32) uint32 {
 	return id
 }
 
+var Eip155ChainID = map[uint32]uint32{
+	NETWORK_ID_MAIN_NET:    constants.EIP155_CHAINID_MAINNET, //Network main
+	NETWORK_ID_POLARIS_NET: constants.EIP155_CHAINID_POLARIS, //Network polaris
+	NETWORK_ID_SOLO_NET:    12345,                            //Network solo
+}
+
+func GetEip155ChainID(id uint32) uint32 {
+	nid, ok := Eip155ChainID[id]
+	if ok {
+		return nid
+	}
+
+	return 12345
+}
+
 var STATE_HASH_CHECK_HEIGHT = map[uint32]uint32{
 	NETWORK_ID_MAIN_NET:    constants.STATE_HASH_HEIGHT_MAINNET, //Network main
 	NETWORK_ID_POLARIS_NET: constants.STATE_HASH_HEIGHT_POLARIS, //Network polaris
@@ -713,6 +728,7 @@ func NewOntologyConfig() *OntologyConfig {
 			NetworkId:                 NETWORK_ID_MAIN_NET,
 			NetworkName:               GetNetworkName(NETWORK_ID_MAIN_NET),
 			NetworkMagic:              GetNetworkMagic(NETWORK_ID_MAIN_NET),
+			EVMChainId:                GetEip155ChainID(NETWORK_ID_MAIN_NET),
 			NodePort:                  DEFAULT_NODE_PORT,
 			IsTLS:                     false,
 			CertPath:                  "",
