@@ -15,34 +15,21 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
-package ethrpc
+package net
 
 import (
-	"net/http"
-	"strconv"
-
-	"github.com/ethereum/go-ethereum/rpc"
-	cfg "github.com/ontio/ontology/common/config"
-	"github.com/ontio/ontology/http/ethrpc/eth"
-	"github.com/ontio/ontology/http/ethrpc/net"
-	tp "github.com/ontio/ontology/txnpool/proc"
+	"fmt"
+	"github.com/ontio/ontology/http/ethrpc"
 )
 
-func StartEthServer(txpool *tp.TXPoolServer) error {
-	ethAPI := eth.NewEthereumAPI(txpool)
-	server := rpc.NewServer()
-	err := server.RegisterName("eth", ethAPI)
-	if err != nil {
-		return err
-	}
-	netRpcService := net.NewPublicNetAPI()
-	err = server.RegisterName("net", netRpcService)
-	if err != nil {
-		return err
-	}
-	err = http.ListenAndServe(":"+strconv.Itoa(int(cfg.DefConfig.Rpc.EthJsonPort)), server)
-	if err != nil {
-		return err
-	}
-	return nil
+type PublicNetAPI struct {
+}
+
+func NewPublicNetAPI() *PublicNetAPI {
+	return &PublicNetAPI{}
+}
+
+// Version returns the current ethereum protocol version.
+func (s *PublicNetAPI) Version() string {
+	return fmt.Sprintf("%d", ethrpc.GetChainId())
 }
