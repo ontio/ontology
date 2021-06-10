@@ -525,7 +525,7 @@ func (s *TXPoolServer) verifyBlock(req *tc.VerifyBlockReq, sender *actor.PID) {
 
 	s.setHeight(req.Height)
 
-	processedTxs := make([]*tc.VerifyTxResult, len(req.Txs))
+	processedTxs := make([]*tc.VerifyTxResult, 0, len(req.Txs))
 
 	// Check whether a tx's gas price is lower than the required, if yes, just return error
 	txs := make(map[common.Uint256]*txtypes.Transaction, len(req.Txs))
