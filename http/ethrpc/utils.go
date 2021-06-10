@@ -124,7 +124,7 @@ func OntToEthHash(txHash oComm.Uint256) common.Hash {
 }
 
 func NewTransaction(tx *types2.Transaction, txHash, blockHash common.Hash, blockNumber, index uint64) (*types3.Transaction, error) {
-	signer := types2.NewEIP155Signer(big.NewInt(int64(getChainId())))
+	signer := types2.NewEIP155Signer(big.NewInt(int64(GetChainId())))
 	from, err := signer.Sender(tx)
 	if err != nil {
 		return nil, err
@@ -153,6 +153,6 @@ func NewTransaction(tx *types2.Transaction, txHash, blockHash common.Hash, block
 	return rpcTx, nil
 }
 
-func getChainId() uint32 {
+func GetChainId() uint32 {
 	return sysconfig.DefConfig.P2PNode.EVMChainId
 }
