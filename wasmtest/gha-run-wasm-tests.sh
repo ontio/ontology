@@ -30,4 +30,5 @@ for wasm in testwasmdata/*.wasm ; do
 done
 
 # start test framework
-go run wasm-test.go
+go build
+./wasmtest

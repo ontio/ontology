@@ -43,5 +43,5 @@ func TestTestCase(t *testing.T) {
 
 	encoded, _ := json.Marshal(ts)
 
-	assert.Equal(t, string(encoded), `{"env":{"witness":["AFmseVrdL9f9oyCzZefL9tG6UbvhPbdYzM"]},"needcontext":false,"method":"func1","param":"int:100, bool:true","expected":"int:10","notify":""}`)
+	assert.Equal(t, string(encoded), `{"env":{"witness":["AFmseVrdL9f9oyCzZefL9tG6UbvhPbdYzM"]},"needcontext":false,"method":"func1","param":"int:100, bool:true","expected":"int:10","notify":"","jsonabi":""}`)
 }

@@ -20,7 +20,6 @@ package common
 import (
 	"bytes"
 	"encoding/json"
-
 	utils2 "github.com/ontio/ontology/cmd/utils"
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/utils"
@@ -77,6 +76,18 @@ type TestCase struct {
 	Param       string  `json:"param"`
 	Expect      string  `json:"expected"`
 	Notify      string  `json:"notify"`
+	JsonAbi     string  `json:"jsonabi"`
+}
+
+func NewTestCase(env TestEnv, needContext bool, method string, param string, expect string, jsonABI string) TestCase {
+	return TestCase{
+		Env:         env,
+		NeedContext: needContext,
+		Method:      method,
+		Param:       param,
+		Expect:      expect,
+		JsonAbi:     jsonABI,
+	}
 }
 
 type ConAddr struct {
