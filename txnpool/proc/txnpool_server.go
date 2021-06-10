@@ -21,6 +21,7 @@
 package proc
 
 import (
+	"fmt"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -191,6 +192,7 @@ func (s *TXPoolServer) removePendingTx(hash common.Uint256, err errors.ErrCode) 
 // adds a transaction to the pending list, if the
 // transaction is already in the pending list, just return false.
 func (s *TXPoolServer) setPendingTx(tx *txtypes.Transaction, sender tc.SenderType, txResultCh chan *tc.TxResult) (*serverPendingTx, common.Uint256) {
+	fmt.Println("===setPendingTx 1 ")
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	replacedTxHash := common.UINT256_EMPTY
@@ -199,8 +201,12 @@ func (s *TXPoolServer) setPendingTx(tx *txtypes.Transaction, sender tc.SenderTyp
 		log.Debugf("setPendingTx: transaction %x already in the verifying process", tx.Hash())
 		return nil, replacedTxHash
 	}
+	fmt.Println("===setPendingTx 2 ")
+
 	// replace the same nonce tx
 	if tx.TxType == txtypes.EIP155 {
+		fmt.Println("===setPendingTx 3 ")
+
 		old := s.addEipPendingTx(tx)
 		if old != nil {
 			//s.removePendingTx(old.Hash(), errors.ErrHigherNonceExist)
@@ -217,22 +223,26 @@ func (s *TXPoolServer) setPendingTx(tx *txtypes.Transaction, sender tc.SenderTyp
 			CheckHeight:     0,
 		},
 	}
+	fmt.Println("===setPendingTx 4 ")
 
 	s.allPendingTxs[tx.Hash()] = pt
 	return pt, replacedTxHash
 }
 
 func (s *TXPoolServer) startTxVerify(tx *txtypes.Transaction, sender tc.SenderType, txResultCh chan *tc.TxResult) bool {
+	fmt.Println("===startTxVerify 1")
 	if pt, _ := s.setPendingTx(tx, sender, txResultCh); pt == nil {
 		replyTxResult(txResultCh, tx.Hash(), errors.ErrDuplicateInput, "duplicated transaction input detected")
 		return false
 	}
+	fmt.Println("===startTxVerify 2")
 
 	if tx := s.getTransaction(tx.Hash()); tx != nil {
 		log.Debugf("verifyTx: transaction %x already in the txn pool", tx.Hash())
 		s.removePendingTx(tx.Hash(), errors.ErrDuplicateInput)
 		return false
 	}
+	fmt.Println("===startTxVerify 3")
 
 	s.stateless.SubmitVerifyTask(tx, s.rspCh)
 	s.stateful.SubmitVerifyTask(tx, s.rspCh)
@@ -314,14 +324,12 @@ func (s *TXPoolServer) getTxHashList() []common.Uint256 {
 func (s *TXPoolServer) cleanEipTxPool(txs []*txtypes.Transaction) {
 	for _, tx := range txs {
 		if tx.TxType == txtypes.EIP155 {
-			//if tl := s.eipTxPool[tx.Payer]; tl != nil {
-			//	tl.Forward(uint64(tx.Nonce))
-			//}
-			//if tpl := s.pendingEipTxs[tx.Payer]; tpl != nil {
-			//	tpl.Forward(uint64(tx.Nonce))
-			//}
-			delete(s.eipTxPool, tx.Payer)
-			delete(s.pendingEipTxs, tx.Payer)
+			if _,ok := s.eipTxPool[tx.Payer];ok {
+				delete(s.eipTxPool, tx.Payer)
+			}
+			if _,ok := s.pendingEipTxs[tx.Payer];ok{
+				delete(s.pendingEipTxs, tx.Payer)
+			}
 		}
 	}
 }
@@ -371,6 +379,7 @@ func (s *TXPoolServer) delTransaction(t *txtypes.Transaction) {
 
 // addTxList adds a valid transaction to the tx pool.
 func (s *TXPoolServer) addTxList(txEntry *tc.VerifiedTx) bool {
+	fmt.Println("===addTxList 1")
 	//solve the EIP155
 	eipFlag := false
 	if txEntry.Tx.TxType == txtypes.EIP155 {
@@ -385,10 +394,14 @@ func (s *TXPoolServer) addTxList(txEntry *tc.VerifiedTx) bool {
 			return false
 		}
 	}
+	fmt.Println("===addTxList 2")
+
 	ret := s.txPool.AddTxList(txEntry)
 	if eipFlag && ret {
 		s.pendingNonces.set(txEntry.Tx.Payer, uint64(txEntry.Tx.Nonce+1))
 	}
+	fmt.Println("===addTxList 31")
+
 	return ret
 }
 
@@ -591,10 +604,12 @@ func (s *TXPoolServer) verifyBlock(req *tc.VerifyBlockReq, sender *actor.PID) {
 // the tx is valid, add it to the tx pool, or remove it from the pending
 // list
 func (server *TXPoolServer) handleRsp(rsp *types.CheckResponse) {
+	fmt.Println("===handleRsp 1")
 	pt := server.GetPendingTx(rsp.Hash)
 	if pt == nil {
 		return
 	}
+	fmt.Println("===handleRsp 2")
 
 	if rsp.ErrCode != errors.ErrNoError {
 		//Verify fail
@@ -602,12 +617,14 @@ func (server *TXPoolServer) handleRsp(rsp *types.CheckResponse) {
 		server.removePendingTx(rsp.Hash, rsp.ErrCode)
 		return
 	}
+	fmt.Println("===handleRsp 3")
 
 	if rsp.Type == types.Stateful && rsp.Height < server.getHeight() {
 		// If validator's height is less than the required one, re-validate it.
 		server.stateful.SubmitVerifyTask(rsp.Tx, server.rspCh)
 		return
 	}
+	fmt.Println("===handleRsp 4")
 
 	switch rsp.Type {
 	case types.Stateful:
@@ -615,6 +632,7 @@ func (server *TXPoolServer) handleRsp(rsp *types.CheckResponse) {
 	case types.Stateless:
 		pt.checkingStatus.SetStateless()
 	}
+	fmt.Println("===handleRsp 5")
 
 	if pt.checkingStatus.GetStateless() && pt.checkingStatus.GetStateful() {
 		txEntry := &tc.VerifiedTx{

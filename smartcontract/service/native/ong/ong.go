@@ -66,6 +66,7 @@ func OngInit(native *native.NativeService) ([]byte, error) {
 	if config.DefConfig.P2PNode.NetworkId == config.NETWORK_ID_SOLO_NET {
 		bookkeepers, _ := config.DefConfig.GetBookkeepers()
 		addr = types.AddressFromPubKey(bookkeepers[0])
+		fmt.Printf("init ong balance for :%s\n",addr.ToBase58())
 	} else {
 		addr = utils.OntContractAddress
 	}
