@@ -54,9 +54,6 @@ type TXPoolServer struct {
 	wg     sync.WaitGroup // Worker sync
 	txPool *tc.TXPool     // The tx pool that holds the valid transaction
 
-	//restore for the evm tx only
-	pendingNonces *txNoncer
-
 	allPendingTxs         map[common.Uint256]*serverPendingTx // The txs that server is processing
 	actor                 *actor.PID
 	Net                   p2p.P2P
@@ -79,9 +76,6 @@ func NewTxPoolServer(disablePreExec, disableBroadcastNetTx bool) *TXPoolServer {
 	// Initial txnPool
 	s.txPool = tc.NewTxPool()
 	s.allPendingTxs = make(map[common.Uint256]*serverPendingTx)
-
-	//init queue
-	s.pendingNonces = newTxNoncer(ledger.DefLedger)
 
 	s.slots = make(chan struct{}, tc.MAX_LIMITATION)
 	for i := 0; i < tc.MAX_LIMITATION; i++ {
@@ -153,7 +147,7 @@ func (s *TXPoolServer) movePendingTxToPool(txEntry *tc.VerifiedTx) { //solve the
 	defer s.mu.RUnlock()
 
 	errCode := s.txPool.AddTxList(txEntry)
-	s.removePendingTx(txEntry.Tx.Hash(), errCode)
+	s.removePendingTxLocked(txEntry.Tx.Hash(), errCode)
 }
 
 // removes a transaction from the pending list
@@ -314,14 +308,9 @@ func (s *TXPoolServer) getTxHashList() []common.Uint256 {
 	return ret
 }
 
-func (s *TXPoolServer) cleanPendingNonce() {
-	s.pendingNonces.clean()
-}
-
 // cleanTransactionList cleans the txs in the block from the ledger
 func (s *TXPoolServer) cleanTransactionList(txs []*txtypes.Transaction, height uint32) {
 	s.txPool.CleanTransactionList(txs)
-	s.cleanPendingNonce()
 
 	// Check whether to update the gas price and remove txs below the threshold
 	if height%tc.UPDATE_FREQUENCY == 0 {
@@ -398,7 +387,7 @@ func (s *TXPoolServer) verifyBlock(req *tc.VerifyBlockReq, sender *actor.PID) {
 
 	s.setHeight(req.Height)
 
-	processedTxs := make([]*tc.VerifyTxResult, len(req.Txs))
+	processedTxs := make([]*tc.VerifyTxResult, 0, len(req.Txs))
 
 	// Check whether a tx's gas price is lower than the required, if yes, just return error
 	txs := make(map[common.Uint256]*txtypes.Transaction, len(req.Txs))
@@ -528,12 +517,17 @@ func (s *TXPoolServer) CurrentNonce(addr common.Address) uint64 {
 	if err != nil {
 		return 0
 	}
-	return ethacct.Nonce
 
+	return ethacct.Nonce
 }
 
 func (s *TXPoolServer) Nonce(addr common.Address) uint64 {
-	return s.txPool.Nonce(addr)
+	nonce := s.txPool.Nonce(addr)
+	if nonce == 0 {
+		nonce = s.CurrentNonce(addr)
+	}
+
+	return nonce
 }
 
 func (s *TXPoolServer) PendingEIPTransactions() []*ethtype.Transaction {
