@@ -28,6 +28,10 @@ type ErrCoder interface {
 
 type ErrCode int32
 
+func (s ErrCode) Success() bool {
+	return s == ErrNoError
+}
+
 const (
 	ErrNoCode               ErrCode = -2
 	ErrNoError              ErrCode = 0
@@ -54,6 +58,7 @@ const (
 	ErrVerifySignature      ErrCode = 45021
 	ErrHigherNonceExist     ErrCode = 45022
 	ErrETHTxGaslimitExceed  ErrCode = 45023
+	ErrSameNonceExist       ErrCode = 45024
 )
 
 func (err ErrCode) Error() string {
@@ -106,7 +111,8 @@ func (err ErrCode) Error() string {
 		return "higher nonce exist"
 	case ErrETHTxGaslimitExceed:
 		return "eth transaction gaslimit exceeded"
-
+	case ErrSameNonceExist:
+		return "eth transaction with same nonce existed"
 	}
 
 	return fmt.Sprintf("Unknown error? Error code = %d", err)

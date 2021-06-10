@@ -49,7 +49,8 @@ const (
 
 type TxPoolService interface {
 	Nonce(addr oComm.Address) uint64
-	PendingEIPTransactions() map[common.Address]map[uint64]*types.Transaction
+	PendingEIPTransactions() []*types.Transaction
+	PendingTransactionsByHash(target common.Hash) *types.Transaction
 }
 
 type EthereumAPI struct {
@@ -459,29 +460,18 @@ func generateRecipient(notify *event.ExecuteNotify) (interface{}, error) {
 func (api *EthereumAPI) PendingTransactions() ([]*types2.Transaction, error) {
 	pendingTxs := api.txpool.PendingEIPTransactions()
 	var rpcTxs []*types2.Transaction
-	for _, v1 := range pendingTxs {
-		for _, v2 := range v1 {
-			tx, err := NewTransaction(v2, v2.Hash(), common.Hash{}, 0, 0)
-			if err != nil {
-				return nil, nil
-			}
-			rpcTxs = append(rpcTxs, tx)
+	for _, v2 := range pendingTxs {
+		tx, err := NewTransaction(v2, v2.Hash(), common.Hash{}, 0, 0)
+		if err != nil {
+			return nil, nil
 		}
+		rpcTxs = append(rpcTxs, tx)
 	}
 	return rpcTxs, nil
 }
 
 func (api *EthereumAPI) PendingTransactionsByHash(target common.Hash) (*types2.Transaction, error) {
-	pendingTxs := api.txpool.PendingEIPTransactions()
-	var ethTx *types.Transaction
-	for _, v1 := range pendingTxs {
-		for _, v2 := range v1 {
-			if v2.Hash() == target {
-				ethTx = v2
-				break
-			}
-		}
-	}
+	ethTx := api.txpool.PendingTransactionsByHash(target)
 	if ethTx == nil {
 		return nil, fmt.Errorf("tx: %v not found", target.String())
 	}

@@ -15,15 +15,16 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
-package proc
+package common
 
 import (
 	"container/heap"
 
-	"github.com/ontio/ontology/core/types"
 	"math"
 	"math/big"
 	"sort"
+
+	"github.com/ontio/ontology/core/types"
 	//"github.com/ethereum/go-ethereum/core/types"
 )
 

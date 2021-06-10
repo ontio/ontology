@@ -118,6 +118,10 @@ func TransactionFromEIP155(eiptx *types.Transaction) (*Transaction, error) {
 	return retTx, nil
 }
 
+func (tx *Transaction) IsEipTx() bool {
+	return tx.TxType == EIP155
+}
+
 func (tx *Transaction) GetEIP155Tx() (*types.Transaction, error) {
 	if tx.TxType == EIP155 {
 		tx := tx.Payload.(*payload.EIP155Code).EIPTx

@@ -67,30 +67,83 @@ func (self *VerifiedTx) GetAttrs() []*TXAttr {
 // in the ledger.
 type TXPool struct {
 	sync.RWMutex
-	txList map[common.Uint256]*VerifiedTx // Transactions which have been verified
+	txList    map[common.Uint256]*VerifiedTx // Transactions which have been verified
+	eipTxPool map[common.Address]*txList     // The tx pool that holds the valid transaction
 }
 
 func NewTxPool() *TXPool {
 	return &TXPool{
-		txList: make(map[common.Uint256]*VerifiedTx),
+		txList:    make(map[common.Uint256]*VerifiedTx),
+		eipTxPool: make(map[common.Address]*txList),
 	}
+}
+
+func (s *TXPool) getTxListByAddr(addr common.Address) *txList {
+	if _, ok := s.eipTxPool[addr]; !ok {
+		s.eipTxPool[addr] = newTxList(true)
+	}
+
+	return s.eipTxPool[addr]
+}
+
+func (s *TXPool) addEIPTxPool(trans *types.Transaction) (replaced *types.Transaction, err errors.ErrCode) {
+	list := s.getTxListByAddr(trans.Payer)
+
+	// does the same nonce exist?
+	old := list.txs.Get(uint64(trans.Nonce))
+	if old == nil {
+		s.eipTxPool[trans.Payer].txs.Put(trans)
+		return nil, errors.ErrNoError
+	}
+
+	if old.GasPrice > trans.GasPrice*101/100 {
+		log.Infof("replace transaction %s with lower gas fee", old.Hash().ToHexString())
+		s.eipTxPool[trans.Payer].txs.Put(trans)
+		return old, errors.ErrNoError
+	}
+
+	return nil, errors.ErrSameNonceExist
 }
 
 // AddTxList adds a valid transaction to the transaction pool. If the
 // transaction is already in the pool, just return false. Parameter
 // txEntry includes transaction, fee, and verified information(height,
 // validator, error code).
-func (tp *TXPool) AddTxList(txEntry *VerifiedTx) bool {
+func (tp *TXPool) AddTxList(txEntry *VerifiedTx) errors.ErrCode {
 	tp.Lock()
 	defer tp.Unlock()
 	txHash := txEntry.Tx.Hash()
+	if txEntry.Tx.IsEipTx() {
+		repalced, code := tp.addEIPTxPool(txEntry.Tx)
+		if repalced != nil {
+			delete(tp.txList, repalced.Hash())
+		}
+		if !code.Success() {
+			return code
+		}
+	}
+
 	if _, ok := tp.txList[txHash]; ok {
 		log.Infof("AddTxList: transaction %x is already in the pool", txHash)
-		return false
+		return errors.ErrDuplicatedTx
 	}
 
 	tp.txList[txHash] = txEntry
-	return true
+	return errors.ErrNoError
+}
+
+//clean the EIP txpool and eip pending txpool under the tx nonce
+func (s *TXPool) cleanEipTxPool(txs []*types.Transaction) {
+	for _, tx := range txs {
+		if tx.IsEipTx() {
+			if _, ok := s.eipTxPool[tx.Payer]; ok {
+				s.eipTxPool[tx.Payer].Forward(uint64(tx.Nonce))
+				if s.eipTxPool[tx.Payer].Len() == 0 {
+					delete(s.eipTxPool, tx.Payer)
+				}
+			}
+		}
+	}
 }
 
 // CleanTransactionList cleans the transaction list included in the ledger.
@@ -99,6 +152,7 @@ func (tp *TXPool) CleanTransactionList(txs []*types.Transaction) {
 	txsNum := len(txs)
 	tp.Lock()
 	defer tp.Unlock()
+	tp.cleanEipTxPool(txs)
 	for _, tx := range txs {
 		if _, ok := tp.txList[tx.Hash()]; ok {
 			delete(tp.txList, tx.Hash())
