@@ -152,7 +152,7 @@ func (tp *TXPool) GetTxPool(byCount bool, height uint32) ([]*VerifiedTx, []*type
 	txList := make([]*VerifiedTx, 0, count)
 	oldTxList := make([]*types.Transaction, 0)
 	for _, txEntry := range orderByFee {
-		if !tp.isVerfiyExpired(txEntry, height) {
+		if tp.isVerfiyExpired(txEntry, height) {
 			oldTxList = append(oldTxList, txEntry.Tx)
 			continue
 		}
