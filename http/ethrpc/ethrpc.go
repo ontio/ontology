@@ -44,7 +44,7 @@ import (
 const (
 	eth65           = 65
 	ProtocolVersion = eth65
-	RPCGasCap       = 0 // TODO modify this
+	RPCGasCap       = 1000000
 )
 
 type TxPoolService interface {

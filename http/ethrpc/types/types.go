@@ -18,7 +18,6 @@
 package types
 
 import (
-	"math"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -44,7 +43,7 @@ type CallArgs struct {
 	Data     *hexutil.Bytes  `json:"data"`
 }
 
-func (args CallArgs) AsMessage(globalGasCap uint64) types.Message {
+func (args CallArgs) AsMessage(maxGasLimit uint64) types.Message {
 	// Set sender address or use zero address if none specified.
 	var addr common.Address
 	if args.From != nil {
@@ -52,16 +51,13 @@ func (args CallArgs) AsMessage(globalGasCap uint64) types.Message {
 	}
 
 	// Set default gas & gas price if none were set
-	gas := globalGasCap
-	if gas == 0 {
-		gas = uint64(math.MaxUint64 / 2)
-	}
+	gas := maxGasLimit
 	if args.Gas != nil {
 		gas = uint64(*args.Gas)
 	}
-	if globalGasCap != 0 && globalGasCap < gas {
-		log.Warn("Caller gas above allowance, capping", "requested", gas, "cap", globalGasCap)
-		gas = globalGasCap
+	if maxGasLimit != 0 && maxGasLimit < gas {
+		log.Warn("Caller gas above allowance, capping", "requested", gas, "cap", maxGasLimit)
+		gas = maxGasLimit
 	}
 	gasPrice := new(big.Int)
 	if args.GasPrice != nil {
