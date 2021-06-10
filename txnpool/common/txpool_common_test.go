@@ -29,7 +29,7 @@ func Test_sortTxEntry(t *testing.T) {
 	addr1 := utils.OntContractAddress
 	addr2 := utils.OngContractAddress
 
-	txlist := []*TXEntry{
+	txlist := []*VerifiedTx{
 		{Tx: &types.Transaction{TxType: types.InvokeWasm, Nonce: 0, Payer: addr1, GasPrice: 100, Raw: []byte("tx01")}},
 		{Tx: &types.Transaction{TxType: types.InvokeNeo, Nonce: 0, Payer: addr2, GasPrice: 110, Raw: []byte("tx02")}},
 		{Tx: &types.Transaction{TxType: types.EIP155, Nonce: 0, Payer: addr1, GasPrice: 130, Raw: []byte("tx03")}},
