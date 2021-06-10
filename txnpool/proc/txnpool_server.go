@@ -22,6 +22,7 @@ package proc
 
 import (
 	"fmt"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -214,7 +215,6 @@ func (s *TXPoolServer) setPendingTx(tx *txtypes.Transaction, sender tc.SenderTyp
 		} else {
 			currentNonce := s.pendingNonces.get(tx.Payer)
 			if currentNonce != uint64(tx.Nonce) {
-				fmt.Printf("tx nonce is not correct:want:%d, get:%d\n", currentNonce, tx.Nonce)
 				return nil, replacedTxHash, fmt.Errorf("tx nonce is not correct:want:%d, get:%d", currentNonce, tx.Nonce)
 			}
 		}
@@ -237,7 +237,11 @@ func (s *TXPoolServer) setPendingTx(tx *txtypes.Transaction, sender tc.SenderTyp
 func (s *TXPoolServer) startTxVerify(tx *txtypes.Transaction, sender tc.SenderType, txResultCh chan *tc.TxResult) bool {
 	pt, replaced, err := s.setPendingTx(tx, sender, txResultCh)
 	if err != nil && pt == nil {
-		replyTxResult(txResultCh, tx.Hash(), errors.ErrDuplicateInput, err.Error())
+		if strings.Contains(err.Error(), "nonce") {
+			replyTxResult(txResultCh, tx.Hash(), errors.ErrETHTxNonceNotCorrect, err.Error())
+		} else {
+			replyTxResult(txResultCh, tx.Hash(), errors.ErrDuplicateInput, err.Error())
+		}
 		return false
 	}
 	if replaced != common.UINT256_EMPTY {
