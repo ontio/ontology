@@ -36,6 +36,7 @@ import (
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
+	sysconfig "github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 	vconfig "github.com/ontio/ontology/consensus/vbft/config"
 	"github.com/ontio/ontology/core/payload"
@@ -51,12 +52,16 @@ import (
 	"github.com/ontio/ontology/merkle"
 	"github.com/ontio/ontology/smartcontract"
 	"github.com/ontio/ontology/smartcontract/event"
+	"github.com/ontio/ontology/smartcontract/service/evm"
 	types4 "github.com/ontio/ontology/smartcontract/service/evm/types"
+	"github.com/ontio/ontology/smartcontract/service/native/ong"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 	"github.com/ontio/ontology/smartcontract/service/neovm"
 	"github.com/ontio/ontology/smartcontract/service/wasmvm"
 	sstate "github.com/ontio/ontology/smartcontract/states"
 	"github.com/ontio/ontology/smartcontract/storage"
+	evm2 "github.com/ontio/ontology/vm/evm"
+	"github.com/ontio/ontology/vm/evm/params"
 	types2 "github.com/ontio/ontology/vm/neovm/types"
 )
 
@@ -1387,7 +1392,7 @@ func (this *LedgerStoreImp) PreExecuteContract(tx *types.Transaction) (*sstate.P
 	return this.PreExecuteContractWithParam(tx, param)
 }
 
-func (this *LedgerStoreImp) PreExecuteEip155Tx(tx *types3.Transaction) (*types4.ExecutionResult, error) {
+func (this *LedgerStoreImp) PreExecuteEip155Tx(msg types3.Message) (*types4.ExecutionResult, error) {
 	height := this.GetCurrentBlockHeight()
 	// use previous block time to make it predictable for easy test
 	blockTime := uint32(time.Now().Unix())
@@ -1401,7 +1406,13 @@ func (this *LedgerStoreImp) PreExecuteEip155Tx(tx *types3.Transaction) (*types4.
 		Height:    height,
 		Timestamp: blockTime,
 	}
-	res, _, err := this.PreExecuteEIP155(tx, ctx)
+	config := params.GetChainConfig(sysconfig.DefConfig.P2PNode.EVMChainId)
+	txContext := evm.NewEVMTxContext(msg)
+	blockContext := evm.NewEVMBlockContext(height, blockTime, this)
+	cache := this.GetCacheDB()
+	statedb := storage.NewStateDB(cache, common2.Hash{}, common2.Hash(ctx.BlockHash), ong.OngBalanceHandle{})
+	vmenv := evm2.NewEVM(blockContext, txContext, statedb, config, evm2.Config{})
+	res, err := evm.ApplyMessage(vmenv, msg, common2.Address(utils.GovernanceContractAddress))
 	return res, err
 }
 

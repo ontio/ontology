@@ -71,7 +71,7 @@ type LedgerStore interface {
 	GetStorageItem(codeHash common.Address, key []byte) ([]byte, error)
 	PreExecuteContract(tx *types.Transaction) (*cstates.PreExecResult, error)
 	PreExecuteContractBatch(txes []*types.Transaction, atomic bool) ([]*cstates.PreExecResult, uint32, error)
-	PreExecuteEip155Tx(tx *types2.Transaction) (*types3.ExecutionResult, error)
+	PreExecuteEip155Tx(msg types2.Message) (*types3.ExecutionResult, error)
 	GetEventNotifyByTx(tx common.Uint256) (*event.ExecuteNotify, error)
 	GetEventNotifyByBlock(height uint32) ([]*event.ExecuteNotify, error)
 	GetEthCode(hash common2.Hash) ([]byte, error)
