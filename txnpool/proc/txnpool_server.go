@@ -21,6 +21,7 @@
 package proc
 
 import (
+	"fmt"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -190,24 +191,29 @@ func (s *TXPoolServer) removePendingTx(hash common.Uint256, err errors.ErrCode) 
 
 // adds a transaction to the pending list, if the
 // transaction is already in the pending list, just return false.
-func (s *TXPoolServer) setPendingTx(tx *txtypes.Transaction, sender tc.SenderType, txResultCh chan *tc.TxResult) (*serverPendingTx, common.Uint256) {
+func (s *TXPoolServer) setPendingTx(tx *txtypes.Transaction, sender tc.SenderType, txResultCh chan *tc.TxResult) (*serverPendingTx, common.Uint256, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	replacedTxHash := common.UINT256_EMPTY
 
 	if ok := s.allPendingTxs[tx.Hash()]; ok != nil {
 		log.Debugf("setPendingTx: transaction %x already in the verifying process", tx.Hash())
-		return nil, replacedTxHash
+		return nil, replacedTxHash, fmt.Errorf("duplicated transaction input detected")
 	}
 
 	// replace the same nonce tx
 	if tx.TxType == txtypes.EIP155 {
-		old := s.addEipPendingTx(tx)
+		old, err := s.addEipPendingTx(tx)
+		if err != nil { //same nonce with higher gasprice existed in pending list
+			log.Debugf("setPendingTx: transaction with same nonce %x already in the verifying process", tx.Hash())
+			return nil, replacedTxHash, fmt.Errorf("duplicated EIP155 transaction nonce input detected")
+		}
 		if old != nil {
 			//s.removePendingTx(old.Hash(), errors.ErrHigherNonceExist)
 			replacedTxHash = old.Hash()
 		}
 	}
+
 	pt := &serverPendingTx{
 		tx:     tx,
 		sender: sender,
@@ -219,13 +225,17 @@ func (s *TXPoolServer) setPendingTx(tx *txtypes.Transaction, sender tc.SenderTyp
 		},
 	}
 	s.allPendingTxs[tx.Hash()] = pt
-	return pt, replacedTxHash
+	return pt, replacedTxHash, nil
 }
 
 func (s *TXPoolServer) startTxVerify(tx *txtypes.Transaction, sender tc.SenderType, txResultCh chan *tc.TxResult) bool {
-	if pt, _ := s.setPendingTx(tx, sender, txResultCh); pt == nil {
-		replyTxResult(txResultCh, tx.Hash(), errors.ErrDuplicateInput, "duplicated transaction input detected")
+	pt, replaced, err := s.setPendingTx(tx, sender, txResultCh)
+	if err != nil && pt == nil {
+		replyTxResult(txResultCh, tx.Hash(), errors.ErrDuplicateInput, err.Error())
 		return false
+	}
+	if replaced != common.UINT256_EMPTY {
+		s.removePendingTx(replaced, errors.ErrHigherNonceExist)
 	}
 
 	if tx := s.getTransaction(tx.Hash()); tx != nil {
@@ -315,10 +325,16 @@ func (s *TXPoolServer) cleanEipTxPool(txs []*txtypes.Transaction) {
 	for _, tx := range txs {
 		if tx.TxType == txtypes.EIP155 {
 			if _, ok := s.eipTxPool[tx.Payer]; ok {
-				delete(s.eipTxPool, tx.Payer)
+				s.eipTxPool[tx.Payer].Forward(uint64(tx.Nonce))
+				if s.eipTxPool[tx.Payer].Len() == 0 {
+					delete(s.eipTxPool, tx.Payer)
+				}
 			}
 			if _, ok := s.pendingEipTxs[tx.Payer]; ok {
-				delete(s.pendingEipTxs, tx.Payer)
+				s.pendingEipTxs[tx.Payer].Forward(uint64(tx.Nonce))
+				if s.pendingEipTxs[tx.Payer].Len() == 0 {
+					delete(s.pendingEipTxs, tx.Payer)
+				}
 			}
 		}
 	}
@@ -389,9 +405,9 @@ func (s *TXPoolServer) addTxList(txEntry *tc.VerifiedTx) bool { //solve the EIP1
 	return ret
 }
 
-func (s *TXPoolServer) addEIPTxPool(trans *txtypes.Transaction) *txtypes.Transaction {
+func (s *TXPoolServer) addEIPTxPool(trans *txtypes.Transaction) error {
 	if trans.TxType != txtypes.EIP155 {
-		return nil
+		return fmt.Errorf("not an EIP155 tx")
 	}
 	if _, ok := s.eipTxPool[trans.Payer]; !ok {
 		s.eipTxPool[trans.Payer] = newTxList(true)
@@ -402,18 +418,18 @@ func (s *TXPoolServer) addEIPTxPool(trans *txtypes.Transaction) *txtypes.Transac
 	if old == nil {
 		s.eipTxPool[trans.Payer].txs.Put(trans)
 	} else {
-		if old.GasPrice < trans.GasPrice {
-			s.eipTxPool[trans.Payer].txs.Remove(uint64(old.Nonce))
-			s.eipTxPool[trans.Payer].txs.Put(trans)
-		}
+		//this should not happend
+		hash := old.Hash()
+		log.Errorf("an same nonce EIP155 tx hash:%s,nonce:%d exist!", hash.ToHexString(), old.Nonce)
+		return fmt.Errorf("same nonce exist")
 	}
-	return old
+	return nil
 }
 
 //return the replace tx if exist
-func (s *TXPoolServer) addEipPendingTx(tx *txtypes.Transaction) *txtypes.Transaction {
+func (s *TXPoolServer) addEipPendingTx(tx *txtypes.Transaction) (*txtypes.Transaction, error) {
 	if tx.TxType != txtypes.EIP155 {
-		return nil
+		return nil, fmt.Errorf("not an EIP155 tx")
 	}
 	if _, ok := s.pendingEipTxs[tx.Payer]; !ok {
 		s.pendingEipTxs[tx.Payer] = newTxList(true)
@@ -422,14 +438,15 @@ func (s *TXPoolServer) addEipPendingTx(tx *txtypes.Transaction) *txtypes.Transac
 	old := s.pendingEipTxs[tx.Payer].txs.Get(uint64(tx.Nonce))
 	if old == nil {
 		s.pendingEipTxs[tx.Payer].txs.Put(tx)
-		//s.pendingNonces.set(tx.Payer, uint64(tx.Nonce+1))
 	} else {
 		if old.GasPrice < tx.GasPrice {
 			s.pendingEipTxs[tx.Payer].txs.Remove(uint64(old.Nonce))
 			s.pendingEipTxs[tx.Payer].txs.Put(tx)
+		} else {
+			return nil, fmt.Errorf("same nonce existed")
 		}
 	}
-	return old
+	return old, nil
 }
 
 // checkTx checks whether a transaction is in the pending list or
@@ -470,8 +487,8 @@ func (s *TXPoolServer) getTransactionCount() int {
 
 // re-verify a transaction's stateful data.
 func (s *TXPoolServer) reVerifyStateful(tx *txtypes.Transaction, sender tc.SenderType) {
-	pt, replaced := s.setPendingTx(tx, sender, nil)
-	if pt == nil {
+	pt, replaced, err := s.setPendingTx(tx, sender, nil)
+	if pt == nil && err != nil {
 		return
 	}
 	if replaced != common.UINT256_EMPTY {
@@ -615,8 +632,13 @@ func (server *TXPoolServer) handleRsp(rsp *types.CheckResponse) {
 			Tx:             pt.tx,
 			VerifiedHeight: pt.checkingStatus.CheckHeight,
 		}
-		server.addTxList(txEntry)
+		f := server.addTxList(txEntry)
+		if f {
+			server.addEIPTxPool(pt.tx)
+		}
 		server.removePendingTx(pt.tx.Hash(), errors.ErrNoError)
+		server.removeEIPPendingTx(pt.tx)
+
 	}
 }
 
