@@ -45,6 +45,7 @@ type TXEntry struct {
 type VerifiedTx struct {
 	Tx             *types.Transaction // transaction which has been verified
 	VerifiedHeight uint32
+	Nonce          uint64
 }
 
 func (self *VerifiedTx) GetAttrs() []*TXAttr {
@@ -76,6 +77,23 @@ func NewTxPool() *TXPool {
 		txList:    make(map[common.Uint256]*VerifiedTx),
 		eipTxPool: make(map[common.Address]*txList),
 	}
+}
+
+// todo
+func (s *TXPool) Nonce(addr common.Address) uint64 {
+	s.RLock()
+	defer s.RUnlock()
+	list := s.eipTxPool[addr]
+	if list == nil {
+		return 0
+	}
+
+	l := list.txs.LastElement()
+	if l == nil {
+		return 0
+	}
+
+	return uint64(l.Nonce)
 }
 
 func (s *TXPool) getTxListByAddr(addr common.Address) *txList {

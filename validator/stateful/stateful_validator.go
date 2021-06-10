@@ -40,28 +40,29 @@ func (self *ValidatorPool) SubmitVerifyTask(tx *types.Transaction, rspCh chan<- 
 		height := ledger.DefLedger.GetCurrentBlockHeight()
 
 		errCode := errors.ErrNoError
-		hash := tx.Hash()
-
-		exist, err := ledger.DefLedger.IsContainTransaction(hash)
-		if err != nil {
-			errCode = errors.ErrUnknown
-		} else if exist {
-			errCode = errors.ErrDuplicatedTx
-		} else if tx.TxType == types.EIP155 {
-			ethacct, err := ledger.DefLedger.GetEthAccount(ethcomm.Address(tx.Payer))
-			if err != nil {
-				errCode = errors.ErrNoAccount
-			} else if uint64(tx.Nonce) < ethacct.Nonce {
-				errCode = errors.ErrHigherNonceExist
-			}
-		}
-
 		response := &vatypes.CheckResponse{
 			Type:    vatypes.Stateful,
 			Hash:    tx.Hash(),
 			Tx:      tx,
 			Height:  height,
 			ErrCode: errCode,
+		}
+		hash := tx.Hash()
+
+		exist, err := ledger.DefLedger.IsContainTransaction(hash)
+		if err != nil {
+			response.ErrCode = errors.ErrUnknown
+		} else if exist {
+			response.ErrCode = errors.ErrDuplicatedTx
+		} else if tx.TxType == types.EIP155 {
+			ethacct, err := ledger.DefLedger.GetEthAccount(ethcomm.Address(tx.Payer))
+			if err != nil {
+				response.ErrCode = errors.ErrNoAccount
+			} else if uint64(tx.Nonce) < ethacct.Nonce {
+				response.ErrCode = errors.ErrHigherNonceExist
+			} else {
+				response.Nonce = ethacct.Nonce
+			}
 		}
 
 		rspCh <- response

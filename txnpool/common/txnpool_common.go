@@ -73,6 +73,7 @@ type CheckingStatus struct {
 	PassedStateless uint32 // actually bool, use uint32 for atomic operation
 	PassedStateful  uint32 // actually bool, use uint32 for atomic operation
 	CheckHeight     uint32
+	Nonce           uint64
 }
 
 func (s *CheckingStatus) SetStateless() {
@@ -89,9 +90,10 @@ func (s *CheckingStatus) GetStateful() bool {
 	return val == 1
 }
 
-func (s *CheckingStatus) SetStateful(height uint32) {
+func (s *CheckingStatus) SetStateful(height uint32, nonce uint64) {
 	if s.CheckHeight < height {
 		s.CheckHeight = height
+		s.Nonce = nonce
 	}
 	atomic.StoreUint32(&s.PassedStateful, 1)
 }

@@ -507,7 +507,7 @@ func (server *TXPoolServer) handleRsp(rsp *types.CheckResponse) {
 	}
 	switch rsp.Type {
 	case types.Stateful:
-		pt.checkingStatus.SetStateful(rsp.Height)
+		pt.checkingStatus.SetStateful(rsp.Height, rsp.Nonce)
 	case types.Stateless:
 		pt.checkingStatus.SetStateless()
 	}
@@ -516,6 +516,7 @@ func (server *TXPoolServer) handleRsp(rsp *types.CheckResponse) {
 		txEntry := &tc.VerifiedTx{
 			Tx:             pt.tx,
 			VerifiedHeight: pt.checkingStatus.CheckHeight,
+			Nonce:          pt.checkingStatus.Nonce,
 		}
 
 		server.movePendingTxToPool(txEntry)
@@ -532,10 +533,7 @@ func (s *TXPoolServer) CurrentNonce(addr common.Address) uint64 {
 }
 
 func (s *TXPoolServer) Nonce(addr common.Address) uint64 {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-
-	return s.pendingNonces.get(addr)
+	return s.txPool.Nonce(addr)
 }
 
 func (s *TXPoolServer) PendingEIPTransactions() []*ethtype.Transaction {
