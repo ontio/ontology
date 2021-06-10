@@ -85,7 +85,7 @@ func genTxWithNonceAndPrice(nonce uint64, gp int64) *txtypes.Transaction {
 
 func Test_ethtxRLP(t *testing.T) {
 	initCfg()
-	genTxWithNonceAndPrice(0, 2500)
+	genTxWithNonceAndPrice(1, 2500)
 
 }
 
@@ -104,6 +104,7 @@ func Test_From(t *testing.T) {
 	assert.Equal(t, otx1.Payer, otx4.Payer)
 
 }
+
 /*
 func Test_GenEIP155tx(t *testing.T) {
 	initCfg()
