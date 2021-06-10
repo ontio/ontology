@@ -211,6 +211,12 @@ func (s *TXPoolServer) setPendingTx(tx *txtypes.Transaction, sender tc.SenderTyp
 		if old != nil {
 			//s.removePendingTx(old.Hash(), errors.ErrHigherNonceExist)
 			replacedTxHash = old.Hash()
+		} else {
+			currentNonce := s.pendingNonces.get(tx.Payer)
+			if currentNonce != uint64(tx.Nonce) {
+				fmt.Printf("tx nonce is not correct:want:%d, get:%d\n", currentNonce, tx.Nonce)
+				return nil, replacedTxHash, fmt.Errorf("tx nonce is not correct:want:%d, get:%d", currentNonce, tx.Nonce)
+			}
 		}
 	}
 
@@ -395,6 +401,7 @@ func (s *TXPoolServer) addTxList(txEntry *tc.VerifiedTx) bool { //solve the EIP1
 			pendingNonce = ledgerNonce
 		}
 		if uint64(txEntry.Tx.Nonce) != pendingNonce {
+			log.Errorf("tx nonce is not correct .want :%d, get :%d", pendingNonce, txEntry.Tx.Nonce)
 			return false
 		}
 	}
@@ -431,6 +438,7 @@ func (s *TXPoolServer) addEipPendingTx(tx *txtypes.Transaction) (*txtypes.Transa
 	if tx.TxType != txtypes.EIP155 {
 		return nil, fmt.Errorf("not an EIP155 tx")
 	}
+
 	if _, ok := s.pendingEipTxs[tx.Payer]; !ok {
 		s.pendingEipTxs[tx.Payer] = newTxList(true)
 	}

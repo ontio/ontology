@@ -21,6 +21,7 @@ package actor
 
 import (
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/ontio/ontology-eventbus/actor"
@@ -55,6 +56,7 @@ func AppendTxToPool(txn *types.Transaction) (ontErrors.ErrCode, string) {
 		return ontErrors.ErrUnknown, err.Error()
 	}
 	msg := txPoolService.AppendTransaction(tcomn.HttpSender, txn)
+	fmt.Println("===AppendTxToPool")
 	return msg.Err, msg.Desc
 }
 

@@ -65,6 +65,7 @@ func replyTxResult(txResultCh chan *tc.TxResult, hash common.Uint256, err errors
 			Hash: hash,
 			Desc: desc,
 		}
+
 		select {
 		case txResultCh <- result:
 		default:
@@ -195,7 +196,6 @@ func (ta *TxPoolService) handleTransaction(sender tc.SenderType, txn *tx.Transac
 				fmt.Sprintf("not enough ong balance for %s - has:%d - want:%d", txn.Payer.ToHexString(), balance, txn.Cost()))
 			return
 		}
-
 	}
 
 	if !ta.server.disablePreExec {
@@ -230,7 +230,7 @@ func (ta *TxPoolService) GetTxList() []common.Uint256 {
 
 func (ta *TxPoolService) AppendTransaction(sender tc.SenderType, txn *tx.Transaction) *tc.TxResult {
 	ch := make(chan *tc.TxResult)
-	ta.handleTransaction(sender, txn, ch)
+	go ta.handleTransaction(sender, txn, ch)
 	return <-ch
 }
 
