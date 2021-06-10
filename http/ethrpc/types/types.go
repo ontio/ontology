@@ -18,7 +18,6 @@
 package types
 
 import (
-	"math"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -44,18 +43,21 @@ type CallArgs struct {
 	Data     *hexutil.Bytes  `json:"data"`
 }
 
-func (args CallArgs) AsTransaction(globalGasCap uint64) *types.Transaction {
-	// Set default gas & gas price if none were set
-	gas := globalGasCap
-	if gas == 0 {
-		gas = uint64(math.MaxUint64 / 2)
+func (args CallArgs) AsMessage(maxGasLimit uint64) types.Message {
+	// Set sender address or use zero address if none specified.
+	var addr common.Address
+	if args.From != nil {
+		addr = *args.From
 	}
+
+	// Set default gas & gas price if none were set
+	gas := maxGasLimit
 	if args.Gas != nil {
 		gas = uint64(*args.Gas)
 	}
-	if globalGasCap != 0 && globalGasCap < gas {
-		log.Warn("Caller gas above allowance, capping", "requested", gas, "cap", globalGasCap)
-		gas = globalGasCap
+	if maxGasLimit != 0 && maxGasLimit < gas {
+		log.Warn("Caller gas above allowance, capping", "requested", gas, "cap", maxGasLimit)
+		gas = maxGasLimit
 	}
 	gasPrice := new(big.Int)
 	if args.GasPrice != nil {
@@ -69,8 +71,9 @@ func (args CallArgs) AsTransaction(globalGasCap uint64) *types.Transaction {
 	if args.Data != nil {
 		data = *args.Data
 	}
-	tx := types.NewTransaction(0, *args.To, value, gas, gasPrice, data)
-	return tx
+
+	msg := types.NewMessage(addr, args.To, 0, value, gas, gasPrice, data, false)
+	return msg
 }
 
 type Account struct {

@@ -26,6 +26,7 @@ require (
 	github.com/pborman/uuid v1.2.0
 	github.com/prometheus/client_golang v0.9.1
 	github.com/scylladb/go-set v1.0.2
+	github.com/status-im/keycard-go v0.0.0-20190316090335-8537d3370df4
 	github.com/stretchr/testify v1.4.0
 	github.com/syndtr/goleveldb v1.0.1-0.20200815110645-5c35d600f0ca
 	github.com/urfave/cli v1.22.1

@@ -30,7 +30,6 @@ import (
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/ethereum/go-ethereum/rpc"
 	oComm "github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/common/log"
 	otypes "github.com/ontio/ontology/core/types"
 	ontErrors "github.com/ontio/ontology/errors"
 	bactor "github.com/ontio/ontology/http/base/actor"
@@ -45,7 +44,7 @@ import (
 const (
 	eth65           = 65
 	ProtocolVersion = eth65
-	RPCGasCap       = 0 // TODO modify this
+	RPCGasCap       = 1000000
 )
 
 type TxPoolService interface {
@@ -57,8 +56,8 @@ type EthereumAPI struct {
 	txpool TxPoolService
 }
 
-func NewEthereumAPI(txpool TxPoolService) EthereumAPI {
-	return EthereumAPI{txpool: txpool}
+func NewEthereumAPI(txpool TxPoolService) *EthereumAPI {
+	return &EthereumAPI{txpool: txpool}
 }
 
 func (api *EthereumAPI) ChainId() hexutil.Uint64 {
@@ -174,7 +173,7 @@ func (api *EthereumAPI) GetCode(address common.Address, blockNumber types2.Block
 		return nil, err
 	}
 	if account.IsEmpty() {
-		return nil, fmt.Errorf("contract %v not found", address.String())
+		return nil, nil
 	}
 	code, err := bactor.GetEthCode(account.CodeHash)
 	if err != nil {
@@ -191,44 +190,50 @@ func (api *EthereumAPI) GetTransactionLogs(txHash common.Hash) ([]*types.Log, er
 	if notify == nil {
 		return nil, fmt.Errorf("tx %v not found", txHash.String())
 	}
-	return generateLog(notify)
+	logs, _, _, _, err := generateLog(notify)
+	return logs, err
 }
 
-func generateLog(rawNotify *event.ExecuteNotify) ([]*types.Log, error) {
+func generateLog(rawNotify *event.ExecuteNotify) ([]*types.Log, *common.Hash, *otypes.Transaction, uint32, error) {
 	var res []*types.Log
 	txHash := rawNotify.TxHash
-	height, _, err := bactor.GetTxnWithHeightByTxHash(txHash)
+	height, tx, err := bactor.GetTxnWithHeightByTxHash(txHash)
 	if err != nil {
-		return nil, err
+		return nil, nil, nil, 0, err
 	}
 	hash := bactor.GetBlockHashFromStore(height)
-	if err != nil {
-		return nil, err
-	}
+	ethHash := OntToEthHash(hash)
 	for idx, n := range rawNotify.Notify {
 		if !n.IsEvm {
-			return nil, fmt.Errorf("not support tx type %v", rawNotify.TxHash.ToHexString())
+			return nil, nil, nil, 0, fmt.Errorf("not support tx type %v", rawNotify.TxHash.ToHexString())
 		}
-		source := oComm.NewZeroCopySource(n.States.([]byte))
-		var storageLog otypes.StorageLog
-		err := storageLog.Deserialization(source)
-		if err != nil {
-			return nil, err
+		states, ok := n.States.(string)
+		if ok {
+			data, err := hexutil.Decode(states)
+			if err != nil {
+				return nil, nil, nil, 0, err
+			}
+			source := oComm.NewZeroCopySource(data)
+			var storageLog otypes.StorageLog
+			err = storageLog.Deserialization(source)
+			if err != nil {
+				return nil, nil, nil, 0, err
+			}
+			log := &types.Log{
+				Address:     storageLog.Address,
+				Topics:      storageLog.Topics,
+				Data:        storageLog.Data,
+				BlockNumber: uint64(height),
+				TxHash:      OntToEthHash(txHash),
+				TxIndex:     uint(rawNotify.TxIndex),
+				BlockHash:   ethHash,
+				Index:       uint(idx),
+				Removed:     false,
+			}
+			res = append(res, log)
 		}
-		log := &types.Log{
-			Address:     storageLog.Address,
-			Topics:      storageLog.Topics,
-			Data:        storageLog.Data,
-			BlockNumber: uint64(height),
-			TxHash:      OntToEthHash(txHash),
-			TxIndex:     uint(rawNotify.TxIndex),
-			BlockHash:   OntToEthHash(hash),
-			Index:       uint(idx),
-			Removed:     false,
-		}
-		res = append(res, log)
 	}
-	return res, nil
+	return res, &ethHash, tx, height, nil
 }
 
 func (api *EthereumAPI) Sign(address common.Address, data hexutil.Bytes) (hexutil.Bytes, error) {
@@ -251,15 +256,17 @@ func (api *EthereumAPI) SendRawTransaction(data hexutil.Bytes) (common.Hash, err
 	}
 	txhash := eip155tx.Hash()
 	if errCode, desc := bcomn.SendTxToPool(eip155tx); errCode != ontErrors.ErrNoError {
-		log.Warnf("SendRawTransaction verified %s error: %s", txhash.ToHexString(), desc)
-		return common.Hash{}, err
+		if errCode == ontErrors.ErrDuplicatedTx {
+			return common.Hash(txhash), nil
+		}
+		return common.Hash{}, fmt.Errorf("SendRawTransaction verified %s error: %s", txhash.ToHexString(), desc)
 	}
 	return common.Hash(txhash), nil
 }
 
 func (api *EthereumAPI) Call(args types2.CallArgs, blockNumber types2.BlockNumber, _ *map[common.Address]types2.Account) (hexutil.Bytes, error) {
-	tx := args.AsTransaction(RPCGasCap)
-	res, err := bactor.PreExecuteEip155Tx(tx)
+	msg := args.AsMessage(RPCGasCap)
+	res, err := bactor.PreExecuteEip155Tx(msg)
 	if err != nil {
 		return nil, err
 	}
@@ -287,7 +294,7 @@ type revertError struct {
 }
 
 func (api *EthereumAPI) EstimateGas(args types2.CallArgs) (hexutil.Uint, error) {
-	tx := args.AsTransaction(RPCGasCap)
+	tx := args.AsMessage(RPCGasCap)
 	res, err := bactor.PreExecuteEip155Tx(tx)
 	if err != nil {
 		return 0, err
@@ -391,7 +398,62 @@ func (api *EthereumAPI) GetTransactionByBlockNumberAndIndex(blockNum types2.Bloc
 }
 
 func (api *EthereumAPI) GetTransactionReceipt(hash common.Hash) (interface{}, error) {
-	return nil, nil
+	notify, err := bactor.GetEventNotifyByTxHash(EthToOntHash(hash))
+	if err != nil {
+		return nil, nil
+	}
+	if notify == nil {
+		return nil, nil
+	}
+	return generateRecipient(notify)
+}
+
+func generateRecipient(notify *event.ExecuteNotify) (interface{}, error) {
+	logs, hash, tx, height, err := generateLog(notify)
+	if err != nil {
+		return nil, err
+	}
+	eip155Tx, err := tx.GetEIP155Tx()
+	if err != nil {
+		return nil, err
+	}
+	signer := types.NewEIP155Signer(big.NewInt(int64(getChainId())))
+	from, err := signer.Sender(eip155Tx)
+	if err != nil {
+		return nil, err
+	}
+	receipt := map[string]interface{}{
+		// Consensus fields: These fields are defined by the Yellow Paper
+		"status":            hexutil.Uint(notify.State),
+		"cumulativeGasUsed": hexutil.Uint64(notify.GasConsumed),
+		"logsBloom":         types.BytesToBloom(types.LogsBloom(logs)),
+		"logs":              logs,
+
+		// Implementation fields: These fields are added by geth when processing a transaction.
+		// They are stored in the chain database.
+		"transactionHash": common.Hash(notify.TxHash),
+		"contractAddress": nil,
+		"gasUsed":         hexutil.Uint64(notify.GasStepUsed),
+
+		// Inclusion information: These fields provide information about the inclusion of the
+		// transaction corresponding to this receipt.
+		"blockHash":        hash,
+		"blockNumber":      hexutil.Uint64(height),
+		"transactionIndex": hexutil.Uint64(notify.TxIndex),
+
+		// sender and receiver (contract or EOA) addresses
+		"from": from,
+		"to":   eip155Tx.To(),
+	}
+	if logs == nil {
+		receipt["logs"] = [][]*types.Log{}
+	}
+	ethContractAddr := common.Address(notify.CreatedContract)
+	// If the ContractAddress is 20 0x0 bytes, assume it is not a contract creation
+	if ethContractAddr != (common.Address{}) {
+		receipt["contractAddress"] = ethContractAddr
+	}
+	return receipt, nil
 }
 
 func (api *EthereumAPI) PendingTransactions() ([]*types2.Transaction, error) {
@@ -442,9 +504,7 @@ type PublicNetAPI struct {
 	networkVersion uint64
 }
 
-var networkVersion = 1
-
 // Version returns the current ethereum protocol version.
 func (s *PublicNetAPI) Version() string {
-	return fmt.Sprintf("%d", networkVersion)
+	return fmt.Sprintf("%d", getChainId())
 }
