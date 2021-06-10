@@ -19,7 +19,7 @@ package net
 
 import (
 	"fmt"
-	"github.com/ontio/ontology/http/ethrpc"
+	"github.com/ontio/ontology/http/ethrpc/utils"
 )
 
 type PublicNetAPI struct {
@@ -31,5 +31,5 @@ func NewPublicNetAPI() *PublicNetAPI {
 
 // Version returns the current ethereum protocol version.
 func (s *PublicNetAPI) Version() string {
-	return fmt.Sprintf("%d", ethrpc.GetChainId())
+	return fmt.Sprintf("%d", utils.GetChainId())
 }
