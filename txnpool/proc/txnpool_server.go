@@ -332,6 +332,8 @@ func (s *TXPoolServer) getTxHashList() []common.Uint256 {
 
 //clean the EIP txpool and eip pending txpool under the tx nonce
 func (s *TXPoolServer) cleanEipTxPool(txs []*txtypes.Transaction) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	for _, tx := range txs {
 		if tx.TxType == txtypes.EIP155 {
 			if _, ok := s.eipTxPool[tx.Payer]; ok {
