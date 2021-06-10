@@ -156,11 +156,3 @@ func NewTransaction(tx *types2.Transaction, txHash, blockHash common.Hash, block
 func getChainId() uint32 {
 	return sysconfig.DefConfig.P2PNode.EVMChainId
 }
-
-func calBloom(logs []*types2.Log) types2.Bloom {
-	if logs == nil {
-		return types2.Bloom{}
-	}
-	bloomInt := big.NewInt(0).SetBytes(types2.LogsBloom(logs))
-	return types2.BytesToBloom(bloomInt.Bytes())
-}

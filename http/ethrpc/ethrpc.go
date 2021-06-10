@@ -426,7 +426,7 @@ func generateRecipient(notify *event.ExecuteNotify) (interface{}, error) {
 		// Consensus fields: These fields are defined by the Yellow Paper
 		"status":            hexutil.Uint(notify.State),
 		"cumulativeGasUsed": hexutil.Uint64(notify.GasConsumed),
-		"logsBloom":         calBloom(logs),
+		"logsBloom":         types.BytesToBloom(types.LogsBloom(logs)),
 		"logs":              logs,
 
 		// Implementation fields: These fields are added by geth when processing a transaction.
