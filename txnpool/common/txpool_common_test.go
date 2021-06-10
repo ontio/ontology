@@ -30,11 +30,13 @@ func Test_sortTxEntry(t *testing.T) {
 	addr2 := utils.OngContractAddress
 
 	txlist := []*VerifiedTx{
-		{Tx: &types.Transaction{TxType: types.InvokeWasm, Nonce: 0, Payer: addr1, GasPrice: 100, Raw: []byte("tx01")}},
+		{Tx: &types.Transaction{TxType: types.Deploy, Nonce: 0, Payer: addr1, GasPrice: 100, Raw: []byte("tx06")}},
 		{Tx: &types.Transaction{TxType: types.InvokeNeo, Nonce: 0, Payer: addr2, GasPrice: 110, Raw: []byte("tx02")}},
 		{Tx: &types.Transaction{TxType: types.EIP155, Nonce: 0, Payer: addr1, GasPrice: 130, Raw: []byte("tx03")}},
 		{Tx: &types.Transaction{TxType: types.EIP155, Nonce: 1, Payer: addr1, GasPrice: 100, Raw: []byte("tx04")}},
 		{Tx: &types.Transaction{TxType: types.EIP155, Nonce: 0, Payer: addr2, GasPrice: 150, Raw: []byte("tx05")}},
+		{Tx: &types.Transaction{TxType: types.InvokeWasm, Nonce: 0, Payer: addr1, GasPrice: 100, Raw: []byte("tx01")}},
+		{Tx: &types.Transaction{TxType: types.InvokeWasm, Nonce: 0, Payer: addr1, GasPrice: 90, Raw: []byte("tx07")}},
 	}
 
 	sort.Sort(OrderByNetWorkFee(txlist))
@@ -47,7 +49,9 @@ func Test_sortTxEntry(t *testing.T) {
 	assert.Equal(t, string(txlist[0].Tx.Raw), "tx05")
 	assert.Equal(t, string(txlist[1].Tx.Raw), "tx03")
 	assert.Equal(t, string(txlist[2].Tx.Raw), "tx04")
-	assert.Equal(t, string(txlist[3].Tx.Raw), "tx02")
-	assert.Equal(t, string(txlist[4].Tx.Raw), "tx01")
+	assert.Equal(t, string(txlist[3].Tx.Raw), "tx01")
+	assert.Equal(t, string(txlist[4].Tx.Raw), "tx07")
+	assert.Equal(t, string(txlist[5].Tx.Raw), "tx02")
+	assert.Equal(t, string(txlist[6].Tx.Raw), "tx06")
 
 }
