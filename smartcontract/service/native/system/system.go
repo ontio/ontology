@@ -100,5 +100,5 @@ func EVMInvoke(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, err
 	}
 
-	return utils.BYTE_TRUE, nil
+	return ret, nil
 }
