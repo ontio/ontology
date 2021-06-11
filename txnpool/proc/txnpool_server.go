@@ -178,6 +178,7 @@ func (s *TXPoolServer) removePendingTx(hash common.Uint256, err errors.ErrCode) 
 	replyTxResult(pt.ch, hash, err, err.Error())
 
 	delete(s.allPendingTxs, hash)
+	s.removeEIPPendingTx(pt.tx)
 
 	if len(s.allPendingTxs) < tc.MAX_LIMITATION {
 		select {
@@ -210,11 +211,12 @@ func (s *TXPoolServer) setPendingTx(tx *txtypes.Transaction, sender tc.SenderTyp
 			return nil, replacedTxHash, fmt.Errorf("duplicated EIP155 transaction nonce input detected")
 		}
 		if old != nil {
-			//s.removePendingTx(old.Hash(), errors.ErrHigherNonceExist)
 			replacedTxHash = old.Hash()
 		} else {
 			currentNonce := s.pendingNonces.get(tx.Payer)
 			if currentNonce != uint64(tx.Nonce) {
+				//remove from eippending list
+				s.removeEIPPendingTx(tx)
 				return nil, replacedTxHash, fmt.Errorf("tx nonce is not correct:want:%d, get:%d", currentNonce, tx.Nonce)
 			}
 		}
