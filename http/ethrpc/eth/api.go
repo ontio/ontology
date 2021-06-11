@@ -461,7 +461,7 @@ func (api *EthereumAPI) PendingTransactions() ([]*types2.Transaction, error) {
 	pendingTxs := api.txpool.PendingEIPTransactions()
 	var rpcTxs []*types2.Transaction
 	for _, v2 := range pendingTxs {
-		tx, err := NewTransaction(v2, v2.Hash(), common.Hash{}, 0, 0)
+		tx, err := utils2.NewTransaction(v2, v2.Hash(), common.Hash{}, 0, 0)
 		if err != nil {
 			return nil, nil
 		}
