@@ -290,12 +290,12 @@ func SendRawTransaction(params []interface{}) map[string]interface{} {
 			}
 		}
 
-		log.Debugf("SendRawTransaction send to txpool %s", hash.ToHexString())
+		log.Infof("SendRawTransaction send to txpool %s", hash.ToHexString())
 		if errCode, desc := bcomn.SendTxToPool(txn); errCode != ontErrors.ErrNoError {
 			log.Warnf("SendRawTransaction verified %s error: %s", hash.ToHexString(), desc)
 			return rpc.ResponsePack(int64(errCode), desc)
 		}
-		log.Debugf("SendRawTransaction verified %s", hash.ToHexString())
+		log.Infof("SendRawTransaction verified %s", hash.ToHexString())
 	default:
 		return rpc.ResponsePack(berr.INVALID_PARAMS, "")
 	}

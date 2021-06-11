@@ -143,8 +143,8 @@ func (s *TXPoolServer) GetPendingTx(hash common.Uint256) *serverPendingTx {
 }
 
 func (s *TXPoolServer) movePendingTxToPool(txEntry *tc.VerifiedTx) { //solve the EIP155
-	s.mu.RLock()
-	defer s.mu.RUnlock()
+	s.mu.Lock()
+	defer s.mu.Unlock()
 
 	errCode := s.txPool.AddTxList(txEntry)
 	s.removePendingTxLocked(txEntry.Tx.Hash(), errCode)
@@ -180,8 +180,8 @@ func (s *TXPoolServer) handleRemovedPendingTx(pt *serverPendingTx, err errors.Er
 }
 
 func (s *TXPoolServer) removePendingTxLocked(hash common.Uint256, err errors.ErrCode) {
-	pt, ok := s.allPendingTxs[hash]
-	if !ok {
+	pt := s.allPendingTxs[hash]
+	if pt == nil {
 		return
 	}
 
