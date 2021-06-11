@@ -19,13 +19,14 @@
 package proc
 
 import (
+	"os"
+	"testing"
+	"time"
+
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/genesis"
 	"github.com/ontio/ontology/core/ledger"
-	"os"
-	"testing"
-	"time"
 
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/events/message"
@@ -75,7 +76,8 @@ func TestTxPoolActor(t *testing.T) {
 		Tx:             txn,
 		VerifiedHeight: 10,
 	}
-	s.addTxList(txEntry)
+	e := s.txPool.AddTxList(txEntry)
+	assert.True(t, e.Success())
 
 	future := txPoolPid.RequestFuture(&tc.GetTxnPoolReq{ByCount: false}, 2*time.Second)
 	result, err := future.Result()

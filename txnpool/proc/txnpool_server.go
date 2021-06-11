@@ -263,21 +263,17 @@ func (s *TXPoolServer) Stop() {
 	close(s.slots)
 }
 
-// getTransaction returns a transaction with the transaction hash.
-
+// returns a transaction with the transaction hash.
 func (s *TXPoolServer) getTransaction(hash common.Uint256) *txtypes.Transaction {
 	return s.txPool.GetTransaction(hash)
 }
 
-// getTxPool returns a tx list for consensus.
+// returns a tx list for consensus.
 func (s *TXPoolServer) getTxPool(byCount bool, height uint32) []*tc.VerifiedTx {
 	s.setHeight(height)
-
 	avlTxList, oldTxList := s.txPool.GetTxPool(byCount, height)
 
-	//todo : implement in gettxpool
 	for _, t := range oldTxList {
-		s.txPool.DelTxList(t)
 		s.reVerifyStateful(t, tc.NilSender)
 		log.Infof("reverify transaction : %s", t.Hash().ToHexString())
 	}
@@ -287,7 +283,7 @@ func (s *TXPoolServer) getTxPool(byCount bool, height uint32) []*tc.VerifiedTx {
 	return avlTxList
 }
 
-// getTxCount returns current tx count, including pending and verified
+// returns current tx count, including pending and verified
 func (s *TXPoolServer) getTxCount() []uint32 {
 	ret := make([]uint32, 0)
 	ret = append(ret, uint32(s.txPool.GetTransactionCount()))
@@ -335,6 +331,7 @@ func (s *TXPoolServer) cleanTransactionList(txs []*txtypes.Transaction, height u
 			s.txPool.RemoveTxsBelowGasPrice(gasPrice)
 		}
 	}
+
 	// Cleanup tx pool
 	if !s.disablePreExec && len(txs) != 0 {
 		remain := s.txPool.Remain()

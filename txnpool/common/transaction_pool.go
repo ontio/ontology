@@ -48,6 +48,10 @@ type VerifiedTx struct {
 	Nonce          uint64
 }
 
+func (self *VerifiedTx) IsVerfiyExpired(height uint32) bool {
+	return self.VerifiedHeight < height
+}
+
 func (self *VerifiedTx) GetAttrs() []*TXAttr {
 	return []*TXAttr{
 		{
@@ -182,59 +186,35 @@ func (tp *TXPool) CleanTransactionList(txs []*types.Transaction) {
 	log.Infof("clean txes: total %d, cleaned %d, remains %d in TxPool", txsNum, cleaned, len(tp.txList))
 }
 
-// removes a single transaction from the pool.
-func (tp *TXPool) DelTxList(tx *types.Transaction) bool {
-	tp.Lock()
-	defer tp.Unlock()
-	txHash := tx.Hash()
-	if _, ok := tp.txList[txHash]; !ok {
-		return false
-	}
-	delete(tp.txList, txHash)
-
-	if tx.IsEipTx() {
-		tp.eipTxPool[tx.Payer].txs.Remove(uint64(tx.Nonce))
-	}
-
-	return true
-}
-
-// isVerfiyExpired compares a verifed transaction's height with the next
-// block height from consensus. If the height is less than the next block
-// height, re-verify it.
-func (tp *TXPool) isVerfiyExpired(txEntry *VerifiedTx, height uint32) bool {
-	return txEntry.VerifiedHeight < height
-}
-
 // gets the transaction lists from the pool for the consensus,
 // if the byCount is marked, return the configured number at most; if the
 // the byCount is not marked, return all of the current transaction pool.
 func (tp *TXPool) GetTxPool(byCount bool, height uint32) ([]*VerifiedTx, []*types.Transaction) {
 	tp.RLock()
-	defer tp.RUnlock()
 
-	orderByFee := make([]*VerifiedTx, 0, len(tp.txList))
+	orderByFeeList := make([]*VerifiedTx, 0, len(tp.txList))
 	for _, txEntry := range tp.txList {
-		orderByFee = append(orderByFee, txEntry)
+		orderByFeeList = append(orderByFeeList, txEntry)
 	}
+	tp.RUnlock()
 	//this make EIP155 > other tx type
 	//for EIP155 case:
 	//if payer is same , order by nonce 0,1,2...
 	//otherwise , order by gas price
-	sort.Sort(OrderByNetWorkFee(orderByFee))
+	sort.Sort(OrderByNetWorkFee(orderByFeeList))
 
 	count := int(config.DefConfig.Consensus.MaxTxInBlock)
 	if count <= 0 {
 		byCount = false
 	}
-	if len(tp.txList) < count || !byCount {
-		count = len(tp.txList)
+	if len(orderByFeeList) < count || !byCount {
+		count = len(orderByFeeList)
 	}
 
 	txList := make([]*VerifiedTx, 0, count)
 	oldTxList := make([]*types.Transaction, 0)
-	for _, txEntry := range orderByFee {
-		if tp.isVerfiyExpired(txEntry, height) {
+	for _, txEntry := range orderByFeeList {
+		if txEntry.IsVerfiyExpired(height) {
 			oldTxList = append(oldTxList, txEntry.Tx)
 			continue
 		}
@@ -243,6 +223,15 @@ func (tp *TXPool) GetTxPool(byCount bool, height uint32) ([]*VerifiedTx, []*type
 			break
 		}
 	}
+
+	tp.Lock()
+	for _, tx := range oldTxList {
+		delete(tp.txList, tx.Hash())
+		if tx.IsEipTx() {
+			tp.eipTxPool[tx.Payer].txs.Remove(uint64(tx.Nonce))
+		}
+	}
+	tp.Unlock()
 
 	return txList, oldTxList
 }
@@ -310,7 +299,7 @@ func (tp *TXPool) GetUnverifiedTxs(txs []*types.Transaction, height uint32) *Che
 			continue
 		}
 
-		if !tp.isVerfiyExpired(txEntry, height) {
+		if !txEntry.IsVerfiyExpired(height) {
 			delete(tp.txList, tx.Hash())
 			res.OldTxs = append(res.OldTxs, txEntry.Tx)
 			continue
