@@ -66,11 +66,7 @@ func replyTxResult(txResultCh chan *tc.TxResult, hash common.Uint256, err errors
 			Desc: desc,
 		}
 
-		select {
-		case txResultCh <- result:
-		default:
-			log.Debugf("handleTransaction: duplicated result")
-		}
+		txResultCh <- result
 	}
 }
 
@@ -229,7 +225,7 @@ func (ta *TxPoolService) GetTxList() []common.Uint256 {
 }
 
 func (ta *TxPoolService) AppendTransaction(sender tc.SenderType, txn *tx.Transaction) *tc.TxResult {
-	ch := make(chan *tc.TxResult)
+	ch := make(chan *tc.TxResult, 1)
 	go ta.handleTransaction(sender, txn, ch)
 	return <-ch
 }
