@@ -211,16 +211,15 @@ func (tp *TXPool) GetTxPool(byCount bool, height uint32) ([]*VerifiedTx, []*type
 		count = len(orderByFeeList)
 	}
 
-	txList := make([]*VerifiedTx, 0, count)
+	validList := make([]*VerifiedTx, 0, count)
 	oldTxList := make([]*types.Transaction, 0)
 	for _, txEntry := range orderByFeeList {
 		if txEntry.IsVerfiyExpired(height) {
 			oldTxList = append(oldTxList, txEntry.Tx)
 			continue
 		}
-		txList = append(txList, txEntry)
-		if len(txList) >= count {
-			break
+		if len(validList) < count {
+			validList = append(validList, txEntry)
 		}
 	}
 
@@ -233,7 +232,7 @@ func (tp *TXPool) GetTxPool(byCount bool, height uint32) ([]*VerifiedTx, []*type
 	}
 	tp.Unlock()
 
-	return txList, oldTxList
+	return validList, oldTxList
 }
 
 // GetTransaction returns a transaction if it is contained in the pool

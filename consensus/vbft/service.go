@@ -2251,7 +2251,9 @@ func (self *Server) makeProposal(blkNum uint32, forEmpty bool) error {
 				userTxs = append(userTxs, e.Tx)
 			}
 		}
+		log.Infof("get %d valid from pool", len(userTxs))
 	}
+
 	proposal, err := self.constructProposalMsg(blkNum, sysTxs, userTxs, cfg)
 	if err != nil {
 		return fmt.Errorf("failed to construct proposal: %s", err)

@@ -130,18 +130,6 @@ func GetSyncStatus(params []interface{}) map[string]interface{} {
 	return rpc.ResponseSuccess(status)
 }
 
-func GetRawMemPool(params []interface{}) map[string]interface{} {
-	txs := []*bcomn.Transactions{}
-	txpool := bactor.GetTxsFromPool(false)
-	for _, t := range txpool {
-		txs = append(txs, bcomn.TransArryByteToHexString(t))
-	}
-	if len(txs) == 0 {
-		return rpc.ResponsePack(berr.INVALID_PARAMS, nil)
-	}
-	return rpc.ResponseSuccess(txs)
-}
-
 //get memory pool transaction count
 func GetMemPoolTxCount(params []interface{}) map[string]interface{} {
 	count := bactor.GetTxnCount()
