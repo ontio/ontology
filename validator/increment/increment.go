@@ -20,28 +20,22 @@ package increment
 
 import (
 	"fmt"
-	"github.com/ontio/ontology/http/base/actor"
 	"sync"
 
+	ethcomm "github.com/ethereum/go-ethereum/common"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
+	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/core/types"
-
-	ethcomm "github.com/ethereum/go-ethereum/common"
 )
 
 // IncrementValidator do increment check of transaction
-type NonceWithTxhash struct {
-	Nonce  uint64
-	Txhash common.Uint256
-}
-
 type IncrementValidator struct {
 	mutex      sync.Mutex
 	blocks     []map[common.Uint256]bool
 	baseHeight uint32
 	maxBlocks  int
-	nonces     []map[common.Address]NonceWithTxhash
+	nonces     []map[common.Address]uint64
 }
 
 func NewIncrementValidator(maxBlocks int) *IncrementValidator {
@@ -50,7 +44,6 @@ func NewIncrementValidator(maxBlocks int) *IncrementValidator {
 	}
 	return &IncrementValidator{
 		maxBlocks: maxBlocks,
-		//nonces:    make(map[common.Address]NonceWithTxhash),
 	}
 }
 
@@ -95,15 +88,12 @@ func (self *IncrementValidator) AddBlock(block *types.Block) {
 		self.nonces = self.nonces[1:]
 	}
 	txHashes := make(map[common.Uint256]bool)
-	nonceMap := make(map[common.Address]NonceWithTxhash)
+	nonceMap := make(map[common.Address]uint64)
 	for _, tx := range block.Transactions {
 		txhash := tx.Hash()
 		txHashes[txhash] = true
-		if tx.TxType == types.EIP155 {
-			nonceMap[tx.Payer] = NonceWithTxhash{
-				Nonce:  uint64(tx.Nonce) + 1,
-				Txhash: tx.Hash(),
-			}
+		if tx.IsEipTx() {
+			nonceMap[tx.Payer] = uint64(tx.Nonce) + 1
 		}
 	}
 	self.nonces = append(self.nonces, nonceMap)
@@ -111,7 +101,7 @@ func (self *IncrementValidator) AddBlock(block *types.Block) {
 }
 
 // Verfiy does increment check start at startHeight
-func (self *IncrementValidator) Verify(tx *types.Transaction, startHeight uint32, nonceCtx map[common.Address]NonceWithTxhash) error {
+func (self *IncrementValidator) Verify(tx *types.Transaction, startHeight uint32, nonceCtx map[common.Address]uint64) error {
 	self.mutex.Lock()
 	defer self.mutex.Unlock()
 	if startHeight < self.baseHeight {
@@ -123,44 +113,33 @@ func (self *IncrementValidator) Verify(tx *types.Transaction, startHeight uint32
 		}
 	}
 	//check nonce
-	if tx.TxType == types.EIP155 {
+	if tx.IsEipTx() {
 		//1st tx for account
-		if isNonceWithTxhashEmpty(nonceCtx[tx.Payer]) {
+		if nonceCtx[tx.Payer] == 0 {
 			//get the nonce from cache
-			for i := int(startHeight - self.baseHeight); i < len(self.blocks); i++ {
+			for i := 0; i < len(self.blocks); i++ {
 				latestNonce := self.nonces[i][tx.Payer]
-				if !isNonceWithTxhashEmpty(latestNonce) {
+				if latestNonce != 0 {
 					nonceCtx[tx.Payer] = latestNonce
 				}
 			}
 			//still empty, load from ledger store
-			if isNonceWithTxhashEmpty(nonceCtx[tx.Payer]) {
-				acct, err := actor.GetEthAccount(ethcomm.BytesToAddress(tx.Payer[:]))
+			if nonceCtx[tx.Payer] == 0 {
+				acct, err := ledger.DefLedger.GetEthAccount(ethcomm.BytesToAddress(tx.Payer[:]))
 				if err != nil {
 					return err
 				}
-				nonceCtx[tx.Payer] = NonceWithTxhash{
-					Nonce:  acct.Nonce,
-					Txhash: common.UINT256_EMPTY, //we don't know the last tx by this account
-				}
+				nonceCtx[tx.Payer] = acct.Nonce
 			}
 		}
 
-		if uint64(tx.Nonce) != nonceCtx[tx.Payer].Nonce && tx.Hash() != nonceCtx[tx.Payer].Txhash {
-			return fmt.Errorf("nonce is not correct")
+		if uint64(tx.Nonce) != nonceCtx[tx.Payer] {
+			return fmt.Errorf("wrong nonce for %s, exptected: %d, got: %d", tx.Payer.ToBase58(),
+				nonceCtx[tx.Payer], tx.Nonce)
 		}
 
-		if nonceCtx[tx.Payer].Txhash != tx.Hash() {
-			nonceCtx[tx.Payer] = NonceWithTxhash{
-				Nonce:  uint64(tx.Nonce) + 1,
-				Txhash: tx.Hash(),
-			}
-		}
+		nonceCtx[tx.Payer] = uint64(tx.Nonce) + 1
 	}
 
 	return nil
-}
-
-func isNonceWithTxhashEmpty(nwt NonceWithTxhash) bool {
-	return nwt.Nonce == 0 && nwt.Txhash == common.UINT256_EMPTY
 }

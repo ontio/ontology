@@ -80,7 +80,7 @@ func NewTxPool() *TXPool {
 }
 
 // todo
-func (s *TXPool) Nonce(addr common.Address) uint64 {
+func (s *TXPool) NextNonce(addr common.Address) uint64 {
 	s.RLock()
 	defer s.RUnlock()
 	list := s.eipTxPool[addr]
@@ -93,7 +93,7 @@ func (s *TXPool) Nonce(addr common.Address) uint64 {
 		return 0
 	}
 
-	return uint64(l.Nonce)
+	return uint64(l.Nonce + 1)
 }
 
 func (s *TXPool) getTxListByAddr(addr common.Address) *txList {
@@ -164,7 +164,7 @@ func (s *TXPool) cleanEipTxPool(txs []*types.Transaction) {
 	}
 }
 
-// CleanTransactionList cleans the transaction list included in the ledger.
+// cleans the transaction list included in the ledger.
 func (tp *TXPool) CleanTransactionList(txs []*types.Transaction) {
 	cleaned := 0
 	txsNum := len(txs)
@@ -175,13 +175,14 @@ func (tp *TXPool) CleanTransactionList(txs []*types.Transaction) {
 		if _, ok := tp.txList[tx.Hash()]; ok {
 			delete(tp.txList, tx.Hash())
 			cleaned++
+			log.Infof("transaction cleaned: %s", tx.Hash().ToHexString())
 		}
 	}
 
-	log.Debugf("clean txes: total %d, cleaned %d, remains %d in TxPool", txsNum, cleaned, len(tp.txList))
+	log.Infof("clean txes: total %d, cleaned %d, remains %d in TxPool", txsNum, cleaned, len(tp.txList))
 }
 
-// DelTxList removes a single transaction from the pool.
+// removes a single transaction from the pool.
 func (tp *TXPool) DelTxList(tx *types.Transaction) bool {
 	tp.Lock()
 	defer tp.Unlock()
@@ -190,6 +191,11 @@ func (tp *TXPool) DelTxList(tx *types.Transaction) bool {
 		return false
 	}
 	delete(tp.txList, txHash)
+
+	if tx.IsEipTx() {
+		tp.eipTxPool[tx.Payer].txs.Remove(uint64(tx.Nonce))
+	}
+
 	return true
 }
 
@@ -200,7 +206,7 @@ func (tp *TXPool) isVerfiyExpired(txEntry *VerifiedTx, height uint32) bool {
 	return txEntry.VerifiedHeight < height
 }
 
-// GetTxPool gets the transaction lists from the pool for the consensus,
+// gets the transaction lists from the pool for the consensus,
 // if the byCount is marked, return the configured number at most; if the
 // the byCount is not marked, return all of the current transaction pool.
 func (tp *TXPool) GetTxPool(byCount bool, height uint32) ([]*VerifiedTx, []*types.Transaction) {
@@ -327,6 +333,7 @@ func (tp *TXPool) RemoveTxsBelowGasPrice(gasPrice uint64) {
 	for _, txEntry := range tp.txList {
 		if txEntry.Tx.GasPrice < gasPrice {
 			delete(tp.txList, txEntry.Tx.Hash())
+			log.Infof("transaction %s cleaned because of lower gas: %d, want: %d", txEntry.Tx.GasPrice, gasPrice)
 		}
 	}
 }
@@ -336,6 +343,7 @@ func (tp *TXPool) Remain() []*types.Transaction {
 	tp.Lock()
 	defer tp.Unlock()
 
+	tp.eipTxPool = make(map[common.Address]*txList)
 	txList := make([]*types.Transaction, 0, len(tp.txList))
 	for _, txEntry := range tp.txList {
 		txList = append(txList, txEntry.Tx)

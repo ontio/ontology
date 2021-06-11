@@ -57,6 +57,9 @@ import (
 	"github.com/ontio/ontology/txnpool"
 	"github.com/ontio/ontology/txnpool/proc"
 	"github.com/urfave/cli"
+
+	"net/http"
+	_ "net/http/pprof"
 )
 
 func setupAPP() *cli.App {
@@ -140,6 +143,11 @@ func setupAPP() *cli.App {
 }
 
 func main() {
+	//增加如下代码
+	go func() {
+		fmt.Println(http.ListenAndServe(":5567", nil))
+	}()
+
 	if err := setupAPP().Run(os.Args); err != nil {
 		cmd.PrintErrorMsg(err.Error())
 		os.Exit(1)

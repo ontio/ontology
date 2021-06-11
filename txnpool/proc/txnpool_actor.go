@@ -179,7 +179,7 @@ func (ta *TxPoolService) handleTransaction(sender tc.SenderType, txn *tx.Transac
 		currentNonce := ta.server.CurrentNonce(txn.Payer)
 		if eiptx.Nonce() < currentNonce {
 			replyTxResult(txResultCh, txn.Hash(), errors.ErrUnknown,
-				fmt.Sprintf("handleTransaction lower nonce:%d ,current nonce:%d", currentNonce, eiptx.Nonce()))
+				fmt.Sprintf("handleTransaction lower nonce:%d ,current nonce:%d", eiptx.Nonce(), currentNonce))
 			return
 		}
 

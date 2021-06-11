@@ -200,12 +200,16 @@ func (self *SoloService) makeBlock() (*types.Block, error) {
 	txs := self.poolActor.GetTxnPool(true, validHeight)
 
 	transactions := make([]*types.Transaction, 0, len(txs))
-	nonceCtx := make(map[common.Address]increment.NonceWithTxhash)
+	nonceCtx := make(map[common.Address]uint64)
 	for _, txEntry := range txs {
 		// TODO optimize to use height in txentry
-		if err := self.incrValidator.Verify(txEntry.Tx, validHeight, nonceCtx); err == nil {
+		err := self.incrValidator.Verify(txEntry.Tx, validHeight, nonceCtx)
+		if err == nil {
 			transactions = append(transactions, txEntry.Tx)
+		} else {
+			log.Errorf("increment verify failed: %s", err.Error())
 		}
+
 	}
 
 	txHash := []common.Uint256{}

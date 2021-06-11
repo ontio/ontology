@@ -148,6 +148,7 @@ func (s *TXPoolServer) movePendingTxToPool(txEntry *tc.VerifiedTx) { //solve the
 
 	errCode := s.txPool.AddTxList(txEntry)
 	s.removePendingTxLocked(txEntry.Tx.Hash(), errCode)
+	log.Infof("tx moved from pending pool to tx pool: %s, err: %s", txEntry.Tx.Hash().ToHexString(), errCode.Error())
 }
 
 // removes a transaction from the pending list
@@ -158,6 +159,7 @@ func (s *TXPoolServer) removePendingTx(hash common.Uint256, err errors.ErrCode) 
 	s.mu.Lock()
 	s.removePendingTxLocked(hash, err)
 	s.mu.Unlock()
+	log.Infof("transaction removed from pending pool: %s, err: %s", hash.ToHexString(), err.Error())
 }
 
 func (s *TXPoolServer) broadcastTx(pt *serverPendingTx) {
@@ -227,6 +229,8 @@ func (s *TXPoolServer) startTxVerify(tx *txtypes.Transaction, sender tc.SenderTy
 		return false
 	}
 
+	log.Infof("transaction added to pending pool: %s", tx.Hash().ToHexString())
+
 	if tx := s.getTransaction(tx.Hash()); tx != nil {
 		log.Debugf("verifyTx: transaction %x already in the txn pool", tx.Hash())
 		s.removePendingTx(tx.Hash(), errors.ErrDuplicateInput)
@@ -271,10 +275,14 @@ func (s *TXPoolServer) getTxPool(byCount bool, height uint32) []*tc.VerifiedTx {
 
 	avlTxList, oldTxList := s.txPool.GetTxPool(byCount, height)
 
+	//todo : implement in gettxpool
 	for _, t := range oldTxList {
-		s.delTransaction(t)
+		s.txPool.DelTxList(t)
 		s.reVerifyStateful(t, tc.NilSender)
+		log.Infof("reverify transaction : %s", t.Hash().ToHexString())
 	}
+
+	log.Infof("get tx pool valid: %d, expired: %d", len(avlTxList), len(oldTxList))
 
 	return avlTxList
 }
@@ -320,8 +328,7 @@ func (s *TXPoolServer) cleanTransactionList(txs []*txtypes.Transaction, height u
 		s.gasPrice = gasPrice
 		s.mu.Unlock()
 		if oldGasPrice != gasPrice {
-			log.Infof("Transaction pool price threshold updated from %d to %d",
-				oldGasPrice, gasPrice)
+			log.Infof("tx pool price threshold updated from %d to %d", oldGasPrice, gasPrice)
 		}
 
 		if oldGasPrice < gasPrice {
@@ -329,7 +336,7 @@ func (s *TXPoolServer) cleanTransactionList(txs []*txtypes.Transaction, height u
 		}
 	}
 	// Cleanup tx pool
-	if !s.disablePreExec {
+	if !s.disablePreExec && len(txs) != 0 {
 		remain := s.txPool.Remain()
 		for _, t := range remain {
 			if ok, _ := preExecCheck(t); !ok {
@@ -339,11 +346,6 @@ func (s *TXPoolServer) cleanTransactionList(txs []*txtypes.Transaction, height u
 			s.reVerifyStateful(t, tc.NilSender)
 		}
 	}
-}
-
-// delTransaction deletes a transaction in the tx pool.
-func (s *TXPoolServer) delTransaction(t *txtypes.Transaction) {
-	s.txPool.DelTxList(t)
 }
 
 // getTxStatusReq returns a transaction's status with the transaction hash.
@@ -369,6 +371,8 @@ func (s *TXPoolServer) reVerifyStateful(tx *txtypes.Transaction, sender tc.Sende
 	if pt == nil {
 		return
 	}
+
+	log.Infof("tx added to pending pool for reverify: %s", tx.Hash().ToHexString())
 
 	pt.checkingStatus.SetStateless()
 	s.stateful.SubmitVerifyTask(tx, s.rspCh)
@@ -522,7 +526,7 @@ func (s *TXPoolServer) CurrentNonce(addr common.Address) uint64 {
 }
 
 func (s *TXPoolServer) Nonce(addr common.Address) uint64 {
-	nonce := s.txPool.Nonce(addr)
+	nonce := s.txPool.NextNonce(addr)
 	if nonce == 0 {
 		nonce = s.CurrentNonce(addr)
 	}

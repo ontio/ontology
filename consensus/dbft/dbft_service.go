@@ -444,7 +444,7 @@ func (ds *DbftService) PrepareRequestReceived(payload *p2pmsg.ConsensusPayload, 
 
 			return
 		}
-		nonceCtx := make(map[common.Address]increment.NonceWithTxhash)
+		nonceCtx := make(map[common.Address]uint64)
 		for _, tx := range ds.context.Transactions {
 			if err := ds.incrValidator.Verify(tx, validHeight, nonceCtx); err != nil {
 				log.Error("PrepareRequestReceived new transaction increment verification failed, will not sent Prepare Response", err)
@@ -670,7 +670,7 @@ func (ds *DbftService) Timeout() {
 			txs := ds.poolActor.GetTxnPool(true, validHeight)
 
 			transactions := make([]*types.Transaction, 0, len(txs))
-			nonceCtx := make(map[common.Address]increment.NonceWithTxhash)
+			nonceCtx := make(map[common.Address]uint64)
 			for _, txEntry := range txs {
 				// TODO optimize to use height in txentry
 				if err := ds.incrValidator.Verify(txEntry.Tx, validHeight, nonceCtx); err == nil {
