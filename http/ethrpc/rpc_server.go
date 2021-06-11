@@ -27,8 +27,6 @@ import (
 	"github.com/ontio/ontology/http/ethrpc/net"
 	"github.com/ontio/ontology/http/ethrpc/web3"
 	tp "github.com/ontio/ontology/txnpool/proc"
-	"github.com/ontio/ontology/http/ethrpc/eth"
-	"github.com/ontio/ontology/http/ethrpc/net"
 )
 
 func StartEthServer(txpool *tp.TXPoolServer) error {
