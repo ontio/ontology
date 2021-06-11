@@ -25,6 +25,7 @@ import (
 	cfg "github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/http/ethrpc/eth"
 	"github.com/ontio/ontology/http/ethrpc/net"
+	"github.com/ontio/ontology/http/ethrpc/web3"
 	tp "github.com/ontio/ontology/txnpool/proc"
 )
 
