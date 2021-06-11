@@ -40,6 +40,11 @@ func StartEthServer(txpool *tp.TXPoolServer) error {
 	if err != nil {
 		return err
 	}
+	web3API := web3.NewAPI()
+	err = server.RegisterName("web3", web3API)
+	if err != nil {
+		return err
+	}
 	err = http.ListenAndServe(":"+strconv.Itoa(int(cfg.DefConfig.Rpc.EthJsonPort)), server)
 	if err != nil {
 		return err
