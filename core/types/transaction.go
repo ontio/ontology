@@ -27,7 +27,6 @@ import (
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
@@ -127,16 +126,18 @@ func (tx *Transaction) GetEIP155Tx() (*types.Transaction, error) {
 	return nil, fmt.Errorf("not a EIP155 tx")
 }
 
+//the eip155 signature already verified in Deserialization
 func (tx *Transaction) VerifyEIP155Tx() error {
 	if tx.TxType != EIP155 {
 		return fmt.Errorf("not a EIP155 transaction")
 	}
-
-	eiptx := tx.Payload.(*payload.EIP155Code).EIPTx
-	v, r, s := eiptx.RawSignatureValues()
-	return sanityCheckSignature(v, r, s, true)
+	return nil
+	//eiptx := tx.Payload.(*payload.EIP155Code).EIPTx
+	//v, r, s := eiptx.RawSignatureValues()
+	//return sanityCheckSignature(v, r, s, true)
 }
 
+/*
 func sanityCheckSignature(v *big.Int, r *big.Int, s *big.Int, maybeProtected bool) error {
 	if isProtectedV(v) && !maybeProtected {
 		return errors.New("transaction type does not supported EIP-155 protected signatures")
@@ -183,7 +184,7 @@ func deriveChainId(v *big.Int) *big.Int {
 	}
 	v = new(big.Int).Sub(v, big.NewInt(35))
 	return v.Div(v, big.NewInt(2))
-}
+}*/
 
 func isEip155TxBytes(source *common.ZeroCopySource) bool {
 	prefix, eof := source.NextBytes(2)
