@@ -1096,10 +1096,6 @@ func (self *Server) verifyCrossChainMsg(msg *blockProposalMsg) bool {
 
 func (self *Server) processProposalMsg(msg *blockProposalMsg) {
 	msgBlkNum := msg.GetBlockNum()
-	if msgBlkNum <= self.GetCompletedBlockNum() {
-		log.Errorf("BlockProposal failed to MsgBlockNum:%d,CompletedBlockNum:%d", msgBlkNum, self.GetCompletedBlockNum())
-		return
-	}
 	blk, prevBlkHash := self.blockPool.getSealedBlock(msg.GetBlockNum() - 1)
 	if blk == nil {
 		log.Errorf("BlockProposal failed to GetPreBlock:%d", msg.GetBlockNum()-1)
@@ -1176,7 +1172,10 @@ func (self *Server) processProposalMsg(msg *blockProposalMsg) {
 	if len(txs) > 0 && self.nonSystxs(txs, msgBlkNum) {
 		height := msgBlkNum - 1
 		start, end := self.incrValidator.BlockRange()
-
+		if  msg.GetBlockNum() <= self.GetCompletedBlockNum() {
+			log.Warn("processProposalMsg failed to MsgBlockNum:%d,CompletedBlockNum:%d",  msg.GetBlockNum(), self.GetCompletedBlockNum())
+			return
+		}
 		validHeight := height
 		if height+1 == end {
 			validHeight = start
