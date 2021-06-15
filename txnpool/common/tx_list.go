@@ -218,6 +218,18 @@ func (m *txSortedMap) Ready(start uint64) Transactions {
 	return ready
 }
 
+func (m *txSortedMap) Heading() Transactions {
+	if m.index.Len() == 0 {
+		return nil
+	}
+	var heading Transactions
+	for nonce := (*m.index)[0]; m.items[nonce] != nil; nonce++ {
+		heading = append(heading, m.items[nonce])
+	}
+
+	return heading
+}
+
 // Len returns the length of the transaction map.
 func (m *txSortedMap) Len() int {
 	return len(m.items)
