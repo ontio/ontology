@@ -337,7 +337,7 @@ func (s *TXPoolServer) cleanTransactionList(txs []*txtypes.Transaction, height u
 		remain := s.txPool.Remain()
 		for _, t := range remain {
 			if ok, _ := preExecCheck(t); !ok {
-				log.Debugf("cleanTransactionList: preExecCheck tx %x failed", t.Hash())
+				log.Infof("cleanTransactionList: preExecCheck tx %x failed", t.Hash())
 				continue
 			}
 			s.reVerifyStateful(t, tc.NilSender)

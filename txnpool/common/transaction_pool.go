@@ -160,7 +160,7 @@ func (s *TXPool) cleanEipTxPool(txs []*types.Transaction) []*types.Transaction {
 	for _, tx := range txs {
 		if tx.IsEipTx() {
 			if _, ok := s.eipTxPool[tx.Payer]; ok {
-				cleaned = append(cleaned, s.eipTxPool[tx.Payer].Forward(uint64(tx.Nonce))...)
+				cleaned = append(cleaned, s.eipTxPool[tx.Payer].Forward(uint64(tx.Nonce+1))...)
 				if s.eipTxPool[tx.Payer].Len() == 0 {
 					delete(s.eipTxPool, tx.Payer)
 				}
