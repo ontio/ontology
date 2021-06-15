@@ -21,6 +21,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"math"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
@@ -45,6 +46,8 @@ const (
 	eth65           = 65
 	ProtocolVersion = eth65
 	RPCGasCap       = 1000000
+	RPCMinGas       = 6000
+	RPCMinGasPer    = 0.1
 )
 
 type TxPoolService interface {
@@ -300,7 +303,9 @@ func (api *EthereumAPI) EstimateGas(args types2.CallArgs) (hexutil.Uint, error) 
 	if err != nil {
 		return 0, err
 	}
-	return hexutil.Uint(res.UsedGas), nil
+	minGasUsed := math.Max(float64(res.UsedGas)*RPCMinGasPer, RPCMinGas)
+	estimatedGas := res.UsedGas + uint64(minGasUsed)
+	return hexutil.Uint(estimatedGas), nil
 }
 
 func (api *EthereumAPI) GetBlockByHash(hash common.Hash, fullTx bool) (interface{}, error) {
