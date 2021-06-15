@@ -304,7 +304,7 @@ func (tp *TXPool) GetTransactionHashList() []common.Uint256 {
 	return ret
 }
 
-// GetUnverifiedTxs checks the tx list in the block from consensus,
+// checks the tx list in the block from consensus,
 // and returns verified tx list, unverified tx list, and
 // the tx list to be re-verified
 func (tp *TXPool) GetUnverifiedTxs(txs []*types.Transaction, height uint32) *CheckBlkResult {
@@ -323,11 +323,7 @@ func (tp *TXPool) GetUnverifiedTxs(txs []*types.Transaction, height uint32) *Che
 		}
 
 		if !txEntry.IsVerfiyExpired(height) {
-			delete(tp.validTxMap, tx.Hash())
-			if tx.IsEipTx() {
-				tp.eipTxPool[tx.Payer].txs.Remove(uint64(tx.Nonce))
-			}
-			log.Infof("getunverifiedtx: remove expired tx: %s from pool", tx.Hash().ToHexString())
+			// note: can not remove from tx pool since it is verified in another validator and will not be add back to pool
 			res.OldTxs = append(res.OldTxs, txEntry.Tx)
 			continue
 		}
