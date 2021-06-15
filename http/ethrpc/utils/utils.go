@@ -21,12 +21,11 @@ import (
 	"math/big"
 	"reflect"
 
-	sysconfig "github.com/ontio/ontology/common/config"
-
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	types2 "github.com/ethereum/go-ethereum/core/types"
 	oComm "github.com/ontio/ontology/common"
+	sysconfig "github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/core/types"
 	types3 "github.com/ontio/ontology/http/ethrpc/types"
 )

@@ -21,10 +21,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"github.com/ontio/ontology/common/log"
-	"github.com/ontio/ontology/smartcontract/service/evm"
-	errors2 "github.com/ontio/ontology/vm/evm/errors"
-	"github.com/ontio/ontology/vm/evm/params"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
@@ -34,6 +30,7 @@ import (
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/ethereum/go-ethereum/rpc"
 	oComm "github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/log"
 	common2 "github.com/ontio/ontology/core/store/common"
 	otypes "github.com/ontio/ontology/core/types"
 	ontErrors "github.com/ontio/ontology/errors"
@@ -42,8 +39,11 @@ import (
 	types2 "github.com/ontio/ontology/http/ethrpc/types"
 	utils2 "github.com/ontio/ontology/http/ethrpc/utils"
 	"github.com/ontio/ontology/smartcontract/event"
+	"github.com/ontio/ontology/smartcontract/service/evm"
 	types3 "github.com/ontio/ontology/smartcontract/service/evm/types"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
+	errors2 "github.com/ontio/ontology/vm/evm/errors"
+	"github.com/ontio/ontology/vm/evm/params"
 )
 
 const (
