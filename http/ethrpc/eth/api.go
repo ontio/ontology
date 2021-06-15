@@ -31,6 +31,7 @@ import (
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/ethereum/go-ethereum/rpc"
 	oComm "github.com/ontio/ontology/common"
+	common2 "github.com/ontio/ontology/core/store/common"
 	otypes "github.com/ontio/ontology/core/types"
 	ontErrors "github.com/ontio/ontology/errors"
 	bactor "github.com/ontio/ontology/http/base/actor"
@@ -45,7 +46,7 @@ import (
 const (
 	eth65           = 65
 	ProtocolVersion = eth65
-	RPCGasCap       = 1000000
+	RPCGasCap       = 1300000
 	RPCMinGas       = 6000
 	RPCMinGasPer    = 0.1
 )
@@ -337,10 +338,13 @@ func (api *EthereumAPI) GetBlockByNumber(blockNum types2.BlockNumber, fullTx boo
 func (api *EthereumAPI) GetTransactionByHash(hash common.Hash) (*types2.Transaction, error) {
 	height, tx, err := bactor.GetTxnWithHeightByTxHash(oComm.Uint256(hash))
 	if err != nil {
+		if err == common2.ErrNotFound {
+			return nil, nil
+		}
 		return nil, err
 	}
 	if tx == nil {
-		return nil, fmt.Errorf("tx: %v not found", hash.Hex())
+		return nil, nil
 	}
 	block, err := bactor.GetBlockByHeight(height)
 	if err != nil {
