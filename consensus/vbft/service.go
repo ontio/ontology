@@ -1182,7 +1182,8 @@ func (self *Server) processProposalMsg(msg *blockProposalMsg) {
 			validHeight = start
 		} else {
 			self.incrValidator.Clean()
-			log.Infof("incr validator block height %v != ledger block height %v", int(end)-1, height)
+			//log.Infof("incr validator block height %v != ledger block height %v", int(end)-1, height)
+			log.Infof("incr validator block height %v != ledger block height %v, CompletedBlockNum:%d", int(end)-1, height, self.GetCompletedBlockNum())
 		}
 		// start new routine to verify txs in proposal block
 		go func() {
