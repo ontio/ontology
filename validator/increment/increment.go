@@ -134,8 +134,8 @@ func (self *IncrementValidator) Verify(tx *types.Transaction, startHeight uint32
 		}
 
 		if uint64(tx.Nonce) != nonceCtx[tx.Payer] {
-			log.Infof("wrong nonce for %s, exptected: %d, got: %d", tx.Payer.ToBase58(),
-				nonceCtx[tx.Payer], tx.Nonce)
+			log.Infof("wrong nonce for %s, tx: %s, exptected: %d, got: %d", tx.Payer.ToBase58(),
+				tx.Hash().ToHexString(), nonceCtx[tx.Payer], tx.Nonce)
 			return fmt.Errorf("wrong nonce for %s, exptected: %d, got: %d", tx.Payer.ToBase58(),
 				nonceCtx[tx.Payer], tx.Nonce)
 		}

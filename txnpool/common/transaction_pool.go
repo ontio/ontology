@@ -246,8 +246,13 @@ func (tp *TXPool) GetTxPool(byCount bool, height uint32) ([]*VerifiedTx, []*type
 	for _, tx := range oldTxList {
 		delete(tp.validTxMap, tx.Hash())
 		if tx.IsEipTx() {
-			tp.eipTxPool[tx.Payer].txs.Remove(uint64(tx.Nonce))
+			removed := tp.eipTxPool[tx.Payer].txs.Remove(uint64(tx.Nonce))
+			if !removed {
+				log.Errorf("transaction not in eip pool: %s, impossible", tx.Hash().ToHexString())
+			}
 		}
+
+		log.Infof("remove expired tx: %s from pool", tx.Hash().ToHexString())
 	}
 	tp.Unlock()
 
@@ -322,6 +327,7 @@ func (tp *TXPool) GetUnverifiedTxs(txs []*types.Transaction, height uint32) *Che
 			if tx.IsEipTx() {
 				tp.eipTxPool[tx.Payer].txs.Remove(uint64(tx.Nonce))
 			}
+			log.Infof("getunverifiedtx: remove expired tx: %s from pool", tx.Hash().ToHexString())
 			res.OldTxs = append(res.OldTxs, txEntry.Tx)
 			continue
 		}
@@ -347,12 +353,12 @@ func (tp *TXPool) RemoveTxsBelowGasPrice(gasPrice uint64) {
 			if tx.IsEipTx() {
 				tp.eipTxPool[tx.Payer].txs.Remove(uint64(tx.Nonce))
 			}
-			log.Infof("transaction %s cleaned because of lower gas: %d, want: %d", txEntry.Tx.GasPrice, gasPrice)
+			log.Infof("tx %s cleaned because of lower gas: %d, want: %d", tx.Hash().ToHexString(), txEntry.Tx.GasPrice, gasPrice)
 		}
 	}
 }
 
-// Remain returns the remaining tx list to cleanup
+// returns the remaining tx list to cleanup
 func (tp *TXPool) Remain() []*types.Transaction {
 	tp.Lock()
 	defer tp.Unlock()
@@ -362,6 +368,7 @@ func (tp *TXPool) Remain() []*types.Transaction {
 	for _, txEntry := range tp.validTxMap {
 		txList = append(txList, txEntry.Tx)
 		delete(tp.validTxMap, txEntry.Tx.Hash())
+		log.Infof("pool remain: remove tx: %s from pool", txEntry.Tx.Hash().ToHexString())
 	}
 
 	return txList
