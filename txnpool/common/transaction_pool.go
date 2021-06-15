@@ -192,16 +192,32 @@ func (tp *TXPool) CleanTransactionList(txs []*types.Transaction) {
 func (tp *TXPool) GetTxPool(byCount bool, height uint32) ([]*VerifiedTx, []*types.Transaction) {
 	tp.RLock()
 
+	eipTxs := make([]*VerifiedTx, 0)
+	for _, list := range tp.eipTxPool {
+		for _, txn := range list.txs.Heading() {
+			vtxn := tp.txList[txn.Hash()]
+			if vtxn != nil {
+				eipTxs = append(eipTxs, vtxn)
+			} else {
+				log.Errorf("eip tx %s not in tx list, impossible!", txn.Hash())
+			}
+		}
+	}
+
 	orderByFeeList := make([]*VerifiedTx, 0, len(tp.txList))
 	for _, txEntry := range tp.txList {
-		orderByFeeList = append(orderByFeeList, txEntry)
+		if !txEntry.Tx.IsEipTx() {
+			orderByFeeList = append(orderByFeeList, txEntry)
+		}
 	}
+
 	tp.RUnlock()
 	//this make EIP155 > other tx type
 	//for EIP155 case:
 	//if payer is same , order by nonce 0,1,2...
 	//otherwise , order by gas price
 	sort.Sort(OrderByNetWorkFee(orderByFeeList))
+	orderByFeeList = append(eipTxs, orderByFeeList...)
 
 	count := int(config.DefConfig.Consensus.MaxTxInBlock)
 	if count <= 0 {
