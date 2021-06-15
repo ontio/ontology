@@ -21,6 +21,9 @@ import (
 	"crypto/ecdsa"
 	"encoding/hex"
 	"fmt"
+	"math/big"
+	"testing"
+
 	ethcomm "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -29,9 +32,6 @@ import (
 	sysconfig "github.com/ontio/ontology/common/config"
 	txtypes "github.com/ontio/ontology/core/types"
 	"github.com/stretchr/testify/assert"
-
-	"math/big"
-	"testing"
 )
 
 func initCfg() {

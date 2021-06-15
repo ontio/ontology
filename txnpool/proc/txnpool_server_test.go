@@ -22,10 +22,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ontio/ontology/cmd/utils"
-
 	"github.com/ontio/ontology-eventbus/actor"
 	"github.com/ontio/ontology/account"
+	"github.com/ontio/ontology/cmd/utils"
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/types"
 	tc "github.com/ontio/ontology/txnpool/common"

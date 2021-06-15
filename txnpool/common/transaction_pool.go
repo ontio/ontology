@@ -72,14 +72,14 @@ func (self *VerifiedTx) GetAttrs() []*TXAttr {
 // in the ledger.
 type TXPool struct {
 	sync.RWMutex
-	validTxMap map[common.Uint256]*VerifiedTx // Transactions which have been verified
-	eipTxPool  map[common.Address]*txList     // The tx pool that holds the valid transaction
+	validTxMap map[common.Uint256]*VerifiedTx  // Transactions which have been verified
+	eipTxPool  map[common.Address]*txSortedMap // The tx pool that holds the valid transaction
 }
 
 func NewTxPool() *TXPool {
 	return &TXPool{
 		validTxMap: make(map[common.Uint256]*VerifiedTx),
-		eipTxPool:  make(map[common.Address]*txList),
+		eipTxPool:  make(map[common.Address]*txSortedMap),
 	}
 }
 
@@ -92,7 +92,7 @@ func (s *TXPool) NextNonce(addr common.Address) uint64 {
 		return 0
 	}
 
-	l := list.txs.LastElement()
+	l := list.LastElement()
 	if l == nil {
 		return 0
 	}
@@ -100,9 +100,9 @@ func (s *TXPool) NextNonce(addr common.Address) uint64 {
 	return uint64(l.Nonce + 1)
 }
 
-func (s *TXPool) getTxListByAddr(addr common.Address) *txList {
+func (s *TXPool) getTxListByAddr(addr common.Address) *txSortedMap {
 	if _, ok := s.eipTxPool[addr]; !ok {
-		s.eipTxPool[addr] = newTxList(true)
+		s.eipTxPool[addr] = newTxSortedMap()
 	}
 
 	return s.eipTxPool[addr]
@@ -112,15 +112,15 @@ func (s *TXPool) addEIPTxPool(trans *types.Transaction) (replaced *types.Transac
 	list := s.getTxListByAddr(trans.Payer)
 
 	// does the same nonce exist?
-	old := list.txs.Get(uint64(trans.Nonce))
+	old := list.Get(uint64(trans.Nonce))
 	if old == nil {
-		s.eipTxPool[trans.Payer].txs.Put(trans)
+		s.eipTxPool[trans.Payer].Put(trans)
 		return nil, errors.ErrNoError
 	}
 
 	if old.GasPrice > trans.GasPrice*101/100 {
 		log.Infof("replace transaction %s with lower gas fee", old.Hash().ToHexString())
-		s.eipTxPool[trans.Payer].txs.Put(trans)
+		s.eipTxPool[trans.Payer].Put(trans)
 		return old, errors.ErrNoError
 	}
 
@@ -197,7 +197,7 @@ func (tp *TXPool) GetTxPool(byCount bool, height uint32) ([]*VerifiedTx, []*type
 
 	eipTxs := make([]*VerifiedTx, 0)
 	for _, list := range tp.eipTxPool {
-		for _, txn := range list.txs.Heading() {
+		for _, txn := range list.Heading() {
 			vtxn := tp.validTxMap[txn.Hash()]
 			if vtxn != nil {
 				eipTxs = append(eipTxs, vtxn)
@@ -246,7 +246,7 @@ func (tp *TXPool) GetTxPool(byCount bool, height uint32) ([]*VerifiedTx, []*type
 	for _, tx := range oldTxList {
 		delete(tp.validTxMap, tx.Hash())
 		if tx.IsEipTx() {
-			removed := tp.eipTxPool[tx.Payer].txs.Remove(uint64(tx.Nonce))
+			removed := tp.eipTxPool[tx.Payer].Remove(uint64(tx.Nonce))
 			if !removed {
 				log.Errorf("transaction not in eip pool: %s, impossible", tx.Hash().ToHexString())
 			}
@@ -347,7 +347,7 @@ func (tp *TXPool) RemoveTxsBelowGasPrice(gasPrice uint64) {
 		if tx.GasPrice < gasPrice {
 			delete(tp.validTxMap, tx.Hash())
 			if tx.IsEipTx() {
-				tp.eipTxPool[tx.Payer].txs.Remove(uint64(tx.Nonce))
+				tp.eipTxPool[tx.Payer].Remove(uint64(tx.Nonce))
 			}
 			log.Infof("tx %s cleaned because of lower gas: %d, want: %d", tx.Hash().ToHexString(), txEntry.Tx.GasPrice, gasPrice)
 		}
@@ -359,7 +359,7 @@ func (tp *TXPool) Remain() []*types.Transaction {
 	tp.Lock()
 	defer tp.Unlock()
 
-	tp.eipTxPool = make(map[common.Address]*txList) // clean all eip tx
+	tp.eipTxPool = make(map[common.Address]*txSortedMap) // clean all eip tx
 	txList := make([]*types.Transaction, 0, len(tp.validTxMap))
 	for _, txEntry := range tp.validTxMap {
 		txList = append(txList, txEntry.Tx)
