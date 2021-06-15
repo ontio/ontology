@@ -165,20 +165,7 @@ func (n OrderByNetWorkFee) Len() int { return len(n) }
 
 func (n OrderByNetWorkFee) Swap(i, j int) { n[i], n[j] = n[j], n[i] }
 
-func (n OrderByNetWorkFee) Less(i, j int) bool {
-	//sort the eip tx
-	if n[i].Tx.TxType != n[j].Tx.TxType {
-		return byte(n[i].Tx.TxType) > byte(n[j].Tx.TxType)
-	}
-
-	if n[i].Tx.TxType == types.EIP155 && n[j].Tx.TxType == types.EIP155 {
-		if n[i].Tx.Payer == n[j].Tx.Payer {
-			return n[i].Tx.Nonce < n[j].Tx.Nonce
-		}
-	}
-
-	return n[j].Tx.GasPrice < n[i].Tx.GasPrice
-}
+func (n OrderByNetWorkFee) Less(i, j int) bool { return n[j].Tx.GasPrice < n[i].Tx.GasPrice }
 
 func GetOngBalance(account common.Address) (*big.Int, error) {
 	cache := ledger.DefLedger.GetStore().GetCacheDB()
