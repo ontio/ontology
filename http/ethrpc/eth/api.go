@@ -15,7 +15,7 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
-package ethrpc
+package eth
 
 import (
 	"bytes"
@@ -30,21 +30,27 @@ import (
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/ethereum/go-ethereum/rpc"
 	oComm "github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/config"
+	"github.com/ontio/ontology/common/log"
+	common2 "github.com/ontio/ontology/core/store/common"
 	otypes "github.com/ontio/ontology/core/types"
 	ontErrors "github.com/ontio/ontology/errors"
 	bactor "github.com/ontio/ontology/http/base/actor"
-	bcomn "github.com/ontio/ontology/http/base/common"
 	hComm "github.com/ontio/ontology/http/base/common"
 	types2 "github.com/ontio/ontology/http/ethrpc/types"
+	utils2 "github.com/ontio/ontology/http/ethrpc/utils"
 	"github.com/ontio/ontology/smartcontract/event"
+	"github.com/ontio/ontology/smartcontract/service/evm"
 	types3 "github.com/ontio/ontology/smartcontract/service/evm/types"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
+	errors2 "github.com/ontio/ontology/vm/evm/errors"
+	"github.com/ontio/ontology/vm/evm/params"
 )
 
 const (
 	eth65           = 65
 	ProtocolVersion = eth65
-	RPCGasCap       = 1000000
+	RPCGasCap       = config.DEFAULT_ETH_TX_MAX_GAS_LIMIT
 )
 
 type TxPoolService interface {
@@ -62,7 +68,7 @@ func NewEthereumAPI(txpool TxPoolService) *EthereumAPI {
 }
 
 func (api *EthereumAPI) ChainId() hexutil.Uint64 {
-	return hexutil.Uint64(getChainId())
+	return hexutil.Uint64(utils2.GetChainId())
 }
 
 func (api *EthereumAPI) BlockNumber() (hexutil.Uint64, error) {
@@ -71,11 +77,16 @@ func (api *EthereumAPI) BlockNumber() (hexutil.Uint64, error) {
 }
 
 func (api *EthereumAPI) GetBalance(address common.Address, _ rpc.BlockNumberOrHash) (*hexutil.Big, error) {
+	balance, err := getOngBalance(address)
+	return (*hexutil.Big)(big.NewInt(int64(balance))), err
+}
+
+func getOngBalance(address common.Address) (uint64, error) {
 	balances, _, err := hComm.GetContractBalance(0, []oComm.Address{utils.OngContractAddress}, oComm.Address(address), true)
 	if err != nil {
-		return nil, fmt.Errorf("get ong balance error:%s", err)
+		return 0, fmt.Errorf("get ong balance error:%s", err)
 	}
-	return (*hexutil.Big)(big.NewInt(int64(balances[0]))), nil
+	return balances[0], nil
 }
 
 func (api *EthereumAPI) ProtocolVersion() hexutil.Uint {
@@ -123,7 +134,7 @@ func (api *EthereumAPI) GetStorageAt(address common.Address, key string, blockNu
 }
 
 func (api *EthereumAPI) GetTransactionCount(address common.Address, blockNum types2.BlockNumber) (*hexutil.Uint64, error) {
-	addr := EthToOntAddr(address)
+	addr := utils2.EthToOntAddr(address)
 	if nonce := api.txpool.Nonce(addr); blockNum.IsPending() && nonce != 0 {
 		n := hexutil.Uint64(nonce)
 		return &n, nil
@@ -184,7 +195,7 @@ func (api *EthereumAPI) GetCode(address common.Address, blockNumber types2.Block
 }
 
 func (api *EthereumAPI) GetTransactionLogs(txHash common.Hash) ([]*types.Log, error) {
-	notify, err := bactor.GetEventNotifyByTxHash(EthToOntHash(txHash))
+	notify, err := bactor.GetEventNotifyByTxHash(utils2.EthToOntHash(txHash))
 	if err != nil {
 		return nil, err
 	}
@@ -203,7 +214,7 @@ func generateLog(rawNotify *event.ExecuteNotify) ([]*types.Log, *common.Hash, *o
 		return nil, nil, nil, 0, err
 	}
 	hash := bactor.GetBlockHashFromStore(height)
-	ethHash := OntToEthHash(hash)
+	ethHash := utils2.OntToEthHash(hash)
 	for idx, n := range rawNotify.Notify {
 		if !n.IsEvm {
 			return nil, nil, nil, 0, fmt.Errorf("not support tx type %v", rawNotify.TxHash.ToHexString())
@@ -225,7 +236,7 @@ func generateLog(rawNotify *event.ExecuteNotify) ([]*types.Log, *common.Hash, *o
 				Topics:      storageLog.Topics,
 				Data:        storageLog.Data,
 				BlockNumber: uint64(height),
-				TxHash:      OntToEthHash(txHash),
+				TxHash:      utils2.OntToEthHash(txHash),
 				TxIndex:     uint(rawNotify.TxIndex),
 				BlockHash:   ethHash,
 				Index:       uint(idx),
@@ -256,7 +267,7 @@ func (api *EthereumAPI) SendRawTransaction(data hexutil.Bytes) (common.Hash, err
 		return common.Hash{}, err
 	}
 	txhash := eip155tx.Hash()
-	if errCode, desc := bcomn.SendTxToPool(eip155tx); errCode != ontErrors.ErrNoError {
+	if errCode, desc := hComm.SendTxToPool(eip155tx); errCode != ontErrors.ErrNoError {
 		if errCode == ontErrors.ErrDuplicatedTx {
 			return common.Hash(txhash), nil
 		}
@@ -294,13 +305,86 @@ type revertError struct {
 	reason string // revert reason hex encoded
 }
 
-func (api *EthereumAPI) EstimateGas(args types2.CallArgs) (hexutil.Uint, error) {
-	tx := args.AsMessage(RPCGasCap)
-	res, err := bactor.PreExecuteEip155Tx(tx)
-	if err != nil {
-		return 0, err
+func (api *EthereumAPI) EstimateGas(args types2.CallArgs) (hexutil.Uint64, error) {
+	var (
+		lo  uint64 = params.TxGas
+		hi  uint64
+		cap uint64
+	)
+	if args.From == nil {
+		args.From = new(common.Address)
 	}
-	return hexutil.Uint(res.UsedGas), nil
+
+	if args.Gas != nil && uint64(*args.Gas) >= params.TxGas && uint64(*args.Gas) <= RPCGasCap {
+		hi = uint64(*args.Gas)
+	} else {
+		hi = RPCGasCap
+	}
+
+	if args.GasPrice != nil && args.GasPrice.ToInt().BitLen() != 0 {
+		balance, _ := getOngBalance(*args.From)
+		available := new(big.Int).SetUint64(balance)
+		if args.Value != nil {
+			if args.Value.ToInt().Cmp(available) >= 0 {
+				return 0, errors.New("insufficient funds for transfer")
+			}
+			available.Sub(available, args.Value.ToInt())
+		}
+		allowance := new(big.Int).Div(available, args.GasPrice.ToInt())
+		if allowance.IsUint64() && hi > allowance.Uint64() {
+			transfer := args.Value
+			if transfer == nil {
+				transfer = new(hexutil.Big)
+			}
+			log.Warn("Gas estimation capped by limited funds", "original", hi, "balance", balance,
+				"sent", transfer.ToInt(), "gasprice", args.GasPrice.ToInt(), "fundable", allowance)
+			hi = allowance.Uint64()
+		}
+	}
+	cap = hi
+	executable := func(gas uint64) (bool, *types3.ExecutionResult, error) {
+		args.Gas = (*hexutil.Uint64)(&gas)
+		tx := args.AsMessage(RPCGasCap)
+		result, err := bactor.PreExecuteEip155Tx(tx)
+		if err != nil {
+			if errors.Is(err, evm.ErrIntrinsicGas) {
+				return true, nil, nil
+			}
+			return true, nil, err
+		}
+		return result.Failed(), result, nil
+	}
+
+	for lo+1 < hi {
+		mid := (hi + lo) / 2
+		failed, _, err := executable(mid)
+
+		if err != nil {
+			return 0, err
+		}
+		if failed {
+			lo = mid
+		} else {
+			hi = mid
+		}
+	}
+
+	if hi == cap {
+		failed, result, err := executable(hi)
+		if err != nil {
+			return 0, err
+		}
+		if failed {
+			if result != nil && result.Err != errors2.ErrOutOfGas {
+				if len(result.Revert()) > 0 {
+					return 0, newRevertError(result)
+				}
+				return 0, result.Err
+			}
+			return 0, fmt.Errorf("gas required exceeds allowance (%d)", cap)
+		}
+	}
+	return hexutil.Uint64(hi), nil
 }
 
 func (api *EthereumAPI) GetBlockByHash(hash common.Hash, fullTx bool) (interface{}, error) {
@@ -311,7 +395,7 @@ func (api *EthereumAPI) GetBlockByHash(hash common.Hash, fullTx bool) (interface
 	if block == nil {
 		return nil, fmt.Errorf("block: %v not found", hash.String())
 	}
-	return EthBlockFromOntology(block, fullTx), nil
+	return utils2.EthBlockFromOntology(block, fullTx), nil
 }
 
 func (api *EthereumAPI) GetBlockByNumber(blockNum types2.BlockNumber, fullTx bool) (interface{}, error) {
@@ -326,16 +410,19 @@ func (api *EthereumAPI) GetBlockByNumber(blockNum types2.BlockNumber, fullTx boo
 	if block == nil {
 		return nil, fmt.Errorf("block: %v not found", blockNum.Int64())
 	}
-	return EthBlockFromOntology(block, fullTx), nil
+	return utils2.EthBlockFromOntology(block, fullTx), nil
 }
 
 func (api *EthereumAPI) GetTransactionByHash(hash common.Hash) (*types2.Transaction, error) {
 	height, tx, err := bactor.GetTxnWithHeightByTxHash(oComm.Uint256(hash))
 	if err != nil {
+		if err == common2.ErrNotFound {
+			return nil, nil
+		}
 		return nil, err
 	}
 	if tx == nil {
-		return nil, fmt.Errorf("tx: %v not found", hash.Hex())
+		return nil, nil
 	}
 	block, err := bactor.GetBlockByHeight(height)
 	if err != nil {
@@ -355,7 +442,7 @@ func (api *EthereumAPI) GetTransactionByHash(hash common.Hash) (*types2.Transact
 			break
 		}
 	}
-	return OntTxToEthTx(*tx, common.Hash(blockHash), uint64(header.Height), uint64(idx))
+	return utils2.OntTxToEthTx(*tx, common.Hash(blockHash), uint64(header.Height), uint64(idx))
 }
 
 func (api *EthereumAPI) GetTransactionByBlockHashAndIndex(hash common.Hash, idx hexutil.Uint) (*types2.Transaction, error) {
@@ -373,7 +460,7 @@ func (api *EthereumAPI) GetTransactionByBlockHashAndIndex(hash common.Hash, idx 
 		return nil, fmt.Errorf("access block: %v overflow %v", hash.Hex(), idx)
 	}
 	tx := txs[idx]
-	return OntTxToEthTx(*tx, common.Hash(blockHash), uint64(header.Height), uint64(idx))
+	return utils2.OntTxToEthTx(*tx, common.Hash(blockHash), uint64(header.Height), uint64(idx))
 }
 
 func (api *EthereumAPI) GetTransactionByBlockNumberAndIndex(blockNum types2.BlockNumber, idx hexutil.Uint) (*types2.Transaction, error) {
@@ -395,11 +482,11 @@ func (api *EthereumAPI) GetTransactionByBlockNumberAndIndex(blockNum types2.Bloc
 		return nil, fmt.Errorf("access block: %v overflow %v", height, idx)
 	}
 	tx := txs[idx]
-	return OntTxToEthTx(*tx, common.Hash(blockHash), uint64(header.Height), uint64(idx))
+	return utils2.OntTxToEthTx(*tx, common.Hash(blockHash), uint64(header.Height), uint64(idx))
 }
 
 func (api *EthereumAPI) GetTransactionReceipt(hash common.Hash) (interface{}, error) {
-	notify, err := bactor.GetEventNotifyByTxHash(EthToOntHash(hash))
+	notify, err := bactor.GetEventNotifyByTxHash(utils2.EthToOntHash(hash))
 	if err != nil {
 		return nil, nil
 	}
@@ -418,7 +505,7 @@ func generateRecipient(notify *event.ExecuteNotify) (interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
-	signer := types.NewEIP155Signer(big.NewInt(int64(getChainId())))
+	signer := types.NewEIP155Signer(big.NewInt(int64(utils2.GetChainId())))
 	from, err := signer.Sender(eip155Tx)
 	if err != nil {
 		return nil, err
@@ -461,7 +548,7 @@ func (api *EthereumAPI) PendingTransactions() ([]*types2.Transaction, error) {
 	pendingTxs := api.txpool.PendingEIPTransactions()
 	var rpcTxs []*types2.Transaction
 	for _, v2 := range pendingTxs {
-		tx, err := NewTransaction(v2, v2.Hash(), common.Hash{}, 0, 0)
+		tx, err := utils2.NewTransaction(v2, v2.Hash(), common.Hash{}, 0, 0)
 		if err != nil {
 			return nil, nil
 		}
@@ -475,7 +562,7 @@ func (api *EthereumAPI) PendingTransactionsByHash(target common.Hash) (*types2.T
 	if ethTx == nil {
 		return nil, fmt.Errorf("tx: %v not found", target.String())
 	}
-	return NewTransaction(ethTx, ethTx.Hash(), common.Hash{}, 0, 0)
+	return utils2.NewTransaction(ethTx, ethTx.Hash(), common.Hash{}, 0, 0)
 }
 
 func (api *EthereumAPI) GetUncleByBlockHashAndIndex(_ common.Hash, _ hexutil.Uint) map[string]interface{} {
@@ -488,13 +575,4 @@ func (api *EthereumAPI) GetUncleByBlockNumberAndIndex(_ hexutil.Uint, _ hexutil.
 
 func (api *EthereumAPI) GetProof(address common.Address, storageKeys []string, block types2.BlockNumber) (*types2.AccountResult, error) {
 	return nil, fmt.Errorf("eth_getProof is not supported")
-}
-
-type PublicNetAPI struct {
-	networkVersion uint64
-}
-
-// Version returns the current ethereum protocol version.
-func (s *PublicNetAPI) Version() string {
-	return fmt.Sprintf("%d", getChainId())
 }
