@@ -1172,8 +1172,8 @@ func (self *Server) processProposalMsg(msg *blockProposalMsg) {
 	if len(txs) > 0 && self.nonSystxs(txs, msgBlkNum) {
 		height := msgBlkNum - 1
 		start, end := self.incrValidator.BlockRange()
-		if  msg.GetBlockNum() <= self.GetCompletedBlockNum() {
-			log.Warn("processProposalMsg failed to MsgBlockNum:%d,CompletedBlockNum:%d",  msg.GetBlockNum(), self.GetCompletedBlockNum())
+		if msg.GetBlockNum() <= self.GetCompletedBlockNum() {
+			log.Infof("processProposalMsg failed: MsgBlockNum:%d,CompletedBlockNum:%d", msg.GetBlockNum(), self.GetCompletedBlockNum())
 			return
 		}
 		validHeight := height
@@ -2251,7 +2251,7 @@ func (self *Server) makeProposal(blkNum uint32, forEmpty bool) error {
 				userTxs = append(userTxs, e.Tx)
 			}
 		}
-		log.Infof("get %d valid from pool", len(userTxs))
+		log.Infof("make proposal get %d valid tx from pool", len(userTxs))
 	}
 
 	proposal, err := self.constructProposalMsg(blkNum, sysTxs, userTxs, cfg)

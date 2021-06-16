@@ -74,7 +74,7 @@ const (
 	DEFAULT_ENABLE_EVENT_LOG                = true
 	DEFAULT_CLI_RPC_PORT                    = uint(20000)
 	DEFUALT_CLI_RPC_ADDRESS                 = "127.0.0.1"
-	DEFAULT_GAS_LIMIT                       = 20000
+	DEFAULT_MIN_GAS_LIMIT                   = 20000
 	DEFAULT_GAS_PRICE                       = 500
 	DEFAULT_WASM_GAS_FACTOR                 = uint64(10)
 	DEFAULT_WASM_MAX_STEPCOUNT              = uint64(8000000)
@@ -83,8 +83,7 @@ const (
 	DEFAULT_RESERVED_FILE = "./peers.rsv"
 
 	//DEFAULT_ETH_BLOCK_GAS_LIMIT = 800000000
-	DEFAULT_ETH_TX_GAS_LIMIT = 800000000 / 10
-	DEFAULT_ETH_CHAINID      = 5851
+	DEFAULT_ETH_TX_MAX_GAS_LIMIT = 6000000
 )
 
 const (
@@ -715,12 +714,10 @@ func NewOntologyConfig() *OntologyConfig {
 			LogLevel:         DEFAULT_LOG_LEVEL,
 			EnableEventLog:   DEFAULT_ENABLE_EVENT_LOG,
 			SystemFee:        make(map[string]int64),
-			MinGasLimit:      DEFAULT_GAS_LIMIT,
+			MinGasLimit:      DEFAULT_MIN_GAS_LIMIT,
 			DataDir:          DEFAULT_DATA_DIR,
 			WasmVerifyMethod: InterpVerifyMethod,
-			//todo check from input
-			ETHTxGasLimit: DEFAULT_ETH_TX_GAS_LIMIT,
-			//NGasLimit:        N_GAS_LIMIT,
+			ETHTxGasLimit:    DEFAULT_ETH_TX_MAX_GAS_LIMIT,
 		},
 		Consensus: &ConsensusConfig{
 			EnableConsensus: true,

@@ -85,7 +85,7 @@ var (
 	ETHTxGasLimitFlag = cli.Uint64Flag{
 		Name:  "eth-tx-gaslimit",
 		Usage: "ETH block total gas limit",
-		Value: config.DEFAULT_ETH_TX_GAS_LIMIT,
+		Value: config.DEFAULT_ETH_TX_MAX_GAS_LIMIT,
 	}
 	//Consensus setting
 	EnableConsensusFlag = cli.BoolFlag{

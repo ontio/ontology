@@ -215,24 +215,24 @@ func generateLog(rawNotify *event.ExecuteNotify) ([]*types.Log, *common.Hash, *o
 				return nil, nil, nil, 0, err
 			}
 			source := oComm.NewZeroCopySource(data)
-		var storageLog otypes.StorageLog
+			var storageLog otypes.StorageLog
 			err = storageLog.Deserialization(source)
-		if err != nil {
+			if err != nil {
 				return nil, nil, nil, 0, err
-		}
-		log := &types.Log{
-			Address:     storageLog.Address,
-			Topics:      storageLog.Topics,
-			Data:        storageLog.Data,
-			BlockNumber: uint64(height),
-			TxHash:      OntToEthHash(txHash),
-			TxIndex:     uint(rawNotify.TxIndex),
+			}
+			log := &types.Log{
+				Address:     storageLog.Address,
+				Topics:      storageLog.Topics,
+				Data:        storageLog.Data,
+				BlockNumber: uint64(height),
+				TxHash:      OntToEthHash(txHash),
+				TxIndex:     uint(rawNotify.TxIndex),
 				BlockHash:   ethHash,
-			Index:       uint(idx),
-			Removed:     false,
+				Index:       uint(idx),
+				Removed:     false,
+			}
+			res = append(res, log)
 		}
-		res = append(res, log)
-	}
 	}
 	return res, &ethHash, tx, height, nil
 }
@@ -401,7 +401,7 @@ func (api *EthereumAPI) GetTransactionByBlockNumberAndIndex(blockNum types2.Bloc
 func (api *EthereumAPI) GetTransactionReceipt(hash common.Hash) (interface{}, error) {
 	notify, err := bactor.GetEventNotifyByTxHash(EthToOntHash(hash))
 	if err != nil {
-	return nil, nil
+		return nil, nil
 	}
 	if notify == nil {
 		return nil, nil
