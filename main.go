@@ -366,6 +366,9 @@ func initETHRpc(txpool *proc.TXPoolServer) error {
 	if !config.DefConfig.Rpc.EnableHttpJsonRpc {
 		return nil
 	}
+	//set check transaction chainId
+	config.CheckChainID = true
+
 	var err error
 	exitCh := make(chan interface{}, 0)
 	go func() {

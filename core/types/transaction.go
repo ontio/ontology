@@ -26,11 +26,11 @@ import (
 	"math"
 	"math/big"
 
+	"github.com/ontio/ontology/common/config"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
-	sysconfig "github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/constants"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/payload"
@@ -75,9 +75,7 @@ func TransactionFromRawBytes(raw []byte) (*Transaction, error) {
 }
 
 func TransactionFromEIP155(eiptx *types.Transaction) (*Transaction, error) {
-	evmChainId := sysconfig.DefConfig.P2PNode.EVMChainId
-
-	signer := types.NewEIP155Signer(big.NewInt(int64(evmChainId)))
+	signer := types.NewEIP155Signer(eiptx.ChainId())
 	from, err := signer.Sender(eiptx)
 	if err != nil {
 		return nil, fmt.Errorf("error EIP155 get sender:%s", err.Error())
@@ -152,6 +150,13 @@ func (tx *Transaction) decodeEip155(source *common.ZeroCopySource) error {
 	if err != nil {
 		return err
 	}
+
+	if config.CheckChainID {
+		if pl.EIPTx.ChainId().Cmp(big.NewInt(int64(config.DefConfig.P2PNode.EVMChainId))) != 0 {
+			return fmt.Errorf("invalid chainID ! want:%d,got:%d", config.DefConfig.P2PNode.EVMChainId, pl.EIPTx.ChainId())
+		}
+	}
+
 	decoded, err := TransactionFromEIP155(pl.EIPTx)
 	if err != nil {
 		return err
