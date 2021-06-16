@@ -54,7 +54,7 @@ func (self *ValidatorPool) SubmitVerifyTask(tx *types.Transaction, rspCh chan<- 
 			response.ErrCode = errors.ErrUnknown
 		} else if exist {
 			response.ErrCode = errors.ErrDuplicatedTx
-		} else if tx.TxType == types.EIP155 {
+		} else if tx.IsEipTx() {
 			ethacct, err := ledger.DefLedger.GetEthAccount(ethcomm.Address(tx.Payer))
 			if err != nil {
 				response.ErrCode = errors.ErrNoAccount

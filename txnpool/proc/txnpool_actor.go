@@ -150,7 +150,7 @@ func (ta *TxPoolService) handleTransaction(sender tc.SenderType, txn *tx.Transac
 		return
 	}
 
-	if txn.TxType == tx.EIP155 {
+	if txn.IsEipTx() {
 		if txn.GasLimit > config.DefConfig.Common.ETHTxGasLimit {
 			replyTxResult(txResultCh, txn.Hash(), errors.ErrUnknown, "EIP155 tx gaslimit exceed ")
 			return

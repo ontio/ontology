@@ -1270,7 +1270,7 @@ func (this *LedgerStoreImp) PreExecuteContractWithParam(tx *types.Transaction, p
 	blockHash := this.GetBlockHash(height)
 	stf := &sstate.PreExecResult{State: event.CONTRACT_STATE_FAIL, Gas: neovm.MIN_TRANSACTION_GAS, Result: nil}
 
-	if tx.TxType == types.EIP155 {
+	if tx.IsEipTx() {
 		invoke := tx.Payload.(*payload.EIP155Code)
 		ctx := Eip155Context{
 			BlockHash: blockHash,

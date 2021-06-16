@@ -440,7 +440,6 @@ func (self *Transaction) GetSignatureAddresses() []common.Address {
 type TransactionType byte
 
 const (
-	Bookkeeper TransactionType = 0x02
 	Deploy     TransactionType = 0xd0
 	InvokeNeo  TransactionType = 0xd1
 	InvokeWasm TransactionType = 0xd2 //add for wasm invoke
@@ -473,7 +472,7 @@ func (tx *Transaction) Hash() common.Uint256 {
 // calculate a hash for another chain to sign.
 // and take the chain id of ontology as 0.
 func (tx *Transaction) SigHashForChain(id uint32) common.Uint256 {
-	if tx.TxType == EIP155 {
+	if tx.IsEipTx() {
 		eiptx, err := tx.GetEIP155Tx()
 		if err != nil {
 			panic(err)

@@ -393,7 +393,7 @@ type ExecEnv struct {
 
 func checkExecResult(testCase common3.TestCase, result *states.PreExecResult, execEnv ExecEnv) {
 	assertEq(result.State, byte(1))
-	if execEnv.Tx.TxType == types.EIP155 {
+	if execEnv.Tx.IsEipTx() {
 		res := parseEthResult(testCase.Method, result.Result, testCase.JsonAbi)
 		compareEthResult(res, testCase.Expect)
 		return
