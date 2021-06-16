@@ -21,6 +21,7 @@
 package proc
 
 import (
+	config "github.com/ontio/ontology/common/config"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -97,6 +98,7 @@ func NewTxPoolServer(disablePreExec, disableBroadcastNetTx bool) *TXPoolServer {
 }
 
 func (server *TXPoolServer) start() {
+	clearEIPticker := time.NewTicker(config.CLEAR_EIPTX_INTERVAL)
 	for {
 		select {
 		case <-server.stopCh:
@@ -105,6 +107,9 @@ func (server *TXPoolServer) start() {
 			if ok {
 				server.handleRsp(rsp)
 			}
+		case <-clearEIPticker.C:
+			t := time.Now().Unix() - config.EIPTX_EXPIRATION_TIME
+			server.txPool.ClearExpiredEIPTx(t)
 		}
 	}
 }

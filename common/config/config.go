@@ -25,6 +25,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"time"
 
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
@@ -84,6 +85,12 @@ const (
 
 	//DEFAULT_ETH_BLOCK_GAS_LIMIT = 800000000
 	DEFAULT_ETH_TX_MAX_GAS_LIMIT = 6000000
+
+	//ticker interval to clear check eip tx in seconds
+	CLEAR_EIPTX_INTERVAL = 30 * time.Second
+	//eip tx expiration time in seconds
+	EIPTX_EXPIRATION_TIME = 10 * 60
+	EIPTX_POOL_MAX_COUNT  = 500
 )
 
 const (

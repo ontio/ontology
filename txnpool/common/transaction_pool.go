@@ -20,15 +20,14 @@
 package common
 
 import (
-	"sort"
-	"sync"
-
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/errors"
 	vt "github.com/ontio/ontology/validator/types"
+	"sort"
+	"sync"
 )
 
 type TXAttr struct {
@@ -74,12 +73,19 @@ type TXPool struct {
 	sync.RWMutex
 	validTxMap map[common.Uint256]*VerifiedTx  // Transactions which have been verified
 	eipTxPool  map[common.Address]*txSortedMap // The tx pool that holds the valid transaction
+	eipTimedTx *txSortedTimeMap                //
+}
+
+type TimedEIP155Tx struct {
+	SubmitTime uint64
+	Tx         *types.Transaction
 }
 
 func NewTxPool() *TXPool {
 	return &TXPool{
 		validTxMap: make(map[common.Uint256]*VerifiedTx),
 		eipTxPool:  make(map[common.Address]*txSortedMap),
+		eipTimedTx: newTxSortedTimeMap(),
 	}
 }
 
@@ -115,12 +121,17 @@ func (s *TXPool) addEIPTxPool(trans *types.Transaction) (replaced *types.Transac
 	old := list.Get(uint64(trans.Nonce))
 	if old == nil {
 		s.eipTxPool[trans.Payer].Put(trans)
+		//add to eipTimedTx
+		s.eipTimedTx.Put(trans)
 		return nil, errors.ErrNoError
 	}
 
-	if old.GasPrice > trans.GasPrice*101/100 {
+	if trans.GasPrice > old.GasPrice*101/100 {
 		log.Infof("replace transaction %s with lower gas fee", old.Hash().ToHexString())
 		s.eipTxPool[trans.Payer].Put(trans)
+		s.eipTimedTx.Remove(old.Hash())
+		s.eipTimedTx.Put(trans)
+
 		return old, errors.ErrNoError
 	}
 
@@ -181,6 +192,7 @@ func (tp *TXPool) CleanTransactionList(txs []*types.Transaction) {
 	for _, tx := range txs {
 		if _, ok := tp.validTxMap[tx.Hash()]; ok {
 			delete(tp.validTxMap, tx.Hash())
+			tp.eipTimedTx.Remove(tx.Hash())
 			cleaned++
 			log.Infof("transaction cleaned: %s", tx.Hash().ToHexString())
 		}
@@ -348,6 +360,7 @@ func (tp *TXPool) RemoveTxsBelowGasPrice(gasPrice uint64) {
 			delete(tp.validTxMap, tx.Hash())
 			if tx.IsEipTx() {
 				tp.eipTxPool[tx.Payer].Remove(uint64(tx.Nonce))
+				tp.eipTimedTx.Remove(tx.Hash())
 			}
 			log.Infof("tx %s cleaned because of lower gas: %d, want: %d", tx.Hash().ToHexString(), txEntry.Tx.GasPrice, gasPrice)
 		}
@@ -360,6 +373,8 @@ func (tp *TXPool) Remain() []*types.Transaction {
 	defer tp.Unlock()
 
 	tp.eipTxPool = make(map[common.Address]*txSortedMap) // clean all eip tx
+	tp.eipTimedTx = newTxSortedTimeMap()                 //clean all eipTimed tx
+
 	txList := make([]*types.Transaction, 0, len(tp.validTxMap))
 	for _, txEntry := range tp.validTxMap {
 		txList = append(txList, txEntry.Tx)
@@ -368,4 +383,18 @@ func (tp *TXPool) Remain() []*types.Transaction {
 	}
 
 	return txList
+}
+
+func (tp *TXPool) ClearExpiredEIPTx(timeStart int64) {
+	tp.Lock()
+	defer tp.Unlock()
+	if tp.eipTimedTx.Len() >= config.EIPTX_POOL_MAX_COUNT {
+		expired := tp.eipTimedTx.ExpiredTxByTime(timeStart)
+		for _, et := range expired {
+			if tp.validTxMap[et.Tx.Hash()] == nil { //if this tx is already verified, do nothing
+				tp.eipTimedTx.Remove(et.Tx.Hash())
+				tp.eipTxPool[et.Tx.Payer].Remove(uint64(et.Tx.Nonce))
+			}
+		}
+	}
 }
