@@ -21,6 +21,7 @@ package main
 import (
 	"encoding/hex"
 	"fmt"
+	"github.com/ontio/ontology/core/types"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -151,6 +152,9 @@ func startOntology(ctx *cli.Context) {
 	log.Infof("ontology version %s", config.Version)
 
 	setMaxOpenFiles()
+
+	//set check transaction chainId
+	types.CheckChainID = true
 
 	cfg, err := initConfig(ctx)
 	if err != nil {
@@ -366,6 +370,7 @@ func initETHRpc(txpool *proc.TXPoolServer) error {
 	if !config.DefConfig.Rpc.EnableHttpJsonRpc {
 		return nil
 	}
+
 	var err error
 	exitCh := make(chan interface{}, 0)
 	go func() {
