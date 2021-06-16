@@ -56,7 +56,8 @@ func VerifyTransactionWithLedger(tx *types.Transaction, ledger *ledger.Ledger) o
 
 func checkTransactionSignatures(tx *types.Transaction) error {
 	if tx.TxType == types.EIP155 {
-		return tx.VerifyEIP155Tx()
+		//the signature already checked on decode tx
+		return nil
 	}
 
 	hash := tx.Hash()
