@@ -151,12 +151,6 @@ func (ta *TxPoolService) handleTransaction(sender tc.SenderType, txn *tx.Transac
 	}
 
 	if txn.TxType == tx.EIP155 {
-		if err := txn.VerifyEIP155Tx(); err != nil {
-			log.Errorf("handleTransaction GetEIP155Tx failed:%s", err.Error())
-			replyTxResult(txResultCh, txn.Hash(), errors.ErrUnknown, "Invalid EIP155 transaction signature ")
-			return
-		}
-
 		if txn.GasLimit > config.DefConfig.Common.ETHTxGasLimit {
 			replyTxResult(txResultCh, txn.Hash(), errors.ErrUnknown, "EIP155 tx gaslimit exceed ")
 			return
@@ -223,7 +217,7 @@ func (ta *TxPoolService) GetTxList() []common.Uint256 {
 
 func (ta *TxPoolService) AppendTransaction(sender tc.SenderType, txn *tx.Transaction) *tc.TxResult {
 	ch := make(chan *tc.TxResult, 1)
-	go ta.handleTransaction(sender, txn, ch)
+	ta.handleTransaction(sender, txn, ch)
 	return <-ch
 }
 
