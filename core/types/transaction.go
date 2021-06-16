@@ -125,13 +125,6 @@ func (tx *Transaction) GetEIP155Tx() (*types.Transaction, error) {
 	}
 	return nil, fmt.Errorf("not a EIP155 tx")
 }
-//the signature already checked on decode tx
-func (tx *Transaction) VerifyEIP155Tx() error {
-	if tx.TxType != EIP155 {
-		return fmt.Errorf("not a EIP155 transaction")
-	}
-	return nil
-}
 
 func isEip155TxBytes(source *common.ZeroCopySource) bool {
 	prefix, eof := source.NextBytes(2)
