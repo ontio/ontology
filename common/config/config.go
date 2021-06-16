@@ -74,7 +74,7 @@ const (
 	DEFAULT_ENABLE_EVENT_LOG                = true
 	DEFAULT_CLI_RPC_PORT                    = uint(20000)
 	DEFUALT_CLI_RPC_ADDRESS                 = "127.0.0.1"
-	DEFAULT_GAS_LIMIT                       = 20000
+	DEFAULT_MIN_GAS_LIMIT                   = 20000
 	DEFAULT_GAS_PRICE                       = 500
 	DEFAULT_WASM_GAS_FACTOR                 = uint64(10)
 	DEFAULT_WASM_MAX_STEPCOUNT              = uint64(8000000)
@@ -82,8 +82,8 @@ const (
 	DEFAULT_DATA_DIR      = "./Chain/"
 	DEFAULT_RESERVED_FILE = "./peers.rsv"
 
-	DEFAULT_ETH_BLOCK_GAS_LIMIT = 8000000
-	N_GAS_LIMIT                 = 10
+	//DEFAULT_ETH_BLOCK_GAS_LIMIT = 800000000
+	DEFAULT_ETH_TX_MAX_GAS_LIMIT = 6000000
 )
 
 const (
@@ -627,15 +627,15 @@ type SOLOConfig struct {
 }
 
 type CommonConfig struct {
-	LogLevel         uint
-	NodeType         string
-	EnableEventLog   bool
-	SystemFee        map[string]int64
-	MinGasLimit      uint64
-	GasPrice         uint64
-	DataDir          string
-	ETHBlockGasLimit uint64
-	NGasLimit        uint64
+	LogLevel       uint
+	NodeType       string
+	EnableEventLog bool
+	SystemFee      map[string]int64
+	MinGasLimit    uint64
+	GasPrice       uint64
+	DataDir        string
+	ETHTxGasLimit  uint64
+	//NGasLimit        uint64
 	WasmVerifyMethod VerifyMethod
 }
 
@@ -714,9 +714,10 @@ func NewOntologyConfig() *OntologyConfig {
 			LogLevel:         DEFAULT_LOG_LEVEL,
 			EnableEventLog:   DEFAULT_ENABLE_EVENT_LOG,
 			SystemFee:        make(map[string]int64),
-			MinGasLimit:      DEFAULT_GAS_LIMIT,
+			MinGasLimit:      DEFAULT_MIN_GAS_LIMIT,
 			DataDir:          DEFAULT_DATA_DIR,
 			WasmVerifyMethod: InterpVerifyMethod,
+			ETHTxGasLimit:    DEFAULT_ETH_TX_MAX_GAS_LIMIT,
 		},
 		Consensus: &ConsensusConfig{
 			EnableConsensus: true,

@@ -29,6 +29,7 @@ type CheckResponse struct {
 	Hash    common.Uint256
 	Tx      *types.Transaction
 	Height  uint32
+	Nonce   uint64
 	ErrCode errors.ErrCode
 }
 

@@ -267,19 +267,18 @@ func SendRawTransaction(cmd map[string]interface{}) map[string]interface{} {
 	var hash common.Uint256
 	hash = txn.Hash()
 	log.Debugf("SendRawTransaction recv %s", hash.ToHexString())
-	if txn.TxType == types.InvokeNeo || txn.TxType == types.InvokeWasm || txn.TxType == types.Deploy {
-		if preExec, ok := cmd["PreExec"].(string); ok && preExec == "1" {
-			rst, err := bactor.PreExecuteContract(txn)
-			if err != nil {
-				log.Infof("PreExec: ", err)
-				resp = ResponsePack(berr.SMARTCODE_ERROR)
-				resp["Result"] = err.Error()
-				return resp
-			}
-			resp["Result"] = bcomn.ConvertPreExecuteResult(rst)
+	if preExec, ok := cmd["PreExec"].(string); ok && preExec == "1" {
+		rst, err := bactor.PreExecuteContract(txn)
+		if err != nil {
+			log.Infof("PreExec: ", err)
+			resp = ResponsePack(berr.SMARTCODE_ERROR)
+			resp["Result"] = err.Error()
 			return resp
 		}
+		resp["Result"] = bcomn.ConvertPreExecuteResult(rst)
+		return resp
 	}
+
 	log.Debugf("SendRawTransaction send to txpool %s", hash.ToHexString())
 	if errCode, desc := bcomn.SendTxToPool(txn); errCode != ontErrors.ErrNoError {
 		resp["Error"] = int64(errCode)

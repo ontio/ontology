@@ -1035,7 +1035,7 @@ func (this *LedgerStoreImp) handleTransaction(overlay *overlaydb.OverlayDB, cach
 			Height:    block.Header.Height,
 			Timestamp: block.Header.Timestamp,
 		}
-		_, err = this.stateStore.HandleEIP155Transaction(this, cache, eiptx, ctx, notify)
+		_, err = this.stateStore.HandleEIP155Transaction(this, cache, eiptx, ctx, notify, true)
 		if overlay.Error() != nil {
 			return nil, nil, fmt.Errorf("HandleInvokeTransaction tx %s error %s", txHash.ToHexString(), overlay.Error())
 		}
@@ -1243,7 +1243,7 @@ func (this *LedgerStoreImp) PreExecuteEIP155(tx *types3.Transaction, ctx Eip155C
 	cache := storage.NewCacheDB(overlay)
 
 	notify := &event.ExecuteNotify{State: event.CONTRACT_STATE_FAIL, TxIndex: ctx.TxIndex}
-	result, err := this.stateStore.HandleEIP155Transaction(this, cache, tx, ctx, notify)
+	result, err := this.stateStore.HandleEIP155Transaction(this, cache, tx, ctx, notify, false)
 	return result, notify, err
 }
 
@@ -1270,7 +1270,7 @@ func (this *LedgerStoreImp) PreExecuteContractWithParam(tx *types.Transaction, p
 	blockHash := this.GetBlockHash(height)
 	stf := &sstate.PreExecResult{State: event.CONTRACT_STATE_FAIL, Gas: neovm.MIN_TRANSACTION_GAS, Result: nil}
 
-	if tx.TxType == types.EIP155 {
+	if tx.IsEipTx() {
 		invoke := tx.Payload.(*payload.EIP155Code)
 		ctx := Eip155Context{
 			BlockHash: blockHash,
