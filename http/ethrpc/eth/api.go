@@ -30,6 +30,7 @@ import (
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/ethereum/go-ethereum/rpc"
 	oComm "github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 	common2 "github.com/ontio/ontology/core/store/common"
 	otypes "github.com/ontio/ontology/core/types"
@@ -49,7 +50,7 @@ import (
 const (
 	eth65           = 65
 	ProtocolVersion = eth65
-	RPCGasCap       = 1300000
+	RPCGasCap       = config.DEFAULT_ETH_TX_MAX_GAS_LIMIT
 )
 
 type TxPoolService interface {
