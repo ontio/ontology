@@ -189,23 +189,57 @@ func (tp *TXPool) CleanTransactionList(txs []*types.Transaction) {
 	log.Infof("clean txes: total %d, cleaned %d, remains %d in TxPool", txsNum, cleaned, len(tp.validTxMap))
 }
 
+func (tp *TXPool) selectSortEIP155WithLock(eiptxs []Transactions) []*VerifiedTx {
+	idx := make([]int, len(eiptxs))
+	total := 0
+	for _, eips := range eiptxs {
+		total += len(eips)
+	}
+	count := 0
+	ret := make([]*VerifiedTx, 0, total)
+
+	for count < total {
+		roundMaxGasIdx := 0
+		var roundMaxGas uint64
+
+		for i, curIdx := range idx {
+			if curIdx >= len(eiptxs[i]) {
+				continue
+			}
+
+			if eiptxs[i][curIdx].GasPrice >= roundMaxGas {
+				roundMaxGasIdx = i
+				roundMaxGas = eiptxs[i][curIdx].GasPrice
+			}
+		}
+
+		vtxn := tp.validTxMap[eiptxs[roundMaxGasIdx][idx[roundMaxGasIdx]].Hash()]
+		if vtxn != nil {
+			ret = append(ret, vtxn)
+		} else {
+			log.Errorf("eip tx %s not in tx list, impossible!", eiptxs[roundMaxGasIdx][idx[roundMaxGasIdx]].Hash().ToHexString())
+		}
+
+		idx[roundMaxGasIdx]++
+		count++
+	}
+
+	return ret
+}
+
 // gets the transaction lists from the pool for the consensus,
 // if the byCount is marked, return the configured number at most; if the
 // the byCount is not marked, return all of the current transaction pool.
 func (tp *TXPool) GetTxPool(byCount bool, height uint32) ([]*VerifiedTx, []*types.Transaction) {
 	tp.RLock()
 
-	eipTxs := make([]*VerifiedTx, 0)
+	eiplst := make([]Transactions, 0, len(tp.eipTxPool))
 	for _, list := range tp.eipTxPool {
-		for _, txn := range list.Heading() {
-			vtxn := tp.validTxMap[txn.Hash()]
-			if vtxn != nil {
-				eipTxs = append(eipTxs, vtxn)
-			} else {
-				log.Errorf("eip tx %s not in tx list, impossible!", txn.Hash().ToHexString())
-			}
-		}
+		// group by account
+		curEipTxs := list.Heading()
+		eiplst = append(eiplst, curEipTxs)
 	}
+	eipTxs := tp.selectSortEIP155WithLock(eiplst)
 
 	orderByFeeList := make([]*VerifiedTx, 0, len(tp.validTxMap))
 	for _, txEntry := range tp.validTxMap {
