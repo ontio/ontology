@@ -26,11 +26,11 @@ import (
 	"math"
 	"math/big"
 
-	"github.com/ontio/ontology/common/config"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/constants"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/payload"
@@ -38,6 +38,10 @@ import (
 )
 
 const MAX_TX_SIZE = 1024 * 1024 // The max size of a transaction to prevent DOS attacks
+
+//this flag is used for check EIP155 transaction chainID
+//will be set to 'true' on ontology startup ,for sdk dependency will always be 'false'
+var CheckChainID = false
 
 type Transaction struct {
 	Version  byte
@@ -151,7 +155,7 @@ func (tx *Transaction) decodeEip155(source *common.ZeroCopySource) error {
 		return err
 	}
 
-	if config.CheckChainID {
+	if CheckChainID {
 		if pl.EIPTx.ChainId().Cmp(big.NewInt(int64(config.DefConfig.P2PNode.EVMChainId))) != 0 {
 			return fmt.Errorf("invalid chainID ! want:%d,got:%d", config.DefConfig.P2PNode.EVMChainId, pl.EIPTx.ChainId())
 		}

@@ -21,6 +21,7 @@ package main
 import (
 	"encoding/hex"
 	"fmt"
+	"github.com/ontio/ontology/core/types"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -367,7 +368,7 @@ func initETHRpc(txpool *proc.TXPoolServer) error {
 		return nil
 	}
 	//set check transaction chainId
-	config.CheckChainID = true
+	types.CheckChainID = true
 
 	var err error
 	exitCh := make(chan interface{}, 0)

@@ -111,8 +111,6 @@ var NETWORK_NAME = map[uint32]string{
 	NETWORK_ID_SOLO_NET:    NETWORK_NAME_SOLO_NET,
 }
 
-var CheckChainID = false
-
 func GetNetworkMagic(id uint32) uint32 {
 	nid, ok := NETWORK_MAGIC[id]
 	if ok {
