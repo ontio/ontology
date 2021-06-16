@@ -19,13 +19,16 @@
 package common
 
 import (
+	"math/big"
 	"sync/atomic"
 
-	types2 "github.com/ontio/ontology/validator/types"
-
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/errors"
+	"github.com/ontio/ontology/smartcontract/service/native/ont"
+	"github.com/ontio/ontology/smartcontract/service/native/utils"
+	types2 "github.com/ontio/ontology/validator/types"
 )
 
 const (
@@ -70,6 +73,7 @@ type CheckingStatus struct {
 	PassedStateless uint32 // actually bool, use uint32 for atomic operation
 	PassedStateful  uint32 // actually bool, use uint32 for atomic operation
 	CheckHeight     uint32
+	Nonce           uint64
 }
 
 func (s *CheckingStatus) SetStateless() {
@@ -86,9 +90,10 @@ func (s *CheckingStatus) GetStateful() bool {
 	return val == 1
 }
 
-func (s *CheckingStatus) SetStateful(height uint32) {
+func (s *CheckingStatus) SetStateful(height uint32, nonce uint64) {
 	if s.CheckHeight < height {
 		s.CheckHeight = height
+		s.Nonce = nonce
 	}
 	atomic.StoreUint32(&s.PassedStateful, 1)
 }
@@ -161,3 +166,14 @@ func (n OrderByNetWorkFee) Len() int { return len(n) }
 func (n OrderByNetWorkFee) Swap(i, j int) { n[i], n[j] = n[j], n[i] }
 
 func (n OrderByNetWorkFee) Less(i, j int) bool { return n[j].Tx.GasPrice < n[i].Tx.GasPrice }
+
+func GetOngBalance(account common.Address) (*big.Int, error) {
+	cache := ledger.DefLedger.GetStore().GetCacheDB()
+	balanceKey := ont.GenBalanceKey(utils.OngContractAddress, account)
+	amount, err := utils.GetStorageUInt64(cache, balanceKey)
+	if err != nil {
+		return nil, err
+	}
+
+	return big.NewInt(0).SetUint64(amount), nil
+}

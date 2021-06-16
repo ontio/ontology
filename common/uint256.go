@@ -44,7 +44,7 @@ func (u *Uint256) ToArray() []byte {
 	return x
 }
 
-func (u *Uint256) ToHexString() string {
+func (u Uint256) ToHexString() string {
 	return fmt.Sprintf("%x", ToArrayReverse(u[:]))
 }
 

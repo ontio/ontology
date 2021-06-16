@@ -25,11 +25,13 @@ import (
 	"sync/atomic"
 	"time"
 
+	ethcomm "github.com/ethereum/go-ethereum/common"
+	ethtype "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ontio/ontology-eventbus/actor"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/ledger"
-	ctypes "github.com/ontio/ontology/core/types"
+	txtypes "github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/errors"
 	msgpack "github.com/ontio/ontology/p2pserver/message/msg_pack"
 	p2p "github.com/ontio/ontology/p2pserver/net/protocol"
@@ -40,16 +42,17 @@ import (
 )
 
 type serverPendingTx struct {
-	tx             *ctypes.Transaction // Pending
-	sender         tc.SenderType       // Indicate which sender tx is from
-	ch             chan *tc.TxResult   // channel to send tx result
+	tx             *txtypes.Transaction // Pending
+	sender         tc.SenderType        // Indicate which sender tx is from
+	ch             chan *tc.TxResult    // channel to send tx result
 	checkingStatus *tc.CheckingStatus
 }
 
 // TXPoolServer contains all api to external modules
 type TXPoolServer struct {
-	mu                    sync.RWMutex                        // Sync mutex
-	txPool                *tc.TXPool                          // The tx pool that holds the valid transaction
+	mu     sync.RWMutex // Sync mutex
+	txPool *tc.TXPool   // The tx pool that holds the valid transaction
+
 	allPendingTxs         map[common.Uint256]*serverPendingTx // The txs that server is processing
 	actor                 *actor.PID
 	Net                   p2p.P2P
@@ -138,31 +141,51 @@ func (s *TXPoolServer) GetPendingTx(hash common.Uint256) *serverPendingTx {
 	return s.allPendingTxs[hash]
 }
 
-// removePendingTx removes a transaction from the pending list
+func (s *TXPoolServer) movePendingTxToPool(txEntry *tc.VerifiedTx) { //solve the EIP155
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	errCode := s.txPool.AddTxList(txEntry)
+	s.removePendingTxLocked(txEntry.Tx.Hash(), errCode)
+	log.Infof("tx moved from pending pool to tx pool: %s, err: %s", txEntry.Tx.Hash().ToHexString(), errCode.Error())
+}
+
+// removes a transaction from the pending list
 // when it is handled. And if the submitter of the valid transaction
 // is from http, broadcast it to the network. Meanwhile, check if it
 // is in the block from consensus.
 func (s *TXPoolServer) removePendingTx(hash common.Uint256, err errors.ErrCode) {
 	s.mu.Lock()
+	s.removePendingTxLocked(hash, err)
+	s.mu.Unlock()
+	log.Infof("transaction removed from pending pool: %s, err: %s", hash.ToHexString(), err.Error())
+}
 
-	pt, ok := s.allPendingTxs[hash]
-	if !ok {
-		s.mu.Unlock()
-		return
-	}
-
-	if err == errors.ErrNoError && ((pt.sender == tc.HttpSender) ||
-		(pt.sender == tc.NetSender && !s.disableBroadcastNetTx)) {
+func (s *TXPoolServer) broadcastTx(pt *serverPendingTx) {
+	if (pt.sender == tc.HttpSender) || (pt.sender == tc.NetSender && !s.disableBroadcastNetTx) {
 		if s.Net != nil {
 			msg := msgpack.NewTxn(pt.tx)
 			go s.Net.Broadcast(msg)
 		}
 	}
+}
 
-	replyTxResult(pt.ch, hash, err, err.Error())
+func (s *TXPoolServer) handleRemovedPendingTx(pt *serverPendingTx, err errors.ErrCode) {
+	if err == errors.ErrNoError {
+		s.broadcastTx(pt)
+	}
 
+	replyTxResult(pt.ch, pt.tx.Hash(), err, err.Error())
+}
+
+func (s *TXPoolServer) removePendingTxLocked(hash common.Uint256, err errors.ErrCode) {
+	pt := s.allPendingTxs[hash]
+	if pt == nil {
+		return
+	}
+
+	s.handleRemovedPendingTx(pt, err)
 	delete(s.allPendingTxs, hash)
-
 	if len(s.allPendingTxs) < tc.MAX_LIMITATION {
 		select {
 		case s.slots <- struct{}{}:
@@ -170,15 +193,14 @@ func (s *TXPoolServer) removePendingTx(hash common.Uint256, err errors.ErrCode) 
 			log.Debug("removePendingTx: slots is full")
 		}
 	}
-
-	s.mu.Unlock()
 }
 
 // adds a transaction to the pending list, if the
 // transaction is already in the pending list, just return false.
-func (s *TXPoolServer) setPendingTx(tx *ctypes.Transaction, sender tc.SenderType, txResultCh chan *tc.TxResult) *serverPendingTx {
+func (s *TXPoolServer) setPendingTx(tx *txtypes.Transaction, sender tc.SenderType, ch chan *tc.TxResult) *serverPendingTx {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+
 	if ok := s.allPendingTxs[tx.Hash()]; ok != nil {
 		log.Debugf("setPendingTx: transaction %x already in the verifying process", tx.Hash())
 		return nil
@@ -187,7 +209,7 @@ func (s *TXPoolServer) setPendingTx(tx *ctypes.Transaction, sender tc.SenderType
 	pt := &serverPendingTx{
 		tx:     tx,
 		sender: sender,
-		ch:     txResultCh,
+		ch:     ch,
 		checkingStatus: &tc.CheckingStatus{
 			PassedStateless: 0,
 			PassedStateful:  0,
@@ -199,11 +221,14 @@ func (s *TXPoolServer) setPendingTx(tx *ctypes.Transaction, sender tc.SenderType
 	return pt
 }
 
-func (s *TXPoolServer) startTxVerify(tx *ctypes.Transaction, sender tc.SenderType, txResultCh chan *tc.TxResult) bool {
-	if s.setPendingTx(tx, sender, txResultCh) == nil {
+func (s *TXPoolServer) startTxVerify(tx *txtypes.Transaction, sender tc.SenderType, txResultCh chan *tc.TxResult) bool {
+	pt := s.setPendingTx(tx, sender, txResultCh)
+	if pt == nil {
 		replyTxResult(txResultCh, tx.Hash(), errors.ErrDuplicateInput, "duplicated transaction input detected")
 		return false
 	}
+
+	log.Infof("transaction added to pending pool: %s", tx.Hash().ToHexString())
 
 	if tx := s.getTransaction(tx.Hash()); tx != nil {
 		log.Debugf("verifyTx: transaction %x already in the txn pool", tx.Hash())
@@ -237,26 +262,27 @@ func (s *TXPoolServer) Stop() {
 	close(s.slots)
 }
 
-// getTransaction returns a transaction with the transaction hash.
-func (s *TXPoolServer) getTransaction(hash common.Uint256) *ctypes.Transaction {
+// returns a transaction with the transaction hash.
+func (s *TXPoolServer) getTransaction(hash common.Uint256) *txtypes.Transaction {
 	return s.txPool.GetTransaction(hash)
 }
 
-// getTxPool returns a tx list for consensus.
+// returns a tx list for consensus.
 func (s *TXPoolServer) getTxPool(byCount bool, height uint32) []*tc.VerifiedTx {
 	s.setHeight(height)
-
 	avlTxList, oldTxList := s.txPool.GetTxPool(byCount, height)
 
 	for _, t := range oldTxList {
-		s.delTransaction(t)
 		s.reVerifyStateful(t, tc.NilSender)
+		log.Infof("reverify transaction : %s", t.Hash().ToHexString())
 	}
+
+	log.Infof("get tx pool valid: %d, expired: %d", len(avlTxList), len(oldTxList))
 
 	return avlTxList
 }
 
-// getTxCount returns current tx count, including pending and verified
+// returns current tx count, including pending and verified
 func (s *TXPoolServer) getTxCount() []uint32 {
 	ret := make([]uint32, 0)
 	ret = append(ret, uint32(s.txPool.GetTransactionCount()))
@@ -286,7 +312,7 @@ func (s *TXPoolServer) getTxHashList() []common.Uint256 {
 }
 
 // cleanTransactionList cleans the txs in the block from the ledger
-func (s *TXPoolServer) cleanTransactionList(txs []*ctypes.Transaction, height uint32) {
+func (s *TXPoolServer) cleanTransactionList(txs []*txtypes.Transaction, height uint32) {
 	s.txPool.CleanTransactionList(txs)
 
 	// Check whether to update the gas price and remove txs below the threshold
@@ -297,36 +323,25 @@ func (s *TXPoolServer) cleanTransactionList(txs []*ctypes.Transaction, height ui
 		s.gasPrice = gasPrice
 		s.mu.Unlock()
 		if oldGasPrice != gasPrice {
-			log.Infof("Transaction pool price threshold updated from %d to %d",
-				oldGasPrice, gasPrice)
+			log.Infof("tx pool price threshold updated from %d to %d", oldGasPrice, gasPrice)
 		}
 
 		if oldGasPrice < gasPrice {
 			s.txPool.RemoveTxsBelowGasPrice(gasPrice)
 		}
 	}
+
 	// Cleanup tx pool
-	if !s.disablePreExec {
+	if !s.disablePreExec && len(txs) != 0 {
 		remain := s.txPool.Remain()
 		for _, t := range remain {
 			if ok, _ := preExecCheck(t); !ok {
-				log.Debugf("cleanTransactionList: preExecCheck tx %x failed", t.Hash())
+				log.Infof("cleanTransactionList: preExecCheck tx %x failed", t.Hash())
 				continue
 			}
 			s.reVerifyStateful(t, tc.NilSender)
 		}
 	}
-}
-
-// delTransaction deletes a transaction in the tx pool.
-func (s *TXPoolServer) delTransaction(t *ctypes.Transaction) {
-	s.txPool.DelTxList(t)
-}
-
-// adds a valid transaction to the tx pool.
-func (s *TXPoolServer) addTxList(txEntry *tc.VerifiedTx) bool {
-	ret := s.txPool.AddTxList(txEntry)
-	return ret
 }
 
 // getTxStatusReq returns a transaction's status with the transaction hash.
@@ -347,11 +362,13 @@ func (s *TXPoolServer) getTransactionCount() int {
 }
 
 // re-verify a transaction's stateful data.
-func (s *TXPoolServer) reVerifyStateful(tx *ctypes.Transaction, sender tc.SenderType) {
+func (s *TXPoolServer) reVerifyStateful(tx *txtypes.Transaction, sender tc.SenderType) {
 	pt := s.setPendingTx(tx, sender, nil)
 	if pt == nil {
 		return
 	}
+
+	log.Infof("tx added to pending pool for reverify: %s", tx.Hash().ToHexString())
 
 	pt.checkingStatus.SetStateless()
 	s.stateful.SubmitVerifyTask(tx, s.rspCh)
@@ -370,10 +387,10 @@ func (s *TXPoolServer) verifyBlock(req *tc.VerifyBlockReq, sender *actor.PID) {
 
 	s.setHeight(req.Height)
 
-	processedTxs := make([]*tc.VerifyTxResult, len(req.Txs))
+	processedTxs := make([]*tc.VerifyTxResult, 0, len(req.Txs))
 
 	// Check whether a tx's gas price is lower than the required, if yes, just return error
-	txs := make(map[common.Uint256]*ctypes.Transaction, len(req.Txs))
+	txs := make(map[common.Uint256]*txtypes.Transaction, len(req.Txs))
 	for _, t := range req.Txs {
 		if t.GasPrice < s.gasPrice {
 			entry := &tc.VerifyTxResult{
@@ -385,6 +402,7 @@ func (s *TXPoolServer) verifyBlock(req *tc.VerifyBlockReq, sender *actor.PID) {
 			sender.Tell(&tc.VerifyBlockRsp{TxnPool: processedTxs})
 			return
 		}
+
 		// Check whether double spent
 		if _, ok := txs[t.Hash()]; ok {
 			entry := &tc.VerifyTxResult{
@@ -465,23 +483,20 @@ func (server *TXPoolServer) handleRsp(rsp *types.CheckResponse) {
 	if pt == nil {
 		return
 	}
-
 	if rsp.ErrCode != errors.ErrNoError {
 		//Verify fail
 		log.Debugf("handleRsp: validator %d transaction %x invalid: %s", rsp.Type, rsp.Hash, rsp.ErrCode.Error())
 		server.removePendingTx(rsp.Hash, rsp.ErrCode)
 		return
 	}
-
 	if rsp.Type == types.Stateful && rsp.Height < server.getHeight() {
 		// If validator's height is less than the required one, re-validate it.
 		server.stateful.SubmitVerifyTask(rsp.Tx, server.rspCh)
 		return
 	}
-
 	switch rsp.Type {
 	case types.Stateful:
-		pt.checkingStatus.SetStateful(rsp.Height)
+		pt.checkingStatus.SetStateful(rsp.Height, rsp.Nonce)
 	case types.Stateless:
 		pt.checkingStatus.SetStateless()
 	}
@@ -490,8 +505,57 @@ func (server *TXPoolServer) handleRsp(rsp *types.CheckResponse) {
 		txEntry := &tc.VerifiedTx{
 			Tx:             pt.tx,
 			VerifiedHeight: pt.checkingStatus.CheckHeight,
+			Nonce:          pt.checkingStatus.Nonce,
 		}
-		server.addTxList(txEntry)
-		server.removePendingTx(pt.tx.Hash(), errors.ErrNoError)
+
+		server.movePendingTxToPool(txEntry)
 	}
+}
+
+func (s *TXPoolServer) CurrentNonce(addr common.Address) uint64 {
+	ethacct, err := ledger.DefLedger.GetEthAccount(ethcomm.Address(addr))
+	if err != nil {
+		return 0
+	}
+
+	return ethacct.Nonce
+}
+
+func (s *TXPoolServer) Nonce(addr common.Address) uint64 {
+	nonce := s.txPool.NextNonce(addr)
+	if nonce == 0 {
+		nonce = s.CurrentNonce(addr)
+	}
+
+	return nonce
+}
+
+func (s *TXPoolServer) PendingEIPTransactions() []*ethtype.Transaction {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	ret := make([]*ethtype.Transaction, 0)
+	for _, v := range s.allPendingTxs {
+		tx, err := v.tx.GetEIP155Tx()
+		if err != nil {
+			continue
+		}
+		ret = append(ret, tx)
+	}
+
+	return ret
+}
+
+func (s *TXPoolServer) PendingTransactionsByHash(target ethcomm.Hash) *ethtype.Transaction {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	tx := s.allPendingTxs[common.Uint256(target)]
+	if tx == nil {
+		return nil
+	}
+	eip, err := tx.tx.GetEIP155Tx()
+	if err != nil {
+		return nil
+	}
+
+	return eip
 }

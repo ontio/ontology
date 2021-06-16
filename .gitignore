@@ -35,3 +35,4 @@ glide.lock
 docker/payload
 config.json
 peers.recent
+/.project

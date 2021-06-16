@@ -4,7 +4,7 @@ go 1.12
 
 require (
 	github.com/JohnCGriffin/overflow v0.0.0-20170615021017-4d914c927216
-	github.com/Workiva/go-datastructures v1.0.50 // indirect
+	github.com/Workiva/go-datastructures v1.0.50
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/emirpasic/gods v1.12.0 // indirect
 	github.com/ethereum/go-ethereum v1.9.25
@@ -32,6 +32,7 @@ require (
 	github.com/urfave/cli v1.22.1
 	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
 	golang.org/x/net v0.0.0-20200822124328-c89045814202
+	gotest.tools v2.2.0+incompatible
 )
 
 replace (

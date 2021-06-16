@@ -53,13 +53,13 @@ func TestTxPool(t *testing.T) {
 	}
 
 	ret := txPool.AddTxList(txEntry)
-	if ret == false {
+	if !ret.Success() {
 		t.Error("Failed to add tx to the pool")
 		return
 	}
 
 	ret = txPool.AddTxList(txEntry)
-	if ret == true {
+	if ret.Success() {
 		t.Error("Failed to add tx to the pool")
 		return
 	}

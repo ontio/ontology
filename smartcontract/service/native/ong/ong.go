@@ -20,6 +20,8 @@ package ong
 
 import (
 	"fmt"
+	"github.com/ontio/ontology/common/config"
+	"github.com/ontio/ontology/core/types"
 	"math/big"
 
 	"github.com/ontio/ontology/smartcontract/storage"
@@ -60,10 +62,17 @@ func OngInit(native *native.NativeService) ([]byte, error) {
 	if amount > 0 {
 		return utils.BYTE_FALSE, errors.NewErr("Init ong has been completed!")
 	}
+	addr := common.Address{}
+	if config.DefConfig.P2PNode.NetworkId == config.NETWORK_ID_SOLO_NET {
+		bookkeepers, _ := config.DefConfig.GetBookkeepers()
+		addr = types.AddressFromPubKey(bookkeepers[0])
+	} else {
+		addr = utils.OntContractAddress
+	}
 
 	item := utils.GenUInt64StorageItem(constants.ONG_TOTAL_SUPPLY)
 	native.CacheDB.Put(ont.GenTotalSupplyKey(contract), item.ToArray())
-	native.CacheDB.Put(append(contract[:], utils.OntContractAddress[:]...), item.ToArray())
+	native.CacheDB.Put(append(contract[:], addr[:]...), item.ToArray())
 	ont.AddNotifications(native, contract, &ont.State{To: utils.OntContractAddress, Value: constants.ONG_TOTAL_SUPPLY})
 	return utils.BYTE_TRUE, nil
 }

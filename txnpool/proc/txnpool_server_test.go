@@ -22,10 +22,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ontio/ontology/cmd/utils"
-
 	"github.com/ontio/ontology-eventbus/actor"
 	"github.com/ontio/ontology/account"
+	"github.com/ontio/ontology/cmd/utils"
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/types"
 	tc "github.com/ontio/ontology/txnpool/common"
@@ -93,22 +92,6 @@ func TestTxn(t *testing.T) {
 	time.Sleep(10 * time.Second)
 	s.startTxVerify(txn, sender, nil)
 	s.startTxVerify(txn, sender, nil)
-
-	/* Case 4: Given the tx is in the tx pool, server can get the tx
-	 * with the invalid hash
-	 */
-	time.Sleep(10 * time.Second)
-	txEntry := &tc.VerifiedTx{
-		Tx:             txn,
-		VerifiedHeight: 10,
-	}
-	s.addTxList(txEntry)
-
-	entry := s.getTransaction(txn.Hash())
-	if entry == nil {
-		t.Error("Failed to get the transaction")
-		return
-	}
 
 	t.Log("Ending test tx")
 }

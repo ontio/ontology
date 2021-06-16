@@ -1172,13 +1172,17 @@ func (self *Server) processProposalMsg(msg *blockProposalMsg) {
 	if len(txs) > 0 && self.nonSystxs(txs, msgBlkNum) {
 		height := msgBlkNum - 1
 		start, end := self.incrValidator.BlockRange()
-
+		if msg.GetBlockNum() <= self.GetCompletedBlockNum() {
+			log.Infof("processProposalMsg failed: MsgBlockNum:%d,CompletedBlockNum:%d", msg.GetBlockNum(), self.GetCompletedBlockNum())
+			return
+		}
 		validHeight := height
 		if height+1 == end {
 			validHeight = start
 		} else {
 			self.incrValidator.Clean()
-			log.Infof("incr validator block height %v != ledger block height %v", int(end)-1, height)
+			//log.Infof("incr validator block height %v != ledger block height %v", int(end)-1, height)
+			log.Infof("incr validator block height %v != ledger block height %v, CompletedBlockNum:%d", int(end)-1, height, self.GetCompletedBlockNum())
 		}
 		// start new routine to verify txs in proposal block
 		go func() {
@@ -1190,8 +1194,9 @@ func (self *Server) processProposalMsg(msg *blockProposalMsg) {
 				log.Errorf("server %d verify proposal blk from %d timedout, blk %d, txs %d, err: %s",
 					self.Index, msg.Block.getProposer(), msgBlkNum, len(txs), err)
 			}
+			nonceCtx := make(map[common.Address]uint64)
 			for _, tx := range txs {
-				if err := self.incrValidator.Verify(tx, validHeight); err != nil {
+				if err := self.incrValidator.Verify(tx, validHeight, nonceCtx); err != nil {
 					log.Errorf("server %d verify proposal tx from %d failed, blk %d, txs %d, err: %s",
 						self.Index, msg.Block.getProposer(), msgBlkNum, len(txs), err)
 					return
@@ -1862,8 +1867,9 @@ func (self *Server) processTimerEvent(evt *TimerEvent) error {
 		if self.GetCompletedBlockNum()+1 == evt.blockNum {
 			validHeight := self.validHeight(evt.blockNum)
 			newProposal := false
+			nonceCtx := make(map[common.Address]uint64)
 			for _, e := range self.poolActor.GetTxnPool(true, validHeight) {
-				if err := self.incrValidator.Verify(e.Tx, validHeight); err == nil {
+				if err := self.incrValidator.Verify(e.Tx, validHeight, nonceCtx); err == nil {
 					newProposal = true
 					break
 				}
@@ -2239,12 +2245,15 @@ func (self *Server) makeProposal(blkNum uint32, forEmpty bool) error {
 	}
 
 	if !forEmpty {
+		nonceCtx := make(map[common.Address]uint64)
 		for _, e := range self.poolActor.GetTxnPool(true, validHeight) {
-			if err := self.incrValidator.Verify(e.Tx, validHeight); err == nil {
+			if err := self.incrValidator.Verify(e.Tx, validHeight, nonceCtx); err == nil {
 				userTxs = append(userTxs, e.Tx)
 			}
 		}
+		log.Infof("make proposal get %d valid tx from pool", len(userTxs))
 	}
+
 	proposal, err := self.constructProposalMsg(blkNum, sysTxs, userTxs, cfg)
 	if err != nil {
 		return fmt.Errorf("failed to construct proposal: %s", err)

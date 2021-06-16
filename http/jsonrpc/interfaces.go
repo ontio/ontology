@@ -130,18 +130,6 @@ func GetSyncStatus(params []interface{}) map[string]interface{} {
 	return rpc.ResponseSuccess(status)
 }
 
-func GetRawMemPool(params []interface{}) map[string]interface{} {
-	txs := []*bcomn.Transactions{}
-	txpool := bactor.GetTxsFromPool(false)
-	for _, t := range txpool {
-		txs = append(txs, bcomn.TransArryByteToHexString(t))
-	}
-	if len(txs) == 0 {
-		return rpc.ResponsePack(berr.INVALID_PARAMS, nil)
-	}
-	return rpc.ResponseSuccess(txs)
-}
-
 //get memory pool transaction count
 func GetMemPoolTxCount(params []interface{}) map[string]interface{} {
 	count := bactor.GetTxnCount()
@@ -287,17 +275,15 @@ func SendRawTransaction(params []interface{}) map[string]interface{} {
 		}
 		hash = txn.Hash()
 		log.Debugf("SendRawTransaction recv %s", hash.ToHexString())
-		if txn.TxType == types.InvokeNeo || txn.TxType == types.Deploy || txn.TxType == types.InvokeWasm {
-			if len(params) > 1 {
-				preExec, ok := params[1].(float64)
-				if ok && preExec == 1 {
-					result, err := bactor.PreExecuteContract(txn)
-					if err != nil {
-						log.Infof("PreExec: ", err)
-						return rpc.ResponsePack(berr.SMARTCODE_ERROR, err.Error())
-					}
-					return rpc.ResponseSuccess(bcomn.ConvertPreExecuteResult(result))
+		if len(params) > 1 {
+			preExec, ok := params[1].(float64)
+			if ok && preExec == 1 {
+				result, err := bactor.PreExecuteContract(txn)
+				if err != nil {
+					log.Infof("PreExec: ", err)
+					return rpc.ResponsePack(berr.SMARTCODE_ERROR, err.Error())
 				}
+				return rpc.ResponseSuccess(bcomn.ConvertPreExecuteResult(result))
 			}
 		}
 
