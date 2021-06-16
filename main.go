@@ -153,6 +153,9 @@ func startOntology(ctx *cli.Context) {
 
 	setMaxOpenFiles()
 
+	//set check transaction chainId
+	types.CheckChainID = true
+
 	cfg, err := initConfig(ctx)
 	if err != nil {
 		log.Errorf("initConfig error: %s", err)
@@ -367,8 +370,6 @@ func initETHRpc(txpool *proc.TXPoolServer) error {
 	if !config.DefConfig.Rpc.EnableHttpJsonRpc {
 		return nil
 	}
-	//set check transaction chainId
-	types.CheckChainID = true
 
 	var err error
 	exitCh := make(chan interface{}, 0)
