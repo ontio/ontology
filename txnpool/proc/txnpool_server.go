@@ -50,9 +50,8 @@ type serverPendingTx struct {
 
 // TXPoolServer contains all api to external modules
 type TXPoolServer struct {
-	mu     sync.RWMutex   // Sync mutex
-	wg     sync.WaitGroup // Worker sync
-	txPool *tc.TXPool     // The tx pool that holds the valid transaction
+	mu     sync.RWMutex // Sync mutex
+	txPool *tc.TXPool   // The tx pool that holds the valid transaction
 
 	allPendingTxs         map[common.Uint256]*serverPendingTx // The txs that server is processing
 	actor                 *actor.PID
