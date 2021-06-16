@@ -18,10 +18,11 @@
 package evm
 
 import (
-	"github.com/ontio/ontology/vm/evm/errors"
 	"math/big"
 	"sync/atomic"
 	"time"
+
+	"github.com/ontio/ontology/vm/evm/errors"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -244,9 +245,6 @@ func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, gas 
 		if err != errors.ErrExecutionReverted {
 			gas = 0
 		}
-		// TODO: consider clearing up unused snapshots:
-		//} else {
-		//	evm.StateDB.DiscardSnapshot(snapshot)
 	}
 	return ret, gas, err
 }

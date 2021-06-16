@@ -151,9 +151,6 @@ func (ta *TxPoolService) handleTransaction(sender tc.SenderType, txn *tx.Transac
 	}
 
 	if txn.TxType == tx.EIP155 {
-		log.Debugf("handleTransaction: EIP155tx")
-		//verify signature
-
 		if err := txn.VerifyEIP155Tx(); err != nil {
 			log.Errorf("handleTransaction GetEIP155Tx failed:%s", err.Error())
 			replyTxResult(txResultCh, txn.Hash(), errors.ErrUnknown, "Invalid EIP155 transaction signature ")
