@@ -76,11 +76,6 @@ type TXPool struct {
 	eipTimedTx *txSortedTimeMap                //
 }
 
-type TimedEIP155Tx struct {
-	SubmitTime uint64
-	Tx         *types.Transaction
-}
-
 func NewTxPool() *TXPool {
 	return &TXPool{
 		validTxMap: make(map[common.Uint256]*VerifiedTx),

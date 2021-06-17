@@ -25,24 +25,6 @@ import (
 	"time"
 )
 
-//type timeHeap []uint64
-//
-//func (h timeHeap) Len() int           { return len(h) }
-//func (h timeHeap) Less(i, j int) bool { return h[i] < h[j] }
-//func (h timeHeap) Swap(i, j int)      { h[i], h[j] = h[j], h[i] }
-//
-//func (h *timeHeap) Push(x interface{}) {
-//	*h = append(*h, x.(uint64))
-//}
-//
-//func (h *timeHeap) Pop() interface{} {
-//	old := *h
-//	n := len(old)
-//	x := old[n-1]
-//	*h = old[0 : n-1]
-//	return x
-//}
-
 type TimedTx struct {
 	Time int64
 	Tx   *types.Transaction
