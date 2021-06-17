@@ -118,7 +118,7 @@ func (s *TXPool) addEIPTxPool(trans *types.Transaction) (replaced *types.Transac
 		return nil, errors.ErrNoError
 	}
 
-	if old.GasPrice > trans.GasPrice*101/100 {
+	if trans.GasPrice > old.GasPrice*101/100 {
 		log.Infof("replace transaction %s with lower gas fee", old.Hash().ToHexString())
 		s.eipTxPool[trans.Payer].Put(trans)
 		return old, errors.ErrNoError
