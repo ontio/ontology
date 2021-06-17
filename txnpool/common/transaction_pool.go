@@ -85,7 +85,7 @@ func NewTxPool() *TXPool {
 	}
 }
 
-func (s *TXPool) CleanLatestEIPTxTime(height uint32) {
+func (s *TXPool) CleanStaledEIPTx(height uint32) {
 	s.Lock()
 	defer s.Unlock()
 	if len(s.validTxMap) > MAX_LIMITATION {

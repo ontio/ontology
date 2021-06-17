@@ -314,10 +314,7 @@ func (s *TXPoolServer) getTxHashList() []common.Uint256 {
 // cleanTransactionList cleans the txs in the block from the ledger
 func (s *TXPoolServer) cleanTransactionList(txs []*txtypes.Transaction, height uint32) {
 	s.txPool.CleanCompletedTransactionList(txs, height)
-	size := s.getPendingListSize()
-	if size >= tc.MAX_LIMITATION {
-		s.txPool.CleanLatestEIPTxTime(height)
-	}
+	s.txPool.CleanStaledEIPTx(height)
 
 	// Check whether to update the gas price and remove txs below the threshold
 	if height%tc.UPDATE_FREQUENCY == 0 {
