@@ -6,5 +6,5 @@ set -x -e
 
 for d in $dirs
 do
-  go test -v $d
+  go test -race -v $d
 done
