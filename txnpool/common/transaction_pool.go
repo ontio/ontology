@@ -72,14 +72,34 @@ func (self *VerifiedTx) GetAttrs() []*TXAttr {
 // in the ledger.
 type TXPool struct {
 	sync.RWMutex
-	validTxMap map[common.Uint256]*VerifiedTx  // Transactions which have been verified
-	eipTxPool  map[common.Address]*txSortedMap // The tx pool that holds the valid transaction
+	validTxMap            map[common.Uint256]*VerifiedTx  // Transactions which have been verified
+	eipTxPool             map[common.Address]*txSortedMap // The tx pool that holds the valid transaction
+	userLatestEiptxHeight map[common.Address]uint32       // record last time user commit eiptx
 }
 
 func NewTxPool() *TXPool {
 	return &TXPool{
-		validTxMap: make(map[common.Uint256]*VerifiedTx),
-		eipTxPool:  make(map[common.Address]*txSortedMap),
+		validTxMap:            make(map[common.Uint256]*VerifiedTx),
+		eipTxPool:             make(map[common.Address]*txSortedMap),
+		userLatestEiptxHeight: make(map[common.Address]uint32),
+	}
+}
+
+func (s *TXPool) UpdateLatestEIPTxTime(txs []*types.Transaction, height uint32) {
+	for _, tx := range txs {
+		if tx.IsEipTx() {
+			s.userLatestEiptxHeight[tx.Payer] = height
+		}
+	}
+}
+
+func (s *TXPool) CleanLatestEIPTxTime(height uint32) {
+	for k, v := range s.userLatestEiptxHeight {
+		if height-v >= EIPTX_EXPIRATION_BLOCKS {
+			if s.eipTxPool[k].Len() > 0 {
+				delete(s.eipTxPool, k)
+			}
+		}
 	}
 }
 

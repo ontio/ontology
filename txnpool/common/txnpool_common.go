@@ -32,11 +32,12 @@ import (
 )
 
 const (
-	MAX_CAPACITY     = 100140      // The tx pool's capacity that holds the verified txs
-	MAX_PENDING_TXN  = 4096 * 10   // The max length of pending txs
-	MAX_LIMITATION   = 10000       // The length of pending tx from net and http
-	UPDATE_FREQUENCY = 100         // The frequency to update gas price from global params
-	MAX_TX_SIZE      = 1024 * 1024 // The max size of a transaction to prevent DOS attacks
+	MAX_CAPACITY            = 100140      // The tx pool's capacity that holds the verified txs
+	MAX_PENDING_TXN         = 4096 * 10   // The max length of pending txs
+	MAX_LIMITATION          = 10000       // The length of pending tx from net and http
+	UPDATE_FREQUENCY        = 100         // The frequency to update gas price from global params
+	MAX_TX_SIZE             = 1024 * 1024 // The max size of a transaction to prevent DOS attacks
+	EIPTX_EXPIRATION_BLOCKS = 50          // eip pending nonce tx expire block count
 )
 
 // SenderType enumerates the kind of tx submitter
