@@ -20,9 +20,10 @@ package ong
 
 import (
 	"fmt"
+	"math/big"
+
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/core/types"
-	"math/big"
 
 	"github.com/ontio/ontology/smartcontract/storage"
 

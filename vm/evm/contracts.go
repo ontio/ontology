@@ -21,8 +21,9 @@ import (
 	"crypto/sha256"
 	"encoding/binary"
 	"errors"
-	errors2 "github.com/ontio/ontology/vm/evm/errors"
 	"math/big"
+
+	errors2 "github.com/ontio/ontology/vm/evm/errors"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/math"

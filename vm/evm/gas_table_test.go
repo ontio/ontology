@@ -18,10 +18,11 @@
 package evm
 
 import (
-	"github.com/ontio/ontology/vm/evm/errors"
 	"math"
 	"math/big"
 	"testing"
+
+	"github.com/ontio/ontology/vm/evm/errors"
 
 	"github.com/ontio/ontology/core/store/leveldbstore"
 	"github.com/ontio/ontology/core/store/overlaydb"

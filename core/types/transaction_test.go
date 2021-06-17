@@ -21,13 +21,14 @@ package types
 import (
 	"crypto/ecdsa"
 	"fmt"
+	"math"
+	"math/big"
+	"testing"
+
 	ethcomm "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ontio/ontology/common"
-	"math"
-	"math/big"
-	"testing"
 
 	"github.com/ontio/ontology/core/payload"
 	"github.com/stretchr/testify/assert"

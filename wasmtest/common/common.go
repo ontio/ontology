@@ -20,6 +20,7 @@ package common
 import (
 	"bytes"
 	"encoding/json"
+
 	utils2 "github.com/ontio/ontology/cmd/utils"
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/utils"

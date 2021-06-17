@@ -19,6 +19,7 @@ package evm
 
 import (
 	"errors"
+
 	errors2 "github.com/ontio/ontology/vm/evm/errors"
 
 	"github.com/ethereum/go-ethereum/common"
