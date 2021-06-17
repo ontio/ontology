@@ -74,7 +74,7 @@ type TXPool struct {
 	sync.RWMutex
 	validTxMap            map[common.Uint256]*VerifiedTx  // Transactions which have been verified
 	eipTxPool             map[common.Address]*txSortedMap // The tx pool that holds the valid transaction
-	userLatestEiptxHeight map[common.Address]uint32       // record last time user commit eiptx
+	userLatestEiptxHeight map[common.Address]uint32       // record last block height user commit eiptx
 }
 
 func NewTxPool() *TXPool {
@@ -85,23 +85,21 @@ func NewTxPool() *TXPool {
 	}
 }
 
-func (s *TXPool) UpdateLatestEIPTxTime(txs []*types.Transaction, height uint32) {
-	s.Lock()
-	defer s.Unlock()
-	for _, tx := range txs {
-		if tx.IsEipTx() {
-			s.userLatestEiptxHeight[tx.Payer] = height
-		}
-	}
-}
-
 func (s *TXPool) CleanLatestEIPTxTime(height uint32) {
 	s.Lock()
 	defer s.Unlock()
-	for k, v := range s.userLatestEiptxHeight {
-		if height-v >= EIPTX_EXPIRATION_BLOCKS {
-			delete(s.eipTxPool, k)
-			delete(s.userLatestEiptxHeight, k)
+	if len(s.validTxMap) > MAX_LIMITATION {
+		for addr, v := range s.userLatestEiptxHeight {
+			if height >= v+EIPTX_EXPIRATION_BLOCKS {
+				if list := s.eipTxPool[addr]; list != nil {
+					for _, txn := range list.items {
+						delete(s.validTxMap, txn.Hash())
+					}
+
+					delete(s.eipTxPool, addr)
+				}
+				delete(s.userLatestEiptxHeight, addr)
+			}
 		}
 	}
 }
@@ -131,21 +129,19 @@ func (s *TXPool) getTxListByAddr(addr common.Address) *txSortedMap {
 	return s.eipTxPool[addr]
 }
 
-func (s *TXPool) addEIPTxPool(trans *types.Transaction, height uint32) (replaced *types.Transaction, err errors.ErrCode) {
+func (s *TXPool) addEIPTxPool(trans *types.Transaction) (replaced *types.Transaction, err errors.ErrCode) {
 	list := s.getTxListByAddr(trans.Payer)
 
 	// does the same nonce exist?
 	old := list.Get(uint64(trans.Nonce))
 	if old == nil {
 		s.eipTxPool[trans.Payer].Put(trans)
-		s.userLatestEiptxHeight[trans.Payer] = height
 		return nil, errors.ErrNoError
 	}
 
 	if trans.GasPrice > old.GasPrice*101/100 {
 		log.Infof("replace transaction %s with lower gas fee", old.Hash().ToHexString())
 		s.eipTxPool[trans.Payer].Put(trans)
-		s.userLatestEiptxHeight[trans.Payer] = height
 		return old, errors.ErrNoError
 	}
 
@@ -161,12 +157,15 @@ func (tp *TXPool) AddTxList(txEntry *VerifiedTx) errors.ErrCode {
 	defer tp.Unlock()
 	txHash := txEntry.Tx.Hash()
 	if txEntry.Tx.IsEipTx() {
-		repalced, code := tp.addEIPTxPool(txEntry.Tx, txEntry.VerifiedHeight)
+		repalced, code := tp.addEIPTxPool(txEntry.Tx)
 		if repalced != nil {
 			delete(tp.validTxMap, repalced.Hash())
 		}
 		if !code.Success() {
 			return code
+		}
+		if tp.userLatestEiptxHeight[txEntry.Tx.Payer] == 0 {
+			tp.userLatestEiptxHeight[txEntry.Tx.Payer] = txEntry.VerifiedHeight
 		}
 	}
 
@@ -180,7 +179,7 @@ func (tp *TXPool) AddTxList(txEntry *VerifiedTx) errors.ErrCode {
 }
 
 //clean the EIP txpool and eip pending txpool under the tx nonce
-func (s *TXPool) cleanEipTxPool(txs []*types.Transaction) []*types.Transaction {
+func (s *TXPool) cleanCompletedEipTxPool(txs []*types.Transaction, height uint32) []*types.Transaction {
 	var cleaned []*types.Transaction
 	for _, tx := range txs {
 		if tx.IsEipTx() {
@@ -188,6 +187,9 @@ func (s *TXPool) cleanEipTxPool(txs []*types.Transaction) []*types.Transaction {
 				cleaned = append(cleaned, s.eipTxPool[tx.Payer].Forward(uint64(tx.Nonce+1))...)
 				if s.eipTxPool[tx.Payer].Len() == 0 {
 					delete(s.eipTxPool, tx.Payer)
+					delete(s.userLatestEiptxHeight, tx.Payer)
+				} else {
+					s.userLatestEiptxHeight[tx.Payer] = height
 				}
 			}
 		}
@@ -196,12 +198,12 @@ func (s *TXPool) cleanEipTxPool(txs []*types.Transaction) []*types.Transaction {
 }
 
 // cleans the transaction list included in the ledger.
-func (tp *TXPool) CleanTransactionList(txs []*types.Transaction) {
+func (tp *TXPool) CleanCompletedTransactionList(txs []*types.Transaction, height uint32) {
 	cleaned := 0
 	txsNum := len(txs)
 	tp.Lock()
 	defer tp.Unlock()
-	cleanedEips := tp.cleanEipTxPool(txs)
+	cleanedEips := tp.cleanCompletedEipTxPool(txs, height)
 	txs = append(txs, cleanedEips...)
 	for _, tx := range txs {
 		if _, ok := tp.validTxMap[tx.Hash()]; ok {
