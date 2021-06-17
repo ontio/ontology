@@ -86,6 +86,8 @@ func NewTxPool() *TXPool {
 }
 
 func (s *TXPool) UpdateLatestEIPTxTime(txs []*types.Transaction, height uint32) {
+	s.Lock()
+	defer s.Unlock()
 	for _, tx := range txs {
 		if tx.IsEipTx() {
 			s.userLatestEiptxHeight[tx.Payer] = height
@@ -94,11 +96,12 @@ func (s *TXPool) UpdateLatestEIPTxTime(txs []*types.Transaction, height uint32) 
 }
 
 func (s *TXPool) CleanLatestEIPTxTime(height uint32) {
+	s.Lock()
+	defer s.Unlock()
 	for k, v := range s.userLatestEiptxHeight {
 		if height-v >= EIPTX_EXPIRATION_BLOCKS {
-			if s.eipTxPool[k].Len() > 0 {
-				delete(s.eipTxPool, k)
-			}
+			delete(s.eipTxPool, k)
+			delete(s.userLatestEiptxHeight, k)
 		}
 	}
 }
@@ -128,19 +131,21 @@ func (s *TXPool) getTxListByAddr(addr common.Address) *txSortedMap {
 	return s.eipTxPool[addr]
 }
 
-func (s *TXPool) addEIPTxPool(trans *types.Transaction) (replaced *types.Transaction, err errors.ErrCode) {
+func (s *TXPool) addEIPTxPool(trans *types.Transaction, height uint32) (replaced *types.Transaction, err errors.ErrCode) {
 	list := s.getTxListByAddr(trans.Payer)
 
 	// does the same nonce exist?
 	old := list.Get(uint64(trans.Nonce))
 	if old == nil {
 		s.eipTxPool[trans.Payer].Put(trans)
+		s.userLatestEiptxHeight[trans.Payer] = height
 		return nil, errors.ErrNoError
 	}
 
 	if trans.GasPrice > old.GasPrice*101/100 {
 		log.Infof("replace transaction %s with lower gas fee", old.Hash().ToHexString())
 		s.eipTxPool[trans.Payer].Put(trans)
+		s.userLatestEiptxHeight[trans.Payer] = height
 		return old, errors.ErrNoError
 	}
 
@@ -156,7 +161,7 @@ func (tp *TXPool) AddTxList(txEntry *VerifiedTx) errors.ErrCode {
 	defer tp.Unlock()
 	txHash := txEntry.Tx.Hash()
 	if txEntry.Tx.IsEipTx() {
-		repalced, code := tp.addEIPTxPool(txEntry.Tx)
+		repalced, code := tp.addEIPTxPool(txEntry.Tx, txEntry.VerifiedHeight)
 		if repalced != nil {
 			delete(tp.validTxMap, repalced.Hash())
 		}
