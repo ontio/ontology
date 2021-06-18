@@ -19,6 +19,7 @@
 package proc
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -122,4 +123,19 @@ func TestActor(t *testing.T) {
 	}
 
 	t.Log("Ending actor testing")
+}
+func TestTXPool_AddTxList(t *testing.T) {
+	tps := NewTxPoolServer(true, true)
+	var i uint64
+	j := uint32(1)
+	for i = 20010; i > 0; i-- {
+		tx := genTxWithNonceAndPrice(i, 2500)
+
+		tps.startTxVerify(tx, tc.NilSender, nil)
+		tps.cleanTransactionList(nil, j)
+
+		j += 1
+		fmt.Printf("pendingtx len:%d\n", tps.getPendingListSize())
+	}
+
 }

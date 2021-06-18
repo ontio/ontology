@@ -523,7 +523,7 @@ func (s *TXPoolServer) CurrentNonce(addr common.Address) uint64 {
 }
 
 func (s *TXPoolServer) Nonce(addr common.Address) uint64 {
-	nonce := s.txPool.NextNonce(addr)
+	nonce := s.txPool.NextNonce(addr, s.CurrentNonce(addr))
 	if nonce == 0 {
 		nonce = s.CurrentNonce(addr)
 	}
