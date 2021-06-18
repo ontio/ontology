@@ -61,7 +61,7 @@ import (
 	"github.com/ontio/wagon/wasm"
 )
 
-const contractDir2 = "wasmtest/test-contract"
+const contractDir2 = "test-contract"
 const contractDir = "testwasmdata"
 const testcaseMethod = "testcase"
 
