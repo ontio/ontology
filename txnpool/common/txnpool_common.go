@@ -38,6 +38,7 @@ const (
 	UPDATE_FREQUENCY        = 100         // The frequency to update gas price from global params
 	MAX_TX_SIZE             = 1024 * 1024 // The max size of a transaction to prevent DOS attacks
 	EIPTX_EXPIRATION_BLOCKS = 50          // eip pending nonce tx expire block count
+	EIPTX_NONCE_MAX_GAP     = 1000        // max nonce gap from new tx to tx pool
 )
 
 // SenderType enumerates the kind of tx submitter

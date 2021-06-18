@@ -59,6 +59,7 @@ const (
 	ErrHigherNonceExist     ErrCode = 45022
 	ErrETHTxGaslimitExceed  ErrCode = 45023
 	ErrSameNonceExist       ErrCode = 45024
+	ErrETHTxNonceToobig     ErrCode = 45025
 )
 
 func (err ErrCode) Error() string {
@@ -113,6 +114,8 @@ func (err ErrCode) Error() string {
 		return "eth transaction gaslimit exceeded"
 	case ErrSameNonceExist:
 		return "eth transaction with same nonce existed"
+	case ErrETHTxNonceToobig:
+		return "eth transaction nonce is much greater than tx pool"
 	}
 
 	return fmt.Sprintf("Unknown error? Error code = %d", err)
