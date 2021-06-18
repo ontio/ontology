@@ -31,7 +31,6 @@ import (
 	"github.com/ethereum/go-ethereum/crypto/bn256"
 	errors2 "github.com/ontio/ontology/vm/evm/errors"
 	"github.com/ontio/ontology/vm/evm/params"
-	//lint:ignore SA1019 Needed for precompile
 	"golang.org/x/crypto/ripemd160"
 )
 

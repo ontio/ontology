@@ -18,9 +18,9 @@
 package states
 
 import (
+	"crypto/rand"
 	"testing"
 
-	"crypto/rand"
 	"github.com/ontio/ontology/common"
 	"github.com/stretchr/testify/assert"
 )
