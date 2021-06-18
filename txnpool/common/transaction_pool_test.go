@@ -92,5 +92,5 @@ func TestTxPool(t *testing.T) {
 	count := txPool.GetTransactionCount()
 	assert.Equal(t, count, 1)
 
-	txPool.CleanTransactionList([]*types.Transaction{txn})
+	txPool.CleanCompletedTransactionList([]*types.Transaction{txn}, 0)
 }
