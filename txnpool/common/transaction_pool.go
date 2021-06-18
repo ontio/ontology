@@ -131,18 +131,7 @@ func (s *TXPool) NextNonce(addr common.Address) uint64 {
 		return s.userLatestEiptxHeight[addr].Nonce
 	}
 
-	var latestNonce uint32
-	last := heading[len(heading)-1]
-	if last != nil {
-		latestNonce = last.Nonce
-	}
-
-	if l.Nonce == latestNonce {
-		return uint64(l.Nonce + 1)
-	} else {
-		return uint64(latestNonce + 1)
-	}
-
+	return uint64(heading[len(heading)-1].Nonce + 1)
 }
 
 func (s *TXPool) getTxListByAddr(addr common.Address) *txSortedMap {
