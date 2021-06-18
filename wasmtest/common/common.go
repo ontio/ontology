@@ -20,14 +20,14 @@ package common
 import (
 	"bytes"
 	"encoding/json"
+
 	utils2 "github.com/ontio/ontology/cmd/utils"
+	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/payload"
+	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/core/utils"
 	common2 "github.com/ontio/ontology/http/base/common"
 	"github.com/ontio/ontology/smartcontract/states"
-
-	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/vm/neovm"
 )
 

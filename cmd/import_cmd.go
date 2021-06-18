@@ -25,8 +25,6 @@ import (
 	"os"
 
 	"github.com/gosuri/uiprogress"
-	"github.com/urfave/cli"
-
 	"github.com/ontio/ontology/cmd/utils"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
@@ -35,6 +33,7 @@ import (
 	"github.com/ontio/ontology/core/genesis"
 	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/core/types"
+	"github.com/urfave/cli"
 )
 
 var ImportCommand = cli.Command{

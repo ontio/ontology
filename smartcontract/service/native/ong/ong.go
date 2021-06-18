@@ -20,18 +20,17 @@ package ong
 
 import (
 	"fmt"
-	"github.com/ontio/ontology/common/config"
-	"github.com/ontio/ontology/core/types"
 	"math/big"
 
-	"github.com/ontio/ontology/smartcontract/storage"
-
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/constants"
+	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/ont"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
+	"github.com/ontio/ontology/smartcontract/storage"
 )
 
 func InitOng() {
