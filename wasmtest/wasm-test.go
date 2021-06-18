@@ -218,7 +218,7 @@ func loadContract(filePath string) []byte {
 	if common.FileExisted(filePath) {
 		raw, err := ioutil.ReadFile(filePath)
 		checkErr(err)
-		code, err := hex.DecodeString(string(raw))
+		code, err := hex.DecodeString(strings.TrimSpace(string(raw)))
 		if err != nil {
 			return raw
 		} else {
@@ -347,6 +347,7 @@ func main() {
 	if true {
 		bridge, wingErc20, wingOep4 := getBridgeContract(contract2)
 		bridgeTest(bridge, wingOep4, wingErc20, database, acct)
+		return
 	}
 
 	testContext := common3.TestContext{
