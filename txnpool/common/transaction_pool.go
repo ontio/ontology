@@ -121,12 +121,16 @@ func (s *TXPool) NextNonce(addr common.Address) uint64 {
 	//if 1st tx nonce in eiptxpool is not 0,need to check whether it equals ledger nonce
 	//otherwise return the ledgerNonce
 	heading := list.Heading()
-	headNonce := heading[0].Nonce
-	if headNonce > 0 && uint64(headNonce) != s.userLatestEiptxHeight[addr].Nonce {
-		return s.userLatestEiptxHeight[addr].Nonce
-	}
+	if heading != nil && len(heading) > 0 {
+		headNonce := heading[0].Nonce
+		if headNonce > 0 && uint64(headNonce) != s.userLatestEiptxHeight[addr].Nonce {
+			return s.userLatestEiptxHeight[addr].Nonce
+		}
 
-	return uint64(heading[len(heading)-1].Nonce + 1)
+		return uint64(heading[len(heading)-1].Nonce + 1)
+	}
+	return 0
+
 }
 
 func (s *TXPool) getTxListByAddr(addr common.Address) *txSortedMap {

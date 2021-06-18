@@ -23,9 +23,9 @@ import (
 	"testing"
 	"time"
 
-	"gotest.tools/assert"
-
 	"github.com/ontio/ontology-eventbus/actor"
+	"github.com/stretchr/testify/assert"
+
 	"github.com/ontio/ontology/account"
 	"github.com/ontio/ontology/cmd/utils"
 	"github.com/ontio/ontology/core/payload"

@@ -35,27 +35,12 @@ func initCfg() {
 
 func genTxWithNonceAndPrice(nonce uint64, gp int64) *txtypes.Transaction {
 	privateKey, _ := crypto.HexToECDSA("fad9c8855b740a0b7ed4c221dbad0f33a83a49cad6b3fe8d5817ac83d38b6a19")
-	//assert.Nil(t, err)
-	//
-	//publicKey := privateKey.Public()
-	//publicKeyECDSA, ok := publicKey.(*ecdsa.PublicKey)
-	//if !ok {
-	//	return nil
-	//}
-	//
-	//fromAddress := crypto.PubkeyToAddress(*publicKeyECDSA)
-	//fmt.Printf("addr:%s\n", fromAddress.Hex())
-	//
-	//ontAddress, _ := common.AddressParseFromBytes(fromAddress[:])
-	//fmt.Printf("ont addr:%s\n", ontAddress.ToBase58())
 
 	value := big.NewInt(1000000000)
 	gaslimit := uint64(21000)
 	gasPrice := big.NewInt(gp)
 
 	toAddress := ethcomm.HexToAddress("0x4592d8f8d7b001e72cb26a73e4fa1806a51ac79d")
-	//toontAddress, _ := common.AddressParseFromBytes(toAddress[:])
-	//fmt.Printf("to ont addr:%s\n", toontAddress.ToBase58())
 
 	var data []byte
 	tx := types.NewTransaction(nonce, toAddress, value, gaslimit, gasPrice, data)
@@ -63,16 +48,11 @@ func genTxWithNonceAndPrice(nonce uint64, gp int64) *txtypes.Transaction {
 	chainId := big.NewInt(int64(sysconfig.DefConfig.P2PNode.EVMChainId))
 	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(chainId), privateKey)
 	if err != nil {
-		//fmt.Printf("err:%s\n", err.Error())
 		return nil
 	}
 
-	//bt, _ := rlp.EncodeToBytes(signedTx)
-	//fmt.Printf("rlptx:%s", hex.EncodeToString(bt))
-
 	otx, err := txtypes.TransactionFromEIP155(signedTx)
 	if err != nil {
-		//fmt.Printf("err:%s\n", err.Error())
 		return nil
 	}
 	return otx
