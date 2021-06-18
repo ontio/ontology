@@ -21,13 +21,12 @@ package utils
 import (
 	"bytes"
 
-	"github.com/ontio/ontology/smartcontract/storage"
-
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/serialization"
 	cstates "github.com/ontio/ontology/core/states"
 	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/smartcontract/service/native"
+	"github.com/ontio/ontology/smartcontract/storage"
 )
 
 func GetStorageItem(cacheDB *storage.CacheDB, key []byte) (*cstates.StorageItem, error) {

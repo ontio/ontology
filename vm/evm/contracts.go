@@ -21,7 +21,6 @@ import (
 	"crypto/sha256"
 	"encoding/binary"
 	"errors"
-	errors2 "github.com/ontio/ontology/vm/evm/errors"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -30,9 +29,8 @@ import (
 	"github.com/ethereum/go-ethereum/crypto/blake2b"
 	"github.com/ethereum/go-ethereum/crypto/bls12381"
 	"github.com/ethereum/go-ethereum/crypto/bn256"
+	errors2 "github.com/ontio/ontology/vm/evm/errors"
 	"github.com/ontio/ontology/vm/evm/params"
-
-	//lint:ignore SA1019 Needed for precompile
 	"golang.org/x/crypto/ripemd160"
 )
 

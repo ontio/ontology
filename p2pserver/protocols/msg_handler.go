@@ -22,8 +22,6 @@ import (
 	"errors"
 	"fmt"
 
-	common2 "github.com/ontio/ontology/txnpool/common"
-
 	lru "github.com/hashicorp/golang-lru"
 	"github.com/ontio/ontology/account"
 	"github.com/ontio/ontology/common"
@@ -44,6 +42,7 @@ import (
 	"github.com/ontio/ontology/p2pserver/protocols/reconnect"
 	"github.com/ontio/ontology/p2pserver/protocols/subnet"
 	"github.com/ontio/ontology/p2pserver/protocols/utils"
+	common2 "github.com/ontio/ontology/txnpool/common"
 )
 
 //respCache cache for some response data

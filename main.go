@@ -21,7 +21,6 @@ package main
 import (
 	"encoding/hex"
 	"fmt"
-	"github.com/ontio/ontology/core/types"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -43,6 +42,7 @@ import (
 	"github.com/ontio/ontology/consensus"
 	"github.com/ontio/ontology/core/genesis"
 	"github.com/ontio/ontology/core/ledger"
+	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/events"
 	bactor "github.com/ontio/ontology/http/base/actor"
 	"github.com/ontio/ontology/http/ethrpc"

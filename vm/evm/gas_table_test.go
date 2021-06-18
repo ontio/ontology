@@ -18,18 +18,17 @@
 package evm
 
 import (
-	"github.com/ontio/ontology/vm/evm/errors"
 	"math"
 	"math/big"
 	"testing"
 
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ontio/ontology/core/store/leveldbstore"
 	"github.com/ontio/ontology/core/store/overlaydb"
 	"github.com/ontio/ontology/smartcontract/service/native/ong"
 	"github.com/ontio/ontology/smartcontract/storage"
-
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/ontio/ontology/vm/evm/errors"
 	"github.com/ontio/ontology/vm/evm/params"
 )
 
