@@ -56,7 +56,7 @@ func getBridgeContract(contract []Item) (bridge common3.ConAddr, wingErc20 commo
 				File:    file,
 				Address: addr,
 			}
-			log.Infof("wingErc20 token address: %v", wingErc20.Address[:])
+			log.Infof("wingErc20 token address: %s", wingErc20.Address.ToHexString())
 		} else if strings.HasSuffix(file, "bridge.avm") {
 			bridge = common3.ConAddr{
 				File:    file,
@@ -210,6 +210,7 @@ func oep4ToErc20(bridge common3.ConAddr, admin common.Address, ethAcct common.Ad
 	tc := common3.NewTestCase(env, false, method, param, "bool:true", WingABI)
 	tx, err := common3.GenNeoVMTransaction(tc, bridge.Address, &testContext)
 	checkErr(err)
+	log.Infof("method: %s", method)
 	_, err = database.PreExecuteContract(tx)
 	checkErr(err)
 	//log.Infof("method: %s, pre: %s", method, JsonString(reee))
@@ -238,6 +239,7 @@ func contractInit(admin common.Address, bridge, wingOep4, wingErc20 common3.ConA
 	ensureTrue(amount, ba)
 	// bridge init
 	param = fmt.Sprintf("[address:%s,address:%s]", wingOep4.Address.ToBase58(), wingErc20.Address.ToBase58())
+	log.Infof("bridge init param: %s", param)
 	tc = common3.NewTestCase(te, false, "init", param, "bool:true", "")
 	tx, err = common3.GenNeoVMTransaction(tc, bridge.Address, &testContext)
 	checkErr(err)

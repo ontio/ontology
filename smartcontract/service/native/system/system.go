@@ -64,7 +64,7 @@ func EVMInvoke(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("evm invoke decode input error: %v", err)
 	}
 
-	if native.ContextRef.CheckWitness(caller) {
+	if !native.ContextRef.CheckWitness(caller) {
 		return utils.BYTE_FALSE, fmt.Errorf("evm invoke error: verify witness failed for caller: %s", caller.ToBase58())
 	}
 
