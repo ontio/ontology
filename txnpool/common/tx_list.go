@@ -19,7 +19,6 @@ package common
 
 import (
 	"container/heap"
-	"sort"
 
 	"github.com/ontio/ontology/core/types"
 )
@@ -103,72 +102,6 @@ func (m *txSortedMap) Forward(threshold uint64) Transactions {
 	return removed
 }
 
-// Filter iterates over the list of transactions and removes all of them for which
-// the specified function evaluates to true.
-// Filter, as opposed to 'filter', re-initialises the heap after the operation is done.
-// If you want to do several consecutive filterings, it's therefore better to first
-// do a .filter(func1) followed by .Filter(func2) or reheap()
-func (m *txSortedMap) Filter(filter func(*types.Transaction) bool) Transactions {
-	removed := m.filter(filter)
-	// If transactions were removed, the heap and cache are ruined
-	if len(removed) > 0 {
-		m.reheap()
-	}
-	return removed
-}
-
-func (m *txSortedMap) reheap() {
-	*m.index = make([]uint64, 0, len(m.items))
-	for nonce := range m.items {
-		*m.index = append(*m.index, nonce)
-	}
-	heap.Init(m.index)
-	m.cache = nil
-}
-
-// filter is identical to Filter, but **does not** regenerate the heap. This method
-// should only be used if followed immediately by a call to Filter or reheap()
-func (m *txSortedMap) filter(filter func(*types.Transaction) bool) Transactions {
-	var removed Transactions
-
-	// Collect all the transactions to filter out
-	for nonce, tx := range m.items {
-		if filter(tx) {
-			removed = append(removed, tx)
-			delete(m.items, nonce)
-		}
-	}
-	if len(removed) > 0 {
-		m.cache = nil
-	}
-	return removed
-}
-
-// Cap places a hard limit on the number of items, returning all transactions
-// exceeding that limit.
-func (m *txSortedMap) Cap(threshold int) Transactions {
-	// Short circuit if the number of items is under the limit
-	if len(m.items) <= threshold {
-		return nil
-	}
-	// Otherwise gather and drop the highest nonce'd transactions
-	var drops Transactions
-
-	sort.Sort(*m.index)
-	for size := len(m.items); size > threshold; size-- {
-		drops = append(drops, m.items[(*m.index)[size-1]])
-		delete(m.items, (*m.index)[size-1])
-	}
-	*m.index = (*m.index)[:threshold]
-	heap.Init(m.index)
-
-	// If we had a cache, shift the back
-	if m.cache != nil {
-		m.cache = m.cache[:len(m.cache)-len(drops)]
-	}
-	return drops
-}
-
 // Remove deletes a transaction from the maintained map, returning whether the
 // transaction was found.
 func (m *txSortedMap) Remove(nonce uint64) bool {
@@ -190,30 +123,6 @@ func (m *txSortedMap) Remove(nonce uint64) bool {
 	return true
 }
 
-// Ready retrieves a sequentially increasing list of transactions starting at the
-// provided nonce that is ready for processing. The returned transactions will be
-// removed from the list.
-//
-// Note, all transactions with nonces lower than start will also be returned to
-// prevent getting into and invalid state. This is not something that should ever
-// happen but better to be self correcting than failing!
-func (m *txSortedMap) Ready(start uint64) Transactions {
-	// Short circuit if no transactions are available
-	if m.index.Len() == 0 || (*m.index)[0] > start {
-		return nil
-	}
-	// Otherwise start accumulating incremental transactions
-	var ready Transactions
-	for next := (*m.index)[0]; m.index.Len() > 0 && (*m.index)[0] == next; next++ {
-		ready = append(ready, m.items[next])
-		delete(m.items, next)
-		heap.Pop(m.index)
-	}
-	m.cache = nil
-
-	return ready
-}
-
 func (m *txSortedMap) Heading() Transactions {
 	if m.index.Len() == 0 {
 		return nil
@@ -229,16 +138,4 @@ func (m *txSortedMap) Heading() Transactions {
 // Len returns the length of the transaction map.
 func (m *txSortedMap) Len() int {
 	return len(m.items)
-}
-
-func (m *txSortedMap) flatten() Transactions {
-	// If the sorting was not cached yet, create and cache it
-	if m.cache == nil {
-		m.cache = make(Transactions, 0, len(m.items))
-		for _, tx := range m.items {
-			m.cache = append(m.cache, tx)
-		}
-		sort.Sort(TxByNonce(m.cache))
-	}
-	return m.cache
 }
