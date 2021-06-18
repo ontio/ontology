@@ -242,10 +242,3 @@ func (m *txSortedMap) flatten() Transactions {
 	}
 	return m.cache
 }
-
-// LastElement returns the last element of a flattened list, thus, the
-// transaction with the highest nonce
-func (m *txSortedMap) LastElement() *types.Transaction {
-	cache := m.flatten()
-	return cache[len(cache)-1]
-}

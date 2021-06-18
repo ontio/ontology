@@ -118,11 +118,6 @@ func (s *TXPool) NextNonce(addr common.Address) uint64 {
 		return 0
 	}
 
-	l := list.LastElement()
-	if l == nil {
-		return 0
-	}
-
 	//if 1st tx nonce in eiptxpool is not 0,need to check whether it equals ledger nonce
 	//otherwise return the ledgerNonce
 	heading := list.Heading()
