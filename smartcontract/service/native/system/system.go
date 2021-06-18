@@ -51,13 +51,21 @@ func RegisterSystemContract(native *native.NativeService) {
 func EVMInvoke(native *native.NativeService) ([]byte, error) {
 	source := common.NewZeroCopySource(native.Input)
 
-	addr, err := utils.DecodeAddress(source)
+	caller, err := utils.DecodeAddress(source)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("evm invoke decode contract address error: %v", err)
+	}
+	target, err := utils.DecodeAddress(source)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("evm invoke decode contract address error: %v", err)
 	}
 	input, err := utils.DecodeVarBytes(source)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("evm invoke decode input error: %v", err)
+	}
+
+	if native.ContextRef.CheckWitness(caller) {
+		return utils.BYTE_FALSE, fmt.Errorf("evm invoke error: verify witness failed for caller: %s", caller.ToBase58())
 	}
 
 	// Create a new context to be used in the EVM environment
@@ -75,8 +83,7 @@ func EVMInvoke(native *native.NativeService) ([]byte, error) {
 	if callerCtx == nil {
 		return utils.BYTE_FALSE, fmt.Errorf("evm invoke must have a caller")
 	}
-	caller := evm.AccountRef(callerCtx.ContractAddress)
-	ret, leftGas, err := vmenv.Call(caller, common2.Address(addr), input, gasLeft, big.NewInt(0))
+	ret, leftGas, err := vmenv.Call(evm.AccountRef(caller), common2.Address(target), input, gasLeft, big.NewInt(0))
 	gasUsed := gasLeft - leftGas
 	refund := gasUsed / 2
 	if refund > statedb.GetRefund() {
