@@ -20,6 +20,7 @@ package proc
 
 import (
 	"fmt"
+	"gotest.tools/assert"
 	"testing"
 	"time"
 
@@ -137,5 +138,29 @@ func TestTXPool_AddTxList(t *testing.T) {
 		j += 1
 		fmt.Printf("pendingtx len:%d\n", tps.getPendingListSize())
 	}
+}
+
+func TestTXPoolServer_Nonce(t *testing.T) {
+	tps := NewTxPoolServer(true, true)
+	addr := genTxWithNonceAndPrice(uint64(0), 2500).Payer
+	assert.Equal(t, tps.Nonce(addr), uint64(0))
+
+	tx := genTxWithNonceAndPrice(2, 2500)
+	tps.startTxVerify(tx, tc.NilSender, nil)
+	time.Sleep(2 * time.Second)
+	assert.Equal(t, tps.Nonce(addr), uint64(0))
+
+	//consecutive case ,nonce is the last + 1
+	for i := 0; i < 100; i++ {
+		tx := genTxWithNonceAndPrice(uint64(i), 2500)
+		tps.startTxVerify(tx, tc.NilSender, nil)
+	}
+	time.Sleep(2 * time.Second)
+	assert.Equal(t, tps.Nonce(addr), uint64(100))
+
+	tx = genTxWithNonceAndPrice(uint64(105), 2500)
+	tps.startTxVerify(tx, tc.NilSender, nil)
+
+	assert.Equal(t, tps.Nonce(addr), uint64(100))
 
 }

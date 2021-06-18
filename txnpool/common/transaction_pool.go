@@ -66,10 +66,10 @@ func (self *VerifiedTx) GetAttrs() []*TXAttr {
 	}
 }
 
-//type UserNonceInfo struct {
-//	Height uint32
-//	Nonce  uint64
-//}
+type UserNonceInfo struct {
+	Height uint32
+	Nonce  uint64
+}
 
 // TXPool contains all currently valid transactions. Transactions
 // enter the pool when they are valid from the network,
@@ -77,16 +77,16 @@ func (self *VerifiedTx) GetAttrs() []*TXAttr {
 // in the ledger.
 type TXPool struct {
 	sync.RWMutex
-	validTxMap            map[common.Uint256]*VerifiedTx  // Transactions which have been verified
-	eipTxPool             map[common.Address]*txSortedMap // The tx pool that holds the valid transaction
-	userLatestEiptxHeight map[common.Address]uint32       // record last block height user commit eiptx
+	validTxMap            map[common.Uint256]*VerifiedTx    // Transactions which have been verified
+	eipTxPool             map[common.Address]*txSortedMap   // The tx pool that holds the valid transaction
+	userLatestEiptxHeight map[common.Address]*UserNonceInfo // record last block height user commit eiptx
 }
 
 func NewTxPool() *TXPool {
 	return &TXPool{
 		validTxMap:            make(map[common.Uint256]*VerifiedTx),
 		eipTxPool:             make(map[common.Address]*txSortedMap),
-		userLatestEiptxHeight: make(map[common.Address]uint32),
+		userLatestEiptxHeight: make(map[common.Address]*UserNonceInfo),
 	}
 }
 
@@ -95,7 +95,7 @@ func (s *TXPool) CleanStaledEIPTx(height uint32) {
 	defer s.Unlock()
 	if len(s.validTxMap) > MAX_LIMITATION {
 		for addr, v := range s.userLatestEiptxHeight {
-			if height >= v+EIPTX_EXPIRATION_BLOCKS {
+			if height >= v.Height+EIPTX_EXPIRATION_BLOCKS {
 				if list := s.eipTxPool[addr]; list != nil {
 					for _, txn := range list.items {
 						delete(s.validTxMap, txn.Hash())
@@ -110,7 +110,7 @@ func (s *TXPool) CleanStaledEIPTx(height uint32) {
 }
 
 // todo
-func (s *TXPool) NextNonce(addr common.Address, ledgerNonce uint64) uint64 {
+func (s *TXPool) NextNonce(addr common.Address) uint64 {
 	s.RLock()
 	defer s.RUnlock()
 	list := s.eipTxPool[addr]
@@ -125,13 +125,14 @@ func (s *TXPool) NextNonce(addr common.Address, ledgerNonce uint64) uint64 {
 
 	//if 1st tx nonce in eiptxpool is not 0,need to check whether it equals ledger nonce
 	//otherwise return the ledgerNonce
-	headNonce := list.Heading()[0].Nonce
-	if headNonce > 0 && uint64(headNonce) != ledgerNonce {
-		return ledgerNonce
+	heading := list.Heading()
+	headNonce := heading[0].Nonce
+	if headNonce > 0 && uint64(headNonce) != s.userLatestEiptxHeight[addr].Nonce {
+		return s.userLatestEiptxHeight[addr].Nonce
 	}
 
 	var latestNonce uint32
-	last := list.Heading()[len(list.Heading())-1]
+	last := heading[len(heading)-1]
 	if last != nil {
 		latestNonce = last.Nonce
 	}
@@ -187,8 +188,11 @@ func (tp *TXPool) AddTxList(txEntry *VerifiedTx) errors.ErrCode {
 		if !code.Success() {
 			return code
 		}
-		if tp.userLatestEiptxHeight[txEntry.Tx.Payer] == 0 {
-			tp.userLatestEiptxHeight[txEntry.Tx.Payer] = txEntry.VerifiedHeight
+		if tp.userLatestEiptxHeight[txEntry.Tx.Payer] == nil {
+			tp.userLatestEiptxHeight[txEntry.Tx.Payer] = &UserNonceInfo{
+				Height: txEntry.VerifiedHeight,
+				Nonce:  txEntry.Nonce,
+			}
 		}
 	}
 
@@ -212,7 +216,10 @@ func (s *TXPool) cleanCompletedEipTxPool(txs []*types.Transaction, height uint32
 					delete(s.eipTxPool, tx.Payer)
 					delete(s.userLatestEiptxHeight, tx.Payer)
 				} else {
-					s.userLatestEiptxHeight[tx.Payer] = height
+					s.userLatestEiptxHeight[tx.Payer] = &UserNonceInfo{
+						Height: height,
+						Nonce:  uint64(tx.Nonce),
+					}
 				}
 			}
 		}

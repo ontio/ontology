@@ -19,8 +19,6 @@
 package common
 
 import (
-	"github.com/ethereum/go-ethereum/crypto"
-	"math/big"
 	"testing"
 	"time"
 
@@ -28,11 +26,6 @@ import (
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/types"
 	"github.com/stretchr/testify/assert"
-
-	ethcomm "github.com/ethereum/go-ethereum/common"
-	etypes "github.com/ethereum/go-ethereum/core/types"
-	sysconfig "github.com/ontio/ontology/common/config"
-	txtypes "github.com/ontio/ontology/core/types"
 )
 
 var (
@@ -100,72 +93,4 @@ func TestTxPool(t *testing.T) {
 	assert.Equal(t, count, 1)
 
 	txPool.CleanCompletedTransactionList([]*types.Transaction{txn}, 0)
-}
-
-func genTxWithNonceAndPrice(nonce uint64, gp int64) *txtypes.Transaction {
-	privateKey, _ := crypto.HexToECDSA("fad9c8855b740a0b7ed4c221dbad0f33a83a49cad6b3fe8d5817ac83d38b6a19")
-
-	value := big.NewInt(1000000000)
-	gaslimit := uint64(21000)
-	gasPrice := big.NewInt(gp)
-
-	toAddress := ethcomm.HexToAddress("0x4592d8f8d7b001e72cb26a73e4fa1806a51ac79d")
-
-	var data []byte
-	tx := etypes.NewTransaction(nonce, toAddress, value, gaslimit, gasPrice, data)
-
-	chainId := big.NewInt(int64(sysconfig.DefConfig.P2PNode.EVMChainId))
-	signedTx, err := etypes.SignTx(tx, etypes.NewEIP155Signer(chainId), privateKey)
-	if err != nil {
-		return nil
-	}
-
-	otx, err := txtypes.TransactionFromEIP155(signedTx)
-	if err != nil {
-		//fmt.Printf("err:%s\n", err.Error())
-		return nil
-	}
-	return otx
-}
-
-func TestTXPool_NextNonce(t *testing.T) {
-	txPool := NewTxPool()
-	addr := genTxWithNonceAndPrice(uint64(0), 2500).Payer
-	ledgerNonce := uint64(0)
-	//empty case nonce is 0
-	assert.Equal(t, txPool.NextNonce(addr, ledgerNonce), uint64(0))
-
-	//no 0 nonce case , nonce is 0
-	tx := genTxWithNonceAndPrice(uint64(2), 2500)
-	txn := &VerifiedTx{
-		Tx:             tx,
-		VerifiedHeight: 100,
-		Nonce:          uint64(105),
-	}
-	txPool.AddTxList(txn)
-	assert.Equal(t, txPool.NextNonce(addr, ledgerNonce), uint64(0))
-
-	//consecutive case ,nonce is the last + 1
-	for i := 0; i < 100; i++ {
-		tx := genTxWithNonceAndPrice(uint64(i), 2500)
-		txn := &VerifiedTx{
-			Tx:             tx,
-			VerifiedHeight: 100,
-			Nonce:          uint64(i),
-		}
-
-		txPool.AddTxList(txn)
-	}
-	assert.Equal(t, txPool.NextNonce(addr, ledgerNonce), uint64(100))
-
-	//no consecutive case nonce is still 100
-	tx = genTxWithNonceAndPrice(uint64(105), 2500)
-	txn = &VerifiedTx{
-		Tx:             tx,
-		VerifiedHeight: 100,
-		Nonce:          uint64(105),
-	}
-	txPool.AddTxList(txn)
-	assert.Equal(t, txPool.NextNonce(addr, ledgerNonce), uint64(100))
-
 }
