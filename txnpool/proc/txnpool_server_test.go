@@ -134,9 +134,11 @@ func TestTXPool_AddTxList(t *testing.T) {
 		tx := genTxWithNonceAndPrice(i, 2500)
 
 		tps.startTxVerify(tx, tc.NilSender, nil)
-		tps.cleanTransactionList(nil, j)
+		if i%5 == 0 {
+			tps.cleanTransactionList(nil, j)
+			j += 1
+		}
 
-		j += 1
 		fmt.Printf("pendingtx len:%d\n", tps.getPendingListSize())
 	}
 }
@@ -152,9 +154,16 @@ func TestTXPoolServer_Nonce(t *testing.T) {
 	assert.Equal(t, tps.Nonce(addr), uint64(0))
 
 	//consecutive case ,nonce is the last + 1
+	j := uint32(1)
+
 	for i := 0; i < 100; i++ {
 		tx := genTxWithNonceAndPrice(uint64(i), 2500)
 		tps.startTxVerify(tx, tc.NilSender, nil)
+		if i%5 == 0 {
+			tps.cleanTransactionList(nil, j)
+			j += 1
+		}
+
 	}
 	time.Sleep(2 * time.Second)
 	assert.Equal(t, tps.Nonce(addr), uint64(100))

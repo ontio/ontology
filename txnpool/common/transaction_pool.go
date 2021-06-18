@@ -142,15 +142,6 @@ func (s *TXPool) getTxListByAddr(addr common.Address) *txSortedMap {
 }
 
 func (s *TXPool) addEIPTxPool(trans *types.Transaction) (replaced *types.Transaction, err errors.ErrCode) {
-	//check the new tx nonce should not be greater than latest nonce + 1000
-	latestNonce := uint64(0)
-	if s.userLatestEiptxHeight[trans.Payer] != nil {
-		latestNonce = s.userLatestEiptxHeight[trans.Payer].Nonce
-	}
-	if uint64(trans.Nonce) >= latestNonce+EIPTX_NONCE_MAX_GAP {
-		return nil, errors.ErrETHTxNonceToobig
-	}
-
 	list := s.getTxListByAddr(trans.Payer)
 
 	// does the same nonce exist?
@@ -178,6 +169,11 @@ func (tp *TXPool) AddTxList(txEntry *VerifiedTx) errors.ErrCode {
 	defer tp.Unlock()
 	txHash := txEntry.Tx.Hash()
 	if txEntry.Tx.IsEipTx() {
+		//check the new tx nonce should not be greater than latest nonce + 1000
+		if uint64(txEntry.Tx.Nonce) >= txEntry.Nonce+EIPTX_NONCE_MAX_GAP {
+			return errors.ErrETHTxNonceToobig
+		}
+
 		repalced, code := tp.addEIPTxPool(txEntry.Tx)
 		if repalced != nil {
 			delete(tp.validTxMap, repalced.Hash())
@@ -215,7 +211,7 @@ func (s *TXPool) cleanCompletedEipTxPool(txs []*types.Transaction, height uint32
 				} else {
 					s.userLatestEiptxHeight[tx.Payer] = &UserNonceInfo{
 						Height: height,
-						Nonce:  uint64(tx.Nonce),
+						Nonce:  uint64(tx.Nonce) + 1,
 					}
 				}
 			}
