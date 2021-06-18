@@ -29,7 +29,6 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ontio/ontology/common"
-
 	"github.com/ontio/ontology/core/payload"
 	"github.com/stretchr/testify/assert"
 )

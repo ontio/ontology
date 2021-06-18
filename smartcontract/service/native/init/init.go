@@ -22,8 +22,6 @@ import (
 	"bytes"
 	"math/big"
 
-	"github.com/ontio/ontology/smartcontract/service/native/system"
-
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/smartcontract/service/native/auth"
 	"github.com/ontio/ontology/smartcontract/service/native/cross_chain/cross_chain_manager"
@@ -35,6 +33,7 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/native/ont"
 	"github.com/ontio/ontology/smartcontract/service/native/ontfs"
 	"github.com/ontio/ontology/smartcontract/service/native/ontid"
+	"github.com/ontio/ontology/smartcontract/service/native/system"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 	"github.com/ontio/ontology/smartcontract/service/neovm"
 	vm "github.com/ontio/ontology/vm/neovm"

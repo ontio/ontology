@@ -29,8 +29,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/ontio/ontology/core/types"
-
 	"github.com/ethereum/go-ethereum/common/fdlimit"
 	"github.com/ontio/ontology-crypto/keypair"
 	alog "github.com/ontio/ontology-eventbus/log"
@@ -44,6 +42,7 @@ import (
 	"github.com/ontio/ontology/consensus"
 	"github.com/ontio/ontology/core/genesis"
 	"github.com/ontio/ontology/core/ledger"
+	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/events"
 	bactor "github.com/ontio/ontology/http/base/actor"
 	"github.com/ontio/ontology/http/ethrpc"
