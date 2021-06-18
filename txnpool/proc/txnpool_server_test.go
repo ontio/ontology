@@ -20,9 +20,10 @@ package proc
 
 import (
 	"fmt"
-	"gotest.tools/assert"
 	"testing"
 	"time"
+
+	"gotest.tools/assert"
 
 	"github.com/ontio/ontology-eventbus/actor"
 	"github.com/ontio/ontology/account"
