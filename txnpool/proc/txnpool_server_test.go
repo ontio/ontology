@@ -23,10 +23,13 @@ import (
 	"time"
 
 	"github.com/ontio/ontology-eventbus/actor"
+	"github.com/stretchr/testify/assert"
+
 	"github.com/ontio/ontology/account"
 	"github.com/ontio/ontology/cmd/utils"
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/types"
+	"github.com/ontio/ontology/errors"
 	tc "github.com/ontio/ontology/txnpool/common"
 )
 
@@ -122,4 +125,39 @@ func TestActor(t *testing.T) {
 	}
 
 	t.Log("Ending actor testing")
+}
+
+func TestTXPoolServer_Nonce(t *testing.T) {
+	ch := make(chan *tc.TxResult, 1)
+	tps := NewTxPoolServer(true, true)
+	addr := genTxWithNonceAndPrice(uint64(0), 2500).Payer
+	assert.Equal(t, tps.Nonce(addr), uint64(0))
+
+	tx := genTxWithNonceAndPrice(100, 2500)
+	tps.startTxVerify(tx, tc.NilSender, ch)
+	r := <-ch
+	assert.Equal(t, r.Err, errors.ErrNoError)
+	assert.Equal(t, tps.Nonce(addr), uint64(0))
+
+	//consecutive case ,nonce is the last + 1
+	j := uint32(1)
+
+	for i := 0; i < 20; i++ {
+		tx := genTxWithNonceAndPrice(uint64(i), 2500)
+		tps.startTxVerify(tx, tc.NilSender, ch)
+		r = <-ch
+		assert.Equal(t, r.Err, errors.ErrNoError)
+
+		if i%5 == 0 {
+			tps.cleanTransactionList(nil, j)
+			j += 1
+		}
+	}
+	assert.Equal(t, tps.Nonce(addr), uint64(20))
+	tx = genTxWithNonceAndPrice(uint64(30), 2500)
+	tps.startTxVerify(tx, tc.NilSender, ch)
+	r = <-ch
+	assert.Equal(t, r.Err, errors.ErrNoError)
+	assert.Equal(t, tps.Nonce(addr), uint64(20))
+
 }
