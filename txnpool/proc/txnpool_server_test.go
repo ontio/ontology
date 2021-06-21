@@ -133,7 +133,7 @@ func TestTXPoolServer_Nonce(t *testing.T) {
 	addr := genTxWithNonceAndPrice(uint64(0), 2500).Payer
 	assert.Equal(t, tps.Nonce(addr), uint64(0))
 
-	tx := genTxWithNonceAndPrice(2, 2500)
+	tx := genTxWithNonceAndPrice(100, 2500)
 	tps.startTxVerify(tx, tc.NilSender, ch)
 	r := <-ch
 	assert.Equal(t, r.Err, errors.ErrNoError)
@@ -145,7 +145,7 @@ func TestTXPoolServer_Nonce(t *testing.T) {
 	for i := 0; i < 20; i++ {
 		tx := genTxWithNonceAndPrice(uint64(i), 2500)
 		tps.startTxVerify(tx, tc.NilSender, ch)
-		<-ch
+		r = <-ch
 		assert.Equal(t, r.Err, errors.ErrNoError)
 
 		if i%5 == 0 {
@@ -154,12 +154,10 @@ func TestTXPoolServer_Nonce(t *testing.T) {
 		}
 	}
 	assert.Equal(t, tps.Nonce(addr), uint64(20))
-
 	tx = genTxWithNonceAndPrice(uint64(30), 2500)
 	tps.startTxVerify(tx, tc.NilSender, ch)
-	<-ch
+	r = <-ch
 	assert.Equal(t, r.Err, errors.ErrNoError)
-
 	assert.Equal(t, tps.Nonce(addr), uint64(20))
 
 }
