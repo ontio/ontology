@@ -436,12 +436,13 @@ func (self *StateMgr) getConsensusedCommittedBlockNum() (uint32, bool) {
 	C := int(self.server.GetChainConfig().C)
 
 	consensused := false
-	var maxCommitted uint32
+
+	maxCommitted := int64(-1)
 	myCommitted := self.server.GetCommittedBlockNo()
 
 	for _, p := range self.peers {
 		n := p.committedBlockNum
-		if n >= myCommitted && n > maxCommitted {
+		if n >= myCommitted && int64(n) > maxCommitted {
 
 			peerCount := 0
 			for _, k := range self.peers {
@@ -451,14 +452,14 @@ func (self *StateMgr) getConsensusedCommittedBlockNum() (uint32, bool) {
 			}
 			if peerCount > C {
 
-				maxCommitted = n
+				maxCommitted = int64(n)
 
 				consensused = true
 			}
 		}
 	}
 
-	return maxCommitted, consensused
+	return uint32(maxCommitted), consensused
 }
 
 func (self *StateMgr) canFastForward(targetBlkNum uint32) bool {
