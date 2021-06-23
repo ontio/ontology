@@ -191,6 +191,7 @@ func (st *StateTransition) buyGas() {
 	st.gas += gas
 	st.initialGas = gas
 	st.state.SubBalance(st.msg.From(), mgval)
+	evm.MakeOngTransferLog(st.state, st.msg.From(), st.GasReceiver, mgval)
 }
 
 func (st *StateTransition) preCheck() error {
@@ -269,8 +270,9 @@ func (st *StateTransition) TransitionDb() (*types.ExecutionResult, error) {
 		st.state.SetNonce(msg.From(), st.state.GetNonce(sender.Address())+1)
 	}
 	st.refundGas()
-	st.state.AddBalance(st.GasReceiver, new(big.Int).Mul(new(big.Int).SetUint64(st.gasUsed()), st.gasPrice))
-
+	gAmount := new(big.Int).Mul(new(big.Int).SetUint64(st.gasUsed()), st.gasPrice)
+	st.state.AddBalance(st.GasReceiver, gAmount)
+	evm.MakeOngTransferLog(st.state, sender.Address(), st.GasReceiver, gAmount)
 	return &types.ExecutionResult{
 		UsedGas:    st.gasUsed(),
 		Err:        vmerr,
@@ -289,6 +291,7 @@ func (st *StateTransition) refundGas() {
 	// Return ETH for remaining gas, exchanged at the original rate.
 	remaining := new(big.Int).Mul(new(big.Int).SetUint64(st.gas), st.gasPrice)
 	st.state.AddBalance(st.msg.From(), remaining)
+	evm.MakeOngTransferLog(st.state, st.GasReceiver, st.msg.From(), remaining)
 }
 
 // gasUsed returns the amount of gas used up by the state transition.

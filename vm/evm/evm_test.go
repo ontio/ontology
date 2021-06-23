@@ -14,26 +14,8 @@ import (
 	"github.com/ontio/ontology/http/ethrpc/utils"
 )
 
-func Test_makelog(t *testing.T) {
-	addr1 := common.HexToAddress("0xb2955f09bef7a25aef5d3ff64a2dcf9c480c3940")
-	from := common.HexToAddress("0xb2955f09bef7a25aef5d3ff64a2dcf9c480c3940")
-	to := common.HexToAddress("0x69e08f814454a1ddacc3b6225aa6d2e41f708b9c")
-
-	amt := big.NewInt(0).SetUint64(185907046)
-
-	l := makeOngTransferLog(addr1, from, to, amt)
-	//fmt.Printf("%s",hex.EncodeToString(ocomm.SerializeToBytes(l)))
-	for _, t := range l.Topics {
-		fmt.Printf("%s\n", t.Hex())
-	}
-	d := big.NewInt(0).SetBytes(l.Data)
-
-	fmt.Printf("%d\n", d)
-}
-
 func Test_event(t *testing.T) {
 	txhash := "0xec56538d2cd67f585560a3769f0694e0b03354eb45258a4b2533cd2ac7cfbd74"
-
 	fmt.Printf("%s", utils.EthToOntHash(common.HexToHash(txhash)).ToHexString())
 }
 
