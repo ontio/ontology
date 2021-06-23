@@ -66,4 +66,6 @@ func CanTransfer(db evm.StateDB, addr common.Address, amount *big.Int) bool {
 func Transfer(db evm.StateDB, sender, recipient common.Address, amount *big.Int) {
 	db.SubBalance(sender, amount)
 	db.AddBalance(recipient, amount)
+	evm.MakeOngTransferLog(db, sender, recipient, amount)
+
 }
