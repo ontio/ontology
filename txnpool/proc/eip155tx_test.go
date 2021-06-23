@@ -18,6 +18,8 @@
 package proc
 
 import (
+	"encoding/hex"
+	"fmt"
 	"math/big"
 	"testing"
 
@@ -26,6 +28,7 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	sysconfig "github.com/ontio/ontology/common/config"
 	txtypes "github.com/ontio/ontology/core/types"
+	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -50,7 +53,8 @@ func genTxWithNonceAndPrice(nonce uint64, gp int64) *txtypes.Transaction {
 	if err != nil {
 		return nil
 	}
-
+	bts,_:= rlp.EncodeToBytes(signedTx)
+	fmt.Printf("rlp:0x%s\n",hex.EncodeToString(bts))
 	otx, err := txtypes.TransactionFromEIP155(signedTx)
 	if err != nil {
 		return nil
@@ -60,8 +64,12 @@ func genTxWithNonceAndPrice(nonce uint64, gp int64) *txtypes.Transaction {
 
 func Test_ethtxRLP(t *testing.T) {
 	initCfg()
-	genTxWithNonceAndPrice(1, 2500)
+	tx := genTxWithNonceAndPrice(0, 2500)
 
+	fmt.Printf("addr:%s\n",tx.Payer.ToBase58())
+	fmt.Printf("addr eth:%s\n",ethcomm.BytesToAddress(tx.Payer[:]))
+	fmt.Printf("raw:0x%s\n",hex.EncodeToString(tx.Raw))
+	fmt.Printf("txhash:%s\n",tx.Hash().ToHexString())
 }
 
 func Test_From(t *testing.T) {
