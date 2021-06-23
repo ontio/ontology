@@ -211,7 +211,7 @@ func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, gas 
 		evm.StateDB.CreateAccount(addr)
 	}
 	evm.Context.Transfer(evm.StateDB, caller.Address(), addr, value)
-	evm.StateDB.AddLog(makeOngTransferLog(evm.Origin,caller.Address(),addr,value))
+	evm.StateDB.AddLog(makeOngTransferLog(evm.Origin, caller.Address(), addr, value))
 
 	// Capture the tracer start/end events in debug mode
 	if evm.vmConfig.Debug && evm.depth == 0 {
@@ -418,7 +418,7 @@ func (evm *EVM) create(caller ContractRef, codeAndHash *codeAndHash, gas uint64,
 		evm.StateDB.SetNonce(address, 1)
 	}
 	evm.Context.Transfer(evm.StateDB, caller.Address(), address, value)
-	evm.StateDB.AddLog(makeOngTransferLog(evm.Origin,caller.Address(),address,value))
+	evm.StateDB.AddLog(makeOngTransferLog(evm.Origin, caller.Address(), address, value))
 
 	// Initialise a new contract and set the code that is to be used by the EVM.
 	// The contract is a scoped environment for this execution context only.
@@ -491,9 +491,9 @@ func (evm *EVM) Create2(caller ContractRef, code []byte, gas uint64, endowment *
 func (evm *EVM) ChainConfig() *params.ChainConfig { return evm.chainConfig }
 
 // todo make native ong transfer topic
-func makeOngTransferLog(addr ,from ,to common.Address,value *big.Int) *types.StorageLog {
+func makeOngTransferLog(addr, from, to common.Address, value *big.Int) *types.StorageLog {
 
-	topic := make([]common.Hash,3)
+	topic := make([]common.Hash, 3)
 
 	transferSig := "Transfer(address,address,uint256)"
 	// this should be 0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef
