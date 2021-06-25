@@ -68,15 +68,18 @@ func NewEthereumAPI(txpool TxPoolService) *EthereumAPI {
 }
 
 func (api *EthereumAPI) ChainId() hexutil.Uint64 {
+	log.Debug("eth_chainId")
 	return hexutil.Uint64(utils2.GetChainId())
 }
 
 func (api *EthereumAPI) BlockNumber() (hexutil.Uint64, error) {
+	log.Debug("eth_blockNumber")
 	height := bactor.GetCurrentBlockHeight()
 	return hexutil.Uint64(height), nil
 }
 
 func (api *EthereumAPI) GetBalance(address common.Address, _ rpc.BlockNumberOrHash) (*hexutil.Big, error) {
+	log.Debugf("eth_getBalance address %v", address.Hex())
 	balance, err := getOngBalance(address)
 	return (*hexutil.Big)(big.NewInt(int64(balance))), err
 }
@@ -90,10 +93,12 @@ func getOngBalance(address common.Address) (uint64, error) {
 }
 
 func (api *EthereumAPI) ProtocolVersion() hexutil.Uint {
+	log.Debug("eth_protocolVersion")
 	return hexutil.Uint(ProtocolVersion)
 }
 
 func (api *EthereumAPI) Syncing() (interface{}, error) {
+	log.Debug("eth_syncing")
 	curBlock := bactor.GetCurrentBlockHeight()
 	peerBlock := bactor.GetMaxPeerBlockHeight()
 	return map[string]interface{}{
@@ -118,6 +123,7 @@ func (api *EthereumAPI) Hashrate() hexutil.Uint64 {
 }
 
 func (api *EthereumAPI) GasPrice() *hexutil.Big {
+	log.Debug("eth_gasPrice")
 	gasPrice, _, err := hComm.GetGasPrice()
 	if err != nil {
 		return nil
@@ -130,10 +136,12 @@ func (api *EthereumAPI) Accounts() ([]common.Address, error) {
 }
 
 func (api *EthereumAPI) GetStorageAt(address common.Address, key string, blockNum types2.BlockNumber) (hexutil.Bytes, error) {
+	log.Debugf("eth_getStorageAt address %v, key %s, blockNum %v", address.Hex(), key, blockNum)
 	return bactor.GetEthStorage(address, common.HexToHash(key))
 }
 
 func (api *EthereumAPI) GetTransactionCount(address common.Address, blockNum types2.BlockNumber) (*hexutil.Uint64, error) {
+	log.Debugf("eth_getTransactionCount address %v, blockNum %v", address.Hex(), blockNum)
 	addr := utils2.EthToOntAddr(address)
 	if nonce := api.txpool.Nonce(addr); blockNum.IsPending() && nonce != 0 {
 		n := hexutil.Uint64(nonce)
@@ -148,6 +156,7 @@ func (api *EthereumAPI) GetTransactionCount(address common.Address, blockNum typ
 }
 
 func (api *EthereumAPI) GetBlockTransactionCountByHash(hash common.Hash) *hexutil.Uint {
+	log.Debugf("eth_getBlockTransactionCountByHash hash %v", hash.Hex())
 	block, err := bactor.GetBlockFromStore(oComm.Uint256(hash))
 	if err != nil {
 		return nil
@@ -160,6 +169,7 @@ func (api *EthereumAPI) GetBlockTransactionCountByHash(hash common.Hash) *hexuti
 }
 
 func (api *EthereumAPI) GetBlockTransactionCountByNumber(number int64) *hexutil.Uint {
+	log.Debugf("eth_getBlockTransactionCountByNumber number %d", number)
 	block, err := bactor.GetBlockByHeight(uint32(number))
 	if err != nil {
 		return nil
@@ -180,6 +190,7 @@ func (api *EthereumAPI) GetUncleCountByBlockNumber(number int64) hexutil.Uint {
 }
 
 func (api *EthereumAPI) GetCode(address common.Address, blockNumber types2.BlockNumber) (hexutil.Bytes, error) {
+	log.Debugf("eth_getCode address %s, blockNumber %v", address.Hex(), blockNumber)
 	account, err := bactor.GetEthAccount(address)
 	if err != nil {
 		return nil, err
@@ -195,6 +206,7 @@ func (api *EthereumAPI) GetCode(address common.Address, blockNumber types2.Block
 }
 
 func (api *EthereumAPI) GetTransactionLogs(txHash common.Hash) ([]*types.Log, error) {
+	log.Debugf("eth_getTransactionLogs txHash %v", txHash.Hex())
 	notify, err := bactor.GetEventNotifyByTxHash(utils2.EthToOntHash(txHash))
 	if err != nil {
 		return nil, err
@@ -257,6 +269,7 @@ func (api *EthereumAPI) SendTransaction(args types2.SendTxArgs) (common.Hash, er
 }
 
 func (api *EthereumAPI) SendRawTransaction(data hexutil.Bytes) (common.Hash, error) {
+	log.Debugf("eth_sendRawTransaction data %v", data.String())
 	tx := new(types.Transaction)
 	if err := rlp.DecodeBytes(data, tx); err != nil {
 		return common.Hash{}, err
@@ -277,6 +290,7 @@ func (api *EthereumAPI) SendRawTransaction(data hexutil.Bytes) (common.Hash, err
 }
 
 func (api *EthereumAPI) Call(args types2.CallArgs, blockNumber types2.BlockNumber, _ *map[common.Address]types2.Account) (hexutil.Bytes, error) {
+	log.Debugf("eth_call args %v ,block number %v ", args, blockNumber)
 	msg := args.AsMessage(RPCGasCap)
 	res, err := bactor.PreExecuteEip155Tx(msg)
 	if err != nil {
@@ -306,6 +320,7 @@ type revertError struct {
 }
 
 func (api *EthereumAPI) EstimateGas(args types2.CallArgs) (hexutil.Uint64, error) {
+	log.Debugf("eth_estimateGas args %v", args)
 	var (
 		lo  uint64 = params.TxGas
 		hi  uint64
@@ -388,6 +403,7 @@ func (api *EthereumAPI) EstimateGas(args types2.CallArgs) (hexutil.Uint64, error
 }
 
 func (api *EthereumAPI) GetBlockByHash(hash common.Hash, fullTx bool) (interface{}, error) {
+	log.Debugf("eth_getBlockByHash hash %v, fullTx %v", hash, fullTx)
 	block, err := bactor.GetBlockFromStore(oComm.Uint256(hash))
 	if err != nil {
 		return nil, err
@@ -399,6 +415,7 @@ func (api *EthereumAPI) GetBlockByHash(hash common.Hash, fullTx bool) (interface
 }
 
 func (api *EthereumAPI) GetBlockByNumber(blockNum types2.BlockNumber, fullTx bool) (interface{}, error) {
+	log.Debugf("eth_getBlockByNumber blockNum %v, fullTx %v", blockNum, fullTx)
 	height := uint32(blockNum)
 	if blockNum.IsLatest() || blockNum.IsPending() {
 		height = bactor.GetCurrentBlockHeight()
@@ -414,6 +431,7 @@ func (api *EthereumAPI) GetBlockByNumber(blockNum types2.BlockNumber, fullTx boo
 }
 
 func (api *EthereumAPI) GetTransactionByHash(hash common.Hash) (*types2.Transaction, error) {
+	log.Debugf("eth_getTransactionByHash hash %v", hash.Hex())
 	height, tx, err := bactor.GetTxnWithHeightByTxHash(oComm.Uint256(hash))
 	if err != nil {
 		if err == common2.ErrNotFound {
@@ -446,6 +464,7 @@ func (api *EthereumAPI) GetTransactionByHash(hash common.Hash) (*types2.Transact
 }
 
 func (api *EthereumAPI) GetTransactionByBlockHashAndIndex(hash common.Hash, idx hexutil.Uint) (*types2.Transaction, error) {
+	log.Debugf("eth_getTransactionByBlockHashAndIndex hash %v, idx %v", hash.Hex(), idx.String())
 	block, err := bactor.GetBlockFromStore(oComm.Uint256(hash))
 	if err != nil {
 		return nil, err
@@ -464,6 +483,7 @@ func (api *EthereumAPI) GetTransactionByBlockHashAndIndex(hash common.Hash, idx 
 }
 
 func (api *EthereumAPI) GetTransactionByBlockNumberAndIndex(blockNum types2.BlockNumber, idx hexutil.Uint) (*types2.Transaction, error) {
+	log.Debugf("eth_getTransactionByBlockNumberAndIndex hash %d, idx %v", blockNum, idx.String())
 	height := uint32(blockNum)
 	if blockNum.IsLatest() || blockNum.IsPending() {
 		height = bactor.GetCurrentBlockHeight()
@@ -486,6 +506,7 @@ func (api *EthereumAPI) GetTransactionByBlockNumberAndIndex(blockNum types2.Bloc
 }
 
 func (api *EthereumAPI) GetTransactionReceipt(hash common.Hash) (interface{}, error) {
+	log.Debugf("eth_getTransactionReceipt hash %d", hash.Hex())
 	notify, err := bactor.GetEventNotifyByTxHash(utils2.EthToOntHash(hash))
 	if err != nil {
 		return nil, nil
@@ -545,6 +566,7 @@ func generateRecipient(notify *event.ExecuteNotify) (interface{}, error) {
 }
 
 func (api *EthereumAPI) PendingTransactions() ([]*types2.Transaction, error) {
+	log.Debug("eth_pendingTransactions")
 	pendingTxs := api.txpool.PendingEIPTransactions()
 	var rpcTxs []*types2.Transaction
 	for _, v2 := range pendingTxs {
@@ -558,6 +580,7 @@ func (api *EthereumAPI) PendingTransactions() ([]*types2.Transaction, error) {
 }
 
 func (api *EthereumAPI) PendingTransactionsByHash(target common.Hash) (*types2.Transaction, error) {
+	log.Debug("eth_pendingTransactionsByHash target %v", target.Hex())
 	ethTx := api.txpool.PendingTransactionsByHash(target)
 	if ethTx == nil {
 		return nil, fmt.Errorf("tx: %v not found", target.String())
