@@ -64,9 +64,9 @@ format:
 	$(GOFMT) -w main.go
 
 
-docker: Makefile
+docker: ontology
 	@echo "Building ontology docker"
-	@$(DBUILD) --no-cache -t $(DOCKER_NS)/ontology:$(DOCKER_TAG) - < docker/Dockerfile 
+	docker-compose --profile nostart -f docker/docker-compose.yaml build --no-cache
 	@touch $@
 
 clean:
