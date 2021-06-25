@@ -110,8 +110,8 @@ $ tree
 
 You can run the Ontology node software with Docker.
 
-1. Setup Docker on your computer
-  - You will need the latest version of [Docker Desktop](https://www.docker.com/products/docker-desktop).
+1. Setup Docker-compose on your computer
+  - You will need the latest version of [Docker Compose](https://docs.docker.com/compose/install/).
 
 2. Make a Docker image
   - In the root directory of the source code, run `make docker` to make an Ontology image.
