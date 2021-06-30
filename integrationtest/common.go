@@ -20,6 +20,9 @@ package integrationtest
 import (
 	"encoding/hex"
 	"fmt"
+	"os"
+	"time"
+
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/account"
 	"github.com/ontio/ontology/common"
@@ -33,8 +36,6 @@ import (
 	"github.com/ontio/ontology/core/types"
 	cutils "github.com/ontio/ontology/core/utils"
 	"github.com/ontio/ontology/events"
-	"os"
-	"time"
 )
 
 func NewLedger() (*ledger.Ledger, *account.Account) {
