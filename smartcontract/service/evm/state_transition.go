@@ -257,6 +257,9 @@ func (st *StateTransition) TransitionDb() (*types.ExecutionResult, error) {
 		vmerr = fmt.Errorf("%w: address %v", ErrInsufficientFundsForTransfer, msg.From().Hex())
 	}
 	st.gas -= gas
+	if !contractCreation {
+		st.state.SetNonce(msg.From(), st.state.GetNonce(sender.Address())+1)
+	}
 	if vmerr == nil {
 		if contractCreation {
 			ret, _, st.gas, vmerr = st.evm.Create(sender, st.data, st.gas, st.value)
@@ -264,9 +267,6 @@ func (st *StateTransition) TransitionDb() (*types.ExecutionResult, error) {
 			// Increment the nonce for the next transaction
 			ret, st.gas, vmerr = st.evm.Call(sender, st.to(), st.data, st.gas, st.value)
 		}
-	}
-	if !contractCreation {
-		st.state.SetNonce(msg.From(), st.state.GetNonce(sender.Address())+1)
 	}
 	st.refundGas()
 	st.state.AddBalance(st.GasReceiver, new(big.Int).Mul(new(big.Int).SetUint64(st.gasUsed()), st.gasPrice))

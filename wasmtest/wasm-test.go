@@ -323,10 +323,6 @@ func main() {
 	checkErr(err)
 	ledger.DefLedger = database
 
-	if true {
-		ongTest(database, acct)
-	}
-
 	log.Info("loading wasm contract")
 	contract, err := LoadContracts(contractDir)
 	checkErr(err)
