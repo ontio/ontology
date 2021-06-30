@@ -262,11 +262,13 @@ func (st *StateTransition) TransitionDb() (*types.ExecutionResult, error) {
 			ret, _, st.gas, vmerr = st.evm.Create(sender, st.data, st.gas, st.value)
 		} else {
 			// Increment the nonce for the next transaction
-			st.state.SetNonce(msg.From(), st.state.GetNonce(sender.Address())+1)
 			ret, st.gas, vmerr = st.evm.Call(sender, st.to(), st.data, st.gas, st.value)
 		}
-		st.refundGas()
 	}
+	if !contractCreation {
+		st.state.SetNonce(msg.From(), st.state.GetNonce(sender.Address())+1)
+	}
+	st.refundGas()
 	st.state.AddBalance(st.GasReceiver, new(big.Int).Mul(new(big.Int).SetUint64(st.gasUsed()), st.gasPrice))
 
 	return &types.ExecutionResult{

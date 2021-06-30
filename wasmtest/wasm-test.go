@@ -310,7 +310,7 @@ func main() {
 	config.DefConfig.Genesis.ConsensusType = "solo"
 	config.DefConfig.Genesis.SOLO.GenBlockTime = 3
 	config.DefConfig.Genesis.SOLO.Bookkeepers = []string{hex.EncodeToString(buf)}
-	config.DefConfig.P2PNode.NetworkId = 0
+	config.DefConfig.P2PNode.NetworkId = 3
 
 	bookkeepers := []keypair.PublicKey{acct.PublicKey}
 	//Init event hub
@@ -322,6 +322,10 @@ func main() {
 	database, err := ledger.InitLedger(datadir, 1000000, bookkeepers, genblock)
 	checkErr(err)
 	ledger.DefLedger = database
+
+	if true {
+		ongTest(database, acct)
+	}
 
 	log.Info("loading wasm contract")
 	contract, err := LoadContracts(contractDir)
