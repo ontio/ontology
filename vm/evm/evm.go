@@ -501,7 +501,7 @@ func MakeOngTransferLog(stateDB StateDB, from, to common.Address, value *big.Int
 		topic[2] = common.BytesToHash(to[:])
 
 		sl := &types.StorageLog{
-			Address: common.BytesToAddress(utils.OntContractAddress[:]),
+			Address: common.BytesToAddress(utils.OngContractAddress[:]),
 			Topics:  topic,
 			Data:    value.Bytes(),
 		}
