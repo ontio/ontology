@@ -22,8 +22,10 @@ import (
 	"crypto/ecdsa"
 	"encoding/hex"
 	"fmt"
+	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"math/big"
+	"strings"
 	"testing"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
@@ -95,6 +97,8 @@ func checkOngTransferEvent(database *ledger.Ledger, acct *account.Account) {
 	fromEthAddr := crypto.PubkeyToAddress(fromPrivateKey.PublicKey)
 	evt, err := database.GetEventNotifyByTx(tx.Hash())
 	checkErr(err)
+	parsed, err := abi.JSON(strings.NewReader(WingABI))
+	checkErr(err)
 	TransferID := common.HexToHash("0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef")
 	if evt != nil {
 		for _, noti := range evt.Notify {
@@ -107,6 +111,8 @@ func checkOngTransferEvent(database *ledger.Ledger, acct *account.Account) {
 					var storageLog types.StorageLog
 					err = storageLog.Deserialization(source)
 					checkErr(err)
+					parsed.Unpack("Transfer", storageLog.Data)
+					
 					if bytes.Compare(storageLog.Topics[0][:], TransferID[:]) == 0 {
 						panic("invalid TransferID")
 					}
