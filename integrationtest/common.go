@@ -18,9 +18,16 @@
 package integrationtest
 
 import (
+	"crypto/ecdsa"
 	"encoding/hex"
 	"fmt"
+	"github.com/ethereum/go-ethereum/accounts/abi"
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
+	types2 "github.com/ethereum/go-ethereum/core/types"
+	"io/ioutil"
+	"math/big"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/ontio/ontology-crypto/keypair"
@@ -127,6 +134,39 @@ func newNativeTx(contractAddress common.Address, version byte, gasPrice, gasLimi
 		Sigs:     nil,
 	}
 	return tx
+}
+
+func loadContract(filePath string) []byte {
+	if common.FileExisted(filePath) {
+		raw, err := ioutil.ReadFile(filePath)
+		checkErr(err)
+		code, err := hex.DecodeString(strings.TrimSpace(string(raw)))
+		if err != nil {
+			return raw
+		} else {
+			return code
+		}
+	} else {
+		panic("no existed file:" + filePath)
+	}
+}
+
+func NewDeployEvmContract(privateKey *ecdsa.PrivateKey, nonce int64, gasPrice, gasLimit uint64, code []byte, jsonABI string, params ...interface{}) *types2.Transaction {
+	chainId := big.NewInt(int64(config.DefConfig.P2PNode.EVMChainId))
+	opts, err := bind.NewKeyedTransactorWithChainID(privateKey, chainId)
+	checkErr(err)
+	opts.GasPrice = big.NewInt(int64(gasPrice))
+	opts.Nonce = big.NewInt(nonce)
+	opts.GasLimit = gasLimit
+	parsed, err := abi.JSON(strings.NewReader(jsonABI))
+	checkErr(err)
+	input, err := parsed.Pack("", params...)
+	checkErr(err)
+	input = append(code, input...)
+	deployTx := types2.NewContractCreation(opts.Nonce.Uint64(), opts.Value, opts.GasLimit, opts.GasPrice, input)
+	signedTx, err := opts.Signer(opts.From, deployTx)
+	checkErr(err)
+	return signedTx
 }
 
 func checkErr(err error) {
