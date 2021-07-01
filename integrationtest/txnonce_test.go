@@ -42,6 +42,11 @@ const WingABI = "[{\"inputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"c
 
 const testContractDir = "./test-contract"
 
+// Mainly test several scenarios
+// 1. not enough ong for transfer, Will transaction nonce be updated
+// 2. not enough ong for deploy contract, Will transaction nonce be updated
+// 3. check ong transfer event, there should be two events of ong transfer in ong transfer transaction,
+// others, there should be only one event for ong transfer.
 func TestTxNonce(t *testing.T) {
 	database, acct := NewLedger()
 	gasPrice := uint64(500)
@@ -67,7 +72,7 @@ func checkDeployEvmContract(database *ledger.Ledger, acct *account.Account, gasP
 	transferOng(database, gasPrice, gasLimit, acct, common2.Address(ethAddr), ongAmt)
 	code := loadContract(testContractDir + "/wing_eth.evm")
 	nonce := int64(0)
-	evmTx := NewDeployEvmContract(privateKey, nonce, gasPrice, gasLimit, code, WingABI)
+	evmTx := NewDeployEvmContract(privateKey, nonce, gasPrice, gasLimit, int64(gasPrice*gasLimit), code, WingABI)
 	ontTx, err := types.TransactionFromEIP155(evmTx)
 	checkErr(err)
 	genBlock(database, acct, ontTx)

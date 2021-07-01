@@ -151,7 +151,7 @@ func loadContract(filePath string) []byte {
 	}
 }
 
-func NewDeployEvmContract(privateKey *ecdsa.PrivateKey, nonce int64, gasPrice, gasLimit uint64, code []byte, jsonABI string, params ...interface{}) *types2.Transaction {
+func NewDeployEvmContract(privateKey *ecdsa.PrivateKey, nonce int64, gasPrice, gasLimit uint64, msgValue int64, code []byte, jsonABI string, params ...interface{}) *types2.Transaction {
 	chainId := big.NewInt(int64(config.DefConfig.P2PNode.EVMChainId))
 	opts, err := bind.NewKeyedTransactorWithChainID(privateKey, chainId)
 	checkErr(err)
@@ -163,8 +163,7 @@ func NewDeployEvmContract(privateKey *ecdsa.PrivateKey, nonce int64, gasPrice, g
 	input, err := parsed.Pack("", params...)
 	checkErr(err)
 	input = append(code, input...)
-	opts.Value = big.NewInt(int64(gasPrice * gasLimit))
-	deployTx := types2.NewContractCreation(opts.Nonce.Uint64(), opts.Value, opts.GasLimit, opts.GasPrice, input)
+	deployTx := types2.NewContractCreation(opts.Nonce.Uint64(), big.NewInt(msgValue), opts.GasLimit, opts.GasPrice, input)
 	signedTx, err := opts.Signer(opts.From, deployTx)
 	checkErr(err)
 	return signedTx
