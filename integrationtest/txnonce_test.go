@@ -18,9 +18,11 @@
 package integrationtest
 
 import (
+	"bytes"
 	"crypto/ecdsa"
 	"encoding/hex"
 	"fmt"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"math/big"
 	"testing"
 
@@ -63,6 +65,9 @@ func TestTxNonce(t *testing.T) {
 
 	// not enough ong for deploy evm contract
 	checkDeployEvmContract(database, acct, gasPrice, gasLimit, int64(gasPrice*gasLimit)-1)
+
+	// check ong transfer event
+	//checkOngTransferEvent(database, acct)
 }
 
 func checkDeployEvmContract(database *ledger.Ledger, acct *account.Account, gasPrice, gasLimit uint64, ongAmt int64) {
@@ -81,21 +86,40 @@ func checkDeployEvmContract(database *ledger.Ledger, acct *account.Account, gasP
 	if acc.Nonce != uint64(nonce+1) {
 		panic(fmt.Sprintf("acc.Nonce: %d, nonce+1: %d", acc.Nonce, nonce+1))
 	}
-	//checkOngTransferEvent(database, ontTx.Hash(), 1)
 }
 
-func checkOngTransferEvent(database *ledger.Ledger, txHash common2.Uint256, num int) {
-	evt, err := database.GetEventNotifyByTx(txHash)
+func checkOngTransferEvent(database *ledger.Ledger, acct *account.Account) {
+	fromPrivateKey, toEthAddr := prepareEthAcct(database, acct, 500, 200000)
+	tx := evmTransferOng(fromPrivateKey, 500, 200000, toEthAddr, 0, 1000000000)
+	genBlock(database, acct, tx)
+	fromEthAddr := crypto.PubkeyToAddress(fromPrivateKey.PublicKey)
+	evt, err := database.GetEventNotifyByTx(tx.Hash())
 	checkErr(err)
+	TransferID := common.HexToHash("0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef")
 	if evt != nil {
-		actual := 0
 		for _, noti := range evt.Notify {
-			if noti.ContractAddress != utils.OngContractAddress {
-				actual++
+			if noti.ContractAddress == utils.OngContractAddress {
+				states, ok := noti.States.(string)
+				if ok {
+					data, err := hexutil.Decode(states)
+					checkErr(err)
+					source := common2.NewZeroCopySource(data)
+					var storageLog types.StorageLog
+					err = storageLog.Deserialization(source)
+					checkErr(err)
+					if bytes.Compare(storageLog.Topics[0][:], TransferID[:]) == 0 {
+						panic("invalid TransferID")
+					}
+					fromHash := common.BytesToHash(fromEthAddr[:])
+					if bytes.Compare(storageLog.Topics[1][:], fromHash[:]) == 0 {
+						panic("invalid from address")
+					}
+					toHash := common.BytesToHash(toEthAddr[:])
+					if bytes.Compare(storageLog.Topics[2][:], toHash[:]) == 0 {
+						panic("invalid to address")
+					}
+				}
 			}
-		}
-		if actual != num {
-			panic(fmt.Sprintf("there is more ong transfer event, actual: %d, expect:%d", actual, num))
 		}
 	}
 }
