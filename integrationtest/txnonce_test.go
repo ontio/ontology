@@ -50,9 +50,13 @@ func TestTxNonce(t *testing.T) {
 	fromPrivateKey, toEthAddr := prepareEthAcct(database, acct, gasPrice, gasLimit)
 	nonce := int64(0)
 	transferAmt := 0.5 * 1000000000
+	// enough ong for fee, enough ong for transfer
 	checkEvmOngTransfer(database, acct, gasPrice, gasLimit, fromPrivateKey, toEthAddr, int64(transferAmt), nonce)
+
+	// enough ong for fee, not enough ong for transfer
 	checkEvmOngTransfer(database, acct, gasPrice, gasLimit, fromPrivateKey, toEthAddr, int64(transferAmt), nonce+1)
 
+	// not enough ong for deploy evm contract
 	checkDeployEvmContract(database, acct, gasPrice, gasLimit, int64(gasPrice*gasLimit)-1)
 }
 

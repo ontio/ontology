@@ -163,6 +163,7 @@ func NewDeployEvmContract(privateKey *ecdsa.PrivateKey, nonce int64, gasPrice, g
 	input, err := parsed.Pack("", params...)
 	checkErr(err)
 	input = append(code, input...)
+	opts.Value = big.NewInt(int64(gasPrice * gasLimit))
 	deployTx := types2.NewContractCreation(opts.Nonce.Uint64(), opts.Value, opts.GasLimit, opts.GasPrice, input)
 	signedTx, err := opts.Signer(opts.From, deployTx)
 	checkErr(err)

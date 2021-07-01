@@ -266,9 +266,7 @@ func (st *StateTransition) TransitionDb() (*types.ExecutionResult, error) {
 			ret, st.gas, vmerr = st.evm.Call(sender, st.to(), st.data, st.gas, st.value)
 		}
 	} else {
-		if !contractCreation {
-			st.state.SetNonce(msg.From(), st.state.GetNonce(sender.Address())+1)
-		}
+		st.state.SetNonce(msg.From(), st.state.GetNonce(sender.Address())+1)
 	}
 	st.refundGas()
 	st.state.AddBalance(st.GasReceiver, new(big.Int).Mul(new(big.Int).SetUint64(st.gasUsed()), st.gasPrice))
