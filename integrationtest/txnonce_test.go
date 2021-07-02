@@ -22,14 +22,14 @@ import (
 	"crypto/ecdsa"
 	"encoding/hex"
 	"fmt"
-	"github.com/ethereum/go-ethereum/accounts/abi"
-	"github.com/ethereum/go-ethereum/common/hexutil"
 	"math/big"
 	"strings"
 	"testing"
 
+	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	types2 "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ontio/ontology/account"
@@ -112,7 +112,7 @@ func checkOngTransferEvent(database *ledger.Ledger, acct *account.Account) {
 					err = storageLog.Deserialization(source)
 					checkErr(err)
 					parsed.Unpack("Transfer", storageLog.Data)
-					
+
 					if bytes.Compare(storageLog.Topics[0][:], TransferID[:]) == 0 {
 						panic("invalid TransferID")
 					}
