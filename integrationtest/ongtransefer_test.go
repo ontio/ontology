@@ -73,10 +73,11 @@ func checkEvmOngTransferEvent(t *testing.T, database *ledger.Ledger, acct *accou
 	assert.Equal(t, len(logs), 2)
 	fromEthAddr := crypto.PubkeyToAddress(fromPrivateKey.PublicKey)
 	checkOngTransferLog(t, logs[0], fromEthAddr, toEthAddr, uint64(amt))
-	checkOngTransferLog(t, logs[1], fromEthAddr, common.Address(utils.OngContractAddress), evt.GasConsumed)
+	checkOngTransferLog(t, logs[1], fromEthAddr, common.Address(utils.GovernanceContractAddress), evt.GasConsumed)
 }
 
 func checkOngTransferLog(t *testing.T, ethLog *types.StorageLog, fromEthAddr, toEthAddr common.Address, amount uint64) {
+	assert.Equal(t, ethLog.Address, common.Address(utils.OngContractAddress))
 	from, to, value := parseTransferLog(ethLog)
 	assert.Equal(t, from, fromEthAddr)
 	assert.Equal(t, to, toEthAddr)
