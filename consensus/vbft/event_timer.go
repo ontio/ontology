@@ -62,7 +62,7 @@ type SendMsgEvent struct {
 
 type TimerEvent struct {
 	evtType  TimerEventType
-	blockNum uint32
+	blockNum uint32 // peer index when evtType == EventPeerHeartbeat
 	msg      ConsensusMsg
 }
 

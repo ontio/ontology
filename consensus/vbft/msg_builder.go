@@ -21,6 +21,7 @@ package vbft
 import (
 	"encoding/json"
 	"fmt"
+	"math"
 	"time"
 
 	"github.com/ontio/ontology-crypto/keypair"
@@ -184,7 +185,7 @@ func (self *Server) constructHeartbeatMsg() (*peerHeartbeatMsg, error) {
 	return msg, nil
 }
 
-func (self *Server) constructBlock(blkNum uint32, prevBlkHash common.Uint256, txs []*types.Transaction, consensusPayload []byte, blocktimestamp uint32) (*types.Block, error) {
+func (self *Server) constructBlock(blkNum uint32, prevBlkHash common.Uint256, txs []*types.Transaction, consensusPayload []byte, blocktimestamp uint32, empty bool) (*types.Block, error) {
 	txHash := []common.Uint256{}
 	for _, t := range txs {
 		txHash = append(txHash, t.Hash())
@@ -204,8 +205,10 @@ func (self *Server) constructBlock(blkNum uint32, prevBlkHash common.Uint256, tx
 		BlockRoot:        blockRoot,
 		Timestamp:        blocktimestamp,
 		Height:           blkNum,
-		ConsensusData:    common.GetNonce(),
 		ConsensusPayload: consensusPayload,
+	}
+	if !empty {
+		blkHeader.ConsensusData = common.GetNonce()
 	}
 	blk := &types.Block{
 		Header:       blkHeader,
@@ -268,6 +271,17 @@ func (self *Server) constructProposalMsg(blkNum uint32, sysTxs, userTxs []*types
 	if chainconfig != nil {
 		lastConfigBlkNum = blkNum
 	}
+
+	vbftBlkInfoEmpty := &vconfig.VbftBlockInfo{
+		Proposer:           math.MaxUint32,
+		LastConfigBlockNum: lastConfigBlkNum,
+		NewChainConfig:     chainconfig,
+	}
+	consensusPayloadEmpty, err := json.Marshal(vbftBlkInfoEmpty)
+	if err != nil {
+		return nil, err
+	}
+
 	vbftBlkInfo := &vconfig.VbftBlockInfo{
 		Proposer:           self.Index,
 		VrfValue:           vrfValue,
@@ -280,11 +294,11 @@ func (self *Server) constructProposalMsg(blkNum uint32, sysTxs, userTxs []*types
 		return nil, err
 	}
 
-	emptyBlk, err := self.constructBlock(blkNum, prevBlkHash, sysTxs, consensusPayload, blocktimestamp)
+	emptyBlk, err := self.constructBlock(blkNum, prevBlkHash, sysTxs, consensusPayloadEmpty, prevBlk.Block.Header.Timestamp+1, true)
 	if err != nil {
 		return nil, fmt.Errorf("failed to construct empty block: %s", err)
 	}
-	blk, err := self.constructBlock(blkNum, prevBlkHash, append(sysTxs, userTxs...), consensusPayload, blocktimestamp)
+	blk, err := self.constructBlock(blkNum, prevBlkHash, append(sysTxs, userTxs...), consensusPayload, blocktimestamp, false)
 	if err != nil {
 		return nil, fmt.Errorf("failed to constuct blk: %s", err)
 	}
