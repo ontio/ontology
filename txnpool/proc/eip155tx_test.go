@@ -62,16 +62,6 @@ func genTxWithNonceAndPrice(nonce uint64, gp int64) *txtypes.Transaction {
 	return otx
 }
 
-func Test_ethtxRLP(t *testing.T) {
-	initCfg()
-	tx := genTxWithNonceAndPrice(0, 2500)
-
-	fmt.Printf("addr:%s\n", tx.Payer.ToBase58())
-	fmt.Printf("addr eth:%s\n", ethcomm.BytesToAddress(tx.Payer[:]))
-	fmt.Printf("raw:0x%s\n", hex.EncodeToString(tx.Raw))
-	fmt.Printf("txhash:%s\n", tx.Hash().ToHexString())
-}
-
 func Test_From(t *testing.T) {
 	initCfg()
 	otx1 := genTxWithNonceAndPrice(0, 2500)
