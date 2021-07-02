@@ -499,11 +499,11 @@ func MakeOngTransferLog(stateDB StateDB, from, to common.Address, value *big.Int
 		topic[0] = crypto.Keccak256Hash([]byte(transferSig))
 		topic[1] = common.BytesToHash(from[:])
 		topic[2] = common.BytesToHash(to[:])
-
+		val := common.BytesToHash(value.Bytes())
 		sl := &types.StorageLog{
 			Address: common.BytesToAddress(utils.OngContractAddress[:]),
 			Topics:  topic,
-			Data:    value.Bytes(),
+			Data:    val[:],
 		}
 		stateDB.AddLog(sl)
 	}
