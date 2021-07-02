@@ -28,14 +28,13 @@ import (
 
 	"github.com/itchyny/base58-go"
 	"github.com/ontio/ontology-crypto/keypair"
+	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/types"
-	"golang.org/x/crypto/ripemd160"
 )
 
 const (
 	SCHEME = "did"
 	METHOD = "ont"
-	VER    = 0x41
 )
 
 func GenerateID() (string, error) {
@@ -44,25 +43,12 @@ func GenerateID() (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("generate ID error, %s", err)
 	}
-	return CreateID(buf[:])
+	return CreateID(buf[:]), nil
 }
 
-func CreateID(nonce []byte) (string, error) {
-	hasher := ripemd160.New()
-	_, err := hasher.Write(nonce)
-	if err != nil {
-		return "", fmt.Errorf("create ID error, %s", err)
-	}
-	data := hasher.Sum([]byte{VER})
-	data = append(data, checksum(data)...)
-
-	bi := new(big.Int).SetBytes(data).String()
-	idstring, err := base58.BitcoinEncoding.Encode([]byte(bi))
-	if err != nil {
-		return "", fmt.Errorf("create ID error, %s", err)
-	}
-
-	return SCHEME + ":" + METHOD + ":" + string(idstring), nil
+func CreateID(nonce []byte) string {
+	addr := common.AddressFromVmCode(nonce)
+	return SCHEME + ":" + METHOD + ":" + addr.ToBase58()
 }
 
 func VerifyID(id string) bool {
