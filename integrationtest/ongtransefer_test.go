@@ -64,16 +64,21 @@ func checkEvmOngTransferEvent(t *testing.T, database *ledger.Ledger, acct *accou
 	genBlock(database, acct, tx)
 	evt, err := database.GetEventNotifyByTx(tx.Hash())
 	checkErr(err)
+	logs := ontEventToStorageLogs(evt)
+	assert.Equal(t, len(logs), 2)
+	fromEthAddr := crypto.PubkeyToAddress(fromPrivateKey.PublicKey)
+	checkOngTransferLog(t, logs[0], fromEthAddr, toEthAddr, uint64(amt))
+	checkOngTransferLog(t, logs[1], fromEthAddr, common.Address(utils.GovernanceContractAddress), evt.GasConsumed)
+}
+
+func ontEventToStorageLogs(evt *event.ExecuteNotify) []*types.StorageLog {
 	var logs []*types.StorageLog
 	for _, evt := range evt.Notify {
 		ethLog, err := event.NotifyEventInfoToEvmLog(evt)
 		checkErr(err)
 		logs = append(logs, ethLog)
 	}
-	assert.Equal(t, len(logs), 2)
-	fromEthAddr := crypto.PubkeyToAddress(fromPrivateKey.PublicKey)
-	checkOngTransferLog(t, logs[0], fromEthAddr, toEthAddr, uint64(amt))
-	checkOngTransferLog(t, logs[1], fromEthAddr, common.Address(utils.GovernanceContractAddress), evt.GasConsumed)
+	return logs
 }
 
 func checkOngTransferLog(t *testing.T, ethLog *types.StorageLog, fromEthAddr, toEthAddr common.Address, amount uint64) {
