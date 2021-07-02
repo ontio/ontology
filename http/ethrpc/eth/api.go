@@ -580,7 +580,7 @@ func (api *EthereumAPI) PendingTransactions() ([]*types2.Transaction, error) {
 }
 
 func (api *EthereumAPI) PendingTransactionsByHash(target common.Hash) (*types2.Transaction, error) {
-	log.Debug("eth_pendingTransactionsByHash target %v", target.Hex())
+	log.Debugf("eth_pendingTransactionsByHash target %v", target.Hex())
 	ethTx := api.txpool.PendingTransactionsByHash(target)
 	if ethTx == nil {
 		return nil, fmt.Errorf("tx: %v not found", target.String())
