@@ -50,7 +50,7 @@ type ERC20Transfer struct {
 
 // check ONG transfer log, it should meet the erc20 standard, there should be two log when transfer ong,
 //one is ong transfer log, another is the fee log.
-func TestNewERC20(t *testing.T) {
+func TestOngTransferEvent(t *testing.T) {
 	database, acct := NewLedger()
 	gasPrice := uint64(500)
 	gasLimit := uint64(200000)
