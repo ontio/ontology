@@ -338,7 +338,7 @@ func (pool *BlockPool) endorseDone(blkNum uint32, C uint32) (uint32, bool, bool)
 					return esig.EndorsedProposer, true, true
 				}
 			} else {
-				endorseCount[esig.EndorsedProposer] += 1
+				endorseCount[esig.EndorsedProposer]++
 				// check if endorse-consensus reached
 				if endorseCount[esig.EndorsedProposer] > C {
 					return esig.EndorsedProposer, false, true
@@ -526,32 +526,22 @@ func (pool *BlockPool) commitDone(blkNum uint32, C uint32, N uint32) (uint32, bo
 		for endorser, eSigs := range candidate.EndorseSigs {
 			// check if from endorser
 			if !pool.server.isEndorser(blkNum, endorser) {
-				for _, sig := range eSigs {
-					if sig.ForEmpty {
-						emptyCnt++
-					}
-				}
+				continue
 			}
 
 			for _, sig := range eSigs {
 				if sig.ForEmpty {
 					emptyCnt++
 				} else {
-					endorseCnt[sig.EndorsedProposer] += 1
+					endorseCnt[sig.EndorsedProposer]++
 					if endorseCnt[sig.EndorsedProposer] > C {
 						proposer = sig.EndorsedProposer
-						if !forEmpty {
-							forEmpty = emptyCnt > C
-						}
-						break
 					}
 				}
 			}
-
-			if proposer != math.MaxUint32 {
-				break
-			}
 		}
+
+		forEmpty = emptyCnt > C
 	}
 
 	if proposer != math.MaxUint32 {
