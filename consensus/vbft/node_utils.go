@@ -149,19 +149,9 @@ func (self *Server) isEndorser(blockNum uint32, peerIdx uint32) bool {
 	self.metaLock.RLock()
 	defer self.metaLock.RUnlock()
 
-	// the first 2C+1 active endorsers
-	var activeN uint32
-	{
-		for _, id := range self.currentParticipantConfig.Endorsers {
-			if id == peerIdx {
-				return true
-			}
-			if self.isPeerActive(id, blockNum) {
-				activeN++
-				if activeN > self.config.C*2 {
-					break
-				}
-			}
+	for _, id := range self.currentParticipantConfig.Endorsers {
+		if id == peerIdx {
+			return true
 		}
 	}
 
@@ -172,19 +162,9 @@ func (self *Server) isCommitter(blockNum uint32, peerIdx uint32) bool {
 	self.metaLock.RLock()
 	defer self.metaLock.RUnlock()
 
-	// the first 2C+1 active committers
-	var activeN uint32
-	{
-		for _, id := range self.currentParticipantConfig.Committers {
-			if id == peerIdx {
-				return true
-			}
-			if self.isPeerActive(id, blockNum) {
-				activeN++
-				if activeN > self.config.C*2 {
-					break
-				}
-			}
+	for _, id := range self.currentParticipantConfig.Committers {
+		if id == peerIdx {
+			return true
 		}
 	}
 
