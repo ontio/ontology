@@ -214,11 +214,11 @@ func (api *EthereumAPI) GetTransactionLogs(txHash common.Hash) ([]*types.Log, er
 	if notify == nil {
 		return nil, fmt.Errorf("tx %v not found", txHash.String())
 	}
-	logs, _, _, _, err := generateLog(notify)
+	logs, _, _, _, err := GenerateLog(notify)
 	return logs, err
 }
 
-func generateLog(rawNotify *event.ExecuteNotify) ([]*types.Log, *common.Hash, *otypes.Transaction, uint32, error) {
+func GenerateLog(rawNotify *event.ExecuteNotify) ([]*types.Log, *common.Hash, *otypes.Transaction, uint32, error) {
 	var res []*types.Log
 	txHash := rawNotify.TxHash
 	height, tx, err := bactor.GetTxnWithHeightByTxHash(txHash)
@@ -518,7 +518,7 @@ func (api *EthereumAPI) GetTransactionReceipt(hash common.Hash) (interface{}, er
 }
 
 func generateRecipient(notify *event.ExecuteNotify) (interface{}, error) {
-	logs, hash, tx, height, err := generateLog(notify)
+	logs, hash, tx, height, err := GenerateLog(notify)
 	if err != nil {
 		return nil, err
 	}

@@ -18,39 +18,75 @@
 package integrationtest
 
 import (
+	"crypto/ecdsa"
+	"math/big"
 	"strings"
 	"testing"
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/hexutil"
 	types2 "github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/ontio/ontology/account"
 	oComm "github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/core/types"
-	"github.com/ontio/ontology/integrationtest/erc20"
+	"github.com/ontio/ontology/http/ethrpc/eth"
+	"github.com/ontio/ontology/smartcontract/service/native/utils"
 	"github.com/stretchr/testify/assert"
 )
 
+// ERC20ABI is the input ABI used to generate the binding from.
+const ERC20ABI = "[{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"from\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"to\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"value\",\"type\":\"uint256\"}],\"name\":\"Transfer\",\"type\":\"event\"}]"
+
+// ERC20Transfer represents a Transfer event raised by the ERC20 contract.
+type ERC20Transfer struct {
+	From  common.Address
+	To    common.Address
+	Value *big.Int
+	Raw   types.Log // Blockchain specific contextual infos
+}
+
+// check ONG transfer log, it should meet the erc20 standard, there should be two log when transfer ong,
+//one is ong transfer log, another is the fee log.
 func TestNewERC20(t *testing.T) {
-	states := "0x000000000000000000000000000000000000000203000000ddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef00000000000000000000000070997970c51812dc3a010c7d01b50e0d17dc79c8000000000000000000000000000000000000000000000000000000000000000720000000000000000000000000000000000000000000000000000000000113e4e8"
-	data, err := hexutil.Decode(states)
-	assert.Nil(t, err)
-	source := oComm.NewZeroCopySource(data)
-	var storageLog types.StorageLog
-	err = storageLog.Deserialization(source)
-	assert.Nil(t, err)
-	parsed, _ := abi.JSON(strings.NewReader(erc20.ERC20ABI))
-	nbc := bind.NewBoundContract(common.Address{}, parsed, nil, nil, nil)
-	tf := new(erc20.ERC20Transfer)
-	l := types2.Log{
-		Address: storageLog.Address,
-		Topics:  storageLog.Topics,
-		Data:    storageLog.Data,
+	database, acct := NewLedger()
+	gasPrice := uint64(500)
+	gasLimit := uint64(200000)
+
+	fromPrivateKey, toEthAddr := prepareEthAcct(database, acct, gasPrice, gasLimit, int64(1*1000000000))
+	checkEvmOngTransferEvent(t, database, acct, gasPrice, gasLimit, fromPrivateKey, toEthAddr, 10000, 0)
+}
+
+func checkEvmOngTransferEvent(t *testing.T, database *ledger.Ledger, acct *account.Account, gasPrice, gasLimit uint64, fromPrivateKey *ecdsa.PrivateKey, toEthAddr common.Address, amt int64, nonce int64) {
+	tx := evmTransferOng(fromPrivateKey, gasPrice, gasLimit, toEthAddr, nonce, amt)
+	genBlock(database, acct, tx)
+	evt, err := database.GetEventNotifyByTx(tx.Hash())
+	checkErr(err)
+	logs, _, _, _, err := eth.GenerateLog(evt)
+	checkErr(err)
+	fromEthAddr := crypto.PubkeyToAddress(fromPrivateKey.PublicKey)
+	assert.Equal(t, len(logs), 2)
+	for _, ethLog := range logs {
+		if oComm.Address(ethLog.Address) == utils.OngContractAddress {
+			checkOngTransferLog(t, *ethLog, fromEthAddr, toEthAddr, uint64(amt), evt.GasConsumed)
+		}
 	}
-	err = nbc.UnpackLog(tf, "Transfer", l)
+
+}
+
+func checkOngTransferLog(t *testing.T, ongLog types2.Log, fromEthAddr, toEthAddr common.Address, transferAmt, fee uint64) {
+	parsed, _ := abi.JSON(strings.NewReader(ERC20ABI))
+	nbc := bind.NewBoundContract(common.Address{}, parsed, nil, nil, nil)
+	tf := new(ERC20Transfer)
+	err := nbc.UnpackLog(tf, "Transfer", ongLog)
 	assert.Nil(t, err)
-	assert.Equal(t, "0x70997970C51812dc3A010C7d01b50e0d17dc79C8", tf.From.String())
-	assert.Equal(t, "0x0000000000000000000000000000000000000007", tf.To.String())
-	assert.Equal(t, "18081000", tf.Value.String())
+	assert.Equal(t, fromEthAddr, tf.From)
+	if oComm.Address(tf.To) == utils.GovernanceContractAddress {
+		assert.Equal(t, fee, tf.Value.Uint64())
+	} else {
+		assert.Equal(t, transferAmt, tf.Value.Uint64())
+		assert.Equal(t, toEthAddr, tf.To)
+	}
 }
