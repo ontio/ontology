@@ -23,6 +23,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/ontio/ontology/smartcontract/event"
+
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
@@ -32,7 +34,6 @@ import (
 	oComm "github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/core/types"
-	"github.com/ontio/ontology/http/ethrpc/eth"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 	"github.com/stretchr/testify/assert"
 )
@@ -64,16 +65,23 @@ func checkEvmOngTransferEvent(t *testing.T, database *ledger.Ledger, acct *accou
 	genBlock(database, acct, tx)
 	evt, err := database.GetEventNotifyByTx(tx.Hash())
 	checkErr(err)
-	logs, _, _, _, err := eth.GenerateLog(evt)
-	checkErr(err)
-	fromEthAddr := crypto.PubkeyToAddress(fromPrivateKey.PublicKey)
+	var logs []*types.StorageLog
+	for _, evt := range evt.Notify {
+		ethLog, err := event.NotifyEventInfoToEvmLog(evt)
+		checkErr(err)
+		logs = append(logs, ethLog)
+	}
 	assert.Equal(t, len(logs), 2)
+	fromEthAddr := crypto.PubkeyToAddress(fromPrivateKey.PublicKey)
 	for _, ethLog := range logs {
 		if oComm.Address(ethLog.Address) == utils.OngContractAddress {
-			checkOngTransferLog(t, *ethLog, fromEthAddr, toEthAddr, uint64(amt), evt.GasConsumed)
+			checkOngTransferLog(t, types2.Log{
+				Address: ethLog.Address,
+				Topics:  ethLog.Topics,
+				Data:    ethLog.Data,
+			}, fromEthAddr, toEthAddr, uint64(amt), evt.GasConsumed)
 		}
 	}
-
 }
 
 func checkOngTransferLog(t *testing.T, ongLog types2.Log, fromEthAddr, toEthAddr common.Address, transferAmt, fee uint64) {
