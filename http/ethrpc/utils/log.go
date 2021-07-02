@@ -24,8 +24,21 @@ import (
 
 func OntLogHandler() log.Handler {
 	h := log.FuncHandler(func(r *log.Record) error {
-		olog.Error(r.Msg)
+		switch r.Lvl {
+		case log.LvlCrit:
+			olog.Fatal(r.Msg)
+		case log.LvlError:
+			olog.Error(r.Msg)
+		case log.LvlWarn:
+			olog.Warn(r.Msg)
+		case log.LvlInfo:
+			olog.Info(r.Msg)
+		case log.LvlDebug:
+			olog.Debug(r.Msg)
+		case log.LvlTrace:
+			olog.Trace(r.Msg)
+		}
 		return nil
 	})
-	return log.LazyHandler(log.SyncHandler(h))
+	return h
 }
