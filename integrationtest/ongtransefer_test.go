@@ -31,7 +31,6 @@ import (
 	types2 "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ontio/ontology/account"
-	oComm "github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
@@ -73,28 +72,27 @@ func checkEvmOngTransferEvent(t *testing.T, database *ledger.Ledger, acct *accou
 	}
 	assert.Equal(t, len(logs), 2)
 	fromEthAddr := crypto.PubkeyToAddress(fromPrivateKey.PublicKey)
-	for _, ethLog := range logs {
-		if oComm.Address(ethLog.Address) == utils.OngContractAddress {
-			checkOngTransferLog(t, types2.Log{
-				Address: ethLog.Address,
-				Topics:  ethLog.Topics,
-				Data:    ethLog.Data,
-			}, fromEthAddr, toEthAddr, uint64(amt), evt.GasConsumed)
-		}
-	}
+	checkOngTransferLog(t, logs[0], fromEthAddr, toEthAddr, uint64(amt))
+	checkOngTransferLog(t, logs[1], fromEthAddr, common.Address(utils.OngContractAddress), evt.GasConsumed)
 }
 
-func checkOngTransferLog(t *testing.T, ongLog types2.Log, fromEthAddr, toEthAddr common.Address, transferAmt, fee uint64) {
+func checkOngTransferLog(t *testing.T, ethLog *types.StorageLog, fromEthAddr, toEthAddr common.Address, amount uint64) {
+	from, to, value := parseTransferLog(ethLog)
+	assert.Equal(t, from, fromEthAddr)
+	assert.Equal(t, to, toEthAddr)
+	assert.Equal(t, value, amount)
+}
+
+func parseTransferLog(ethLog *types.StorageLog) (from, to common.Address, val uint64) {
+	ongLog := types2.Log{
+		Address: ethLog.Address,
+		Topics:  ethLog.Topics,
+		Data:    ethLog.Data,
+	}
 	parsed, _ := abi.JSON(strings.NewReader(ERC20ABI))
 	nbc := bind.NewBoundContract(common.Address{}, parsed, nil, nil, nil)
 	tf := new(ERC20Transfer)
 	err := nbc.UnpackLog(tf, "Transfer", ongLog)
-	assert.Nil(t, err)
-	assert.Equal(t, fromEthAddr, tf.From)
-	if oComm.Address(tf.To) == utils.GovernanceContractAddress {
-		assert.Equal(t, fee, tf.Value.Uint64())
-	} else {
-		assert.Equal(t, transferAmt, tf.Value.Uint64())
-		assert.Equal(t, toEthAddr, tf.To)
-	}
+	checkErr(err)
+	return tf.From, tf.To, tf.Value.Uint64()
 }
