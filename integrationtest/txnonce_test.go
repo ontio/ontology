@@ -23,7 +23,7 @@ import (
 	"fmt"
 	"math/big"
 	"testing"
-
+	
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	types2 "github.com/ethereum/go-ethereum/core/types"
