@@ -79,6 +79,12 @@ func TransactionFromRawBytes(raw []byte) (*Transaction, error) {
 }
 
 func TransactionFromEIP155(eiptx *types.Transaction) (*Transaction, error) {
+	if CheckChainID {
+		if eiptx.ChainId().Cmp(big.NewInt(int64(config.DefConfig.P2PNode.EVMChainId))) != 0 {
+			return nil, fmt.Errorf("invalid chain id, want: %d, got: %d", config.DefConfig.P2PNode.EVMChainId, eiptx.ChainId())
+		}
+	}
+
 	signer := types.NewEIP155Signer(eiptx.ChainId())
 	from, err := signer.Sender(eiptx)
 	if err != nil {
@@ -157,12 +163,6 @@ func (tx *Transaction) decodeEip155(source *common.ZeroCopySource) error {
 	err := pl.Deserialization(source)
 	if err != nil {
 		return err
-	}
-
-	if CheckChainID {
-		if pl.EIPTx.ChainId().Cmp(big.NewInt(int64(config.DefConfig.P2PNode.EVMChainId))) != 0 {
-			return fmt.Errorf("invalid chainID ! want:%d,got:%d", config.DefConfig.P2PNode.EVMChainId, pl.EIPTx.ChainId())
-		}
 	}
 
 	decoded, err := TransactionFromEIP155(pl.EIPTx)
