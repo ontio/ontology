@@ -25,6 +25,9 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/holiman/uint256"
+
+	"github.com/ontio/ontology/core/types"
+	"github.com/ontio/ontology/smartcontract/service/native/utils"
 	"github.com/ontio/ontology/vm/evm/errors"
 	"github.com/ontio/ontology/vm/evm/params"
 )
@@ -485,3 +488,23 @@ func (evm *EVM) Create2(caller ContractRef, code []byte, gas uint64, endowment *
 
 // ChainConfig returns the environment's chain configuration
 func (evm *EVM) ChainConfig() *params.ChainConfig { return evm.chainConfig }
+
+// make native ong transfer Log
+func MakeOngTransferLog(stateDB StateDB, from, to common.Address, value *big.Int) {
+	if value.Cmp(big0) > 0 {
+		topic := make([]common.Hash, 3)
+
+		transferSig := "Transfer(address,address,uint256)"
+		// this should always be 0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef
+		topic[0] = crypto.Keccak256Hash([]byte(transferSig))
+		topic[1] = common.BytesToHash(from[:])
+		topic[2] = common.BytesToHash(to[:])
+		val := common.BytesToHash(value.Bytes())
+		sl := &types.StorageLog{
+			Address: common.BytesToAddress(utils.OngContractAddress[:]),
+			Topics:  topic,
+			Data:    val[:],
+		}
+		stateDB.AddLog(sl)
+	}
+}

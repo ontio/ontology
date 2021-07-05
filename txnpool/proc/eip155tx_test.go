@@ -18,12 +18,15 @@
 package proc
 
 import (
+	"encoding/hex"
+	"fmt"
 	"math/big"
 	"testing"
 
 	ethcomm "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/ethereum/go-ethereum/rlp"
 	sysconfig "github.com/ontio/ontology/common/config"
 	txtypes "github.com/ontio/ontology/core/types"
 	"github.com/stretchr/testify/assert"
@@ -50,18 +53,13 @@ func genTxWithNonceAndPrice(nonce uint64, gp int64) *txtypes.Transaction {
 	if err != nil {
 		return nil
 	}
-
+	bts, _ := rlp.EncodeToBytes(signedTx)
+	fmt.Printf("rlp:0x%s\n", hex.EncodeToString(bts))
 	otx, err := txtypes.TransactionFromEIP155(signedTx)
 	if err != nil {
 		return nil
 	}
 	return otx
-}
-
-func Test_ethtxRLP(t *testing.T) {
-	initCfg()
-	genTxWithNonceAndPrice(1, 2500)
-
 }
 
 func Test_From(t *testing.T) {
