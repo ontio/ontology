@@ -269,8 +269,9 @@ func (st *StateTransition) TransitionDb() (*types.ExecutionResult, error) {
 		st.state.SetNonce(msg.From(), st.state.GetNonce(sender.Address())+1)
 	}
 	st.refundGas()
-	st.state.AddBalance(st.GasReceiver, new(big.Int).Mul(new(big.Int).SetUint64(st.gasUsed()), st.gasPrice))
-
+	gAmount := new(big.Int).Mul(new(big.Int).SetUint64(st.gasUsed()), st.gasPrice)
+	st.state.AddBalance(st.GasReceiver, gAmount)
+	evm.MakeOngTransferLog(st.state, sender.Address(), st.GasReceiver, gAmount)
 	return &types.ExecutionResult{
 		UsedGas:    st.gasUsed(),
 		Err:        vmerr,

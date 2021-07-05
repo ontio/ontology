@@ -52,7 +52,7 @@ func TestTxNonce(t *testing.T) {
 	gasPrice := uint64(500)
 	gasLimit := uint64(200000)
 
-	fromPrivateKey, toEthAddr := prepareEthAcct(database, acct, gasPrice, gasLimit)
+	fromPrivateKey, toEthAddr := prepareEthAcct(database, acct, gasPrice, gasLimit, int64(1*1000000000))
 	nonce := int64(0)
 	transferAmt := 0.5 * 1000000000
 	// enough ong for fee, enough ong for transfer
@@ -109,11 +109,11 @@ func checkEvmOngTransfer(database *ledger.Ledger, acct *account.Account, gasPric
 	}
 }
 
-func prepareEthAcct(database *ledger.Ledger, acct *account.Account, gasPrice, gasLimit uint64) (*ecdsa.PrivateKey, common.Address) {
+func prepareEthAcct(database *ledger.Ledger, acct *account.Account, gasPrice, gasLimit uint64, ongAmt int64) (*ecdsa.PrivateKey, common.Address) {
 	fromPrivateKey, err := crypto.GenerateKey()
 	checkErr(err)
 	fromEthAddr := crypto.PubkeyToAddress(fromPrivateKey.PublicKey)
-	transferOng(database, gasPrice, gasLimit, acct, common2.Address(fromEthAddr), 1*1000000000)
+	transferOng(database, gasPrice, gasLimit, acct, common2.Address(fromEthAddr), ongAmt)
 
 	toPrivateKey, err := crypto.GenerateKey()
 	checkErr(err)

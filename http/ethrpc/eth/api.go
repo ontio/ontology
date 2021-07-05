@@ -228,22 +228,12 @@ func generateLog(rawNotify *event.ExecuteNotify) ([]*types.Log, *common.Hash, *o
 	hash := bactor.GetBlockHashFromStore(height)
 	ethHash := utils2.OntToEthHash(hash)
 	for idx, n := range rawNotify.Notify {
-		if !n.IsEvm {
-			return nil, nil, nil, 0, fmt.Errorf("not support tx type %v", rawNotify.TxHash.ToHexString())
+		storageLog, err := event.NotifyEventInfoToEvmLog(n)
+		if err != nil {
+			return nil, nil, nil, 0, err
 		}
-		states, ok := n.States.(string)
-		if ok {
-			data, err := hexutil.Decode(states)
-			if err != nil {
-				return nil, nil, nil, 0, err
-			}
-			source := oComm.NewZeroCopySource(data)
-			var storageLog otypes.StorageLog
-			err = storageLog.Deserialization(source)
-			if err != nil {
-				return nil, nil, nil, 0, err
-			}
-			log := &types.Log{
+		res = append(res,
+			&types.Log{
 				Address:     storageLog.Address,
 				Topics:      storageLog.Topics,
 				Data:        storageLog.Data,
@@ -253,9 +243,7 @@ func generateLog(rawNotify *event.ExecuteNotify) ([]*types.Log, *common.Hash, *o
 				BlockHash:   ethHash,
 				Index:       uint(idx),
 				Removed:     false,
-			}
-			res = append(res, log)
-		}
+			})
 	}
 	return res, &ethHash, tx, height, nil
 }

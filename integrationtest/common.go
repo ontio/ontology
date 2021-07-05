@@ -42,7 +42,6 @@ import (
 	"github.com/ontio/ontology/core/signature"
 	"github.com/ontio/ontology/core/types"
 	cutils "github.com/ontio/ontology/core/utils"
-	"github.com/ontio/ontology/events"
 )
 
 func NewLedger() (*ledger.Ledger, *account.Account) {
@@ -64,7 +63,7 @@ func NewLedger() (*ledger.Ledger, *account.Account) {
 
 	bookkeepers := []keypair.PublicKey{acct.PublicKey}
 	//Init event hub
-	events.Init()
+	//events.Init()
 
 	log.Info("1. Loading the Ledger")
 	genblock, err := genesis.BuildGenesisBlock(bookkeepers, config.DefConfig.Genesis)
