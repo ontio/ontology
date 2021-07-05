@@ -236,7 +236,7 @@ func (tp *TXPool) CleanCompletedTransactionList(txs []*types.Transaction, height
 		}
 	}
 
-	ShowTraceLog("clean txes: total %d, cleaned %d, remains %d in TxPool", txsNum, cleaned, len(tp.validTxMap))
+	log.Infof("clean txes: total %d, cleaned %d, remains %d in TxPool", txsNum, cleaned, len(tp.validTxMap))
 }
 
 func (tp *TXPool) selectSortEIP155WithLock(eiptxs []Transactions) []*VerifiedTx {

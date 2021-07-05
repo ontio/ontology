@@ -276,7 +276,8 @@ func (s *TXPoolServer) getTxPool(byCount bool, height uint32) []*tc.VerifiedTx {
 		s.reVerifyStateful(t, tc.NilSender)
 		tc.ShowTraceLog("reverify transaction : %s", t.Hash().ToHexString())
 	}
-	tc.ShowTraceLog("get tx pool valid: %d, expired: %d", len(avlTxList), len(oldTxList))
+
+	log.Infof("get tx pool valid: %d, expired: %d", len(avlTxList), len(oldTxList))
 	return avlTxList
 }
 

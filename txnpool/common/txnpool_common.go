@@ -19,12 +19,12 @@
 package common
 
 import (
-	"github.com/ontio/ontology/common/config"
-	"github.com/ontio/ontology/common/log"
 	"math/big"
 	"sync/atomic"
 
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/config"
+	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/errors"
