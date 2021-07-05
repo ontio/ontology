@@ -147,7 +147,7 @@ func (s *TXPoolServer) movePendingTxToPool(txEntry *tc.VerifiedTx) { //solve the
 
 	errCode := s.txPool.AddTxList(txEntry)
 	s.removePendingTxLocked(txEntry.Tx.Hash(), errCode)
-	log.Infof("tx moved from pending pool to tx pool: %s, err: %s", txEntry.Tx.Hash().ToHexString(), errCode.Error())
+	tc.ShowTraceLog("tx moved from pending pool to tx pool: %s, err: %s", txEntry.Tx.Hash().ToHexString(), errCode.Error())
 }
 
 // removes a transaction from the pending list
@@ -158,7 +158,7 @@ func (s *TXPoolServer) removePendingTx(hash common.Uint256, err errors.ErrCode) 
 	s.mu.Lock()
 	s.removePendingTxLocked(hash, err)
 	s.mu.Unlock()
-	log.Infof("transaction removed from pending pool: %s, err: %s", hash.ToHexString(), err.Error())
+	tc.ShowTraceLog("transaction removed from pending pool: %s, err: %s", hash.ToHexString(), err.Error())
 }
 
 func (s *TXPoolServer) broadcastTx(pt *serverPendingTx) {
@@ -228,7 +228,7 @@ func (s *TXPoolServer) startTxVerify(tx *txtypes.Transaction, sender tc.SenderTy
 		return false
 	}
 
-	log.Infof("transaction added to pending pool: %s", tx.Hash().ToHexString())
+	tc.ShowTraceLog("transaction added to pending pool: %s", tx.Hash().ToHexString())
 
 	if tx := s.getTransaction(tx.Hash()); tx != nil {
 		log.Debugf("verifyTx: transaction %x already in the txn pool", tx.Hash())
@@ -274,11 +274,9 @@ func (s *TXPoolServer) getTxPool(byCount bool, height uint32) []*tc.VerifiedTx {
 
 	for _, t := range oldTxList {
 		s.reVerifyStateful(t, tc.NilSender)
-		log.Infof("reverify transaction : %s", t.Hash().ToHexString())
+		tc.ShowTraceLog("reverify transaction : %s", t.Hash().ToHexString())
 	}
-
-	log.Infof("get tx pool valid: %d, expired: %d", len(avlTxList), len(oldTxList))
-
+	tc.ShowTraceLog("get tx pool valid: %d, expired: %d", len(avlTxList), len(oldTxList))
 	return avlTxList
 }
 
@@ -369,7 +367,7 @@ func (s *TXPoolServer) reVerifyStateful(tx *txtypes.Transaction, sender tc.Sende
 		return
 	}
 
-	log.Infof("tx added to pending pool for reverify: %s", tx.Hash().ToHexString())
+	tc.ShowTraceLog("tx added to pending pool for reverify: %s", tx.Hash().ToHexString())
 
 	pt.checkingStatus.SetStateless()
 	s.stateful.SubmitVerifyTask(tx, s.rspCh)

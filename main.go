@@ -103,6 +103,7 @@ func setupAPP() *cli.App {
 		utils.TxpoolPreExecDisableFlag,
 		utils.DisableSyncVerifyTxFlag,
 		utils.DisableBroadcastNetTxFlag,
+		utils.TraceTxPoolFlag,
 		//p2p setting
 		utils.ReservedPeersOnlyFlag,
 		utils.ReservedPeersFileFlag,

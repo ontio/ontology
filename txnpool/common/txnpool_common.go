@@ -19,6 +19,8 @@
 package common
 
 import (
+	"github.com/ontio/ontology/common/config"
+	"github.com/ontio/ontology/common/log"
 	"math/big"
 	"sync/atomic"
 
@@ -178,4 +180,12 @@ func GetOngBalance(account common.Address) (*big.Int, error) {
 	}
 
 	return big.NewInt(0).SetUint64(amount), nil
+}
+
+func ShowTraceLog(format string, a ...interface{}) {
+	if config.DefConfig.Common.TraceTxPool {
+		log.Infof(format, a)
+	} else {
+		log.Debugf(format, a)
+	}
 }

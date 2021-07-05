@@ -520,6 +520,11 @@ var (
 		Usage: "Disable broadcast tx from network in tx pool",
 	}
 
+	TraceTxPoolFlag = cli.BoolFlag{
+		Name:  "trace-tx-pool",
+		Usage: "trace info log in tx pool",
+	}
+
 	NonOptionFlag = cli.StringFlag{
 		Name:  "option",
 		Usage: "this command does not need option, please run directly",

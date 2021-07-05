@@ -190,7 +190,7 @@ func (tp *TXPool) AddTxList(txEntry *VerifiedTx) errors.ErrCode {
 	}
 
 	if _, ok := tp.validTxMap[txHash]; ok {
-		log.Infof("AddTxList: transaction %x is already in the pool", txHash)
+		ShowTraceLog("AddTxList: transaction %x is already in the pool", txHash)
 		return errors.ErrDuplicatedTx
 	}
 
@@ -232,11 +232,11 @@ func (tp *TXPool) CleanCompletedTransactionList(txs []*types.Transaction, height
 		if _, ok := tp.validTxMap[tx.Hash()]; ok {
 			delete(tp.validTxMap, tx.Hash())
 			cleaned++
-			log.Infof("transaction cleaned: %s", tx.Hash().ToHexString())
+			ShowTraceLog("transaction cleaned: %s", tx.Hash().ToHexString())
 		}
 	}
 
-	log.Infof("clean txes: total %d, cleaned %d, remains %d in TxPool", txsNum, cleaned, len(tp.validTxMap))
+	ShowTraceLog("clean txes: total %d, cleaned %d, remains %d in TxPool", txsNum, cleaned, len(tp.validTxMap))
 }
 
 func (tp *TXPool) selectSortEIP155WithLock(eiptxs []Transactions) []*VerifiedTx {
@@ -336,7 +336,7 @@ func (tp *TXPool) GetTxPool(byCount bool, height uint32) ([]*VerifiedTx, []*type
 			}
 		}
 
-		log.Infof("remove expired tx: %s from pool", tx.Hash().ToHexString())
+		ShowTraceLog("remove expired tx: %s from pool", tx.Hash().ToHexString())
 	}
 	tp.Unlock()
 
@@ -433,7 +433,7 @@ func (tp *TXPool) RemoveTxsBelowGasPrice(gasPrice uint64) {
 			if tx.IsEipTx() {
 				tp.eipTxPool[tx.Payer].Remove(uint64(tx.Nonce))
 			}
-			log.Infof("tx %s cleaned because of lower gas: %d, want: %d", tx.Hash().ToHexString(), txEntry.Tx.GasPrice, gasPrice)
+			ShowTraceLog("tx %s cleaned because of lower gas: %d, want: %d", tx.Hash().ToHexString(), txEntry.Tx.GasPrice, gasPrice)
 		}
 	}
 }
@@ -448,7 +448,7 @@ func (tp *TXPool) Remain() []*types.Transaction {
 	for _, txEntry := range tp.validTxMap {
 		txList = append(txList, txEntry.Tx)
 		delete(tp.validTxMap, txEntry.Tx.Hash())
-		log.Infof("pool remain: remove tx: %s from pool", txEntry.Tx.Hash().ToHexString())
+		ShowTraceLog("pool remain: remove tx: %s from pool", txEntry.Tx.Hash().ToHexString())
 	}
 
 	return txList
