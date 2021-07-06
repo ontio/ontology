@@ -23,6 +23,8 @@ import (
 	"sync/atomic"
 
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/config"
+	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/errors"
@@ -178,4 +180,12 @@ func GetOngBalance(account common.Address) (*big.Int, error) {
 	}
 
 	return big.NewInt(0).SetUint64(amount), nil
+}
+
+func ShowTraceLog(format string, a ...interface{}) {
+	if config.DefConfig.Common.TraceTxPool {
+		log.Infof(format, a)
+	} else {
+		log.Debugf(format, a)
+	}
 }

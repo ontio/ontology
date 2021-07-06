@@ -24,6 +24,7 @@ import (
 
 	ethcomm "github.com/ethereum/go-ethereum/common"
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/core/types"
@@ -134,7 +135,11 @@ func (self *IncrementValidator) Verify(tx *types.Transaction, startHeight uint32
 		}
 
 		if uint64(tx.Nonce) != nonceCtx[tx.Payer] {
-			log.Infof("wrong nonce for %s, tx: %s, exptected: %d, got: %d", tx.Payer.ToBase58(),
+			trace := log.Debugf
+			if config.DefConfig.Common.TraceTxPool {
+				trace = log.Infof
+			}
+			trace("wrong nonce for %s, tx: %s, exptected: %d, got: %d", tx.Payer.ToBase58(),
 				tx.Hash().ToHexString(), nonceCtx[tx.Payer], tx.Nonce)
 			return fmt.Errorf("wrong nonce for %s, exptected: %d, got: %d", tx.Payer.ToBase58(),
 				nonceCtx[tx.Payer], tx.Nonce)

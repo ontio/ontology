@@ -142,6 +142,7 @@ func setCommonConfig(ctx *cli.Context, cfg *config.CommonConfig) {
 	cfg.DataDir = ctx.String(utils.GetFlagName(utils.DataDirFlag))
 	//add new flag for ethgaslimit
 	cfg.ETHTxGasLimit = ctx.Uint64(utils.GetFlagName(utils.ETHTxGasLimitFlag))
+	cfg.TraceTxPool = ctx.Bool(utils.GetFlagName(utils.TraceTxPoolFlag))
 }
 
 func setConsensusConfig(ctx *cli.Context, cfg *config.ConsensusConfig) {

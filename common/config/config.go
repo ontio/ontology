@@ -637,6 +637,7 @@ type CommonConfig struct {
 	ETHTxGasLimit  uint64
 	//NGasLimit        uint64
 	WasmVerifyMethod VerifyMethod
+	TraceTxPool      bool
 }
 
 type ConsensusConfig struct {
