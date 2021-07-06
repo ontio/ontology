@@ -264,7 +264,7 @@ func TransferCrossChainMsg(msg *types.CrossChainMsg, pks []keypair.PublicKey) st
 
 func SendTxToPool(txn *types.Transaction) (ontErrors.ErrCode, string) {
 	if errCode, desc := bactor.AppendTxToPool(txn); errCode != ontErrors.ErrNoError {
-		log.Warn("TxnPool verify error:", errCode.Error())
+		log.Warnf("send tx to pool failed, tx: %s error: %s", txn.Hash().ToHexString(), desc)
 		return errCode, desc
 	}
 	return ontErrors.ErrNoError, ""
