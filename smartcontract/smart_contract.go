@@ -112,6 +112,12 @@ func (this *SmartContract) CheckExecStep() bool {
 	return true
 }
 
+func (this *SmartContract) GetGasInfo() (gasLeft uint64, gasPrice uint64) {
+	gasLeft = this.Gas
+	gasPrice = this.Config.Tx.GasPrice
+	return
+}
+
 func (this *SmartContract) CheckUseGas(gas uint64) bool {
 	if this.Gas < gas {
 		return false
