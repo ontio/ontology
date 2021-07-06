@@ -184,8 +184,8 @@ func GetOngBalance(account common.Address) (*big.Int, error) {
 
 func ShowTraceLog(format string, a ...interface{}) {
 	if config.DefConfig.Common.TraceTxPool {
-		log.Infof(format, a)
+		log.Infof(format, a...)
 	} else {
-		log.Debugf(format, a)
+		log.Debugf(format, a...)
 	}
 }
