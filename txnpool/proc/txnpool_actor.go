@@ -128,7 +128,6 @@ func (ta *TxPoolService) handleTransaction(sender tc.SenderType, txn *tx.Transac
 	}
 
 	if _, overflow := common.SafeMul(txn.GasLimit, txn.GasPrice); overflow {
-		log.Debugf("handleTransaction: gasLimit %v, gasPrice %v overflow", txn.GasLimit, txn.GasPrice)
 		replyTxResult(txResultCh, txn.Hash(), errors.ErrUnknown,
 			fmt.Sprintf("gasLimit %d * gasPrice %d overflow", txn.GasLimit, txn.GasPrice))
 		return
