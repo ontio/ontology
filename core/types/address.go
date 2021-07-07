@@ -22,7 +22,6 @@ import (
 	"errors"
 
 	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/ontio/ontology-crypto/ec"
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/constants"
@@ -30,8 +29,8 @@ import (
 )
 
 func AddressFromPubKey(pubkey keypair.PublicKey) common.Address {
-	if keypair.IsEthereumPubKey(pubkey) {
-		eaddr := crypto.PubkeyToAddress(*(pubkey.(*ec.EthereumPublicKey)).PublicKey)
+	if epub, err := keypair.GetEthereumPubKey(pubkey); err == nil {
+		eaddr := crypto.PubkeyToAddress(*epub.PublicKey)
 
 		return common.Address(eaddr)
 	}
