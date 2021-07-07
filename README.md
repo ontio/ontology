@@ -38,7 +38,7 @@ You can download a stable compiled version of the Ontology node software by eith
 
 ### Prerequisites
 
-- [Golang](https://golang.org/doc/install) version 1.12 or later
+- [Golang](https://golang.org/doc/install) version 1.15 or later
 
 
 ### Build
