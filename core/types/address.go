@@ -19,8 +19,10 @@
 package types
 
 import (
+	"crypto/ecdsa"
 	"errors"
 
+	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/constants"
@@ -28,6 +30,11 @@ import (
 )
 
 func AddressFromPubKey(pubkey keypair.PublicKey) common.Address {
+	if keypair.IsEthereumPubKey(pubkey) {
+		eaddr := crypto.PubkeyToAddress(*(pubkey.(*ecdsa.PublicKey)))
+
+		return common.Address(eaddr)
+	}
 	prog := program.ProgramFromPubKey(pubkey)
 
 	return common.AddressFromVmCode(prog)
