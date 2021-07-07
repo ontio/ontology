@@ -18,10 +18,10 @@
 package types
 
 import (
-	"crypto/ecdsa"
 	"testing"
 
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/ontio/ontology-crypto/ec"
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -48,10 +48,9 @@ func TestEthereumAddress(t *testing.T) {
 	_, pub, err := keypair.GenerateKeyPair(keypair.PK_ETHECDSA, nil)
 	a.Nil(err, "fail")
 
-	epub, ok := pub.(*ecdsa.PublicKey)
+	epub, ok := pub.(*ec.EthereumPublicKey)
 	a.True(ok, "fail to cast")
-	eaddr := crypto.PubkeyToAddress(*epub)
+	eaddr := crypto.PubkeyToAddress(*epub.PublicKey)
 	oaddr := AddressFromPubKey(pub)
 	a.Equal(eaddr[:], oaddr[:], "addr not same")
-	a.Equal(len(eaddr), len(oaddr), "addr len not equal")
 }
