@@ -21,6 +21,7 @@ package types
 import (
 	"errors"
 
+	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/constants"
@@ -28,6 +29,11 @@ import (
 )
 
 func AddressFromPubKey(pubkey keypair.PublicKey) common.Address {
+	if epub, err := keypair.GetEthereumPubKey(pubkey); err == nil {
+		eaddr := crypto.PubkeyToAddress(*epub.PublicKey)
+
+		return common.Address(eaddr)
+	}
 	prog := program.ProgramFromPubKey(pubkey)
 
 	return common.AddressFromVmCode(prog)

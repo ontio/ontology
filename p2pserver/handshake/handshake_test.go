@@ -101,7 +101,7 @@ func TestHandshakeTimeout(t *testing.T) {
 
 	_, err := HandshakeClient(client.Info, client.Id, client.Conn)
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "deadline exceeded")
+	assert.Contains(t, err.Error(), "i/o timeout") // golang 1.5 error msg changed
 }
 
 func TestHandshakeWrongMsg(t *testing.T) {
