@@ -277,7 +277,6 @@ func execTxGasTest(tx *types.Transaction, database *ledger.Ledger) {
 
 func execTxCheckRes(tx *types.Transaction, testCase common3.TestCase, database *ledger.Ledger, addr common.Address, acct *account.Account) {
 	execTxGasTest(tx, database)
-
 	res, err := database.PreExecuteContract(tx)
 	checkErr(err)
 	log.Infof("testcase consume gas: %d", res.Gas)
@@ -345,9 +344,8 @@ func main() {
 		addrMap = append(addrMap, conaddr)
 	}
 	if true {
-		bridge, wingErc20, wingOep4 := getBridgeContract(contract2)
-		bridgeTest(bridge, wingOep4, wingErc20, database, acct)
-		return
+		bridgeWasm, bridge, wingErc20, wingOep4 := getBridgeContract(contract2)
+		bridgeTest(bridgeWasm, bridge, wingOep4, wingErc20, database, acct)
 	}
 
 	testContext := common3.TestContext{

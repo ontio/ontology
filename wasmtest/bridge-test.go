@@ -45,7 +45,7 @@ const WingABI = "[{\"inputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"c
 var testEthAddr common4.Address
 var testPrivateKey *ecdsa.PrivateKey
 
-func getBridgeContract(contract []Item) (bridge common3.ConAddr, wingErc20 common3.ConAddr, wingOep4 common3.ConAddr) {
+func getBridgeContract(contract []Item) (bridgeWasm, bridge, wingErc20, wingOep4 common3.ConAddr) {
 	for _, item := range contract {
 		file := item.File
 		code := item.Contract
@@ -69,6 +69,12 @@ func getBridgeContract(contract []Item) (bridge common3.ConAddr, wingErc20 commo
 				Address: common.AddressFromVmCode(code),
 			}
 			log.Infof("wingOep4 address: %s", wingOep4.Address.ToHexString())
+		} else if strings.HasSuffix(file, "bridge_optimized.wasm") {
+			bridgeWasm = common3.ConAddr{
+				File:    file,
+				Address: common.AddressFromVmCode(code),
+			}
+			log.Infof("bridge wasm address: %s", bridgeWasm.Address.ToHexString())
 		} else {
 			continue
 		}
@@ -85,6 +91,9 @@ func deployContract(contract []Item, acct *account.Account, database *ledger.Led
 		var tx *types.Transaction
 		var err error
 		if strings.HasSuffix(file, ".wasm") {
+			if file == "bridge_optimized2.wasm" {
+				continue
+			}
 			tx, err = NewDeployWasmContract(acct, cont)
 		} else if strings.HasSuffix(file, ".avm") {
 			if file == "bridge2.avm" {
@@ -123,14 +132,27 @@ func deployContract(contract []Item, acct *account.Account, database *ledger.Led
 	checkErr(err)
 }
 
-func migrateBridge(bridge common3.ConAddr, newCode []byte, admin common.Address, database *ledger.Ledger, acct *account.Account) common3.ConAddr {
+func migrateBridge(isWasm bool, bridge common3.ConAddr, newCode []byte, admin common.Address, database *ledger.Ledger, acct *account.Account) common3.ConAddr {
 	te := common3.TestEnv{Witness: []common.Address{admin, acct.Address}}
 	newCodeHex := hex.EncodeToString(newCode)
 	//name, version, author, email, description
-	param := fmt.Sprintf("[bytearray:%s,string:%s,string:%s,string:%s,string:%s,string:%s]",
-		newCodeHex, "bridge", "1.0", "ontology", "@ont.io", "desc")
+	var param string
+	if isWasm {
+		param = fmt.Sprintf("bytearray:%s,int:3,string:%s,string:%s,string:%s,string:%s,string:%s",
+			newCodeHex, "bridge", "1.0", "ontology", "@ont.io", "desc")
+	} else {
+		param = fmt.Sprintf("[bytearray:%s,string:%s,string:%s,string:%s,string:%s,string:%s]",
+			newCodeHex, "bridge", "1.0", "ontology", "@ont.io", "desc")
+	}
+
 	tc := common3.NewTestCase(te, false, "migrate", param, "bool:true", "")
-	tx, err := common3.GenNeoVMTransaction(tc, bridge.Address, &common3.TestContext{})
+	var tx *types.Transaction
+	var err error
+	if isWasm {
+		tx, err = common3.GenWasmTransaction(tc, bridge.Address, &common3.TestContext{})
+	} else {
+		tx, err = common3.GenNeoVMTransaction(tc, bridge.Address, &common3.TestContext{})
+	}
 	checkErr(err)
 	execTxCheckRes(tx, tc, database, bridge.Address, acct)
 	newAddr := common.AddressFromVmCode(newCode)
@@ -139,7 +161,7 @@ func migrateBridge(bridge common3.ConAddr, newCode []byte, admin common.Address,
 	}
 }
 
-func bridgeTest(bridge, wingOep4, wingErc20 common3.ConAddr, database *ledger.Ledger, acct *account.Account) {
+func bridgeTest(bridgeWasm, bridge, wingOep4, wingErc20 common3.ConAddr, database *ledger.Ledger, acct *account.Account) {
 	testPrivateKeyStr := "59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d"
 	testPrivateKey, err := crypto.HexToECDSA(testPrivateKeyStr)
 	checkErr(err)
@@ -147,34 +169,51 @@ func bridgeTest(bridge, wingOep4, wingErc20 common3.ConAddr, database *ledger.Le
 
 	// 调用 bridge init 方法
 	admin, _ := common.AddressFromBase58("ARGK44mXXZfU6vcdSfFKMzjaabWxyog1qb")
-	contractInit(admin, bridge, wingOep4, wingErc20, database, acct)
-	txNonce := int64(2)
-	txNonce = bridgeTestInner(admin, bridge, wingOep4, wingErc20, database, acct, txNonce)
+	contractInit(admin, bridgeWasm, bridge, wingOep4, wingErc20, database, acct)
+	txNonce := int64(3)
+	txNonce = bridgeTestInner(admin, bridgeWasm, bridge, wingOep4, wingErc20, database, acct, txNonce)
 	oep4BalanceBefore := oep4BalanceOf(database, wingOep4, bridge.Address)
 	erc20BalanceBefore := erc20BalanceOf(database, wingErc20, ontAddrToEthAddr(bridge.Address), txNonce)
 
 	newCode := loadContract(contractDir2 + "/" + "bridge2.avm")
-	newBridge := migrateBridge(bridge, newCode, admin, database, acct)
-	log.Infof("newBridge: %s", newBridge.Address.ToHexString())
+	newBridge := migrateBridge(false, bridge, newCode, admin, database, acct)
+
+	newCodeBridge := loadContract(contractDir2 + "/" + "bridge_optimized2.wasm")
+	newBridgeWasm := migrateBridge(true, bridgeWasm, newCodeBridge, admin, database, acct)
+
+	log.Infof("newBridge: %s, newBridgeWasm: %s", newBridge.Address.ToHexString(), newBridgeWasm.Address.ToHexString())
 	oep4BalanceAfter := oep4BalanceOf(database, wingOep4, newBridge.Address)
 	erc20BalanceAfter := erc20BalanceOf(database, wingErc20, ontAddrToEthAddr(newBridge.Address), txNonce)
 	ensureTrue(oep4BalanceBefore, oep4BalanceAfter)
 	ensureTrue(erc20BalanceBefore, erc20BalanceAfter)
-	bridgeTestInner(admin, newBridge, wingOep4, wingErc20, database, acct, txNonce)
+	bridgeTestInner(admin, newBridgeWasm, newBridge, wingOep4, wingErc20, database, acct, txNonce)
 }
 
-func bridgeTestInner(admin common.Address, bridge, wingOep4, wingErc20 common3.ConAddr, database *ledger.Ledger, acct *account.Account, txNonce int64) int64 {
+func bridgeTestInner(admin common.Address, bridgeWasm, bridge, wingOep4, wingErc20 common3.ConAddr, database *ledger.Ledger, acct *account.Account, txNonce int64) int64 {
 	rand.Seed(time.Now().UnixNano())
+	ethAcct, _ := common.AddressParseFromBytes(testEthAddr.Bytes())
 	for i := 0; i < 100; i++ {
-		amount := uint64(rand.Int63n(int64(1000000000)))
+		log.Infof("bridgeTestInner i: %d", i)
+		amount := uint64(rand.Int63n(int64(100)))
+		if amount == 0 {
+			continue
+		}
 		// oep4 to erc20
-		ethAcct, _ := common.AddressParseFromBytes(testEthAddr.Bytes())
 		beforeAdmin := oep4BalanceOf(database, wingOep4, admin)
 		beforeEthAcct := erc20BalanceOf(database, wingErc20, testEthAddr, txNonce)
 		oep4ToErc20(bridge, admin, ethAcct, amount, database, acct, "oep4ToErc20")
 		afterAdmin := oep4BalanceOf(database, wingOep4, admin)
 		ensureTrue(afterAdmin, beforeAdmin-amount)
 		afterEthAcct := erc20BalanceOf(database, wingErc20, testEthAddr, txNonce)
+		ensureTrue(afterEthAcct, beforeEthAcct+amount)
+
+		// bridgewasm
+		beforeAdmin = oep4BalanceOf(database, wingOep4, admin)
+		beforeEthAcct = erc20BalanceOf(database, wingErc20, testEthAddr, txNonce)
+		oep4ToErc20Wasm(bridgeWasm, admin, ethAcct, amount, database, acct, "oep4ToErc20")
+		afterAdmin = oep4BalanceOf(database, wingOep4, admin)
+		ensureTrue(afterAdmin, beforeAdmin-amount)
+		afterEthAcct = erc20BalanceOf(database, wingErc20, testEthAddr, txNonce)
 		ensureTrue(afterEthAcct, beforeEthAcct+amount)
 
 		// erc20 to oep4
@@ -187,15 +226,43 @@ func bridgeTestInner(admin common.Address, bridge, wingOep4, wingErc20 common3.C
 		ensureTrue(afterEthAcct, beforeEthAcct-amount)
 		afterAdmin = oep4BalanceOf(database, wingOep4, admin)
 		ensureTrue(afterAdmin, beforeAdmin+amount)
+
+		erc20Approve(database, wingErc20, ontAddrToEthAddr(bridgeWasm.Address), amount, acct, txNonce)
+		txNonce++
+		beforeEthAcct = erc20BalanceOf(database, wingErc20, testEthAddr, txNonce)
+		beforeAdmin = oep4BalanceOf(database, wingOep4, admin)
+		log.Infof("amount: %d", amount)
+		oep4ToErc20Wasm(bridgeWasm, admin, ethAcct, amount, database, acct, "erc20ToOep4")
+		afterEthAcct = erc20BalanceOf(database, wingErc20, testEthAddr, txNonce)
+		ensureTrue(afterEthAcct, beforeEthAcct-amount)
+		afterAdmin = oep4BalanceOf(database, wingOep4, admin)
+		ensureTrue(afterAdmin, beforeAdmin+amount)
 	}
 	return txNonce
 }
+
+func oep4ToErc20Wasm(bridgeWasm common3.ConAddr, admin common.Address, ethAcct common.Address, amount uint64, database *ledger.Ledger, acct *account.Account, method string) {
+	oep4ToErc20Inner(true, bridgeWasm, admin, ethAcct, amount, database, acct, method)
+}
+
 func oep4ToErc20(bridge common3.ConAddr, admin common.Address, ethAcct common.Address, amount uint64, database *ledger.Ledger, acct *account.Account, method string) {
+	oep4ToErc20Inner(false, bridge, admin, ethAcct, amount, database, acct, method)
+}
+
+func oep4ToErc20Inner(isWasm bool, bridge common3.ConAddr, admin common.Address, ethAcct common.Address, amount uint64, database *ledger.Ledger, acct *account.Account, method string) {
 	var param string
 	if method == "oep4ToErc20" {
-		param = fmt.Sprintf("[address:%s,address:%s,int:%d]", admin.ToBase58(), ethAcct.ToBase58(), amount)
+		if isWasm {
+			param = fmt.Sprintf("address:%s,address:%s,int:%d", admin.ToBase58(), ethAcct.ToBase58(), amount)
+		} else {
+			param = fmt.Sprintf("[address:%s,address:%s,int:%d]", admin.ToBase58(), ethAcct.ToBase58(), amount)
+		}
 	} else if method == "erc20ToOep4" {
-		param = fmt.Sprintf("[address:%s,address:%s,int:%d]", ethAcct.ToBase58(), admin.ToBase58(), amount)
+		if isWasm {
+			param = fmt.Sprintf("address:%s,address:%s,int:%d", ethAcct.ToBase58(), admin.ToBase58(), amount)
+		} else {
+			param = fmt.Sprintf("[address:%s,address:%s,int:%d]", ethAcct.ToBase58(), admin.ToBase58(), amount)
+		}
 	} else {
 		panic(method)
 	}
@@ -208,16 +275,22 @@ func oep4ToErc20(bridge common3.ConAddr, admin common.Address, ethAcct common.Ad
 		Witness: []common.Address{admin, ethAcct},
 	}
 	tc := common3.NewTestCase(env, false, method, param, "bool:true", WingABI)
-	tx, err := common3.GenNeoVMTransaction(tc, bridge.Address, &testContext)
+	var tx *types.Transaction
+	var err error
+	if isWasm {
+		tx, err = common3.GenWasmTransaction(tc, bridge.Address, &testContext)
+	} else {
+		tx, err = common3.GenNeoVMTransaction(tc, bridge.Address, &testContext)
+	}
 	checkErr(err)
-	log.Infof("method: %s", method)
+	log.Infof("method: %s, isWasm: %v", method, isWasm)
 	_, err = database.PreExecuteContract(tx)
 	checkErr(err)
 	//log.Infof("method: %s, pre: %s", method, JsonString(reee))
 	execTxCheckRes(tx, tc, database, bridge.Address, acct)
 }
 
-func contractInit(admin common.Address, bridge, wingOep4, wingErc20 common3.ConAddr, database *ledger.Ledger, acct *account.Account) {
+func contractInit(admin common.Address, bridgeWasm, bridge, wingOep4, wingErc20 common3.ConAddr, database *ledger.Ledger, acct *account.Account) {
 	//wing oep4 init
 	param := "int:1"
 	testContext := common3.TestContext{
@@ -237,9 +310,29 @@ func contractInit(admin common.Address, bridge, wingOep4, wingErc20 common3.ConA
 	oep4Transfer(database, wingOep4, admin, bridge.Address, amount, testContext, acct)
 	ba = oep4BalanceOf(database, wingOep4, bridge.Address)
 	ensureTrue(amount, ba)
+
+	oep4Transfer(database, wingOep4, admin, bridgeWasm.Address, amount, testContext, acct)
+	ba = oep4BalanceOf(database, wingOep4, bridgeWasm.Address)
+	ensureTrue(amount, ba)
+
+	log.Infof("wingOep4: %s", wingOep4.Address.ToHexString())
+	param = fmt.Sprintf("address:%s,address:%s", wingOep4.Address.ToBase58(), wingErc20.Address.ToBase58())
+	// bridge wasm init
+	tc = common3.NewTestCase(te, false, "init", param, "bool:true", "")
+	tx, err = common3.GenWasmTransaction(tc, bridgeWasm.Address, &testContext)
+	checkErr(err)
+	execTxCheckRes(tx, tc, database, bridgeWasm.Address, acct)
+
+	// bridge wasm get_ont_address
+	tc = common3.NewTestCase(te, false, "get_oep4_address", "int:1", "address:"+wingOep4.Address.ToBase58(), "")
+	tx, err = common3.GenWasmTransaction(tc, bridgeWasm.Address, &testContext)
+	checkErr(err)
+	resTemp, err := database.PreExecuteContract(tx)
+	log.Infof("res:%v", resTemp.Result)
+	execTxCheckRes(tx, tc, database, bridgeWasm.Address, acct)
+
 	// bridge init
 	param = fmt.Sprintf("[address:%s,address:%s]", wingOep4.Address.ToBase58(), wingErc20.Address.ToBase58())
-	log.Infof("bridge init param: %s", param)
 	tc = common3.NewTestCase(te, false, "init", param, "bool:true", "")
 	tx, err = common3.GenNeoVMTransaction(tc, bridge.Address, &testContext)
 	checkErr(err)
@@ -276,6 +369,10 @@ func contractInit(admin common.Address, bridge, wingOep4, wingErc20 common3.ConA
 	erc20Transfer(database, wingErc20, ontAddrToEthAddr(bridge.Address), amount, acct, 1)
 	ba = erc20BalanceOf(database, wingErc20, ontAddrToEthAddr(bridge.Address), 2)
 	ensureTrue(amount, ba)
+
+	erc20Transfer(database, wingErc20, ontAddrToEthAddr(bridgeWasm.Address), amount, acct, 2)
+	ba = erc20BalanceOf(database, wingErc20, ontAddrToEthAddr(bridgeWasm.Address), 3)
+	ensureTrue(amount, ba)
 }
 
 func ensureTrue(expect, actual uint64) {
@@ -284,11 +381,6 @@ func ensureTrue(expect, actual uint64) {
 	}
 }
 
-func ethAddrToOntAddr(ethAddr common4.Address) common.Address {
-	addr, err := common.AddressParseFromBytes(ethAddr[:])
-	checkErr(err)
-	return addr
-}
 func ontAddrToEthAddr(ontAddr common.Address) common4.Address {
 	return common4.BytesToAddress(ontAddr[:])
 }
@@ -309,6 +401,14 @@ func erc20Approve(database *ledger.Ledger, wingErc20 common3.ConAddr, to common4
 	checkErr(err)
 	tc := common3.NewTestCase(common3.TestEnv{}, false, "approve", "", "bool:true", WingABI)
 	execTxCheckRes(tx, tc, database, wingErc20.Address, acct)
+
+	evmTx, err = GenEVMTx(txNonce, common4.BytesToAddress(wingErc20.Address[:]), "allowance", testEthAddr, to)
+	checkErr(err)
+	tx, err = types.TransactionFromEIP155(evmTx)
+	checkErr(err)
+	res, err := database.PreExecuteContract(tx)
+	checkErr(err)
+	log.Infof("allowance: %v", res.Result)
 }
 
 func erc20BalanceOf(database *ledger.Ledger, wingErc20 common3.ConAddr, addr common4.Address, txNonce int64) uint64 {
