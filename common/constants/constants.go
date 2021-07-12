@@ -66,8 +66,8 @@ const (
 )
 
 const (
-	EIP155_CHAINID_MAINNET = 5851
-	EIP155_CHAINID_POLARIS = 4841
+	EIP155_CHAINID_MAINNET = 58
+	EIP155_CHAINID_POLARIS = 5851
 )
 
 // ledger state hash check height
