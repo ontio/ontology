@@ -18,6 +18,7 @@
 package common
 
 import (
+	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/payload"
@@ -79,9 +80,11 @@ func TransPayloadToHex(p types.Payload) PayloadInfo {
 		obj.Description = object.Description
 		return obj
 	case *payload.EIP155Code:
-		sink := common.NewZeroCopySink(nil)
-		object.Serialization(sink)
-		return common.ToHexString(sink.Bytes())
+		bts, err := rlp.EncodeToBytes(object.EIPTx)
+		if err != nil {
+			panic(err)
+		}
+		return common.ToHexString(bts)
 	}
 	return nil
 }
