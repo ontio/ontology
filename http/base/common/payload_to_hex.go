@@ -78,6 +78,10 @@ func TransPayloadToHex(p types.Payload) PayloadInfo {
 		obj.Email = object.Email
 		obj.Description = object.Description
 		return obj
+	case *payload.EIP155Code:
+		sink := common.NewZeroCopySink(nil)
+		object.Serialization(sink)
+		return common.ToHexString(sink.Bytes())
 	}
 	return nil
 }
