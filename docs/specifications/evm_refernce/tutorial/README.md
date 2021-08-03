@@ -568,7 +568,6 @@ function receivePacket(uint packetId) public payable returns (bool) {
 ```
 
 [合约完整的代码](../contract-demo/hardhatdemo/contracts/Redpacket.sol)
-https://github.com/lucas7788/ontology/blob/master5/docs/specifications/evm_refernce/contract-demo/hardhatdemo/contracts/Redpacket.sol
 
 ### 6.3 使用hardhat编译和测试合约
 
