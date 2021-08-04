@@ -1,0 +1,15 @@
+{
+  "dependencies": {
+    "@openzeppelin/test-helpers": "^0.5.10",
+    "@truffle/contract": "^4.3.6",
+    "@truffle/hdwallet-provider": "^1.2.2",
+    "abi-decoder": "^2.3.0",
+    "bignumber.js": "^9.0.1",
+    "ethers": "^5.0.24",
+    "truffle-contract": "^4.0.31",
+    "web3": "^1.3.1"
+  },
+  "devDependencies": {
+    "truffle-plugin-verify": "^0.5.7"
+  }
+}
