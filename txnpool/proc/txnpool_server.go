@@ -127,8 +127,8 @@ func (s *TXPoolServer) setHeight(height uint32) {
 	atomic.StoreUint32(&s.height, height)
 }
 
-// getGasPrice returns the current gas price enforced by the transaction pool
-func (s *TXPoolServer) getGasPrice() uint64 {
+// GetGasPrice returns the current gas price enforced by the transaction pool
+func (s *TXPoolServer) GetGasPrice() uint64 {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	return s.gasPrice

@@ -57,6 +57,7 @@ type TxPoolService interface {
 	Nonce(addr oComm.Address) uint64
 	PendingEIPTransactions() []*types.Transaction
 	PendingTransactionsByHash(target common.Hash) *types.Transaction
+	GetGasPrice() uint64
 }
 
 type EthereumAPI struct {

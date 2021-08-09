@@ -134,7 +134,7 @@ func (ta *TxPoolService) handleTransaction(sender tc.SenderType, txn *tx.Transac
 	}
 
 	gasLimitConfig := config.DefConfig.Common.MinGasLimit
-	gasPriceConfig := ta.server.getGasPrice()
+	gasPriceConfig := ta.server.GetGasPrice()
 	if txn.GasLimit < gasLimitConfig || txn.GasPrice < gasPriceConfig {
 		log.Debugf("handleTransaction: invalid gasLimit %v, gasPrice %v", txn.GasLimit, txn.GasPrice)
 		replyTxResult(txResultCh, txn.Hash(), errors.ErrUnknown,
@@ -212,6 +212,10 @@ func (ta *TxPoolService) GetTxAmount() []uint32 {
 
 func (ta *TxPoolService) GetTxList() []common.Uint256 {
 	return ta.server.getTxHashList()
+}
+
+func (ta *TxPoolService) GetGasPrice() uint64 {
+	return ta.server.GetGasPrice()
 }
 
 func (ta *TxPoolService) AppendTransaction(sender tc.SenderType, txn *tx.Transaction) *tc.TxResult {

@@ -141,6 +141,7 @@ type TxPoolService interface {
 	GetTransactionStatus(hash common.Uint256) *TxStatus
 	GetTxAmount() []uint32
 	GetTxList() []common.Uint256
+	GetGasPrice() uint64
 	AppendTransaction(sender SenderType, txn *types.Transaction) *TxResult
 	AppendTransactionAsync(sender SenderType, txn *types.Transaction)
 }
