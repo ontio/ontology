@@ -129,9 +129,6 @@ func (api *EthereumAPI) GasPrice() *hexutil.Big {
 	if err != nil {
 		return nil
 	}
-	if gasPrice == 0 {
-		gasPrice = api.txpool.GetGasPrice()
-	}
 	return (*hexutil.Big)(new(big.Int).SetUint64(gasPrice))
 }
 

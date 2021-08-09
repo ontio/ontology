@@ -214,6 +214,10 @@ func (ta *TxPoolService) GetTxList() []common.Uint256 {
 	return ta.server.getTxHashList()
 }
 
+func (ta *TxPoolService) GetGasPrice() uint64 {
+	return ta.server.GetGasPrice()
+}
+
 func (ta *TxPoolService) AppendTransaction(sender tc.SenderType, txn *tx.Transaction) *tc.TxResult {
 	ch := make(chan *tc.TxResult, 1)
 	ta.handleTransaction(sender, txn, ch)

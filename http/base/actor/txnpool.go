@@ -76,3 +76,7 @@ func GetTxnCount() []uint32 {
 func GetTxnHashList() []common.Uint256 {
 	return txPoolService.GetTxList()
 }
+
+func GetGasPrice() uint64 {
+	return txPoolService.GetGasPrice()
+}

@@ -512,6 +512,9 @@ func GetGasPrice() (gasPrice uint64, height uint32, err error) {
 			break
 		}
 	}
+	if gasPrice == 0 {
+		gasPrice = bactor.GetGasPrice()
+	}
 	return
 }
 
