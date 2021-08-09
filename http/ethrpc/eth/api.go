@@ -57,6 +57,7 @@ type TxPoolService interface {
 	Nonce(addr oComm.Address) uint64
 	PendingEIPTransactions() []*types.Transaction
 	PendingTransactionsByHash(target common.Hash) *types.Transaction
+	GetGasPrice() uint64
 }
 
 type EthereumAPI struct {
@@ -127,6 +128,9 @@ func (api *EthereumAPI) GasPrice() *hexutil.Big {
 	gasPrice, _, err := hComm.GetGasPrice()
 	if err != nil {
 		return nil
+	}
+	if gasPrice == 0 {
+		gasPrice = api.txpool.GetGasPrice()
 	}
 	return (*hexutil.Big)(new(big.Int).SetUint64(gasPrice))
 }
