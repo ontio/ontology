@@ -2,7 +2,7 @@
 
 本开发指南旨在帮助开发者在本体网络上开发部署和测试 EVM 智能合约。
 
-本体网络已通过 Ontology EVM 虚拟机实现了对以太坊生态的兼容。目前本体支持 EVM 合约，并且已支持以链的节点调用方式，开发者可以直接本体链上使用 Truffle，Remix 和 Web3.js 等 EVM 开发工具。
+本体网络已通过 Ontology EVM 虚拟机实现了对以太坊生态的兼容。目前本体支持 EVM 合约，并且已支持以太坊链的节点调用方式，开发者可以直接在本体链上使用 Truffle，Remix 和 Web3.js 等 EVM 开发工具。
 
 
 * [1 开发环境工具简介](#1-开发环境工具简介)
@@ -44,14 +44,14 @@
     * [5.3.5 编译合约](#535-编译合约)
     * [5.3.6 测试合约](#536-测试合约)
 * [6 API 参考](#6-API-参考)
-   
+  
 
 
 
 
 ## 1 开发环境工具简介
 
-EVM合约使用 Solidity 语言开发，详见 [Solidity教程](https://solidity-cn.readthedocs.io/zh/develop/index.html)。开发者也可以复用现有的以太坊合约框架开发和部署。
+EVM合约使用 Solidity 语言开发，详见 [Solidity教程](https://solidity-cn.readthedocs.io/zh/develop/index.html)。开发者也可以复用现有的以太坊合约框架开发和部署EVM合约。
 
 ### 1.1 Remix
 
@@ -233,7 +233,7 @@ Summary
 
 ### 1.3 Hardhat
 
-Hardhat 是一个编译、部署、测试和调试以太坊应用的开发环境。下面我们用这段[测试代码](https://github.com/lucas7788/hardhatdemo)作为范例介绍 Hardhat 的使用。
+Hardhat 是一个编译、部署、测试和调试以太坊应用的开发环境。下面我们用这段[测试代码](../contract-demo/hardhatdemo)作为范例介绍 Hardhat 的使用。
 
 #### 1.3.1 安装
 
@@ -257,7 +257,7 @@ module.exports = {
             gasPrice:500,
             gas:2000000,
             timeout:10000000,
-            accounts: ["59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d","6b98389b8bb98ccaa68876efdcbacc4ae923600023be6b4091e69daa59ba9a9d"]
+            accounts: ["你的私钥字符串"]
         }
     },
     solidity: {
@@ -480,7 +480,7 @@ struct Packet {
 在合约执行的过程中，我们可以通过添加事件来追溯合约执行流程。
 
 在本例中我们设计以下两个事件：
- 
+
 -  发红包时，合约会生成红包的 ID,该 ID 要通过事件推送给调用者
 -  领取红包时，需要推送一个事件用来记录领取的红包 ID 和 token 数量
 
@@ -866,9 +866,9 @@ curl -X POST --data '{"jsonrpc":"2.0","method":"eth_protocolVersion","params":[]
 无
 
 #### 返回值
-  
+
   `Object|Boolean`，同步状态对象或false。
-  
+
   同步对象的结构如下：
  - `startingBlock`: `QUANTITY`，开始块
  - `currentBlock`: `QUANTITY`，当前块，同eth_blockNumber
