@@ -81,7 +81,7 @@ Select "Custom RPC" in MetaMask networks settings. Fill in and save the info bel
 - Chain ID：5851
 - Blockchain explorer url："https://explorer.ont.io/testnet"
 
-![RemixIDE_Step1](./rpc.png)
+![RemixIDE_Step1](./metamask_networks.png)
 
 Next, apply for testnet ONG at Ontology [Faucet address](https://developer.ont.io/) as gas fee.
 
