@@ -1,152 +1,123 @@
-# Ontology支持EVM的介绍
+# Ontology EVM Contracts
 
-ontology目前已支持EVM合约，开发者可以在ontology链上部署和调用EVM合约, 并且支持ethereum相关的合约调用工具如web3js等。
+This doc aims at guiding developers to develop, deploy and test EVM smart contracts on Ontology.
 
-
-* [Ontology支持EVM的介绍](#Ontology支持EVM的介绍)
-  * [1 Developer Quick Start](#1-Developer-Quick-Start)
-  * [2 部署EVM合约到ontology链](#2-部署EVM合约到ontology链)
-    * [2.1 使用Remix工具](#21-使用Remix工具)
-      * [2.1.1 Remix环境初始化](#211-Remix环境初始化)
-      * [2.1.2 编译合约](#212-编译合约)
-      * [2.1.3 部署合约](#213-部署合约)
-      * [2.1.4 调用合约](#214-调用合约)
-    * [2.2 使用Truffle](#22-使用Truffle)
-      * [2.2.1 安装truffle](#221-安装truffle)
-      * [2.2.2 配置truffle-config](#222-配置truffle-config)
-      * [2.2.3 部署合约到ontology链](#223-部署合约到ontology链)
-    * [2.3 使用Hardhat](#23-使用Hardhat)
-      * [2.3.1 搭建Hardhat开发环境](#231-搭建Hardhat开发环境)
-      * [2.3.2 配置hardhat-config](#232-配置hardhat-config)
-      * [2.3.3 部署合约到ontology链](#233-部署合约到ontology链)
-  * [3 网络详情](#3-网络详情)
-    * [3.1 节点网络](#31-节点网络)
-    * [3.2 ontology链上EVM资产列表](#32-ontology链上EVM资产列表)
-  * [4 钱包使用](#4-钱包使用)
-    * [4.1 Metamask](#41-Metamask)
-      * [4.1.1 初始化Web3](#411-初始化Web3)
-      * [4.1.2 获取账户](#412-获取账户)
-      * [4.1.3 初始化你的合约](#413-初始化你的合约)
-      * [4.1.4 调用函数](#414-调用函数)
-  * [5 ethereum链上的资产跨到ontology链上](#5-ethereum链上的资产跨到ontology链上)
-  * [6 在ontology链上开发一个新的EVM合约](#6-在ontology链上开发一个新的EVM合约)
-    * [6.1 环境准备](#61-环境准备)
-    * [6.2 红包合约设计](#62-红包合约设计)
-      * [6.2.1 红包合约逻辑](#621-红包合约逻辑)
-      * [6.2.2 定义合约事件](#622-定义合约事件)
-      * [6.2.3 定义函数](#623-定义函数)
-    * [6.3 使用hardhat编译和测试合约](#63-使用hardhat编译和测试合约)
-      * [6.3.1 使用如下命令创建一个hardhat项目](#631-使用如下命令创建一个hardhat项目)
-      * [6.3.2 修改hardhat.config.js文件](#632-修改hardhat.config.js文件)
-      * [6.3.3 红包合约](#633-红包合约)
-      * [6.3.4 在test文件夹下添加测试代码](#634-在test文件夹下添加测试代码)
-      * [6.3.5 编译合约](#635-编译合约)
-      * [6.3.6 测试合约](#636-测试合约)
-  * [7 API参考](#7-API参考)
-    * [7.1 net_version](#71-net_version)
-    * [7.2 eth_chainId](#72-eth_chainId)
-    * [7.3 eth_blockNumber](#73-eth_blockNumber)
-    * [7.4 eth_getBalance](#74-eth_getBalance)
-    * [7.5 eth_protocolVersion](#75-eth_protocolVersion)
-    * [7.6 eth_syncing](#76-eth_syncing)
-    * [7.7 eth_gasPrice](#77-eth_gasPrice)
-    * [7.8 eth_getStorageAt](#78-eth_getStorageAt)
-    * [7.9 eth_getTransactionCount](#79-eth_getTransactionCount)
-    * [7.10 eth_getBlockTransactionCountByHash](#710-eth_getBlockTransactionCountByHash)
-    * [7.11 eth_getBlockTransactionCountByNumber](#711-eth_getBlockTransactionCountByNumber)
-    * [7.12 eth_getCode](#712-eth_getCode)
-    * [7.13 eth_getTransactionLogs](#713-eth_getTransactionLogs)
-    * [7.14 eth_sendRawTransaction](#714-eth_sendRawTransaction)
-    * [7.15 eth_call](#715-eth_call)
-    * [7.16 eth_estimateGas](#716-eth_estimateGas)
-    * [7.17 eth_getBlockByNumber](#717-eth_getBlockByNumber)
-    * [7.18 eth_getBlockByHash](#718-eth_getBlockByHash)
-    * [7.19 eth_getTransactionByHash](#719-eth_getTransactionByHash)
-    * [7.20 eth_getTransactionByBlockHashAndIndex](#720-eth_getTransactionByBlockHashAndIndex)
-    * [7.21 eth_getTransactionByBlockNumberAndIndex](#721-eth_getTransactionByBlockNumberAndIndex)
-    * [7.22 eth_getTransactionReceipt](#722-eth_getTransactionReceipt)
-    * [7.23 eth_pendingTransactions](#723-eth_pendingTransactions)
-    * [7.24 eth_pendingTransactionsByHash](#724-eth_pendingTransactionsByHash)
-    * [7.25 net_version](#725-net_version)
+Now the Ontology network is compatible with Ethereum through Ontology EVM, meaning that Ontology supports EVM contracts and Web3 JSON-RPC protocol. It's possible to use EVM tools like Truffle, Remix and Web3.js directly on Ontology.
 
 
+* [1 Development Environment and Tools](#1-development-environment-and-tools)
+  * [1.1 Remix](#11-remix)
+    * [1.1.1 Initialize Remix](#111-initialize-remix)
+    * [1.1.2 Compile Contract](#112-compile-contract)
+    * [1.1.3 Deploy Contract](#113-deploy-contract)
+    * [1.1.4 Invoke Contract](#114-invoke-contract)
+  * [1.2 Truffle](#12-truffle)
+    * [1.2.1  Install Truffle](#121-install-truffle)
+    * [1.2.2 Configure truffle-config](#122-configure-truffle-config)
+    * [1.2.3 Deploy Contract](#123-deploy-contract)
+  * [1.3 Hardhat](#13-hardhat)
+    * [1.3.1 Install Hardhat](#131-install-hardhat)
+    * [1.3.2 Configure hardhat-config](#132-configure-hardhat-config)
+    * [1.3.3 Deploy Contract](#133-deploy-contract)
+* [2 Network Info](#2-network-info)
+    * [2.1 Network Types](#21-network-types)
+    * [2.2 EVM Assets on Ontology](#22-evm-assets-on-ontology)
+    * [2.3 OEP-4 Assets](#23-oep-4-assets)
+    * [2.4 Gas-Fee](#24-gas-fee)
+* [3 Key Management with MetaMask](#3-key-management-with-metamask)
+    * [3.1 Initialize Web3](#31-initialize-web3)
+    * [3.2 Set up Account](#32-set-up-account)
+    * [3.3 Initialize Contract](#33-initialize-contract)
+    * [3.4 Call Functions](#34-Call-Functions)
+* [4 Move Assets from Ethereum to Ontology](#4-move-assets-from-ethereum-to-ontology)
+* [5 Contract Development](#5-contract-development)
+  * [5.1 Set up Environment](#51-set-up-environment)
+  * [5.2 Contract Design](#52-contract-design)
+    * [5.2.1 Contract Logic](#521-contract-logic)
+    * [5.2.2 Define Contract Event](#522-define-contract-event)
+    * [5.2.3 Define Function](#523-define-function)
+  * [5.3 Compile and Test Contract using Hardhat ](#53-compile-and-test-contract-using-hardhat )
+    * [5.3.1 Create a Hardhat Project](#531-create-a-hardhat-project)
+    * [5.3.2 Configure hardhat.config](#532-configure-hardhat.config)
+    * [5.3.3 File Preparation](#533-file-preparation)
+    * [5.3.4 Include Code in the `test` Folder](#534-include-code-in-the-folder)
+    * [5.3.5 Compile Contract](#535-compile-contract)
+    * [5.3.6 Test Contract](#536-test-contract)
+* [6 API Reference](#6-api-reference)
 
-## 1 Developer Quick Start
+## 1 Development Environment and Tools
 
-ontology目前已完全支持EVM合约，并且已支持ethereum链的节点调用方式，也就是说我们可以使用ethereum相关的合约开发工具在ontology链上开发部署测试EVM合约，比如Truffle, Remix,
-Web3js等工具。
+EVM smart contracts are written using [Solidity](https://docs.soliditylang.org/en/v0.8.6/). You can also reuse existing Ethereum contract frameworks to develop and deploy EVM contracts. 
 
-## 2 部署EVM合约到ontology链
+### 1.1 Remix
 
-EVM合约可以用solidity语言开发，[solidity教程](https://docs.soliditylang.org/en/v0.8.6/)，可以复用现有的以太坊合约框架开发和部署。
+[Remix IDE](https://remix.ethereum.org/#optimize=false&runs=200&evmVersion=null&version=soljson-v0.8.1+commit.df193b15.js) is an open source development environment for EVM contracts. Remix IDE documentation is [here](https://remix-ide.readthedocs.io/en/latest/)。
 
-### 2.1 使用Remix工具
+We will now go through an example of a Hello World contract development using Remix.
 
-这是一个hello world 合约样例，这个合约可以用于存一段字符串，并且查询。 RemixIDE的使用教程
-[Remix IDE](https://remix.ethereum.org/#optimize=false&runs=200&evmVersion=null&version=soljson-v0.8.1+commit.df193b15.js)是一个在线的ethereum合约开发工具。
+#### 1.1.1 Initialize Remix
 
-#### 2.1.1 Remix环境初始化
-
-如果你首次使用remix那么你应该在remix添加两个模块：Solidity Compiler 和 Deploy and Run Transactions。
-
-在PLUGIN MANAGER里面寻找Solidity Compiler 和 Deploy and Run Transactions并添加到自己的编译器中。
+First, locate and activate "Solidity Compiler" and "Deploy and Run Transactions" in PLUGIN MANAGER.
 
 ![image-20210526142630046](./image-20210526142630046.png)
 
-选择solidity环境，创建HelloWorld.sol合约，将HelloWorld.sol合约复制到该文件中。
+Then, select Solidity environment. Create a new file and name it HelloWorld.sol. Then copy the code of [Hello World contract](../contract-demo/helloworlddemo/helloworld.sol) and paste it in the file just created.
 
 ![image-20210526143301031](./image-20210526143301031.png)
 
-`helloworld`源码请[参考](../contract-demo/helloworlddemo/helloworld.sol)
+#### 1.1.2 Compile Contract
 
-#### 2.1.2 编译合约
+Click on the Solidity Compiler button, select compiler version to 0.5.10 and start compiling HelloWorld.sol。
 
-点击Solidity Compiler按钮，选择编译器版本为0.5.10，编译HelloWorld.sol。
+#### 1.1.3 Deploy Contract
 
-#### 2.1.3 部署合约
+The contract is ready to deploy on Ontology after compiling. Here we deploy it on Ontology testnet.
 
-- 现在我们可以将合约部署到Ontology网络中，在部署合约之前，我们需要将metamask连接到本体网络。
-- 选择自定义RPC网络，输入如下的配置信息，最后保存我们输入的配置。
-    - 输入网络名 - "ontology testnet"
-    - 输入节点url - "http://polaris1.ont.io:20339"或"http://polaris2.ont.io:20339"或"http://polaris3.ont.io:20339"
-    - 输入Chain ID - 5851
-    - 输入区块链浏览器url - "https://explorer.ont.io/testnet"
-- 去本体[Faucet地址](https://developer.ont.io/)领取ONG。
-- 现在我们可以将HelloWorld合约部署到Ontology网络上。
-- 在Environment中选择Injected Web3选项，点击deploy完成合约部署。
-- ![RemixIDE_Step1](./rpc.png)
+> **Notice: ** MetaMask must have been set up on Ontology before you deploy the contract.
 
-remix环境如下图
+Select "Custom RPC" in MetaMask networks settings. Fill in and save the info below.
+- Network name: ontology testnet
+- Node url："http://polaris1.ont.io:20339" or "http://polaris2.ont.io:20339" or "http://polaris3.ont.io:20339"
+- Chain ID：5851
+- Blockchain explorer url："https://explorer.ont.io/testnet"
+
+![RemixIDE_Step1](./rpc.png)
+
+Next, apply for testnet ONG at Ontology [Faucet address](https://developer.ont.io/) as gas fee.
+
+Finally, select "Injected Web3" in Remix. Click "Deploy" to finish.
+
 ![deploy contract](./remix_deploy.jpg)
 
-#### 2.1.4 调用合约
+#### 1.1.4 Invoke Contract
 
-合约部署后，我们就可以调用合约中的方法了，部署的时候，会将"hello"字符串存入合约， 现在我们调用合约的"message"方法查询，如下图所示
+Now you can call the method in this contract. The string `hello` is saved in the contract when you deploy it, you can call the method `message` to query this string:
+
 ![invoke contract](./remix_invoke.jpg)
 
-### 2.2 使用Truffle
+### 1.2 Truffle
 
-完整的测试代码在[这里](../contract-demo/truffledemo)
+Truffle offers tools and frameworks for EVM contract development, testing and management. You can find more details [here](https://www.trufflesuite.com/docs/truffle/quickstart).
 
-#### 2.2.1 安装truffle
+Now we will demonstrate how to use Truffle with this [test code](../contract-demo/truffledemo).
 
-开发环境初始化，首先安装truffle环境允许需要的依赖。
+#### 1.2.1 Install Truffle
+
+First, initialize and install dependencies.
 
 - [Node.js v8+ LTS and npm](https://nodejs.org/en/) (comes with Node)
 - [Git](https://git-scm.com/)
 
-使用如下命令安装truffle
+Then run this command to install Truffle.
 
 ```shell
 npm install -g truffle
 ```
 
-truffle详细教程请参考[教程](https://www.trufflesuite.com/docs/truffle/quickstart)
+#### 1.2.2 Configure truffle-config
 
-#### 2.2.2 配置truffle-config
-
-- 创建`.secret`存储测试助记词或者私钥, 账户的助记词或者私钥可以在metamask里面找到。
-- 修改truffle-config，如下
+- Create a new `.secret` to store the mnemonic phrase or private key (which can be found in MetaMask).
+- Edit the code of truffle-config as below.
 
 ```
 const HDWalletProvider = require('@truffle/hdwallet-provider');
@@ -179,15 +150,17 @@ module.exports = {
 };
 ```
 
-#### 2.2.3 部署合约到ontology链
+#### 1.2.3 Deploy Contract
 
-执行如下的命令部署合约
+Run this command to deploy the contract on the Ontology network.
 
 ```
 truffle migrate --network ontology
 ```
 
-显示如下输出则代表部署成功，在编写测试脚本是注意尽量不要使用以太坊代币的单位（如wei，gwei，ether等）。
+If successful, you will see the result below.
+
+> **Notice:** Avoid using ETH units (e.g. wei, gwei, ether, etc.) when writing test scripts.
 
 ```
 Compiling your contracts...
@@ -254,18 +227,18 @@ Summary
 > Final cost:          0 ETH
 ```
 
-### 2.3 使用Hardhat
+### 1.3 Hardhat
 
-完整的例子在[这里](https://github.com/lucas7788/hardhatdemo)
+Hardhat is an Ethereum development environment. We will use this [test code](../contract-demo/hardhatdemo) as an example and demonstrate how to use Hardhat.
 
-#### 2.3.1 搭建Hardhat开发环境
+#### 1.3.1 Install Hardhat
 
-[hardhat安装教程](https://hardhat.org/getting-started/)
+Please refer to [Hardhat doc](https://hardhat.org/getting-started/) for details on this step.
 
-#### 2.3.2 配置hardhat-config
+#### 1.3.2 Configure hardhat-config
 
-- 修改hardhat.config.js文件，如下面的代码
-- 创建".secret"用于存储测试用户的私钥
+- Create a new `.secret` file to save your private key.
+- Update the code of hardhat.config.js as shown below:
 
 ```
 require("@nomiclabs/hardhat-waffle");
@@ -280,7 +253,7 @@ module.exports = {
             gasPrice:500,
             gas:2000000,
             timeout:10000000,
-            accounts: ["59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d","6b98389b8bb98ccaa68876efdcbacc4ae923600023be6b4091e69daa59ba9a9d"]
+            accounts: ["string of your private key"]
         }
     },
     solidity: {
@@ -295,79 +268,74 @@ module.exports = {
 };
 ```
 
-#### 2.3.3 部署合约到ontology链
+#### 1.3.3 Deploy Contract 
 
-在项目根目录下执行下面的命令
+Run this command in root of the project directory to deploy the contract on Ontology Chain: 
 
 ```
 $ npx hardhat run scripts/sample-script.js --network ontology_testnet
 ```
 
-执行结果
+The result looks like this:
 
 ```
 sss@sss hardhatdemo % npx hardhat run scripts/sample-script.js --network ontology_testnet
 RedPacket deployed to: 0xB105388ac7F019557132eD6eA90fB4BAaFde6E81
 ```
 
-## 3 网络详情
+## 2 Network Info
 
-### 3.1 节点网络
+### 2.1 Network Types
 
-主网信息
+#### Mainnet
 
-|name|value| 
-|:---|:---|
-|NetworkName|Ontology Mainnet|
-|chainId|58| 
-|Gas Token|ONG Token| 
-|RPC|http://dappnode1.ont.io:20339,http://dappnode2.ont.io:20339,http://dappnode3.ont.io:20339,http://dappnode4.ont.io:20339|
-|Block Explorer|https://explorer.ont.io/|
+| Item           | Description                                                                                                             |
+| :------------- | :---------------------------------------------------------------------------------------------------------------------- |
+| NetworkName    | Ontology Mainnet                                                                                                        |
+| chainId        | 58                                                                                                                      |
+| Gas Token      | ONG Token                                                                                                               |
+| RPC            | http://dappnode1.ont.io:20339,http://dappnode2.ont.io:20339,http://dappnode3.ont.io:20339,http://dappnode4.ont.io:20339 |
+| Block Explorer | https://explorer.ont.io/                                                                                                |
 
-测试网信息
+#### Testnet
 
-|name|value| 
-|:---|:---|
-|NetworkName|Ontology Testnet|
-|chainId|5851| 
-|Gas Token|ONG Token| 
-|RPC|http://polaris1.ont.io:20339, http://polaris2.ont.io:20339, http://polaris3.ont.io:20339,http://polaris4.ont.io:20339|
-|Block Explorer|https://explorer.ont.io/testnet|
+| Item           | Description                                                                                                           |
+| :------------- | :-------------------------------------------------------------------------------------------------------------------- |
+| NetworkName    | Ontology Testnet                                                                                                      |
+| chainId        | 5851                                                                                                                  |
+| Gas Token      | ONG Token                                                                                                             |
+| RPC            | http://polaris1.ont.io:20339, http://polaris2.ont.io:20339, http://polaris3.ont.io:20339,http://polaris4.ont.io:20339 |
+| Block Explorer | https://explorer.ont.io/testnet                                                                                       |
 
-### 3.2 ontology链上EVM资产列表
+### 2.2 EVM Assets on Ontology
 
-|tokenName|tokenAddress|
-|:---|:---|
-|ONG|0x00000000000000000000000000000000000000000|
+| Name | Address                                     |
+| :--- | :------------------------------------------ |
+| ONG  | 0x00000000000000000000000000000000000000000 |
 
-### 3.3 oep4资产列表
+### 2.3 OEP-4 Assets
 
-### 3.4 手续费ONG
+Please refer to this [link](https://explorer.ont.io/tokens/oep4/10/1#).
 
-领取测试币[ONG](https://developer.ont.io/)
+### 2.4 Gas Fee
 
-## 4 钱包使用
+Ontology EVM contracts consume ONG as gas fee for execution. You can apply for testnet ONG [here](https://developer.ont.io/).
 
-### 4.1 Metamask
+## 3 Key Management with MetaMask 
 
-Metamask是一个用户用于使用自己设定密码管理以太坊钱包私钥的插件，它是一个非托管的钱包，这意味着用户有权限自己管理自己的私钥，一旦丢失该私钥用户将无法恢复对钱包的使用。
+Ontology allows developers to manage Ethereum wallet private keys using MetaMask browser add-on. 
 
-**Type**: Non-custodial/HD
-**Private Key Storage**: User’s local browser storage
-**Communication to Ethereum Ledger**: Infura
-**Private key encoding**: Mnemonic
+MetaMask is a non-custodial wallet. tTe user's private key is encoded with the mnemonic phrase and stored in user's local browser. Once lost, the user can no longer control the savings or restore access to the wallet. MetaMask communicates with Ethereum Ledger via Infura. Please refer to the [MetaMask website](https://metamask.io/) for more details.
 
-4.1.1 初始化Web3
+### 3.1 Initialize Web3
 
-Step 1:
-
-在你的DApp内安装web3环境:
+First, install the following in your DApp:
 
    ```
    npm install --save web3
    ```
 
-生成一个新的文件，命名为 `web3.js` ，将以下代码复制到该文件:
+Create a new file, name it web3.js and insert the following code in it:
 
    ```js
    import Web3 from 'web3';
@@ -381,7 +349,7 @@ const getWeb3 = () => new Promise((resolve) => {
             try {
                 // Request account access if needed
                 window.ethereum.enable();
-                // Acccounts now exposed
+                // Accounts now exposed
                 resolve(currentWeb3);
             } catch (error) {
                 // User denied account access...
@@ -389,7 +357,7 @@ const getWeb3 = () => new Promise((resolve) => {
             }
         } else if (window.web3) {
             window.web3 = new Web3(web3.currentProvider);
-            // Acccounts always exposed
+            // Accounts always exposed
             resolve(currentWeb3);
         } else {
             console.log('Non-Ethereum browser detected. You should consider trying MetaMask!');
@@ -400,17 +368,15 @@ const getWeb3 = () => new Promise((resolve) => {
 export default getWeb3;
    ```
 
-简言之，只要你在你的Chrome浏览器里安装了Metamask插件，你就可以使用该插件注入的`ethereum`全局变量。
+To put it simply, you can inject the global object `ethereum` if you have added MetaMask to Chrome.
 
-Step 2:
-
-在你的client里引入如下代码,
+Next, import the code as below:
 
    ```js
    import getWeb3 from '/path/to/web3';
    ```
 
-调用如下函数:
+Call the function:
 
    ```js
      getWeb3()
@@ -419,9 +385,9 @@ Step 2:
     });
    ```
 
-4.1.2 获取账户
+### 3.2 Set up Account 
 
-我们需要从以上创建的web3实例中获取一个账户来发送交易。
+We need an account from the web3 instance we created above to send transactions.
 
    ```js
      this.web3.eth.getAccounts()
@@ -430,19 +396,17 @@ Step 2:
     })
    ```
 
-`getAccounts()` 函数 返回了metamask中的账户, `accounts[0]` 是当前用户的.
+The `getAccounts()` function returns all the user’s Metamask accounts, while`accounts[0]` is the one currently selected by the user.
 
-4.1.3 初始化你的合约
+### 3.3 Initialize Contract
 
-4.1.4 调用函数
+Initialize your contract after completing above steps. 
 
-现在你可以使用你刚才创建的合约实例调用任何你想调用的函数
+### 3.4 Call Functions
 
-注:
-- 你可以使用 `send()` 函数调用合约来改变合约状态
-- 调用 `call()` 函数完成合约的预执行操作
+Now you can call any function by directly interacting with the instantiated contract. Please note that:
 
-**Calling `call()` Functions**
+Functions that do not alter the state of the contract are `call()` functions. Below is an example of calling a `call()` function: 
 
 ```js
   this.myContractInstance.methods.myMethod(myParams)
@@ -452,7 +416,7 @@ Step 2:
     )
 ```
 
-**Calling `send()` Functions**
+Functions that alter the state of the contract are `send()` functions. Below is an example of calling a `send()` function: 
 
 ```
 this.myContractInstance.methods.myMethod(myParams)
@@ -464,35 +428,32 @@ from: this.account,gasPrice: 0
 );
 ```
 
-## 5 ethereum链上的资产跨到ontology链上
+## 4 Move Assets from Ethereum to Ontology
 
-[PolyBridge](https://bridge.poly.network/)
+Ontology supports developers to conduct cross-chain asset transfer using [PolyBridge](https://bridge.poly.network/).
 
-## 6 在ontology链上开发一个新的EVM合约
+## 5 Contract Development
 
-这部分我们会使用`hardhat`工具开发部署和测试EVM合约。
+Now we will demonstrate the full process of contract development, deployment and testing using Hardhat. 
 
-### 6.1 环境准备
+### 5.1 Set up Environment 
 
-- nodejs
+- Install [nodejs](https://nodejs.org/en/) 
 
-[nodejs 安装文档](https://nodejs.org/en/) 如果您的电脑已经安装请忽略。
+- Install [Hardhat](https://hardhat.org/getting-started/)
 
-- hardhat
+### 5.2 Contract Design 
 
-[hardhat安装教程](https://hardhat.org/getting-started/)。
+#### 5.2.1 Contract Logic
 
-### 6.2 红包合约设计
+The contract we use as an example here is for sending red packets, which is used when users send crypto assets as gifts. The core functions are:
 
-#### 6.2.1 红包合约逻辑
+- Send red packets
+- Receive red packets
 
-我们会开发一本发红包的合约例子，主要提供以下功能
+Before sending red packets, the user need to determine the amount of tokens to be sent and the number of red packets. For instance, 100 tokens will be sent in 10 red packets (to 10 different wallets). For ease of understanding, each red packet contains the same amount, meaning that each contains 10 tokens.
 
-- 发红包
-- 领红包
-
-每次发红包要指定该红包的大小和该红包的数量，例如，一个红包的大小是100个token，红包的数量是10， 也就是每个地址可以领10个token， 总共可以有10个不同的地址领取该红包。为了简单起见，每个红包的大小设置为一样。
-以上的逻辑我们可以设置如下的存储结构
+Consequently, we define the data structure:
 
 ```
 EIP20Interface public token; // support token address
@@ -510,22 +471,29 @@ struct Packet {
 }
 ```
 
-#### 6.2.2 定义合约事件
+#### 5.2.2 Define Contract Event
 
-在合约执行的过程中，我们可以通过添加事件，来追溯合约执行流程。在该合约例子中，我们会设计两个事件，
-一个是发红包时，合约会生成红包的ID,该ID要通过事件推送给调用者；另外一个事件是领取红包时，需要推送一个事件用来记录领取的红包ID和token数量。
+When executing the contract, we can trace the process by adding events.
+
+Here we design two events:
+
+1. When the user send a red packet, the contract generates an ID for the red packets, which will be sent through this event notification:
+```
+event SendRedPacket(uint packetId, uint amount); 
+```
+2. When a user receives a red packet, this event notification is sent to record the ID and token amount of the received red packet:
 
 ```
-event SendRedPacket(uint packetId, uint amount);
 event ReceiveRedPacket(uint packetId, uint amount);
 ```
 
-#### 6.2.3 定义函数
+#### 5.2.3 Define Function
 
-- `sendRedPacket`
+**`sendRedPacket`** 
 
-发红包，任何人都可以调用该接口，将一定量的token打给该合约地址，从而其他的地址可以从该合约地址领取红包。有一点需要注意的是，在调用该方法之前，
-需要先授权该合约地址能够从用户的地址把token转移走，所以需要先调用该token的 `approve`方法。
+Sends red packets. Any system is able to call the function and send certain amount of tokens to the contract address. Other addresses can receive red packets from this contract address.
+
+> **Notice:** Before invoking this function, the contract has to be authorized to transfer tokens from users' addresses. To do so, call the `approve` method of the token first.
 
 ```
 function sendRedPacket(uint amount, uint packetNum) public payable returns (uint) {
@@ -547,9 +515,9 @@ function sendRedPacket(uint amount, uint packetNum) public payable returns (uint
 }
 ```
 
-- `receivePacket`
+**`receivePacket`** 
 
-领取红包，任何地址都可以通过调用该接口领取红包，调用该接口的时候需要指定红包的ID，也就是指定要领取哪个红包。
+Receives red packets. Any address can call this function by red packet ID to receive a red packet, meaning that you need to specify which one to receive. 
 
 ```
 function receivePacket(uint packetId) public payable returns (bool) {
@@ -569,12 +537,11 @@ function receivePacket(uint packetId) public payable returns (bool) {
     return true;
 }
 ```
+View the full code [here](../contract-demo/hardhatdemo/contracts/Redpacket.sol)。
 
-[合约完整的代码](../contract-demo/hardhatdemo/contracts/Redpacket.sol)
+### 5.3 Compile and Test Contract using Hardhat 
 
-### 6.3 使用hardhat编译和测试合约
-
-#### 6.3.1 使用如下命令创建一个hardhat项目
+#### 5.3.1 Create a Hardhat Project 
 
 ```
 mkdir hardhatdemo
@@ -584,9 +551,9 @@ npm install --save-dev hardhat
 npx hardhat
 ```
 
-#### 6.3.2 修改hardhat.config.js文件
+#### 5.3.2 Configure hardhat.config
 
-添加测试网节点配置信息
+Include testnet node information:
 
 ```
 module.exports = {
@@ -615,15 +582,13 @@ module.exports = {
 };
 ```
 
-accounts字段指定的私钥数组，对应的地址需要有测试网的ONG,用于付交易的手续费，可以去[这里](https://developer.ont.io/)领取测试网ONG。
+`accounts` field takes the array of selected private key. There should be enough ONG balance in the corresponding address to pay for transactions. Apply Testnet ONG [here](https://developer.ont.io/).
 
-#### 6.3.3 红包合约
+#### 5.3.3 File Preparation
 
-把之前的红包合约代码文件放到 `contracts`文件夹下，为了支持ERC20的转账，我们还需要
-`EIP20Interface.sol`, `UniversalERC20.sol`, 和 `TokenDemo.sol`
-文件，可以从[此处](../contract-demo/hardhatdemo/contracts)下载相关文件
+Add the contract file in the `contracts` folder. To support ERC-20 token transfer, we also need `EIP20Interface.sol`, `UniversalERC20.sol`, and `TokenDemo.sol` which you can download from [here](../contract-demo/hardhatdemo/contracts).
 
-#### 6.3.4 在test文件夹下添加测试代码
+#### 5.3.4 Include Code in the `test` Folder 
 
 ```
 describe("RedPacket", function () {
@@ -661,9 +626,9 @@ describe("RedPacket", function () {
 });
 ```
 
-#### 6.3.5 编译合约
+#### 5.3.5 Compile Contract
 
-在项目根目录执行如下的命令编译合约，
+Run this command in the root directory to compile the contract.
 
 ```
 $ npx hardhat compile
@@ -671,7 +636,7 @@ Compiling 5 files with 0.8.0
 Compilation finished successfully
 ```
 
-该命令执行完成后会生成如下的文件夹
+Then the following folders are generated.
 
 ```
 .
@@ -686,13 +651,13 @@ Compilation finished successfully
 └── test
 ```
 
-#### 6.3.6 测试合约
+#### 5.3.6 Test Contract
 
 ```
 npx hardhat test
 ```
 
-执行结果如下图
+You will get the following result:
 
 ```
 sss@sss hardhatdemo % npx hardhat test
@@ -704,27 +669,64 @@ sss@sss hardhatdemo % npx hardhat test
   2 passing (41s)
 ```
 
-## 7 API参考
+## 6 API Reference
 
-由于以太坊与本体交易的结构体和存储结构存在差异，目前本体只支持了以太坊部分RPC接口（ontology部分接口返回的内容与以太坊返回的有所不同），具体如下：
+Since data structure of an transaction on Ontology are different from those on Ethereum, Ontology only supports the following methods:
 
-### 7.1 net_version
+> **Notice:** Some methods return different responses from Ethereum API
 
-返回当前连接网络的ID。
+### Method List
 
-- 参数：无
-- 返回值
-    - `String` - 当前连接网络的ID，"1"表示Ontology Mainnet
+| Method Name                                                                         | Description                                                                                                 |
+| ----------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| [net_version](#net_version)                                                       | Returns the current network ID                                                                              |
+| [eth_chainId](#eth_chainid)                                                        | Returns the current chainId                                                                                 |
+| [eth_blockNumber](#eth_blocknumber)                                                 | Returns the number of most recent block                                                                     |
+| [eth_getBalance](#eth_getbalance)                                                   | Returns the balance of the account of given address                                                         |
+| [eth_protocolVersion](#eth_protocolversion)                                        | Returns the current ethereum protocol version                                                               |
+| [eth_syncing](#eth_syncing)                                                         | Returns data about the sync status                                                                          |
+| [eth_gasPrice](#eth_gasprice)                                                       | Returns the current price per gas in wei                                                                    |
+| [eth_getStorageAt](#eth_getstorageat)                                               | Returns the value from a storage position at a given address                                                |
+| [eth_getTransactionCount](#eth_gettransactioncount)                                 | Returns the number of transactions sent from an address using Ontology EVM                                  |
+| [eth_getBlockTransactionCountByHash](#eth_getblocktransactioncountbyhash)           | Returns the number of transactions using Ontology EVM in a block from a block matching the given block hash |
+| [eth_getBlockTransactionCountByNumber](#eth_getblocktransactioncountbynumber)       | Returns the number of transactions in a block matching the given block number                               |
+| [eth_getCode](#eth_getcode)                                                         | Returns code at a given address                                                                             |
+| [eth_getTransactionLogs](#eth_gettransactionLogs)                                   | Returns transaction logs by a transaction hash                                                              |
+| [eth_sendRawTransaction](#eth_sendrawtransaction)                                   | Creates new message call transaction or a contract creation for signed transactions                         |
+| [eth_call](#eth_call)                                                               | Executes a new message call immediately without creating a transaction on the blockchain                    |
+| [eth_estimateGas](#eth_estimategas)                                                 | Generates and returns an estimate of gas                                                                    |
+| [eth_getBlockByNumber](#eth_getblockbynumber)                                       | Returns information about a block by block number                                                           |
+| [eth_getBlockByHash](#eth_getblockbyhash)                                           | Returns information about a block by hash                                                                   |
+| [eth_getTransactionByHash](#eth_gettransactionbyhash)                               | Returns information about a transaction by block hash                                                       |
+| [eth_getTransactionByBlockHashAndIndex](#eth_gettransactionbyblockhashandindex)     | Returns information about a transaction by block hash and transaction index position                        |
+| [eth_getTransactionByBlockNumberAndIndex](#eth_gettransactionbyBlocknumberandindex) | Returns information about a transaction by block number and transaction index position                      |
+| [eth_getTransactionReceipt](#eth_gettransactionreceipt)                             | Returns the receipt of a transaction by transaction hash                                                    |
+| [eth_pendingTransactions](#eth_pendingtransactions)                                 | Access all pending transactions                                                                             |
+| [eth_pendingTransactionsByHash](#eth_pendingtransactionsbyhash)                     | Access all pending transactions by transaction hash                                                         |
 
-- 示例代码
+### net_version
 
-请求：
+Returns the current network ID.
+
+#### Parameters
+
+None
+
+#### Returns
+
+`String`- The current network ID
+- "1" - Ontology Mainnet
+- "2" - Ontology Polaris Testnet
+- "3" - solo node
+
+
+#### Request Example
 
 ```shell
 curl -X POST --data '{"jsonrpc":"2.0","method":"net_version","params":[],"id":67}'
 ```
 
-响应：
+#### Response Example
 
 ```json
 {
@@ -734,24 +736,25 @@ curl -X POST --data '{"jsonrpc":"2.0","method":"net_version","params":[],"id":67
 }
 ```
 
-### 7.2 eth_chainId
+### eth_chainId
 
-返回当前链的chainId。
+Returns the current chainId.
 
-- 参数：无
+#### Parameters
 
-- 返回值
-    - `String`： 当前连接网络的ID
+None
 
-- 示例代码
+#### Returns
 
-请求：
+`String` - the current chainId
+
+#### Request Example
 
 ```shell
 curl -X POST --data '{"jsonrpc":"2.0","method":"eth_chainId","params":[],"id":83}'
 ```
 
-响应：
+#### Response Example
 
 ```json
 {
@@ -761,23 +764,25 @@ curl -X POST --data '{"jsonrpc":"2.0","method":"eth_chainId","params":[],"id":83
 }
 ```
 
-### 7.3 eth_blockNumber
+### eth_blockNumber
 
-返回最新块的编号。
+Returns the number of most recent block.
 
-- 参数
-- 返回值
-    - `QUANTITY`： 节点当前块编号
+#### Parameters
 
-- 示例代码
+None
 
-请求：
+#### Returns
+
+`QUANTITY` - integer of the current block number the client is on
+
+#### Request Example
 
 ```
 curl -X POST --data '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":83}'
 ```
 
-响应：
+#### Response Example
 
 ```
 {
@@ -787,15 +792,13 @@ curl -X POST --data '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id
 }
 ```
 
-### 7.4 eth_getBalance
+### eth_getBalance
 
-返回指定地址账户的余额。
+Returns the balance of the account of given address.
 
-- 参数
-    - `DATA`： 20字节，要检查余额的地址
-    - `QUANTITY|TAG`： 整数块编号，或者字符串"latest", "earliest" 或 "pending"
-
-参数示例：
+#### Parameters
+1. `DATA`, 20 Bytes - address to check for balance.
+2. `QUANTITY|TAG` - integer block number, or the string `"latest"`, `"earliest"` or `"pending"`
 
 ```
 params: [
@@ -804,18 +807,16 @@ params: [
 ]
 ```
 
-- 返回值
-    - `QUANTITY`： 当前余额，单位：wei
+#### Returns
+`QUANTITY`- integer of the current balance in wei.
 
-- 示例代码
-
-请求：
+#### Request Example
 
 ```
 curl -X POST --data '{"jsonrpc":"2.0","method":"eth_getBalance","params":["0x407d73d8a49eeb85d32cf465507dd71d507100c1", "latest"],"id":1}'
 ```
 
-响应：
+#### Response Example
 
 ```
 {
@@ -825,23 +826,25 @@ curl -X POST --data '{"jsonrpc":"2.0","method":"eth_getBalance","params":["0x407
 }
 ```
 
-### 7.5 eth_protocolVersion
+### eth_protocolVersion
 
-返回当前以太坊协议的版本。
+Returns the current ethereum protocol version.
 
-- 参数
-- 返回值
-    - `String`: 当前的以太坊协议版本
+#### Parameters
 
-- 示例代码
+None
 
-请求：
+#### Returns
+
+  `String` - The current ethereum protocol version
+
+#### Request Example
 
 ```shell
 curl -X POST --data '{"jsonrpc":"2.0","method":"eth_protocolVersion","params":[],"id":67}'
 ```
 
-响应：
+#### Response Example
 
 ```
 {
@@ -851,26 +854,28 @@ curl -X POST --data '{"jsonrpc":"2.0","method":"eth_protocolVersion","params":[]
 }
 ```
 
-### 7.6 eth_syncing
+### eth_syncing
 
-对于已经同步的客户端，该调用返回一个描述同步状态的对象。
+eturns an object with data about the sync status or false.
 
-- 参数
-- 返回值
-  `Object|Boolean`, 同步状态对象或false。同步对象的结构如下：
-    - startingBlock: QUANTITY - 开始块
-    - currentBlock: QUANTITY - 当前块，同eth_blockNumber
-    - highestBlock: QUANTITY - 预估最高块
+#### Parameters
 
-- 示例代码
+None
 
-请求：
+#### Returns
+
+  `Object|Boolean`，An object with sync status data or FALSE. Object structure: 
+ - `startingBlock`: `QUANTITY`- The block at which the import started 
+ - `currentBlock`: `QUANTITY` - The current block, same as eth_blockNumber
+ - `highestBlock`: `QUANTITY` - The estimated highest block
+
+#### Request Example
 
 ```
 curl -X POST --data '{"jsonrpc":"2.0","method":"eth_syncing","params":[],"id":1}'
 ```
 
-响应：
+#### Response Example
 
 ```
 {
@@ -884,23 +889,25 @@ curl -X POST --data '{"jsonrpc":"2.0","method":"eth_syncing","params":[],"id":1}
 }
 ```
 
-### 7.7 eth_gasPrice
+### eth_gasPrice
 
-返回当前的gas价格，单位：wei。
+Returns the current price per gas in wei.
 
-- 参数
-- 返回值
-    - `QUANTITY`: 整数，以wei为单位的当前gas价格
+#### Parameters
 
-- 示例代码
+None
 
-请求：
+#### Returns
+
+`QUANTITY` - integer of the current gas price in wei.
+
+#### Request Example
 
 ```
 curl -X POST --data '{"jsonrpc":"2.0","method":"eth_gasPrice","params":[],"id":73}'
 ```
 
-响应：
+#### Response Example
 
 ```
 {
@@ -910,21 +917,22 @@ curl -X POST --data '{"jsonrpc":"2.0","method":"eth_gasPrice","params":[],"id":7
 }
 ```
 
-### 7.8 eth_getStorageAt
+### eth_getStorageAt
 
-返回指定地址存储位置的值。
+Returns the value from a storage position at a given address.
 
-- 参数
-    - `DATA`: 20字节，存储地址
-    - `QUANTITY`: 存储中的位置号
-    - `QUANTITY|TAG`: 整数块号，或字符串"latest"、"earliest" 或"pending"（该参数为无效参数）
+#### Parameters
+  1. `DATA`, 20 Bytes - address of the storage
+  2. `QUANTITY` - integer of the position in the storage
+  3. `QUANTITY|TAG`- integer block number, or the string `"latest"`, `"earliest"` or `pending"` (Invalid Parameter)
 
-- 返回值
-  `DATA`: 指定存储位置的值
+#### Returns
 
-- 示例代码
+  `DATA` - the value at this storage position.
 
-根据要提取的存储计算正确的位置。考虑下面的合约，由`0x391694e7e0b0cce554cb130d723a9d27458f9298` 部署在地址`0x295a70b2de5e3953354a6a8344e616ed314d7251`：
+#### Example
+
+Calculating the correct position depends on the storage to retrieve. Consider the following contract deployed at `0x295a70b2de5e3953354a6a8344e616ed314d7251` by address `0x391694e7e0b0cce554cb130d723a9d27458f9298`:
 
 ```
 contract Storage {
@@ -938,31 +946,31 @@ contract Storage {
 }
 ```
 
-提取pos0的值很直接：
+Retrieving the value of pos0 is straight forward:
 
 ```
 curl -X POST --data '{"jsonrpc":"2.0", "method": "eth_getStorageAt", "params": ["0x295a70b2de5e3953354a6a8344e616ed314d7251", "0x0", "latest"], "id": 1}' localhost:8545
 ```
 
-响应结果：
+Response:
 
 ```
 {"jsonrpc":"2.0","id":1,"result":"0x00000000000000000000000000000000000000000000000000000000000004d2"}
 ```
 
-要提取映射表中的成员就难一些了。映射表中成员位置的计算如下：
+Retrieving an element of the map is harder. The position of an element in the map is calculated with:
 
 ```
 keccack(LeftPad32(key, 0), LeftPad32(map position, 0))
 ```
 
-这意味着为了提取`pos1["0x391694e7e0b0cce554cb130d723a9d27458f9298"]`的值，我们需要如下计算：
+This means to retrieve the storage on `pos1["0x391694e7e0b0cce554cb130d723a9d27458f9298"]` we need to calculate the position with:
 
 ```
 keccak(decodeHex("000000000000000000000000391694e7e0b0cce554cb130d723a9d27458f9298" + "0000000000000000000000000000000000000000000000000000000000000001"))
 ```
 
-geth控制台自带的web3库可以用来进行这个计算：
+The geth console which comes with the web3 library can be used to make the calculation:
 
 ```
 > var key = "000000000000000000000000391694e7e0b0cce554cb130d723a9d27458f9298" + "0000000000000000000000000000000000000000000000000000000000000001"
@@ -971,25 +979,25 @@ undefined
 "0x6661e9d6d8b923d5bbaab1b96e1dd51ff6ea2a93520fdc9eb75d059238b8c5e9"
 ```
 
-现在可以提取指定位置的值了：
+Now to fetch the storage:
 
 ```
 curl -X POST --data '{"jsonrpc":"2.0", "method": "eth_getStorageAt", "params": ["0x295a70b2de5e3953354a6a8344e616ed314d7251", "0x6661e9d6d8b923d5bbaab1b96e1dd51ff6ea2a93520fdc9eb75d059238b8c5e9", "latest"], "id": 1}' localhost:8545
 ```
 
-相应结果如下：
+Response:
 
 ```
 {"jsonrpc":"2.0","id":1,"result":"0x000000000000000000000000000000000000000000000000000000000000162e"}
 ```
 
-### 7.9 eth_getTransactionCount
+### eth_getTransactionCount
 
-返回指定地址发生的使用EVM虚拟机交易数量。
+Returns the number of transactions sent from an address using Ontology EVM.
 
-- 参数
-    - `DATA`: 20字节，地址
-    - `QUANTITY|TAG`: 整数块编号，或字符串"latest"、"earliest"或"pending"
+#### Parameters
+1. `DATA`, 20 Bytes - address.
+2. `QUANTITY|TAG` integer block number, or the string `"latest"`, `"earliest"` or `"pending"`
 
 ```
 params: [
@@ -998,19 +1006,17 @@ params: [
 ]
 ```
 
-- 返回值
+#### Returns
 
-`QUANTITY` - 从指定地址发出的交易数量，整数
+`QUANTITY` - integer of the number of transactions send from this address
 
-- 示例代码
-
-请求：
+#### Request Example
 
 ```
 curl -X POST --data '{"jsonrpc":"2.0","method":"eth_getTransactionCount","params":["0x407d73d8a49eeb85d32cf465507dd71d507100c1","latest"],"id":1}'
 ```
 
-响应：
+#### Response Example
 
 ```
 {
@@ -1020,12 +1026,13 @@ curl -X POST --data '{"jsonrpc":"2.0","method":"eth_getTransactionCount","params
 }
 ```
 
-### 7.10 eth_getBlockTransactionCountByHash
+### eth_getBlockTransactionCountByHash
 
-返回指定块内的使用EVM虚拟机交易数量，使用哈希来指定块。
+Returns the number of transactions using Ontology EVM in a block from a block matching the given block hash.
 
-- 参数
-    - `DATA`: 32字节，块哈希
+#### Parameters
+
+`DATA`, 32 Bytes - hash of a block
 
 ```
 params: [
@@ -1033,18 +1040,17 @@ params: [
 ]
 ```
 
-- 返回值
-    - `QUANTITY` - 指定块内的交易数量，整数
+#### Returns
 
-- 示例代码
+`QUANTITY`- integer of the number of transactions in this block
 
-请求：
+#### Request Example
 
 ```
 curl -X POST --data '{"jsonrpc":"2.0","method":"eth_getBlockTransactionCountByHash","params":["0xb903239f8543d04b5dc1ba6579132b143087c68db1b2168786408fcbce568238"],"id":1}'
 ```
 
-响应：
+#### Response Example
 
 ```
 {
@@ -1054,12 +1060,13 @@ curl -X POST --data '{"jsonrpc":"2.0","method":"eth_getBlockTransactionCountByHa
 }
 ```
 
-### 7.11 eth_getBlockTransactionCountByNumber
+### eth_getBlockTransactionCountByNumber
 
-返回指定块内的交易数量，使用块编号指定块。
+Returns the number of transactions in a block matching the given block number.
 
-- 参数
-    - `QUANTITY|TAG`: 整数块编号，或字符串"earliest"、"latest"或"pending"
+#### Parameters
+
+`QUANTITY|TAG`，- integer of a block number, or the string `"earliest"`, `"latest"` or `"pending"`.
 
 ```
 params: [
@@ -1067,18 +1074,17 @@ params: [
 ]
 ```
 
-- 返回值
-    - `QUANTITY`: 指定块内的交易数量
+#### Returns
 
-- 示例代码
+`QUANTITY`- integer of the number of transactions in this block
 
-请求：
+#### Request Example
 
 ```
 curl -X POST --data '{"jsonrpc":"2.0","method":"eth_getBlockTransactionCountByNumber","params":["0xe8"],"id":1}'
 ```
 
-响应：
+#### Response Example
 
 ```
 {
@@ -1088,13 +1094,13 @@ curl -X POST --data '{"jsonrpc":"2.0","method":"eth_getBlockTransactionCountByNu
 }
 ```
 
-### 7.12 eth_getCode
+### eth_getCode
 
-返回指定地址的代码。
+Returns code at a given address.
 
-- 参数
-    - `DATA`: 20字节，地址
-    - `QUANTITY|TAG`: 整数块编号，或字符串"latest"、"earliest" 或"pending"（无效参数）
+#### Parameters
+1. `DATA`, 20 Bytes - address.
+2.  `QUANTITY|TAG`- integer of a block number, or the string `"earliest"`, `"latest"` or `"pending"` (Invalid Parameter).
 
 ```
 params: [
@@ -1103,18 +1109,16 @@ params: [
 ]
 ```
 
-- 返回值
-    - `DATA`: 指定地址处的代码
+#### Returns
+`DATA`- the code from the given address
 
-- 示例代码
-
-请求：
+#### Request Example
 
 ```
 curl -X POST --data '{"jsonrpc":"2.0","method":"eth_getCode","params":["0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b", "0x2"],"id":1}'
 ```
 
-响应：
+#### Response Example
 
 ```
 {
@@ -1124,18 +1128,19 @@ curl -X POST --data '{"jsonrpc":"2.0","method":"eth_getCode","params":["0xa94f53
 }
 ```
 
-### 7.13 eth_getTransactionLogs
+### eth_getTransactionLogs
 
-返回交易执行的日志。
+Returns transaction logs by a transaction hash.
 
-- 参数
-    - `txHash`: 交易哈希
+#### Parameters
 
-- 返回值 返回交易执行日志
+`txHash` - transaction hash
 
-- 示例代码
+#### Returns 
 
-请求：
+
+
+#### Request Example
 
 ```
 curl -X POST --data '{
@@ -1148,7 +1153,7 @@ curl -X POST --data '{
    }'
 ```
 
-响应：
+#### Response Example
 
 ```
 {
@@ -1172,27 +1177,27 @@ curl -X POST --data '{
 }
 ```
 
-### 7.14 eth_sendRawTransaction
+### eth_sendRawTransaction
 
-为签名交易创建一个新的消息调用交易或合约。
+Creates new message call transaction or a contract creation for signed transactions.
 
-- 参数
-    - `DATA`: 签名的交易数据
+#### Parameters
 
-- 返回值
-    - `DATA`: 32字节，交易哈希，如果交易未生效则返回全0哈希。
+`DATA` - The signed transaction data
 
-当创建合约时，在交易生效后，使用`eth_getTransactionReceipt`获取合约地址。
+#### Returns
 
-- 示例代码
+`DATA` 32 Bytes - the transaction hash, or the zero hash if the transaction is not yet available.
 
-请求：
+Use [eth_getTransactionReceipt](#-eth_getTransactionReceipt) to get the contract address, after the transaction was mined, when you created a contract.
+
+#### Request Example
 
 ```
 curl -X POST --data '{"jsonrpc":"2.0","method":"eth_sendRawTransaction","params":[{see above}],"id":1}'
 ```
 
-响应：
+#### Response Example
 
 ```
 {
@@ -1202,32 +1207,33 @@ curl -X POST --data '{"jsonrpc":"2.0","method":"eth_sendRawTransaction","params"
 }
 ```
 
-### 7.15 eth_call
+### eth_call
 
-立刻执行一个新的消息调用，无需在区块链上创建交易。
+Executes a new message call immediately without creating a transaction on the blockchain.
 
-- 参数
-    - `Object`: 交易调用对象
-        - from: DATA, 20 Bytes - 发送交易的原地址，可选
-        - to: DATA, 20 Bytes - 交易目标地址
-        - gas: QUANTITY - 交易可用gas量，可选。eth_call不消耗gas，但是某些执行环节需要这个参数
-        - gasPrice: QUANTITY - gas价格，可选
-        - value: QUANTITY - 交易发送的以太数量，可选
-        - data: DATA - 方法签名和编码参数的哈希，可选
-        - QUANTITY|TAG - 整数块编号，或字符串"latest"、"earliest"或"pending"
+#### Parameters
 
-- 返回值
-    - `DATA`: 所执行合约的返回值
+`Object` - The transaction call object:
 
-- 示例代码
+- `from`: `DATA`，20 Bytes, 20 Bytes - (optional) The address the transaction is sent from.
+- `to`: `DATA`, 20 Bytes, 20 Bytes  - The address the transaction is directed to.
+- `gas`: `QUANTITY` - (optional) Integer of the gas provided for the transaction execution. eth_call consumes zero gas, but this parameter may be needed by some  executions.
+- `gasPrice`：`QUANTITY` - (optional) Integer of the gasPrice used for each paid gas.
+- `value`：`QUANTITY` - (optional) Integer of the value sent with this transaction.
+- `data`: `DATA` - (optional) Hash of the method signature and encoded parameters. 
+- `QUANTITY|TAG` - integer of a block number, or the string `"earliest"`, `"latest"` or `"pending"`.
 
-请求：
+#### Returns
+
+`DATA` - the return value of executed contract.
+
+#### Request Example
 
 ```
 curl -X POST --data '{"jsonrpc":"2.0","method":"eth_call","params":[{see above}],"id":1}'
 ```
 
-响应：
+#### Response Example
 
 ```
 {
@@ -1237,26 +1243,27 @@ curl -X POST --data '{"jsonrpc":"2.0","method":"eth_call","params":[{see above}]
 }
 ```
 
-### 7.16 eth_estimateGas
+### eth_estimateGas
 
-执行并估算一个交易需要的gas用量。该次交易不会写入区块链。注意，由于多种原因，例如EVM的机制 及节点旳性能，估算的数值可能比实际用量大的多。
+Generates and returns an estimate of how much gas is necessary to allow  the transaction to complete. The transaction will not be added to the blockchain. 
 
-- 参数
+> **Note:** that the estimate may be significantly more than the  amount of gas actually used by the transaction, for a variety of reasons including EVM mechanics and node performance.
 
-参考`eth_call`调用的参数，所有的属性都是可选的。如果没有指定gas用量上限，geth将使用挂起块的gas上限。 在这种情况下，返回的gas估算量可能不足以执行实际的交易。
+#### Parameters
 
-- 返回值
-    - `QUANTITY`: gas用量估算值
+See [`eth_call`](#-eth_call)  parameters. All properties are optional. If no gas limit is specified geth uses the block gas limit from the pending block as an upper bound. As a result the returned estimate might not be enough to execute the call/transaction when the amount of gas is higher than the  pending block gas limit.
 
-- 示例代码
+#### Returns
 
-请求：
+`QUANTITY` - the estimated amount of gas.
+
+#### Request Example
 
 ```
 curl -X POST --data '{"jsonrpc":"2.0","method":"eth_estimateGas","params":[{see above}],"id":1}'
 ```
 
-返回值：
+#### Response Example
 
 ```
 {
@@ -1266,47 +1273,45 @@ curl -X POST --data '{"jsonrpc":"2.0","method":"eth_estimateGas","params":[{see 
 }
 ```
 
-### 7.17 eth_getBlockByNumber
+### eth_getBlockByNumber
 
-返回指定编号的块。
+Returns information about a block by block number.
 
-- 参数
-    - `QUANTITY|TAG`: 整数块编号，或字符串"earliest"、"latest" 或"pending"
-    - `Boolean`: 为true时返回完整的交易对象，否则仅返回交易哈希
+#### Parameters
 
-- 返回值
+1. `QUANTITY|TAG` - integer of a block number, or the string `"earliest"`, `"latest"` or `"pending"`.
+2. `Boolean`- If `true` it returns the full transaction objects, if `false` only the hashes of the transactions.
 
-`Object` - 匹配的块对象，如果未找到块则返回null，结构如下：
+#### Returns
 
-    - number: QUANTITY - 块编号
-    - hash: DATA, 32 Bytes - 块哈希
-    - parentHash: DATA, 32 Bytes - 父块的哈希
-    - nonce: DATA, 8 Bytes - 空
-    - sha3Uncles: DATA, 32 Bytes - 空
-    - logsBloom: DATA, 256 Bytes - 空
-    - transactionsRoot: DATA, 32 Bytes - 块中的交易树根节点
-    - stateRoot: DATA, 32 Bytes - 空
-    - receiptsRoot: DATA, 32 Bytes - 空
-    - miner: DATA, 20 Bytes - 空
-    - difficulty: QUANTITY - 空
-    - totalDifficulty: QUANTITY - 空
-    - extraData: DATA - 空
-    - size: QUANTITY - 本块字节数
-    - gasLimit: QUANTITY - 本块允许的最大gas用量
-    - gasUsed: QUANTITY - 本块中所有交易使用的总gas用量
-    - timestamp: QUANTITY - 块时间戳
-    - transactions: Array - 交易对象数组，或32字节长的交易哈希数组
-    - uncles: Array - 空
+`Object` - A block object, or `null` when no block was found:
 
-- 示例代码
+- `number`: `QUANTITY` - the block number. 
+- `hash`: `DATA`, 32 Bytes - hash of the block.
+- `parentHash`: `DATA`, 32 Bytes - hash of the parent block.
+- `nonce`: `DATA` , 8 Bytes - null
+- `logsBloom`: `DATA`, 256 Bytes - null
+- `transactionsRoot`: `DATA` , 32 Bytes - the root of the transaction trie of the block.
+- `stateRoot`: `DATA`, 32 Bytes - null
+- `receiptsRoot`: `DATA`, 32 Bytes - null
+- `miner`: `DATA`, 20 Bytes - null
+- `difficulty`: `QUANTITY` - null
+- `totalDifficulty`: `QUANTITY` - null
+- `extraData`: `DATA` - null
+- `size`: `QUANTITY` -  the size of this block in bytes.
+- `gasLimit`: `QUANTITY` - the maximum gas allowed in this block.
+- `gasUsed`: `QUANTITY` -  the total used gas by all transactions in this block.
+- `timestamp`: `QUANTITY` - the timestamp for when the block was collated.
+- `transactions`: `Array` - Array of transaction objects, or 32 Bytes transaction hashes depending on the last given parameter.
+- `uncles`: `Array` - null
 
-请求：
+#### Request Example
 
 ```
 curl -X POST --data '{"jsonrpc":"2.0","method":"eth_getBlockByNumber","params":["0x1b4", true],"id":1}'
 ```
 
-响应：
+#### Response Example
 
 ```
 {
@@ -1337,62 +1342,59 @@ curl -X POST --data '{"jsonrpc":"2.0","method":"eth_getBlockByNumber","params":[
 }
 ```
 
-### 7.18 eth_getBlockByHash
+### eth_getBlockByHash
 
-返回具有指定哈希的块。
+Returns information about a block by hash.
 
-- 参数
-    - `DATA`: 32字节 - 块哈希
-    - `Boolean`: 为true时返回完整的交易对象，否则仅返回交易哈希
+#### Parameters
+1. `DATA`, 32 Bytes - Hash of a block.
+2. `Boolean`\- If `true` it returns the full transaction objects, if `false` only the hashes of the transactions.
 
-- 返回值
+#### Returns
 
-参考`eth_getBlockByNumber`的返回值。
+See [`eth_getBlockByNumber`](#-eth_getBlockByNumber`).
 
-- 示例代码
-
-请求：
+#### Request Example
 
 ```
 curl -X POST --data '{"jsonrpc":"2.0","method":"eth_getBlockByHash","params":["0xe670ec64341771606e55d6b4ca35a1a6b75ee3d5145a99d05921026d1527331", true],"id":1}'
 ```
 
-响应：
+#### Response Example
 
-参考`eth_getBlockByNumber`。
+See [`eth_getBlockByNumber`](#-eth_getBlockByNumber`).
 
-### 7.19 eth_getTransactionByHash
+### eth_getTransactionByHash
 
-返回指定哈希对应的交易。
+Returns information about a transaction by block hash.
 
-- 参数
-    - `DATA`: 32 字节 - 交易哈希
+#### Parameters
 
-- 返回值
+`DATA`, 32 Bytes - hash of a block.
 
-`Object` - 交易对象，如果没有找到匹配的交易则返回null。结构如下：
+#### Returns
 
-    - hash: DATA, 32字节 - 交易哈希
-    - nonce: QUANTITY - 本次交易之前发送方已经生成使用evm虚拟机的交易数量
-    - blockHash: DATA, 32字节 - 交易所在块的哈希，对于挂起块，该值为null
-    - blockNumber: QUANTITY - 交易所在块的编号，对于挂起块，该值为null
-    - transactionIndex: QUANTITY - 交易在块中的索引位置，挂起块该值为null
-    - from: DATA, 20字节 - 交易发送方地址
-    - to: DATA, 20字节 - 交易接收方地址，对于合约创建交易，该值为null
-    - value: QUANTITY - 发送的以太数量，单位：wei
-    - gasPrice: QUANTITY - 发送方提供的gas价格，单位：wei
-    - gas: QUANTITY - 发送方提供的gas可用量
-    - input: DATA - 随交易发送的数据
+`Object`  - A transaction object, or `null` when no transaction was found：
 
-- 示例代码
+- `hash`: `DATA` -  32 Bytes, transaction hash.
+- `nonce`: `QUANTITY`  - the number of transactions made by the sender using Ontology EVM prior to this one.
+- `blockHash`: `DATA`, 32 Bytes - hash of the block where this transaction was in. null when its pending.
+- `blockNumber`: `QUANTITY`  - block number where this transaction was in. null when its pending.
+- `transactionIndex`: `QUANTITY`- integer of the transactions index position in the block. null when its pending.
+- `from`: `DATA`, 20 Bytes - address of the sender.
+- `to`: `DATA`, 20 Bytes - address of the receiver. null when its a contract creation transaction.
+- `value`: `QUANTITY`- value transferred in Wei.
+- `gasPrice`: `QUANTITY` - gas price provided by the sender in Wei.
+- `gas`: `QUANTITY` - gas provided by the sender.
+- `input`: `DATA` - the data send along with the transaction.
 
-请求：
+#### Request Example
 
 ```
 curl -X POST --data '{"jsonrpc":"2.0","method":"eth_getTransactionByHash","params":["0xb903239f8543d04b5dc1ba6579132b143087c68db1b2168786408fcbce568238"],"id":1}'
 ```
 
-响应：
+#### Response Example
 
 ```
 {
@@ -1414,13 +1416,14 @@ curl -X POST --data '{"jsonrpc":"2.0","method":"eth_getTransactionByHash","param
 }
 ```
 
-### 7.20 eth_getTransactionByBlockHashAndIndex
+### eth_getTransactionByBlockHashAndIndex
 
-返回指定块内具有指定索引序号的交易。
+Returns information about a transaction by block hash and transaction index position.
 
-- 参数
-    - `DATA`: 32字节 - 块哈希
-    - `QUANTITY`: 交易在块内的索引序号
+#### Parameters
+
+1. `DATA`, 32 Bytes - hash of a block.
+2. `QUANTITY`- integer of the transaction index position.
 
 ```
 params: [
@@ -1429,27 +1432,26 @@ params: [
 ]
 ```
 
-- 返回值
+#### Returns
 
-查阅`eth_getTransactionByHash`的返回值
+See [`eth_getTransactionByHash`](#-eth_getTransactionByHash).
 
-- 示例代码
-
-请求：
+#### Request Example
 
 ```
 curl -X POST --data '{"jsonrpc":"2.0","method":"eth_getTransactionByBlockHashAndIndex","params":["0xc6ef2fc5426d6ad6fd9e2a26abeab0aa2411b7ab17f30a99d3cb96aed1d1055b", "0x0"],"id":1}'
 ```
 
-返回值请参考`eth_getTransactionByHash`的返回值。
+See [`eth_getTransactionByHash`](See-eth_getTransactionByHash).
 
-### 7.21 eth_getTransactionByBlockNumberAndIndex
+#### eth_getTransactionByBlockNumberAndIndex
 
-返回指定编号的块内具有指定索引序号的交易。
+Returns information about a transaction by block number and transaction index position.
 
-- 参数
-    - `QUANTITY|TAG` - 整数块编号，或字符串"earliest"、"latest" 或"pending"
-    - `QUANTITY` - 交易索引序号
+#### Parameters
+
+1. `QUANTITY|TAG` - integer of a block number, or the string `"earliest"`, `"latest"` or `"pending"`.
+2. `QUANTITY`- the transaction index position.
 
 ```
 params: [
@@ -1458,28 +1460,27 @@ params: [
 ]
 ```
 
-- 返回值
+#### Returns
 
-请参考`eth_getTransactionByHash`的返回值。
+See `eth_getTransactionByHash`(#-eth_getTransactionByHash). 
 
-- 示例代码
-
-请求：
+#### Request Example
 
 ```
 curl -X POST --data '{"jsonrpc":"2.0","method":"eth_getTransactionByBlockNumberAndIndex","params":["0x29c", "0x0"],"id":1}'
 ```
 
-响应结果请参考`eth_getTransactionByHash`调用。
+see [`eth_getTransactionByHash`](#-eth_getTransactionByHash).
 
-### 7.22 eth_getTransactionReceipt
+### eth_getTransactionReceipt
 
-返回指定交易的收据，使用哈希指定交易。
+Returns the receipt of a transaction by transaction hash.
 
-需要指出的是，挂起的交易其收据无效。
+> **Notice:**  The receipt is not available for pending transactions.
 
-- 参数
-    - `DATA`: 32字节 - 交易哈希
+#### Parameters
+
+`DATA`, 32 Bytes - hash of a transaction.
 
 ```
 params: [
@@ -1487,26 +1488,24 @@ params: [
 ]
 ```
 
-- 返回值
+#### Returns
 
-`Object` - 交易收据对象，如果收据不存在则为null。交易对象的结构如下：
+`Object`  \- A transaction receipt object, or `null` when no receipt was found:
 
-    - transactionHash: DATA, 32字节 - 交易哈希
-    - transactionIndex: QUANTITY - 交易在块内的索引序号
-    - blockHash: DATA, 32字节 - 交易所在块的哈希
-    - blockNumber: QUANTITY - 交易所在块的编号
-    - from: DATA, 20字节 - 交易发送方地址
-    - to: DATA, 20字节 - 交易接收方地址，对于合约创建交易该值为null
-    - cumulativeGasUsed: QUANTITY - 交易所在块消耗的gas总量
-    - gasUsed: QUANTITY - 该次交易消耗的gas用量
-    - contractAddress: DATA, 20字节 - 对于合约创建交易，该值为新创建的合约地址，否则为null
-    - logs: Array - 本次交易生成的日志对象数组
-    - logsBloom: DATA, 256字节 - bloom过滤器，空
-    - status: QUANTITY ，1 (成功) 或 0 (失败)
+- `transactionHash`: `DATA`, 32 Bytes - hash of the transaction.
+- `transactionIndex`: `QUANTITY` \- integer of the transactions index position in the block.
+- `blockHash`: `DATA`, 32 Bytes - hash of the block where this transaction was in.
+- `blockNumber`: `QUANTITY`\- block number where this transaction was in.
+- `from`: `DATA`, 20 Bytes - address of the sender.
+- `to`: `DATA`, 20 Bytes - address of the receiver. null when its a contract creation transaction.
+- `cumulativeGasUsed`:`QUANTITY` \- The total amount of gas used when this transaction was executed in the block.
+- `gasUsed`: `QUANTITY` \- The amount of gas used by this specific transaction alone.
+- `contractAddress`: `DATA`, 20 Bytes - The contract address created, if the transaction was a contract creation, otherwise `null`.
+- `logs`: `Array` \- Array of log objects, which this transaction generated.
+- `logsBloom`: `DATA`, 256 Bytes - Bloom filter, null
+- `status`: `QUANTITY`, either `1` (success) or `0` (failure)
 
-- 示例代码
-
-请求：
+#### Request Example
 
 ```
 curl -X POST --data '{    "jsonrpc": "2.0",
@@ -1517,7 +1516,7 @@ curl -X POST --data '{    "jsonrpc": "2.0",
     ]'
 ```
 
-响应：
+#### Response Example
 
 ```
 {
@@ -1580,37 +1579,10 @@ curl -X POST --data '{    "jsonrpc": "2.0",
 }
 ```
 
-### 7.23 eth_pendingTransactions
+### eth_pendingTransactions
 
-获取所有处于pending状态的交易
+Access all pending transactions.
 
-### 7.24 eth_pendingTransactionsByHash
+### eth_pendingTransactionsByHash
 
-根据交易哈希获取处于pending状态的交易
-
-### 7.25 net_version
-
-返回当前连接网络的ID。
-
-- 参数
-
-- 返回值
-    - `String`: 当前连接网络的ID
-
-- 示例代码
-
-请求：
-
-```
-curl -X POST --data '{"jsonrpc":"2.0","method":"net_version","params":[],"id":67}'
-```
-
-响应：
-
-```
-{
-  "id":67,
-  "jsonrpc": "2.0",
-  "result": "3"
-}
-```
+Access all pending transactions by transaction hash.
