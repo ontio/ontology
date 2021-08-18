@@ -97,6 +97,7 @@ There are some description of parameter used in rpc:
 | [getblocktxsbyheight](#20-getblocktxsbyheight) | height | return transaction hashes |  |
 | [getnetworkid](#21-getnetworkid) |  | Get the network id |  |
 | [getgrantong](#22-getgrantong) |  | Get grant ong |  |
+| [getsyncstatus](#23-getsyncstatus) |  | Get the synchronization status of the node |  |
 
 ### 1. getbestblockhash
 
@@ -1098,6 +1099,42 @@ Response:
   "result": 4995625
 }
 ```
+
+
+
+#### 23. getsyncstatus
+
+gets the synchronization status of the node.
+
+#### Example
+
+Request:
+
+```
+{
+ 	"jsonrpc": "2.0", 
+ 	"method": "getsyncstatus", 
+ 	"params": [], 
+ 	"id": 0
+ }
+```
+
+Response:
+
+```
+{
+    "desc": "SUCCESS",
+    "error": 0,
+    "id": 0,
+    "jsonrpc": "2.0",
+    "result": {
+        "CurrentBlockHeight": 16224663,
+        "ConnectCount": 20,
+        "MaxPeerBlockHeight": 16224663
+    }
+}
+```
+
 
 ## Error Code
 

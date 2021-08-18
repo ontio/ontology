@@ -47,6 +47,7 @@
 | [post_raw_tx](#21-post_raw_tx) | post /api/v1/transaction?preExec=0 | 向ontology网络发送交易 |
 | [get_networkid](#22-get_networkid) |  GET /api/v1/networkid | 得到network id |
 | [get_grantong](#23-get_grantong) |  GET /api/v1/grantong/:addr | 得到grant ong |
+| [get_syncstatus](#24-get_syncstatus) |  GET /api/v1/node/syncstatus | 得到节点同步状态 |
 
 ### 1 get_conn_count
 
@@ -868,6 +869,34 @@ curl -i http://localhost:20334/api/v1/grantong/AKDFapcoUhewN9Kaj6XhHusurfHzUiZqU
     "Error": 0,
     "Version": "1.0.0",
     "Result": 4995625
+}
+```
+
+
+### 24 get_syncstatus
+
+获取 节点同步的状态.
+
+GET
+```
+/api/v1/node/syncstatus
+```
+#### Request Example:
+```
+curl -i http://localhost:20334/api/v1/node/syncstatus
+```
+#### Response
+```
+{
+    "Action":"getsyncstatus",
+    "Desc":"SUCCESS",
+    "Error":0,
+    "Result":{
+        "CurrentBlockHeight":16224658,
+        "ConnectCount":18,
+        "MaxPeerBlockHeight":16224658
+    },
+    "Version":"1.0.0"
 }
 ```
 

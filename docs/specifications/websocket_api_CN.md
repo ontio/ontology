@@ -51,6 +51,7 @@
 | [getversion](#24-getversion) |  | 得到版本信息 |
 | [getnetworkid](#25-getnetworkid) |  | 得到network id |
 | [getgrantong](#26-getgrantong) |  | 得到grant ong |
+| [getsyncstatus](#27-getsyncstatus) |  | 得到节点的同步状态 |
 
 ###  1. heartbeat
 
@@ -964,6 +965,36 @@ raw：可选参数，默认值为零，不设置时为默认值。当值为1时�
     "Result": 4995625
 }
 ```
+
+
+### 27. getsyncstatus
+
+获得节点的同步状态
+
+#### Request Example:
+```
+{
+ 	"jsonrpc": "2.0", 
+ 	"method": "getsyncstatus", 
+ 	"params": [], 
+ 	"id": 0
+ }
+```
+#### Response Example
+```
+{
+    "desc": "SUCCESS",
+    "error": 0,
+    "id": 0,
+    "jsonrpc": "2.0",
+    "result": {
+        "CurrentBlockHeight": 16224663,
+        "ConnectCount": 20,
+        "MaxPeerBlockHeight": 16224663
+    }
+}
+```
+
 
 ## 错误代码
 
