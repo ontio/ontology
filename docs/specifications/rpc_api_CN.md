@@ -97,6 +97,7 @@
 | [getblocktxsbyheight](#20-getblocktxsbyheight) | height | 返回该高度对应的区块落账的交易的哈希 |  |
 | [getnetworkid](#21-getnetworkid) |  | 获取 network id |  |
 | [getgrantong](#22-getgrantong) |  | 获取 grant ong |  |
+| [getsyncstatus](#23-getsyncstatus) |  | 获取 节点同步的状态 |  |
 
 ### 1. getbestblockhash
 
@@ -1108,6 +1109,41 @@ Response:
   "jsonrpc": "2.0",
   "id": 3,
   "result": 4995625
+}
+```
+
+
+
+#### 23. getsyncstatus
+
+获取 节点的同步状态.
+
+#### Example
+
+Request:
+
+```
+{
+ 	"jsonrpc": "2.0", 
+ 	"method": "getsyncstatus", 
+ 	"params": [], 
+ 	"id": 0
+ }
+```
+
+Response:
+
+```
+{
+    "desc": "SUCCESS",
+    "error": 0,
+    "id": 0,
+    "jsonrpc": "2.0",
+    "result": {
+        "CurrentBlockHeight": 16224663,
+        "ConnectCount": 20,
+        "MaxPeerBlockHeight": 16224663
+    }
 }
 ```
 

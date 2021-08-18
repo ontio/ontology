@@ -51,6 +51,8 @@ This document describes the Websocket api format for the ws/wss used in the Onch
 | [getversion](#24-getversion) |  | get the version information of the node |
 | [getnetworkid](#25-getnetworkid) |  | get the network id |
 | [getgrantong](#26-getgrantong) |  | get grant ong |
+| [getsyncstatus](#27-getsyncstatus) |  | gets the synchronization status of the node |
+
 
 ###  1. heartbeat
 If don't send heartbeat, the session expire after 5min.
@@ -936,6 +938,7 @@ Get the network id
 }
 ```
 
+
 ### 26. getgrantong
 
 get grant ong
@@ -959,6 +962,35 @@ get grant ong
     "Result": 4995625
 }
 ```
+
+### 27. getsyncstatus
+
+gets the synchronization status of the node
+
+#### Request Example:
+```
+{
+ 	"jsonrpc": "2.0", 
+ 	"method": "getsyncstatus", 
+ 	"params": [], 
+ 	"id": 0
+ }
+```
+#### Response Example
+```
+{
+    "desc": "SUCCESS",
+    "error": 0,
+    "id": 0,
+    "jsonrpc": "2.0",
+    "result": {
+        "CurrentBlockHeight": 16224663,
+        "ConnectCount": 20,
+        "MaxPeerBlockHeight": 16224663
+    }
+}
+```
+
 
 ## Error Code
 
