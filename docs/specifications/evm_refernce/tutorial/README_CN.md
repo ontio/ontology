@@ -246,6 +246,8 @@ Hardhat 是一个编译、部署、测试和调试以太坊应用的开发环境
 
 ```
 require("@nomiclabs/hardhat-waffle");
+const fs = require('fs');
+const privateKey = fs.readFileSync(".secret").toString().trim();
 
 module.exports = {
     defaultNetwork: "ontology_testnet",
@@ -257,7 +259,7 @@ module.exports = {
             gasPrice:500,
             gas:2000000,
             timeout:10000000,
-            accounts: ["你的私钥字符串"]
+            accounts: [privateKey]
         }
     },
     solidity: {

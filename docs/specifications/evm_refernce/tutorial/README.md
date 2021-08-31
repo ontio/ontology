@@ -47,7 +47,7 @@ Now the Ontology network is compatible with Ethereum through Ontology EVM, meani
 
 ## 1 Development Environment and Tools
 
-EVM smart contracts are written using [Solidity](https://docs.soliditylang.org/en/v0.8.6/). You can also reuse existing Ethereum contract frameworks to develop and deploy EVM contracts. 
+EVM smart contracts are written using [Solidity](https://docs.soliditylang.org/en/v0.8.6/). You can reuse existing Ethereum contract frameworks to develop and deploy EVM contracts. 
 
 ### 1.1 Remix
 
@@ -67,7 +67,7 @@ Then, select Solidity environment. Create a new file and name it HelloWorld.sol.
 
 #### 1.1.2 Compile Contract
 
-Click on the Solidity Compiler button, select compiler version to 0.5.10 and start compiling HelloWorld.sol。
+Click on the Solidity Compiler button, select compiler version to 0.5.10 and start compiling HelloWorld.sol.
 
 #### 1.1.3 Deploy Contract
 
@@ -242,6 +242,8 @@ Please refer to [Hardhat doc](https://hardhat.org/getting-started/) for details 
 
 ```
 require("@nomiclabs/hardhat-waffle");
+const fs = require('fs');
+const privateKey = fs.readFileSync(".secret").toString().trim();
 
 module.exports = {
     defaultNetwork: "ontology_testnet",
@@ -250,10 +252,10 @@ module.exports = {
         ontology_testnet: {
             url: "http://polaris2.ont.io:20339",
             chainId: 5851,
-            gasPrice:500,
+            gasPrice:2500,
             gas:2000000,
             timeout:10000000,
-            accounts: ["string of your private key"]
+            accounts: [privateKey]
         }
     },
     solidity: {
