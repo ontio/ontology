@@ -673,8 +673,6 @@ sss@sss hardhatdemo % npx hardhat test
 
 Since data structure of an transaction on Ontology are different from those on Ethereum, Ontology only supports the following methods:
 
-> **Notice:** Some methods return different responses from Ethereum API
-
 ### Method List
 
 | Method Name                                                                         | Description                                                                                                 |
