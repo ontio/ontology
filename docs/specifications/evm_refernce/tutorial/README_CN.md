@@ -677,7 +677,6 @@ sss@sss hardhatdemo % npx hardhat test
 
 由于以太坊与本体交易的结构体和存储结构存在差异，目前本体只支持了以太坊部分RPC接口，具体如下：
 
-> **注意：** 本体部分接口返回的内容与以太坊返回的有所不同。
 
 ### 方法列表
 
@@ -930,7 +929,7 @@ curl -X POST --data '{"jsonrpc":"2.0","method":"eth_gasPrice","params":[],"id":7
 #### 请求参数
   1. `DATA`，20字节，存储地址
   2. `QUANTITY`，存储中的位置号
-  3. `QUANTITY|TAG`，整数块号，或字符串"latest"、"earliest" 或"pending"（该参数为无效参数）
+  3. `QUANTITY|TAG`，整数块号，或字符串"latest"、"earliest" 或"pending"
 
 #### 返回值
 

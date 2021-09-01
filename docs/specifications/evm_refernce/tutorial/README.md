@@ -674,7 +674,6 @@ sss@sss hardhatdemo % npx hardhat test
 
 Since data structure of an transaction on Ontology are different from those on Ethereum, Ontology only supports the following methods:
 
-> **Notice:** Some methods return different responses from Ethereum API
 
 ### Method List
 
@@ -724,14 +723,14 @@ None
 #### Request Example
 
 ```shell
-curl -X POST --data '{"jsonrpc":"2.0","method":"net_version","params":[],"id":67}'
+curl -X POST --data '{"jsonrpc":"2.0","method":"net_version","params":[],"id":3}'
 ```
 
 #### Response Example
 
 ```json
 {
-  "id": 67,
+  "id": 3,
   "jsonrpc": "2.0",
   "result": "1"
 }
@@ -748,20 +747,23 @@ None
 #### Returns
 
 `String` - the current chainId
+- "58" - Ontology Mainnet
+- "5851" - Ontology Polaris Testnet
+- "12345" - solo node
 
 #### Request Example
 
 ```shell
-curl -X POST --data '{"jsonrpc":"2.0","method":"eth_chainId","params":[],"id":83}'
+curl -X POST http://127.0.0.1:20339 -H 'Content-Type: application/json' --data '{"jsonrpc":"2.0","method":"eth_chainId","params":[],"id":67}'
 ```
 
 #### Response Example
 
 ```json
 {
-  "id": 83,
   "jsonrpc": "2.0",
-  "result": "0x00"
+  "id": 67,
+  "result": "0x3a"
 }
 ```
 
