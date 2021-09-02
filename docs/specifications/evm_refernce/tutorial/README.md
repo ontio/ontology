@@ -763,7 +763,7 @@ curl -X POST http://127.0.0.1:20339 -H 'Content-Type: application/json' --data '
 {
   "jsonrpc": "2.0",
   "id": 67,
-  "result": "0x3a"
+  "result": "0x3039" // 12345
 }
 ```
 
@@ -853,7 +853,7 @@ curl -X POST --data '{"jsonrpc":"2.0","method":"eth_protocolVersion","params":[]
 {
   "id":67,
   "jsonrpc": "2.0",
-  "result": "65"
+  "result": "0x41"
 }
 ```
 
@@ -874,13 +874,13 @@ None
 
 #### Request Example
 
-```json
+```shell
 curl -X POST http://127.0.0.1:20339 -H 'Content-Type: application/json' --data '{"jsonrpc":"2.0","method":"eth_syncing","params":[],"id":1}'
 ```
 
 #### Response Example
 
-```
+```json
 {
   "id":1,
   "jsonrpc": "2.0",
@@ -906,13 +906,13 @@ None
 
 #### Request Example
 
-```
+```shell
 curl -X POST http://127.0.0.1:20339 -H 'Content-Type: application/json' --data '{"jsonrpc":"2.0","method":"eth_gasPrice","params":[],"id":73}'
 ```
 
 #### Response Example
 
-```
+```json
 {
   "id":73,
   "jsonrpc": "2.0",
