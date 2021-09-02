@@ -715,15 +715,15 @@ None
 #### Returns
 
 `String`- The current network ID
-- "1" - Ontology Mainnet
-- "2" - Ontology Polaris Testnet
-- "3" - solo node
+- "58" - Ontology Mainnet
+- "5851" - Ontology Polaris Testnet
+- "12345" - solo node
 
 
 #### Request Example
 
 ```shell
-curl -X POST --data '{"jsonrpc":"2.0","method":"net_version","params":[],"id":3}'
+curl -X POST http://127.0.0.1:20339 -H 'Content-Type: application/json' --data '{"jsonrpc":"2.0","method":"net_version","params":[],"id":3}'
 ```
 
 #### Response Example
@@ -732,7 +732,7 @@ curl -X POST --data '{"jsonrpc":"2.0","method":"net_version","params":[],"id":3}
 {
   "id": 3,
   "jsonrpc": "2.0",
-  "result": "1"
+  "result": "12345"
 }
 ```
 
@@ -763,7 +763,7 @@ curl -X POST http://127.0.0.1:20339 -H 'Content-Type: application/json' --data '
 {
   "jsonrpc": "2.0",
   "id": 67,
-  "result": "0x3a"
+  "result": "0x3039" // 12345
 }
 ```
 
@@ -781,13 +781,13 @@ None
 
 #### Request Example
 
-```
-curl -X POST --data '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":83}'
+```shell
+curl -X POST http://127.0.0.1:20339 -H 'Content-Type: application/json' --data '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":83}'
 ```
 
 #### Response Example
 
-```
+```json
 {
   "id":83,
   "jsonrpc": "2.0",
@@ -815,13 +815,13 @@ params: [
 
 #### Request Example
 
-```
-curl -X POST --data '{"jsonrpc":"2.0","method":"eth_getBalance","params":["0x407d73d8a49eeb85d32cf465507dd71d507100c1", "latest"],"id":1}'
+```shell
+curl -X POST http://127.0.0.1:20339 -H 'Content-Type: application/json' --data '{"jsonrpc":"2.0","method":"eth_getBalance","params":["0x407d73d8a49eeb85d32cf465507dd71d507100c1", "latest"],"id":1}'
 ```
 
 #### Response Example
 
-```
+```json
 {
   "id":1,
   "jsonrpc": "2.0",
@@ -853,13 +853,13 @@ curl -X POST --data '{"jsonrpc":"2.0","method":"eth_protocolVersion","params":[]
 {
   "id":67,
   "jsonrpc": "2.0",
-  "result": "65"
+  "result": "0x41"
 }
 ```
 
 ### eth_syncing
 
-eturns an object with data about the sync status or false.
+returns an object with data about the sync status or false.
 
 #### Parameters
 
@@ -874,13 +874,13 @@ None
 
 #### Request Example
 
-```
-curl -X POST --data '{"jsonrpc":"2.0","method":"eth_syncing","params":[],"id":1}'
+```shell
+curl -X POST http://127.0.0.1:20339 -H 'Content-Type: application/json' --data '{"jsonrpc":"2.0","method":"eth_syncing","params":[],"id":1}'
 ```
 
 #### Response Example
 
-```
+```json
 {
   "id":1,
   "jsonrpc": "2.0",
@@ -906,13 +906,13 @@ None
 
 #### Request Example
 
-```
-curl -X POST --data '{"jsonrpc":"2.0","method":"eth_gasPrice","params":[],"id":73}'
+```shell
+curl -X POST http://127.0.0.1:20339 -H 'Content-Type: application/json' --data '{"jsonrpc":"2.0","method":"eth_gasPrice","params":[],"id":73}'
 ```
 
 #### Response Example
 
-```
+```json
 {
   "id":73,
   "jsonrpc": "2.0",
@@ -927,7 +927,7 @@ Returns the value from a storage position at a given address.
 #### Parameters
   1. `DATA`, 20 Bytes - address of the storage
   2. `QUANTITY` - integer of the position in the storage
-  3. `QUANTITY|TAG`- integer block number, or the string `"latest"`, `"earliest"` or `pending"` (Invalid Parameter)
+  3. `QUANTITY|TAG`- integer block number, or the string `"latest"`, `"earliest"` or `pending"`
 
 #### Returns
 
@@ -951,8 +951,8 @@ contract Storage {
 
 Retrieving the value of pos0 is straight forward:
 
-```
-curl -X POST --data '{"jsonrpc":"2.0", "method": "eth_getStorageAt", "params": ["0x295a70b2de5e3953354a6a8344e616ed314d7251", "0x0", "latest"], "id": 1}' localhost:8545
+```shell
+curl -X POST http://127.0.0.1:20339 -H 'Content-Type: application/json' --data '{"jsonrpc":"2.0", "method": "eth_getStorageAt", "params": ["0x295a70b2de5e3953354a6a8344e616ed314d7251", "0x0", "latest"], "id": 1}' localhost:8545
 ```
 
 Response:
@@ -984,8 +984,8 @@ undefined
 
 Now to fetch the storage:
 
-```
-curl -X POST --data '{"jsonrpc":"2.0", "method": "eth_getStorageAt", "params": ["0x295a70b2de5e3953354a6a8344e616ed314d7251", "0x6661e9d6d8b923d5bbaab1b96e1dd51ff6ea2a93520fdc9eb75d059238b8c5e9", "latest"], "id": 1}' localhost:8545
+```shell
+curl -X POST http://127.0.0.1:20339 -H 'Content-Type: application/json' --data '{"jsonrpc":"2.0", "method": "eth_getStorageAt", "params": ["0x295a70b2de5e3953354a6a8344e616ed314d7251", "0x6661e9d6d8b923d5bbaab1b96e1dd51ff6ea2a93520fdc9eb75d059238b8c5e9", "latest"], "id": 1}' localhost:8545
 ```
 
 Response:
@@ -1015,8 +1015,8 @@ params: [
 
 #### Request Example
 
-```
-curl -X POST --data '{"jsonrpc":"2.0","method":"eth_getTransactionCount","params":["0x407d73d8a49eeb85d32cf465507dd71d507100c1","latest"],"id":1}'
+```shell
+curl -X POST http://127.0.0.1:20339 -H 'Content-Type: application/json' --data '{"jsonrpc":"2.0","method":"eth_getTransactionCount","params":["0x407d73d8a49eeb85d32cf465507dd71d507100c1","latest"],"id":1}'
 ```
 
 #### Response Example
@@ -1049,8 +1049,8 @@ params: [
 
 #### Request Example
 
-```
-curl -X POST --data '{"jsonrpc":"2.0","method":"eth_getBlockTransactionCountByHash","params":["0xb903239f8543d04b5dc1ba6579132b143087c68db1b2168786408fcbce568238"],"id":1}'
+```shell
+curl -X POST http://127.0.0.1:20339 -H 'Content-Type: application/json' --data '{"jsonrpc":"2.0","method":"eth_getBlockTransactionCountByHash","params":["0xb903239f8543d04b5dc1ba6579132b143087c68db1b2168786408fcbce568238"],"id":1}'
 ```
 
 #### Response Example
@@ -1083,8 +1083,8 @@ params: [
 
 #### Request Example
 
-```
-curl -X POST --data '{"jsonrpc":"2.0","method":"eth_getBlockTransactionCountByNumber","params":["0xe8"],"id":1}'
+```shell
+curl -X POST http://127.0.0.1:20339 -H 'Content-Type: application/json' --data '{"jsonrpc":"2.0","method":"eth_getBlockTransactionCountByNumber","params":["0xe8"],"id":1}'
 ```
 
 #### Response Example
@@ -1103,7 +1103,7 @@ Returns code at a given address.
 
 #### Parameters
 1. `DATA`, 20 Bytes - address.
-2.  `QUANTITY|TAG`- integer of a block number, or the string `"earliest"`, `"latest"` or `"pending"` (Invalid Parameter).
+2.  `QUANTITY|TAG`- integer of a block number, or the string `"earliest"`, `"latest"` or `"pending"`.
 
 ```
 params: [
@@ -1117,8 +1117,8 @@ params: [
 
 #### Request Example
 
-```
-curl -X POST --data '{"jsonrpc":"2.0","method":"eth_getCode","params":["0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b", "0x2"],"id":1}'
+```shell
+curl -X POST http://127.0.0.1:20339 -H 'Content-Type: application/json' --data '{"jsonrpc":"2.0","method":"eth_getCode","params":["0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b", "0x2"],"id":1}'
 ```
 
 #### Response Example
@@ -1145,8 +1145,8 @@ Returns transaction logs by a transaction hash.
 
 #### Request Example
 
-```
-curl -X POST --data '{
+```shell
+curl -X POST http://127.0.0.1:20339 -H 'Content-Type: application/json' --data '{
      "jsonrpc": "2.0",
      "id": 2233,
      "method": "eth_getTransactionLogs",
@@ -1196,8 +1196,8 @@ Use [eth_getTransactionReceipt](#-eth_getTransactionReceipt) to get the contract
 
 #### Request Example
 
-```
-curl -X POST --data '{"jsonrpc":"2.0","method":"eth_sendRawTransaction","params":[{see above}],"id":1}'
+```shell
+curl -X POST http://127.0.0.1:20339 -H 'Content-Type: application/json' --data '{"jsonrpc":"2.0","method":"eth_sendRawTransaction","params":[{see above}],"id":1}'
 ```
 
 #### Response Example
@@ -1232,8 +1232,8 @@ Executes a new message call immediately without creating a transaction on the bl
 
 #### Request Example
 
-```
-curl -X POST --data '{"jsonrpc":"2.0","method":"eth_call","params":[{see above}],"id":1}'
+```shell
+curl -X POST http://127.0.0.1:20339 -H 'Content-Type: application/json' --data '{"jsonrpc":"2.0","method":"eth_call","params":[{see above}],"id":1}'
 ```
 
 #### Response Example
@@ -1262,8 +1262,8 @@ See [`eth_call`](#-eth_call)  parameters. All properties are optional. If no gas
 
 #### Request Example
 
-```
-curl -X POST --data '{"jsonrpc":"2.0","method":"eth_estimateGas","params":[{see above}],"id":1}'
+```shell
+curl -X POST --data http://127.0.0.1:20339 -H 'Content-Type: application/json' '{"jsonrpc":"2.0","method":"eth_estimateGas","params":[{see above}],"id":1}'
 ```
 
 #### Response Example
@@ -1310,8 +1310,8 @@ Returns information about a block by block number.
 
 #### Request Example
 
-```
-curl -X POST --data '{"jsonrpc":"2.0","method":"eth_getBlockByNumber","params":["0x1b4", true],"id":1}'
+```shell
+curl -X POST http://127.0.0.1:20339 -H 'Content-Type: application/json' --data '{"jsonrpc":"2.0","method":"eth_getBlockByNumber","params":["0x1b4", true],"id":1}'
 ```
 
 #### Response Example
@@ -1359,8 +1359,8 @@ See [`eth_getBlockByNumber`](#-eth_getBlockByNumber`).
 
 #### Request Example
 
-```
-curl -X POST --data '{"jsonrpc":"2.0","method":"eth_getBlockByHash","params":["0xe670ec64341771606e55d6b4ca35a1a6b75ee3d5145a99d05921026d1527331", true],"id":1}'
+```shell
+curl -X POST http://127.0.0.1:20339 -H 'Content-Type: application/json' --data '{"jsonrpc":"2.0","method":"eth_getBlockByHash","params":["0xe670ec64341771606e55d6b4ca35a1a6b75ee3d5145a99d05921026d1527331", true],"id":1}'
 ```
 
 #### Response Example
@@ -1393,8 +1393,8 @@ Returns information about a transaction by block hash.
 
 #### Request Example
 
-```
-curl -X POST --data '{"jsonrpc":"2.0","method":"eth_getTransactionByHash","params":["0xb903239f8543d04b5dc1ba6579132b143087c68db1b2168786408fcbce568238"],"id":1}'
+```shell
+curl -X POST http://127.0.0.1:20339 -H 'Content-Type: application/json' --data '{"jsonrpc":"2.0","method":"eth_getTransactionByHash","params":["0xb903239f8543d04b5dc1ba6579132b143087c68db1b2168786408fcbce568238"],"id":1}'
 ```
 
 #### Response Example
@@ -1441,8 +1441,8 @@ See [`eth_getTransactionByHash`](#-eth_getTransactionByHash).
 
 #### Request Example
 
-```
-curl -X POST --data '{"jsonrpc":"2.0","method":"eth_getTransactionByBlockHashAndIndex","params":["0xc6ef2fc5426d6ad6fd9e2a26abeab0aa2411b7ab17f30a99d3cb96aed1d1055b", "0x0"],"id":1}'
+```shell
+curl -X POST http://127.0.0.1:20339 -H 'Content-Type: application/json' --data '{"jsonrpc":"2.0","method":"eth_getTransactionByBlockHashAndIndex","params":["0xc6ef2fc5426d6ad6fd9e2a26abeab0aa2411b7ab17f30a99d3cb96aed1d1055b", "0x0"],"id":1}'
 ```
 
 See [`eth_getTransactionByHash`](See-eth_getTransactionByHash).
@@ -1469,8 +1469,8 @@ See `eth_getTransactionByHash`(#-eth_getTransactionByHash).
 
 #### Request Example
 
-```
-curl -X POST --data '{"jsonrpc":"2.0","method":"eth_getTransactionByBlockNumberAndIndex","params":["0x29c", "0x0"],"id":1}'
+```shell
+curl -X POST http://127.0.0.1:20339 -H 'Content-Type: application/json' --data '{"jsonrpc":"2.0","method":"eth_getTransactionByBlockNumberAndIndex","params":["0x29c", "0x0"],"id":1}'
 ```
 
 see [`eth_getTransactionByHash`](#-eth_getTransactionByHash).
@@ -1510,8 +1510,8 @@ params: [
 
 #### Request Example
 
-```
-curl -X POST --data '{    "jsonrpc": "2.0",
+```shell
+curl -X POST http://127.0.0.1:20339 -H 'Content-Type: application/json' --data '{    "jsonrpc": "2.0",
     "id": 16661,
     "method": "eth_getTransactionReceipt",
     "params": [

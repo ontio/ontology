@@ -718,15 +718,15 @@ sss@sss hardhatdemo % npx hardhat test
 #### 响应参数
 
 `String`，当前连接网络的 ID
-- “1”代表本体主网
-- “2”代表本体 Polaris 测试网
-- “3”代表 solo 节点
+- “58”代表本体主网
+- “5851”代表本体 Polaris 测试网
+- “12345”代表 solo 节点
 
 
 #### 请求示例
 
 ```shell
-curl -X POST --data '{"jsonrpc":"2.0","method":"net_version","params":[],"id":67}'
+curl -X POST http://127.0.0.1:20339 -H 'Content-Type: application/json' --data '{"jsonrpc":"2.0","method":"net_version","params":[],"id":67}'
 ```
 
 #### 响应示例
@@ -735,7 +735,7 @@ curl -X POST --data '{"jsonrpc":"2.0","method":"net_version","params":[],"id":67
 {
   "id": 67,
   "jsonrpc": "2.0",
-  "result": "1"
+  "result": "12345"
 }
 ```
 
@@ -750,11 +750,14 @@ curl -X POST --data '{"jsonrpc":"2.0","method":"net_version","params":[],"id":67
 #### 返回值
 
 `String`，当前链的 chainId
+- "58" - Ontology 主网
+- "5851" - Ontology Polaris 测试网
+- "12345" - solo 节点
 
 #### 请求示例
 
 ```shell
-curl -X POST --data '{"jsonrpc":"2.0","method":"eth_chainId","params":[],"id":83}'
+curl -X POST http://127.0.0.1:20339 -H 'Content-Type: application/json' --data '{"jsonrpc":"2.0","method":"eth_chainId","params":[],"id":83}'
 ```
 
 #### 响应示例
@@ -763,7 +766,7 @@ curl -X POST --data '{"jsonrpc":"2.0","method":"eth_chainId","params":[],"id":83
 {
   "id": 83,
   "jsonrpc": "2.0",
-  "result": "0x00"
+  "result": "12345"
 }
 ```
 
@@ -781,8 +784,8 @@ curl -X POST --data '{"jsonrpc":"2.0","method":"eth_chainId","params":[],"id":83
 
 #### 请求示例
 
-```
-curl -X POST --data '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":83}'
+```shell
+curl -X POST http://127.0.0.1:20339 -H 'Content-Type: application/json' --data '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":83}'
 ```
 
 #### 响应示例
@@ -815,13 +818,13 @@ params: [
 
 #### 请求示例
 
-```
-curl -X POST --data '{"jsonrpc":"2.0","method":"eth_getBalance","params":["0x407d73d8a49eeb85d32cf465507dd71d507100c1", "latest"],"id":1}'
+```shell
+curl -X POST http://127.0.0.1:20339 -H 'Content-Type: application/json' --data '{"jsonrpc":"2.0","method":"eth_getBalance","params":["0x407d73d8a49eeb85d32cf465507dd71d507100c1", "latest"],"id":1}'
 ```
 
 #### 响应示例
 
-```
+```shell
 {
   "id":1,
   "jsonrpc": "2.0",
@@ -844,7 +847,7 @@ curl -X POST --data '{"jsonrpc":"2.0","method":"eth_getBalance","params":["0x407
 #### 请求示例
 
 ```shell
-curl -X POST --data '{"jsonrpc":"2.0","method":"eth_protocolVersion","params":[],"id":67}'
+curl -X POST http://127.0.0.1:20339 -H 'Content-Type: application/json' --data '{"jsonrpc":"2.0","method":"eth_protocolVersion","params":[],"id":67}'
 ```
 
 #### 响应示例
@@ -853,7 +856,7 @@ curl -X POST --data '{"jsonrpc":"2.0","method":"eth_protocolVersion","params":[]
 {
   "id":67,
   "jsonrpc": "2.0",
-  "result": "65"
+  "result": "0x41" // 65
 }
 ```
 
@@ -876,8 +879,8 @@ curl -X POST --data '{"jsonrpc":"2.0","method":"eth_protocolVersion","params":[]
 
 #### 请求示例
 
-```
-curl -X POST --data '{"jsonrpc":"2.0","method":"eth_syncing","params":[],"id":1}'
+```shell
+curl -X POST http://127.0.0.1:20339 -H 'Content-Type: application/json' --data '{"jsonrpc":"2.0","method":"eth_syncing","params":[],"id":1}'
 ```
 
 #### 响应示例
@@ -908,8 +911,8 @@ curl -X POST --data '{"jsonrpc":"2.0","method":"eth_syncing","params":[],"id":1}
 
 #### 请求示例
 
-```
-curl -X POST --data '{"jsonrpc":"2.0","method":"eth_gasPrice","params":[],"id":73}'
+```shell
+curl -X POST http://127.0.0.1:20339 -H 'Content-Type: application/json' --data '{"jsonrpc":"2.0","method":"eth_gasPrice","params":[],"id":73}'
 ```
 
 #### 响应示例
@@ -953,8 +956,8 @@ contract Storage {
 
 提取pos0的值比较容易：
 
-```
-curl -X POST --data '{"jsonrpc":"2.0", "method": "eth_getStorageAt", "params": ["0x295a70b2de5e3953354a6a8344e616ed314d7251", "0x0", "latest"], "id": 1}' localhost:8545
+```shell
+curl -X POST http://127.0.0.1:20339 -H 'Content-Type: application/json' --data '{"jsonrpc":"2.0", "method": "eth_getStorageAt", "params": ["0x295a70b2de5e3953354a6a8344e616ed314d7251", "0x0", "latest"], "id": 1}' localhost:8545
 ```
 
 响应结果：
@@ -1017,8 +1020,8 @@ params: [
 
 #### 请求示例
 
-```
-curl -X POST --data '{"jsonrpc":"2.0","method":"eth_getTransactionCount","params":["0x407d73d8a49eeb85d32cf465507dd71d507100c1","latest"],"id":1}'
+```shell
+curl -X POST http://127.0.0.1:20339 -H 'Content-Type: application/json' --data '{"jsonrpc":"2.0","method":"eth_getTransactionCount","params":["0x407d73d8a49eeb85d32cf465507dd71d507100c1","latest"],"id":1}'
 ```
 
 #### 响应示例
@@ -1050,8 +1053,8 @@ params: [
 
 #### 请求示例
 
-```
-curl -X POST --data '{"jsonrpc":"2.0","method":"eth_getBlockTransactionCountByHash","params":["0xb903239f8543d04b5dc1ba6579132b143087c68db1b2168786408fcbce568238"],"id":1}'
+```shell
+curl -X POST http://127.0.0.1:20339 -H 'Content-Type: application/json' --data '{"jsonrpc":"2.0","method":"eth_getBlockTransactionCountByHash","params":["0xb903239f8543d04b5dc1ba6579132b143087c68db1b2168786408fcbce568238"],"id":1}'
 ```
 
 #### 响应示例
@@ -1084,8 +1087,8 @@ params: [
 
 #### 请求示例
 
-```
-curl -X POST --data '{"jsonrpc":"2.0","method":"eth_getBlockTransactionCountByNumber","params":["0xe8"],"id":1}'
+```shell
+curl -X POST http://127.0.0.1:20339 -H 'Content-Type: application/json' --data '{"jsonrpc":"2.0","method":"eth_getBlockTransactionCountByNumber","params":["0xe8"],"id":1}'
 ```
 
 #### 响应示例
@@ -1118,8 +1121,8 @@ params: [
 
 #### 请求示例
 
-```
-curl -X POST --data '{"jsonrpc":"2.0","method":"eth_getCode","params":["0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b", "0x2"],"id":1}'
+```shell
+curl -X POST http://127.0.0.1:20339 -H 'Content-Type: application/json' --data '{"jsonrpc":"2.0","method":"eth_getCode","params":["0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b", "0x2"],"id":1}'
 ```
 
 #### 响应示例
@@ -1146,8 +1149,8 @@ curl -X POST --data '{"jsonrpc":"2.0","method":"eth_getCode","params":["0xa94f53
 
 #### 请求示例
 
-```
-curl -X POST --data '{
+```shell
+curl -X POST http://127.0.0.1:20339 -H 'Content-Type: application/json' --data '{
      "jsonrpc": "2.0",
      "id": 2233,
      "method": "eth_getTransactionLogs",
@@ -1197,8 +1200,8 @@ curl -X POST --data '{
 
 #### 请求示例
 
-```
-curl -X POST --data '{"jsonrpc":"2.0","method":"eth_sendRawTransaction","params":[{see above}],"id":1}'
+```shell
+curl -X POST http://127.0.0.1:20339 -H 'Content-Type: application/json' --data '{"jsonrpc":"2.0","method":"eth_sendRawTransaction","params":[{see above}],"id":1}'
 ```
 
 #### 响应示例
@@ -1232,8 +1235,8 @@ curl -X POST --data '{"jsonrpc":"2.0","method":"eth_sendRawTransaction","params"
 
 #### 请求示例
 
-```
-curl -X POST --data '{"jsonrpc":"2.0","method":"eth_call","params":[{see above}],"id":1}'
+```shell
+curl -X POST http://127.0.0.1:20339 -H 'Content-Type: application/json' --data '{"jsonrpc":"2.0","method":"eth_call","params":[{see above}],"id":1}'
 ```
 
 #### 响应示例
@@ -1260,8 +1263,8 @@ curl -X POST --data '{"jsonrpc":"2.0","method":"eth_call","params":[{see above}]
 
 #### 请求示例
 
-```
-curl -X POST --data '{"jsonrpc":"2.0","method":"eth_estimateGas","params":[{see above}],"id":1}'
+```shell
+curl -X POST http://127.0.0.1:20339 -H 'Content-Type: application/json' --data '{"jsonrpc":"2.0","method":"eth_estimateGas","params":[{see above}],"id":1}'
 ```
 
 #### 响应示例
@@ -1309,13 +1312,13 @@ curl -X POST --data '{"jsonrpc":"2.0","method":"eth_estimateGas","params":[{see 
 
 #### 请求示例
 
-```
-curl -X POST --data '{"jsonrpc":"2.0","method":"eth_getBlockByNumber","params":["0x1b4", true],"id":1}'
+```shell
+curl -X POST http://127.0.0.1:20339 -H 'Content-Type: application/json' --data '{"jsonrpc":"2.0","method":"eth_getBlockByNumber","params":["0x1b4", true],"id":1}'
 ```
 
 #### 响应示例
 
-```
+```json
 {
     "jsonrpc": "2.0",
     "id": 2233,
@@ -1358,8 +1361,8 @@ curl -X POST --data '{"jsonrpc":"2.0","method":"eth_getBlockByNumber","params":[
 
 #### 请求示例
 
-```
-curl -X POST --data '{"jsonrpc":"2.0","method":"eth_getBlockByHash","params":["0xe670ec64341771606e55d6b4ca35a1a6b75ee3d5145a99d05921026d1527331", true],"id":1}'
+```shell
+curl -X POST http://127.0.0.1:20339 -H 'Content-Type: application/json' --data '{"jsonrpc":"2.0","method":"eth_getBlockByHash","params":["0xe670ec64341771606e55d6b4ca35a1a6b75ee3d5145a99d05921026d1527331", true],"id":1}'
 ```
 
 #### 响应示例
@@ -1392,13 +1395,13 @@ curl -X POST --data '{"jsonrpc":"2.0","method":"eth_getBlockByHash","params":["0
 
 #### 请求示例
 
-```
-curl -X POST --data '{"jsonrpc":"2.0","method":"eth_getTransactionByHash","params":["0xb903239f8543d04b5dc1ba6579132b143087c68db1b2168786408fcbce568238"],"id":1}'
+```shell
+curl -X POST http://127.0.0.1:20339 -H 'Content-Type: application/json' --data '{"jsonrpc":"2.0","method":"eth_getTransactionByHash","params":["0xb903239f8543d04b5dc1ba6579132b143087c68db1b2168786408fcbce568238"],"id":1}'
 ```
 
 #### 响应示例
 
-```
+```json
 {
 "id":1,
 "jsonrpc":"2.0",
@@ -1440,8 +1443,8 @@ params: [
 
 #### 请求示例
 
-```
-curl -X POST --data '{"jsonrpc":"2.0","method":"eth_getTransactionByBlockHashAndIndex","params":["0xc6ef2fc5426d6ad6fd9e2a26abeab0aa2411b7ab17f30a99d3cb96aed1d1055b", "0x0"],"id":1}'
+```shell
+curl -X POST http://127.0.0.1:20339 -H 'Content-Type: application/json' --data '{"jsonrpc":"2.0","method":"eth_getTransactionByBlockHashAndIndex","params":["0xc6ef2fc5426d6ad6fd9e2a26abeab0aa2411b7ab17f30a99d3cb96aed1d1055b", "0x0"],"id":1}'
 ```
 
 返回值请参考`eth_getTransactionByHash`的返回值。
@@ -1468,8 +1471,8 @@ params: [
 
 #### 请求示例
 
-```
-curl -X POST --data '{"jsonrpc":"2.0","method":"eth_getTransactionByBlockNumberAndIndex","params":["0x29c", "0x0"],"id":1}'
+```shell
+curl -X POST http://127.0.0.1:20339 -H 'Content-Type: application/json' --data '{"jsonrpc":"2.0","method":"eth_getTransactionByBlockNumberAndIndex","params":["0x29c", "0x0"],"id":1}'
 ```
 
 响应结果请参考`eth_getTransactionByHash`调用。
@@ -1508,8 +1511,8 @@ params: [
 
 #### 请求示例
 
-```
-curl -X POST --data '{    "jsonrpc": "2.0",
+```shell
+curl -X POST http://127.0.0.1:20339 -H 'Content-Type: application/json' --data '{    "jsonrpc": "2.0",
     "id": 16661,
     "method": "eth_getTransactionReceipt",
     "params": [
@@ -1519,7 +1522,7 @@ curl -X POST --data '{    "jsonrpc": "2.0",
 
 #### 响应示例
 
-```
+```json
 {
     "jsonrpc": "2.0",
     "id": 16661,
