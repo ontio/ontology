@@ -19,9 +19,9 @@ require (
 	github.com/itchyny/base58-go v0.1.0
 	github.com/json-iterator/go v1.1.10
 	github.com/mattn/go-isatty v0.0.10 // indirect
-	github.com/ontio/ontology-crypto v1.1.0
+	github.com/ontio/ontology-crypto v1.2.0
 	github.com/ontio/ontology-eventbus v0.9.1
-	github.com/ontio/wagon v0.4.1
+	github.com/ontio/wagon v0.4.2
 	github.com/orcaman/concurrent-map v0.0.0-20190826125027-8c72a8bb44f6 // indirect
 	github.com/pborman/uuid v1.2.0
 	github.com/prometheus/client_golang v0.9.1
