@@ -51,7 +51,7 @@ EVM smart contracts are written using [Solidity](https://docs.soliditylang.org/e
 
 ### 1.1 Remix
 
-[Remix IDE](https://remix.ethereum.org/#optimize=false&runs=200&evmVersion=null&version=soljson-v0.8.1+commit.df193b15.js) is an open source development environment for EVM contracts. Remix IDE documentation is [here](https://remix-ide.readthedocs.io/en/latest/)。
+[Remix IDE](https://remix.ethereum.org/#optimize=false&runs=200&evmVersion=null&version=soljson-v0.8.1+commit.df193b15.js) is an open source development environment for EVM contracts. Remix IDE documentation is [here](https://remix-ide.readthedocs.io/en/latest/).
 
 We will now go through an example of a Hello World contract development using Remix.
 
@@ -539,7 +539,7 @@ function receivePacket(uint packetId) public payable returns (bool) {
     return true;
 }
 ```
-View the full code [here](../contract-demo/hardhatdemo/contracts/Redpacket.sol)。
+View the full code [here](../contract-demo/hardhatdemo/contracts/Redpacket.sol).
 
 ### 5.3 Compile and Test Contract using Hardhat 
 
