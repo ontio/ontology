@@ -355,7 +355,7 @@ const getWeb3 = () => new Promise((resolve) => {
             try {
                 // Request account access if needed
                 window.ethereum.enable();
-                // Acccounts now exposed
+                // Accounts now exposed
                 resolve(currentWeb3);
             } catch (error) {
                 // User denied account access...
@@ -363,7 +363,7 @@ const getWeb3 = () => new Promise((resolve) => {
             }
         } else if (window.web3) {
             window.web3 = new Web3(web3.currentProvider);
-            // Acccounts always exposed
+            // Accounts always exposed
             resolve(currentWeb3);
         } else {
             console.log('Non-Ethereum browser detected. You should consider trying MetaMask!');
