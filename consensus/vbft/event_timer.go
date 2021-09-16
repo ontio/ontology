@@ -63,13 +63,12 @@ type SendMsgEvent struct {
 type TimerEvent struct {
 	evtType  TimerEventType
 	blockNum uint32
-	msg      ConsensusMsg
 }
 
 type perBlockTimer map[uint32]*time.Timer
 
 type EventTimer struct {
-	lock   sync.Mutex
+	lock   sync.Mutex // lock can be split to three locks to the three types timers below
 	server *Server
 	C      chan *TimerEvent
 	//timerQueue TimerQueue

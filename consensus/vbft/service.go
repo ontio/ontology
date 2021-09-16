@@ -194,10 +194,6 @@ func (self *Server) GetPID() *actor.PID {
 	return self.pid
 }
 
-func (self *Server) Start() error {
-	return self.start()
-}
-
 func (self *Server) Halt() error {
 	self.pid.Tell(&actorTypes.StopConsensus{})
 	return nil
@@ -510,7 +506,7 @@ func (self *Server) initialize() error {
 	return nil
 }
 
-func (self *Server) start() error {
+func (self *Server) Start() error {
 	// check if server pubkey support VRF
 	if !vrf.ValidatePrivateKey(self.account.PrivateKey) || !vrf.ValidatePublicKey(self.account.PublicKey) {
 		return fmt.Errorf("server %d consensus start failed: invalid account key for VRF", self.Index)

@@ -773,8 +773,10 @@ func (pool *BlockPool) onBlockSealed(blockNum uint32) {
 	defer pool.lock.Unlock()
 
 	toFreeCandidates := make([]uint32, 0)
+
+	diff := blockNum - pool.HistoryLen
 	for n := range pool.candidateBlocks {
-		if n < blockNum-pool.HistoryLen {
+		if n < diff {
 			toFreeCandidates = append(toFreeCandidates, n)
 		}
 	}
