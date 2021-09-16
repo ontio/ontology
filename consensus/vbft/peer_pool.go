@@ -31,15 +31,13 @@ import (
 type Peer struct {
 	Index          uint32
 	PubKey         keypair.PublicKey
-	handShake      *peerHandshakeMsg
 	LatestInfo     *peerHeartbeatMsg // latest heartbeat msg
 	LastUpdateTime time.Time         // time received heartbeat from peer
 	connected      bool
 }
 
 type PeerPool struct {
-	lock    sync.RWMutex
-	maxSize int
+	lock sync.RWMutex
 
 	server  *Server
 	configs map[uint32]*vconfig.PeerConfig // peer index to peer
@@ -50,9 +48,8 @@ type PeerPool struct {
 	peerConnectionWaitings map[uint32]chan struct{}
 }
 
-func NewPeerPool(maxSize int, server *Server) *PeerPool {
+func NewPeerPool(server *Server) *PeerPool {
 	return &PeerPool{
-		maxSize:                maxSize,
 		server:                 server,
 		configs:                make(map[uint32]*vconfig.PeerConfig),
 		IDMap:                  make(map[string]uint32),
@@ -176,7 +173,6 @@ func (pool *PeerPool) peerHandshake(peerIdx uint32, msg *peerHandshakeMsg) {
 	pool.peers[peerIdx] = &Peer{
 		Index:          peerIdx,
 		PubKey:         pool.peers[peerIdx].PubKey,
-		handShake:      msg,
 		LatestInfo:     pool.peers[peerIdx].LatestInfo,
 		LastUpdateTime: time.Now(),
 		connected:      true,
@@ -196,7 +192,6 @@ func (pool *PeerPool) peerHeartbeat(peerIdx uint32, msg *peerHeartbeatMsg) {
 	pool.peers[peerIdx] = &Peer{
 		Index:          peerIdx,
 		PubKey:         pool.peers[peerIdx].PubKey,
-		handShake:      pool.peers[peerIdx].handShake,
 		LatestInfo:     msg,
 		LastUpdateTime: time.Now(),
 		connected:      true,

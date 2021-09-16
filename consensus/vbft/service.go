@@ -440,7 +440,7 @@ func (self *Server) initialize() error {
 		return fmt.Errorf("init blockpool: %s", err)
 	}
 	self.msgPool = newMsgPool(self, self.msgHistoryDuration)
-	self.peerPool = NewPeerPool(0, self) // FIXME: maxSize
+	self.peerPool = NewPeerPool(self)
 	self.timer = NewEventTimer(self)
 	self.syncer = newSyncer(self)
 

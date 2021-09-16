@@ -35,7 +35,6 @@ func constructPeerPool(connect bool) *PeerPool {
 	peers := make(map[uint32]*Peer)
 	peers[1] = peer
 	peerpool := &PeerPool{
-		maxSize: int(3),
 		configs: make(map[uint32]*vconfig.PeerConfig),
 		IDMap:   make(map[string]uint32),
 		peers:   peers,
