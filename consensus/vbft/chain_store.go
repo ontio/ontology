@@ -124,7 +124,9 @@ func (self *ChainStore) ReloadFromLedger() {
 		// remove persisted pending blocks
 		newPending := make(map[uint32]*PendingBlock)
 		for blkNum, blk := range self.pendingBlocks {
-			if blkNum > height {
+			// make latest chained block still cached, so getBlock can get this block in cache
+			// and not to get this from db
+			if blkNum >= height {
 				newPending[blkNum] = blk
 			}
 		}

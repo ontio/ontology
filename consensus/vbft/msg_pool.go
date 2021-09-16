@@ -27,8 +27,6 @@ import (
 
 var errDropFarFutureMsg = errors.New("msg pool dropped msg for far future")
 
-type ConsensusRoundMsgs map[MsgType][]ConsensusMsg // indexed by MsgType (proposal, endorsement, ...)
-
 type ConsensusRound struct {
 	blockNum uint32
 	msgs     map[MsgType][]ConsensusMsg
@@ -140,9 +138,7 @@ func (pool *MsgPool) HasMsg(msg ConsensusMsg, msgHash common.Uint256) bool {
 	pool.lock.RLock()
 	defer pool.lock.RUnlock()
 
-	if roundMsgs, present := pool.rounds[msg.GetBlockNum()]; !present {
-		return false
-	} else {
+	if roundMsgs, present := pool.rounds[msg.GetBlockNum()]; present {
 		return roundMsgs.hasMsg(msg, msgHash)
 	}
 

@@ -275,6 +275,9 @@ func (self *Server) NewConsensusPayload(payload *p2pmsg.ConsensusPayload) {
 
 func (self *Server) LoadChainConfig(blkNum uint32) error {
 	//get chainconfig from genesis block
+	// rw lock should be hold
+	self.metaLock.Lock()
+	defer self.metaLock.Unlock()
 
 	block, _ := self.blockPool.getSealedBlock(blkNum)
 	if block == nil {
@@ -298,12 +301,8 @@ func (self *Server) LoadChainConfig(blkNum uint32) error {
 		cfg = *cfgBlock.getNewChainConfig()
 		self.LastConfigBlockNum = cfgBlock.getLastConfigBlockNum()
 	}
-	self.metaLock.Lock()
-	self.config = &cfg
-	self.metaLock.Unlock()
 
-	self.metaLock.RLock()
-	defer self.metaLock.RUnlock()
+	self.config = &cfg
 
 	if self.config.View == 0 || self.config.MaxBlockChangeView == 0 {
 		panic("invalid view or maxblockchangeview ")
