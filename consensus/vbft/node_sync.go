@@ -237,20 +237,22 @@ func (self *Syncer) run() {
 
 func (self *Syncer) blockConsensusDone(blks BlockFromPeers) *Block {
 	// TODO: also check blockhash
-	proposers := make(map[uint32]int)
+	proposers := make(map[uint32]struct {
+		count uint32
+		cache *Block
+	})
 	for _, blk := range blks {
-		proposers[blk.getProposer()] += 1
+		v := proposers[blk.getProposer()]
+		v.count++
+		if v.cache == nil && blk != nil {
+			v.cache = blk
+		}
 	}
 
 	chainCfg := self.server.GetChainConfig()
-	for proposerId, cnt := range proposers {
-		if cnt > int(chainCfg.C) {
-			// find the block
-			for _, blk := range blks {
-				if blk.getProposer() == proposerId {
-					return blk
-				}
-			}
+	for _, v := range proposers {
+		if v.count > chainCfg.C {
+			return v.cache
 		}
 	}
 	return nil
@@ -261,22 +263,25 @@ func (self *Syncer) getCurrentTargetBlockNum() uint32 {
 }
 
 func (self *Syncer) blockCheckMerkleRoot(blks BlockFromPeers) *Block {
-	merkleRoot := make(map[common.Uint256]int)
+	merkleRoot := make(map[common.Uint256]struct {
+		count uint32
+		cache *Block
+	})
 	for _, blk := range blks {
-		merkleRoot[blk.getPrevExecMerkleRoot()] += 1
+		v := merkleRoot[blk.getPrevExecMerkleRoot()]
+		v.count++
+		if v.cache == nil && blk != nil {
+			v.cache = blk
+		}
 	}
 
 	chainCfg := self.server.GetChainConfig()
-	for merklerootvalue, cnt := range merkleRoot {
-		if cnt > int(chainCfg.C) {
-			// find the block
-			for _, blk := range blks {
-				if blk.getPrevExecMerkleRoot() == merklerootvalue {
-					return blk
-				}
-			}
+	for _, v := range merkleRoot {
+		if v.count > chainCfg.C {
+			return v.cache
 		}
 	}
+
 	return nil
 }
 
