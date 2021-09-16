@@ -48,6 +48,7 @@ type PeerPool struct {
 	peerConnectionWaitings map[uint32]chan struct{}
 }
 
+// NewPeerPool server can be eliminated as well, we just keep it for a while
 func NewPeerPool(server *Server) *PeerPool {
 	return &PeerPool{
 		server:                 server,

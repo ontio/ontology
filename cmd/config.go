@@ -77,14 +77,6 @@ func SetOntologyConfig(ctx *cli.Context) (*config.OntologyConfig, error) {
 }
 
 func setGenesis(ctx *cli.Context, cfg *config.OntologyConfig) error {
-	netWorkId := ctx.Int(utils.GetFlagName(utils.NetworkIdFlag))
-	switch netWorkId {
-	case config.NETWORK_ID_MAIN_NET:
-		cfg.Genesis = config.MainNetConfig
-	case config.NETWORK_ID_POLARIS_NET:
-		cfg.Genesis = config.PolarisConfig
-	}
-
 	if ctx.Bool(utils.GetFlagName(utils.EnableTestModeFlag)) {
 		cfg.Genesis.ConsensusType = config.CONSENSUS_TYPE_SOLO
 		cfg.Genesis.SOLO.GenBlockTime = ctx.Uint(utils.GetFlagName(utils.TestModeGenBlockTimeFlag))
@@ -92,6 +84,14 @@ func setGenesis(ctx *cli.Context, cfg *config.OntologyConfig) error {
 			cfg.Genesis.SOLO.GenBlockTime = config.DEFAULT_GEN_BLOCK_TIME
 		}
 		return nil
+	}
+
+	netWorkId := ctx.Int(utils.GetFlagName(utils.NetworkIdFlag))
+	switch netWorkId {
+	case config.NETWORK_ID_MAIN_NET:
+		cfg.Genesis = config.MainNetConfig
+	case config.NETWORK_ID_POLARIS_NET:
+		cfg.Genesis = config.PolarisConfig
 	}
 
 	if !ctx.IsSet(utils.GetFlagName(utils.ConfigFlag)) {
