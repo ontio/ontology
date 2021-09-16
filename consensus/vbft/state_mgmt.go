@@ -467,6 +467,10 @@ func (self *StateMgr) canFastForward(targetBlkNum uint32) bool {
 		return false
 	}
 
+	if self.server.syncer.isActive() {
+		return false
+	}
+
 	chainCfg := self.server.GetChainConfig()
 	C := int(chainCfg.C)
 	N := int(chainCfg.N)
@@ -498,10 +502,6 @@ func (self *StateMgr) canFastForward(targetBlkNum uint32) bool {
 				self.server.Index, blkNum)
 			return false
 		}
-	}
-
-	if self.server.syncer.isActive() {
-		return false
 	}
 
 	return true
