@@ -431,19 +431,16 @@ func (self *StateMgr) checkStartSyncing(startBlkNum uint32, forceSync bool) {
 	}
 }
 
-// return 0 if consensus not reached yet
+// return (0, false) if consensus not reached yet, or else (committedNum, true)
 func (self *StateMgr) getConsensusedCommittedBlockNum() (uint32, bool) {
 	C := int(self.server.GetChainConfig().C)
 
-	consensused := false
-
-	maxCommitted := int64(-1)
+	maxCommitted := int64(-1) // note: can not use 0 to avoid return false when all peers's height is 0(genesis block)
 	myCommitted := self.server.GetCommittedBlockNo()
 
 	for _, p := range self.peers {
 		n := p.committedBlockNum
 		if n >= myCommitted && int64(n) > maxCommitted {
-
 			peerCount := 0
 			for _, k := range self.peers {
 				if k.committedBlockNum >= n {
@@ -451,15 +448,15 @@ func (self *StateMgr) getConsensusedCommittedBlockNum() (uint32, bool) {
 				}
 			}
 			if peerCount > C {
-
 				maxCommitted = int64(n)
-
-				consensused = true
 			}
 		}
 	}
+	if maxCommitted != -1 {
+		return uint32(maxCommitted), true
+	}
 
-	return uint32(maxCommitted), consensused
+	return 0, false
 }
 
 func (self *StateMgr) canFastForward(targetBlkNum uint32) bool {

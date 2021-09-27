@@ -150,6 +150,9 @@ func isEip155TxBytes(source *common.ZeroCopySource) bool {
 func (tx *Transaction) decodeEip155(source *common.ZeroCopySource) error {
 	pstart := source.Pos()
 	tx.Version, _ = source.NextByte()
+	if tx.Version != 0 {
+		return fmt.Errorf("wrong transaction version: %d", tx.Version)
+	}
 	txtype, eof := source.NextByte()
 	if eof {
 		return io.ErrUnexpectedEOF
@@ -276,6 +279,9 @@ func (tx *Transaction) deserializeOntUnsigned(source *common.ZeroCopySource) err
 	tx.Version, eof = source.NextByte()
 	if eof {
 		return io.ErrUnexpectedEOF
+	}
+	if tx.Version != 0 {
+		return fmt.Errorf("wrong transaction version: %d", tx.Version)
 	}
 	var txtype byte
 	txtype, eof = source.NextByte()
