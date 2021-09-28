@@ -9,7 +9,7 @@ os:
   - osx
 
 go:
-  - 1.14.x
+  - 1.17.x
 
 script:
     - bash ./.travis.script.bash
