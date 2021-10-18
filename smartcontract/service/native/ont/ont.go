@@ -23,11 +23,12 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/laizy/bigint"
+
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/constants"
 	"github.com/ontio/ontology/common/log"
-	"github.com/ontio/ontology/common/serialization"
 	cstates "github.com/ontio/ontology/core/states"
 	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/smartcontract/service/native"
@@ -51,7 +52,7 @@ func RegisterOntContract(native *native.NativeService) {
 	native.Register(NAME_NAME, OntName)
 	native.Register(SYMBOL_NAME, OntSymbol)
 	native.Register(DECIMALS_NAME, OntDecimals)
-	native.Register(TOTALSUPPLY_NAME, OntTotalSupply)
+	native.Register(TOTAL_SUPPLY_NAME, OntTotalSupply)
 	native.Register(BALANCEOF_NAME, OntBalanceOf)
 	native.Register(ALLOWANCE_NAME, OntAllowance)
 	native.Register(TOTAL_ALLOWANCE_NAME, OntTotalAllowance)
@@ -60,12 +61,12 @@ func RegisterOntContract(native *native.NativeService) {
 
 func OntInit(native *native.NativeService) ([]byte, error) {
 	contract := native.ContextRef.CurrentContext().ContractAddress
-	amount, err := utils.GetStorageUInt64(native.CacheDB, GenTotalSupplyKey(contract))
+	amount, err := utils.GetNativeTokenBalance(native.CacheDB, GenTotalSupplyKey(contract))
 	if err != nil {
 		return utils.BYTE_FALSE, err
 	}
 
-	if amount > 0 {
+	if amount.Balance.IsZero() == false {
 		return utils.BYTE_FALSE, errors.NewErr("Init ont has been completed!")
 	}
 
@@ -106,11 +107,41 @@ func OntInit(native *native.NativeService) ([]byte, error) {
 
 	for addr, val := range distribute {
 		balanceKey := GenBalanceKey(contract, addr)
-		item := utils.GenUInt64StorageItem(val)
-		native.CacheDB.Put(balanceKey, item.ToArray())
-		AddNotifications(native, contract, &State{To: addr, Value: val})
+		balance := cstates.NativeTokenBalanceFromInteger(val)
+		native.CacheDB.Put(balanceKey, balance.MustToStorageItemBytes())
+		AddTransferNotifications(native, contract, &TransferStateV2{To: addr, Value: balance})
 	}
-	native.CacheDB.Put(GenTotalSupplyKey(contract), utils.GenUInt64StorageItem(constants.ONT_TOTAL_SUPPLY).ToArray())
+
+	native.CacheDB.Put(GenTotalSupplyKey(contract), cstates.NativeTokenBalanceFromInteger(constants.ONT_TOTAL_SUPPLY).MustToStorageItemBytes())
+
+	return utils.BYTE_TRUE, nil
+}
+
+func doTransfer(native *native.NativeService, transfers Transfers) ([]byte, error) {
+	contract := native.ContextRef.CurrentContext().ContractAddress
+	for _, v := range transfers.States {
+		if v.Value == 0 {
+			continue
+		}
+		if v.Value > constants.ONT_TOTAL_SUPPLY_V2 {
+			return utils.BYTE_FALSE, fmt.Errorf("transfer ont amount:%d over totalSupply:%d", v.Value, constants.ONT_TOTAL_SUPPLY)
+		}
+		state := v.ToV2()
+		fromBalance, toBalance, err := Transfer(native, contract, state.From, state.To, state.Value)
+		if err != nil {
+			return utils.BYTE_FALSE, err
+		}
+
+		if err := grantOng(native, contract, v.From, fromBalance.MustToInteger64()); err != nil {
+			return utils.BYTE_FALSE, err
+		}
+
+		if err := grantOng(native, contract, v.To, toBalance.MustToInteger64()); err != nil {
+			return utils.BYTE_FALSE, err
+		}
+
+		AddTransferNotifications(native, contract, v.ToV2())
+	}
 
 	return utils.BYTE_TRUE, nil
 }
@@ -121,30 +152,7 @@ func OntTransfer(native *native.NativeService) ([]byte, error) {
 	if err := transfers.Deserialization(source); err != nil {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "[Transfer] Transfers deserialize error!")
 	}
-	contract := native.ContextRef.CurrentContext().ContractAddress
-	for _, v := range transfers.States {
-		if v.Value == 0 {
-			continue
-		}
-		if v.Value > constants.ONT_TOTAL_SUPPLY {
-			return utils.BYTE_FALSE, fmt.Errorf("transfer ont amount:%d over totalSupply:%d", v.Value, constants.ONT_TOTAL_SUPPLY)
-		}
-		fromBalance, toBalance, err := Transfer(native, contract, &v)
-		if err != nil {
-			return utils.BYTE_FALSE, err
-		}
-
-		if err := grantOng(native, contract, v.From, fromBalance); err != nil {
-			return utils.BYTE_FALSE, err
-		}
-
-		if err := grantOng(native, contract, v.To, toBalance); err != nil {
-			return utils.BYTE_FALSE, err
-		}
-
-		AddNotifications(native, contract, &v)
-	}
-	return utils.BYTE_TRUE, nil
+	return doTransfer(native, transfers)
 }
 
 func OntTransferFrom(native *native.NativeService) ([]byte, error) {
@@ -160,22 +168,22 @@ func OntTransferFrom(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("transferFrom ont amount:%d over totalSupply:%d", state.Value, constants.ONT_TOTAL_SUPPLY)
 	}
 	contract := native.ContextRef.CurrentContext().ContractAddress
-	fromBalance, toBalance, err := TransferedFrom(native, contract, &state)
+	fromBalance, toBalance, err := TransferedFrom(native, contract, state.ToV2())
 	if err != nil {
 		return utils.BYTE_FALSE, err
 	}
-	if err := grantOng(native, contract, state.From, fromBalance); err != nil {
+	if err := grantOng(native, contract, state.From, fromBalance.MustToInteger64()); err != nil {
 		return utils.BYTE_FALSE, err
 	}
-	if err := grantOng(native, contract, state.To, toBalance); err != nil {
+	if err := grantOng(native, contract, state.To, toBalance.MustToInteger64()); err != nil {
 		return utils.BYTE_FALSE, err
 	}
-	AddNotifications(native, contract, &State{From: state.From, To: state.To, Value: state.Value})
+	AddTransferNotifications(native, contract, state.TransferState.ToV2())
 	return utils.BYTE_TRUE, nil
 }
 
 func OntApprove(native *native.NativeService) ([]byte, error) {
-	var state State
+	var state TransferState
 	source := common.NewZeroCopySource(native.Input)
 	if err := state.Deserialization(source); err != nil {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "[OntApprove] state deserialize error!")
@@ -213,14 +221,22 @@ func OntTotalSupply(native *native.NativeService) ([]byte, error) {
 }
 
 func OntBalanceOf(native *native.NativeService) ([]byte, error) {
-	return GetBalanceValue(native, TRANSFER_FLAG)
+	return GetBalanceValue(native, TRANSFER_FLAG, false)
 }
 
 func OntAllowance(native *native.NativeService) ([]byte, error) {
-	return GetBalanceValue(native, APPROVE_FLAG)
+	return GetBalanceValue(native, APPROVE_FLAG, false)
 }
 
-func GetBalanceValue(native *native.NativeService, flag byte) ([]byte, error) {
+func OntBalanceOfV2(native *native.NativeService) ([]byte, error) {
+	return GetBalanceValue(native, TRANSFER_FLAG, true)
+}
+
+func OntAllowanceV2(native *native.NativeService) ([]byte, error) {
+	return GetBalanceValue(native, APPROVE_FLAG, true)
+}
+
+func GetBalanceValue(native *native.NativeService, flag byte, scaleDecimal9 bool) ([]byte, error) {
 	source := common.NewZeroCopySource(native.Input)
 	from, err := utils.DecodeAddress(source)
 	if err != nil {
@@ -237,11 +253,15 @@ func GetBalanceValue(native *native.NativeService, flag byte) ([]byte, error) {
 	} else if flag == TRANSFER_FLAG {
 		key = GenBalanceKey(contract, from)
 	}
-	amount, err := utils.GetStorageUInt64(native.CacheDB, key)
+	balance, err := utils.GetNativeTokenBalance(native.CacheDB, key)
 	if err != nil {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "[GetBalanceValue] address parse error!")
 	}
-	return common.BigIntToNeoBytes(big.NewInt(int64(amount))), nil
+	amount := balance.Balance
+	if !scaleDecimal9 {
+		amount = balance.ToInteger()
+	}
+	return common.BigIntToNeoBytes(amount.BigInt()), nil
 }
 
 func OntTotalAllowance(native *native.NativeService) ([]byte, error) {
@@ -258,7 +278,7 @@ func TotalAllowance(native *native.NativeService) ([]byte, error) {
 
 	iter := native.CacheDB.NewIterator(utils.ConcatKey(contract, from[:]))
 	defer iter.Release()
-	var r uint64 = 0
+	r := bigint.New(0)
 	for has := iter.First(); has; has = iter.Next() {
 		if bytes.Equal(iter.Key(), utils.ConcatKey(contract, from[:])) {
 			continue
@@ -268,13 +288,13 @@ func TotalAllowance(native *native.NativeService) ([]byte, error) {
 		if err != nil {
 			return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "[TotalAllowance] instance isn't StorageItem!")
 		}
-		v, err := serialization.ReadUint64(bytes.NewBuffer(item.Value))
+		balance, err := cstates.NativeTokenBalanceFromStorageItem(item)
 		if err != nil {
-			return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "[TotalAllowance] get uint64 from value error!")
+			return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "[TotalAllowance] get token allowance from storage value error!")
 		}
-		r = r + v
+		r = bigint.Add(r, balance.ToInteger())
 	}
-	return common.BigIntToNeoBytes(big.NewInt(int64(r))), nil
+	return common.BigIntToNeoBytes(r.BigInt()), nil
 }
 
 func UnboundOngToGovernance(native *native.NativeService) ([]byte, error) {
@@ -371,7 +391,7 @@ func unboundOngToGovernance(native *native.NativeService) error {
 
 func getApproveArgs(native *native.NativeService, contract, ongContract, address common.Address, value uint64) ([]byte, uint64, error) {
 	bf := common.NewZeroCopySink(nil)
-	approve := State{
+	approve := TransferState{
 		From:  contract,
 		To:    address,
 		Value: value,
@@ -389,12 +409,12 @@ func getApproveArgs(native *native.NativeService, contract, ongContract, address
 
 func getTransferArgs(contract, address common.Address, value uint64) ([]byte, error) {
 	bf := common.NewZeroCopySink(nil)
-	state := State{
+	state := TransferState{
 		From:  contract,
 		To:    address,
 		Value: value,
 	}
-	transfers := Transfers{[]State{state}}
+	transfers := Transfers{[]TransferState{state}}
 
 	transfers.Serialization(bf)
 	return bf.Bytes(), nil
@@ -404,9 +424,11 @@ func getTransferFromArgs(sender, from, to common.Address, value uint64) ([]byte,
 	sink := common.NewZeroCopySink(nil)
 	param := TransferFrom{
 		Sender: sender,
-		From:   from,
-		To:     to,
-		Value:  value,
+		TransferState: TransferState{
+			From:  from,
+			To:    to,
+			Value: value,
+		},
 	}
 
 	param.Serialization(sink)

@@ -123,8 +123,8 @@ func appCallTransferOng(native *native.NativeService, from common.Address, to co
 }
 
 func appCallTransfer(native *native.NativeService, contract common.Address, from common.Address, to common.Address, amount uint64) error {
-	var sts []ont.State
-	sts = append(sts, ont.State{
+	var sts []ont.TransferState
+	sts = append(sts, ont.TransferState{
 		From:  from,
 		To:    to,
 		Value: amount,
@@ -158,9 +158,11 @@ func appCallTransferFromOng(native *native.NativeService, sender common.Address,
 func appCallTransferFrom(native *native.NativeService, contract common.Address, sender common.Address, from common.Address, to common.Address, amount uint64) error {
 	params := &ont.TransferFrom{
 		Sender: sender,
-		From:   from,
-		To:     to,
-		Value:  amount,
+		TransferState: ont.TransferState{
+			From:  from,
+			To:    to,
+			Value: amount,
+		},
 	}
 
 	if _, err := native.NativeCall(contract, "transferFrom", common.SerializeToBytes(params)); err != nil {

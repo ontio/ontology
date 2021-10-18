@@ -26,7 +26,7 @@ import (
 )
 
 func TestState_Serialize(t *testing.T) {
-	state := State{
+	state := TransferState{
 		From:  common.AddressFromVmCode([]byte{1, 2, 3}),
 		To:    common.AddressFromVmCode([]byte{4, 5, 6}),
 		Value: 1,
@@ -34,7 +34,7 @@ func TestState_Serialize(t *testing.T) {
 	sink := common.NewZeroCopySink(nil)
 	state.Serialization(sink)
 
-	state2 := State{}
+	state2 := TransferState{}
 	source := common.NewZeroCopySource(sink.Bytes())
 	if err := state2.Deserialization(source); err != nil {
 		t.Fatal("state deserialize fail!")

@@ -81,9 +81,9 @@ func getCreateTxArgs(toChainID uint64, contractHashBytes []byte, method string, 
 	return sink.Bytes()
 }
 
-func getTransferInput(state ont.State) []byte {
+func getTransferInput(state ont.TransferState) []byte {
 	var transfers ont.Transfers
-	transfers.States = []ont.State{state}
+	transfers.States = []ont.TransferState{state}
 	sink := common.NewZeroCopySink(nil)
 	transfers.Serialization(sink)
 	return sink.Bytes()
@@ -145,12 +145,8 @@ func getAllowanceInput() []byte {
 }
 
 func getTransferFromInput(toAddress common.Address, value uint64) []byte {
-	transferFromState := ont.TransferFrom{
-		Sender: utils.LockProxyContractAddress,
-		From:   utils.OntContractAddress,
-		To:     toAddress,
-		Value:  value,
-	}
+	transferFromState := ont.NewTransferFromState(utils.LockProxyContractAddress,
+		utils.OntContractAddress, toAddress, value)
 	sink := common.NewZeroCopySink(nil)
 	transferFromState.Serialization(sink)
 	return sink.Bytes()

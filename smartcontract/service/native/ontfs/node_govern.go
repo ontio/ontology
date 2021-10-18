@@ -133,11 +133,11 @@ func FsNodeUpdate(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, errors.NewErr("[Node Govern] FsNodeUpdate FsNodeInfo nodeAddr changed!")
 	}
 
-	var state *ont.State
+	var state *ont.TransferState
 	if newNodePledge < oldNodeInfo.Pledge {
-		state = &ont.State{From: contract, To: oldNodeInfo.NodeAddr, Value: oldNodeInfo.Pledge - newNodePledge}
+		state = &ont.TransferState{From: contract, To: oldNodeInfo.NodeAddr, Value: oldNodeInfo.Pledge - newNodePledge}
 	} else if newNodePledge > oldNodeInfo.Pledge {
-		state = &ont.State{From: newNodeInfo.NodeAddr, To: contract, Value: newNodePledge - oldNodeInfo.Pledge}
+		state = &ont.TransferState{From: newNodeInfo.NodeAddr, To: contract, Value: newNodePledge - oldNodeInfo.Pledge}
 	}
 	if newNodePledge != oldNodeInfo.Pledge {
 		err = appCallTransfer(native, utils.OngContractAddress, state.From, state.To, state.Value)

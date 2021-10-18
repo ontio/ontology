@@ -86,8 +86,8 @@ func ontTotalAllowance(native *native.NativeService, addr common.Address) int {
 func ontTransfer(native *native.NativeService, from, to common.Address, value uint64) error {
 	native.Tx.SignedAddr = append(native.Tx.SignedAddr, from)
 
-	state := ont.State{from, to, value}
-	native.Input = common.SerializeToBytes(&ont.Transfers{States: []ont.State{state}})
+	state := ont.TransferState{from, to, value}
+	native.Input = common.SerializeToBytes(&ont.Transfers{States: []ont.TransferState{state}})
 
 	_, err := ont.OntTransfer(native)
 	return err
@@ -96,7 +96,7 @@ func ontTransfer(native *native.NativeService, from, to common.Address, value ui
 func ontApprove(native *native.NativeService, from, to common.Address, value uint64) error {
 	native.Tx.SignedAddr = append(native.Tx.SignedAddr, from)
 
-	native.Input = common.SerializeToBytes(&ont.State{from, to, value})
+	native.Input = common.SerializeToBytes(&ont.TransferState{from, to, value})
 
 	_, err := ont.OntApprove(native)
 	return err

@@ -33,10 +33,11 @@ var (
 
 // ont constants
 const (
-	ONT_NAME         = "ONT Token"
-	ONT_SYMBOL       = "ONT"
-	ONT_DECIMALS     = 0
-	ONT_TOTAL_SUPPLY = uint64(1000000000)
+	ONT_NAME            = "ONT Token"
+	ONT_SYMBOL          = "ONT"
+	ONT_DECIMALS        = 0
+	ONT_TOTAL_SUPPLY    = uint64(1000000000)
+	ONT_TOTAL_SUPPLY_V2 = ONG_TOTAL_SUPPLY
 )
 
 // ong constants

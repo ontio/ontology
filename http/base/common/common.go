@@ -346,7 +346,7 @@ func GetOep4Balance(contractAddress common.Address, addrs []common.Address) (*Oe
 }
 
 func GetGrantOng(addr common.Address) (string, error) {
-	key := append([]byte(ont.UNBOUND_TIME_OFFSET), addr[:]...)
+	key := append([]byte(ont.UNBOUND_TIME_OFFSET_KEY), addr[:]...)
 	value, err := ledger.DefLedger.GetStorageItem(utils.OntContractAddress, key)
 	if err != nil {
 		value = []byte{0, 0, 0, 0}

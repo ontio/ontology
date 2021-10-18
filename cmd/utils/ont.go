@@ -183,7 +183,7 @@ func ApproveTx(gasPrice, gasLimit uint64, asset string, from, to string, amount 
 	if err != nil {
 		return nil, fmt.Errorf("To address:%s invalid:%s", to, err)
 	}
-	var state = &ont.State{
+	var state = &ont.TransferState{
 		From:  fromAddr,
 		To:    toAddr,
 		Value: amount,
@@ -217,8 +217,8 @@ func TransferTx(gasPrice, gasLimit uint64, asset, from, to string, amount uint64
 	if err != nil {
 		return nil, fmt.Errorf("to address:%s invalid:%s", to, err)
 	}
-	var sts []*ont.State
-	sts = append(sts, &ont.State{
+	var sts []*ont.TransferState
+	sts = append(sts, &ont.TransferState{
 		From:  fromAddr,
 		To:    toAddr,
 		Value: amount,
@@ -256,12 +256,7 @@ func TransferFromTx(gasPrice, gasLimit uint64, asset, sender, from, to string, a
 	if err != nil {
 		return nil, fmt.Errorf("to address:%s invalid:%s", to, err)
 	}
-	transferFrom := &ont.TransferFrom{
-		Sender: senderAddr,
-		From:   fromAddr,
-		To:     toAddr,
-		Value:  amount,
-	}
+	transferFrom := ont.NewTransferFromState(senderAddr, fromAddr, toAddr, amount)
 	var version byte
 	var contractAddr common.Address
 	switch strings.ToLower(asset) {

@@ -154,7 +154,7 @@ func Lock(native *native.NativeService) ([]byte, error) {
 	}
 
 	// transfer ont or ong from FromAddress to lockContract
-	state := ont.State{
+	state := ont.TransferState{
 		From:  lockParam.FromAddress,
 		To:    contract,
 		Value: lockParam.Value,
@@ -253,7 +253,7 @@ func Unlock(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_TRUE, nil
 	}
 	// unlock ont or ong from current proxy contract into toAddress
-	transferInput := getTransferInput(ont.State{contract, toAddress, args.Value})
+	transferInput := getTransferInput(ont.TransferState{contract, toAddress, args.Value})
 	if _, err = native.NativeCall(assetAddress, ont.TRANSFER_NAME, transferInput); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("[Unlock] NativeCall contract:%s 'transfer(%s, %s, %d)' error:%s", hex.EncodeToString(assetAddress[:]), hex.EncodeToString(contract[:]), toAddress.ToBase58(), args.Value, err)
 	}

@@ -130,12 +130,12 @@ func genBlock(database *ledger.Ledger, acct *account.Account, tx *types.Transact
 }
 
 func transferOng(database *ledger.Ledger, gasPrice, gasLimit uint64, acct *account.Account, toAddr common2.Address, amount int64) {
-	state := &ont.State{
+	state := &ont.TransferState{
 		From:  acct.Address,
 		To:    toAddr,
 		Value: uint64(amount),
 	}
-	mutable := newNativeTx(utils.OngContractAddress, 0, gasPrice, gasLimit, "transfer", []interface{}{[]*ont.State{state}})
+	mutable := newNativeTx(utils.OngContractAddress, 0, gasPrice, gasLimit, "transfer", []interface{}{[]*ont.TransferState{state}})
 	err := utils2.SignTransaction(acct, mutable)
 	checkErr(err)
 	tx, err := mutable.IntoImmutable()
