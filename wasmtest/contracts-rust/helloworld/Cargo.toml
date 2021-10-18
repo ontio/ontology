@@ -12,7 +12,7 @@ path = "src/lib.rs"
 
 [dependencies.ontio-std]
 git="https://github.com/ontio/ontology-wasm-cdt-rust"
-rev="d78390613ce1c1fd3b34d9e00b47b83a65cfcdf4"
+rev="ff266d4a509fec9ca25404884c74912fd031dad1"
 
 [features]
 mock = ["ontio-std/mock"]
