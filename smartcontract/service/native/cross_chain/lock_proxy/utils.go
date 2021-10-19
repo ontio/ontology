@@ -82,7 +82,7 @@ func getCreateTxArgs(toChainID uint64, contractHashBytes []byte, method string, 
 }
 
 func getTransferInput(state ont.TransferState) []byte {
-	var transfers ont.Transfers
+	var transfers ont.TransferStates
 	transfers.States = []ont.TransferState{state}
 	sink := common.NewZeroCopySink(nil)
 	transfers.Serialization(sink)

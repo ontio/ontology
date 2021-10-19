@@ -78,10 +78,10 @@ func OngInit(native *native.NativeService) ([]byte, error) {
 }
 
 func OngTransfer(native *native.NativeService) ([]byte, error) {
-	var transfers ont.Transfers
+	var transfers ont.TransferStates
 	source := common.NewZeroCopySource(native.Input)
 	if err := transfers.Deserialization(source); err != nil {
-		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "[OngTransfer] Transfers deserialize error!")
+		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "[OngTransfer] TransferStates deserialize error!")
 	}
 	contract := native.ContextRef.CurrentContext().ContractAddress
 	for _, v := range transfers.States {

@@ -35,6 +35,10 @@ type NativeTokenBalance struct {
 	Balance bigint.Int
 }
 
+func (self *NativeTokenBalance) String() string {
+	return self.Balance.String()
+}
+
 func (self NativeTokenBalance) MustToStorageItemBytes() []byte {
 	return self.MustToStorageItem().ToArray()
 }
@@ -43,12 +47,15 @@ func (self NativeTokenBalance) Add(rhs NativeTokenBalance) NativeTokenBalance {
 	return NativeTokenBalance{Balance: self.Balance.Add(rhs.Balance)}
 }
 
-func (self NativeTokenBalance) MustSub(rhs NativeTokenBalance) NativeTokenBalance {
-	if self.Balance.LessThan(rhs.Balance) {
-		panic(fmt.Errorf("balance sub underflow: a: %s, b: %s", self.Balance, rhs.Balance))
-	}
+func (self NativeTokenBalance) IsZero() bool {
+	return self.Balance.IsZero()
+}
 
-	return NativeTokenBalance{Balance: self.Balance.Sub(rhs.Balance)}
+func (self NativeTokenBalance) Sub(rhs NativeTokenBalance) (result NativeTokenBalance, err error) {
+	if self.Balance.LessThan(rhs.Balance) {
+		return result, fmt.Errorf("balance sub underflow: a: %s, b: %s", self.Balance, rhs.Balance)
+	}
+	return NativeTokenBalance{Balance: self.Balance.Sub(rhs.Balance)}, nil
 }
 
 func (self NativeTokenBalance) MustToStorageItem() *StorageItem {
@@ -101,4 +108,8 @@ func (self NativeTokenBalance) MustToInteger64() uint64 {
 
 func NativeTokenBalanceFromInteger(val uint64) NativeTokenBalance {
 	return NativeTokenBalance{Balance: bigint.Mul(val, ScaleFactor)}
+}
+
+func (self NativeTokenBalance) ToBigInt() *big.Int {
+	return self.Balance.BigInt()
 }

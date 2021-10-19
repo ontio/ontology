@@ -303,7 +303,7 @@ func SaveNotify(eventStore scommon.EventStore, txHash common.Uint256, notify *ev
 }
 
 func genNativeTransferCode(from, to common.Address, value uint64) []byte {
-	transfer := &ont.Transfers{States: []ont.TransferState{{From: from, To: to, Value: value}}}
+	transfer := &ont.TransferStates{States: []ont.TransferState{{From: from, To: to, Value: value}}}
 	return common.SerializeToBytes(transfer)
 }
 

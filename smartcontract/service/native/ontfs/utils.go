@@ -155,7 +155,7 @@ func appCallTransfer(native *native.NativeService, contract common.Address, from
 		To:    to,
 		Value: amount,
 	})
-	transfers := ont.Transfers{
+	transfers := ont.TransferStates{
 		States: sts,
 	}
 

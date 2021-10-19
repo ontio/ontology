@@ -87,7 +87,7 @@ func ontTransfer(native *native.NativeService, from, to common.Address, value ui
 	native.Tx.SignedAddr = append(native.Tx.SignedAddr, from)
 
 	state := ont.TransferState{from, to, value}
-	native.Input = common.SerializeToBytes(&ont.Transfers{States: []ont.TransferState{state}})
+	native.Input = common.SerializeToBytes(&ont.TransferStates{States: []ont.TransferState{state}})
 
 	_, err := ont.OntTransfer(native)
 	return err

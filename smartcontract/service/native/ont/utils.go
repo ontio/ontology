@@ -39,17 +39,27 @@ const (
 
 // methods
 const (
-	INIT_NAME                 = "init"
-	TRANSFER_NAME             = "transfer"
-	APPROVE_NAME              = "approve"
-	TRANSFERFROM_NAME         = "transferFrom"
-	NAME_NAME                 = "name"
-	SYMBOL_NAME               = "symbol"
-	DECIMALS_NAME             = "decimals"
-	TOTAL_SUPPLY_NAME         = "totalSupply"
-	BALANCEOF_NAME            = "balanceOf"
-	ALLOWANCE_NAME            = "allowance"
-	TOTAL_ALLOWANCE_NAME      = "totalAllowance"
+	INIT_NAME            = "init"
+	TRANSFER_NAME        = "transfer"
+	APPROVE_NAME         = "approve"
+	TRANSFERFROM_NAME    = "transferFrom"
+	NAME_NAME            = "name"
+	SYMBOL_NAME          = "symbol"
+	DECIMALS_NAME        = "decimals"
+	TOTAL_SUPPLY_NAME    = "totalSupply"
+	BALANCEOF_NAME       = "balanceOf"
+	ALLOWANCE_NAME       = "allowance"
+	TOTAL_ALLOWANCE_NAME = "totalAllowance"
+
+	TRANSFER_V2_NAME        = "transferV2"
+	APPROVE_V2_NAME         = "approveV2"
+	TRANSFERFROM_V2_NAME    = "transferFromV2"
+	DECIMALS_V2_NAME        = "decimalsV2"
+	TOTAL_SUPPLY_V2_NAME    = "totalSupplyV2"
+	BALANCEOF_V2_NAME       = "balanceOfV2"
+	ALLOWANCE_V2_NAME       = "allowanceV2"
+	TOTAL_ALLOWANCE_V2_NAME = "totalAllowanceV2"
+
 	UNBOUND_ONG_TO_GOVERNANCE = "unboundOngToGovernance"
 )
 
@@ -157,12 +167,14 @@ func fromApprove(native *native.NativeService, fromApproveKey []byte, value csta
 	if err != nil {
 		return err
 	}
-	if approveValue.Balance.LessThan(value.Balance) {
-		return fmt.Errorf("[TransferFrom] approve balance insufficient! have %d, got %d", approveValue, value)
-	} else if approveValue == value {
+	newApprove, err := approveValue.Sub(value)
+	if err != nil {
+		return fmt.Errorf("[TransferFrom] approve balance insufficient: %v", err)
+	}
+	if newApprove.IsZero() {
 		native.CacheDB.Delete(fromApproveKey)
 	} else {
-		native.CacheDB.Put(fromApproveKey, approveValue.MustSub(value).MustToStorageItemBytes())
+		native.CacheDB.Put(fromApproveKey, newApprove.MustToStorageItemBytes())
 	}
 	return nil
 }
@@ -172,15 +184,19 @@ func reduceFromBalance(native *native.NativeService, fromKey []byte, value cstat
 	if err != nil {
 		return cstates.NativeTokenBalance{}, err
 	}
-	if fromBalance.Balance.LessThan(value.Balance) {
+	newFromBalance, err := fromBalance.Sub(value)
+	if err != nil {
 		addr, _ := common.AddressParseFromBytes(fromKey[20:])
-		return cstates.NativeTokenBalance{}, fmt.Errorf("[Transfer] balance insufficient. contract:%s, account:%s,balance:%d, transfer amount:%d",
-			native.ContextRef.CurrentContext().ContractAddress.ToHexString(), addr.ToBase58(), fromBalance, value)
-	} else if fromBalance.Balance == value.Balance {
+		return cstates.NativeTokenBalance{}, fmt.Errorf("[Transfer] balance insufficient. contract:%s, account:%s, err: %v",
+			native.ContextRef.CurrentContext().ContractAddress.ToHexString(), addr.ToBase58(), err)
+	}
+
+	if newFromBalance.IsZero() {
 		native.CacheDB.Delete(fromKey)
 	} else {
-		native.CacheDB.Put(fromKey, fromBalance.MustSub(value).MustToStorageItemBytes())
+		native.CacheDB.Put(fromKey, newFromBalance.MustToStorageItemBytes())
 	}
+
 	return fromBalance, nil
 }
 

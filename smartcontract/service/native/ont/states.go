@@ -19,25 +19,39 @@
 package ont
 
 import (
+	"errors"
+
 	"github.com/laizy/bigint"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/states"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
-// Transfers
-type Transfers struct {
+// TransferStates
+type TransferStates struct {
 	States []TransferState
 }
 
-func (this *Transfers) Serialization(sink *common.ZeroCopySink) {
+type TransferStatesV2 struct {
+	States []*TransferStateV2
+}
+
+func (this *TransferStates) ToV2() *TransferStatesV2 {
+	var states []*TransferStateV2
+	for _, s := range this.States {
+		states = append(states, s.ToV2())
+	}
+	return &TransferStatesV2{States: states}
+}
+
+func (this *TransferStates) Serialization(sink *common.ZeroCopySink) {
 	utils.EncodeVarUint(sink, uint64(len(this.States)))
 	for _, v := range this.States {
 		v.Serialization(sink)
 	}
 }
 
-func (this *Transfers) Deserialization(source *common.ZeroCopySource) error {
+func (this *TransferStates) Deserialization(source *common.ZeroCopySource) error {
 	n, err := utils.DecodeVarUint(source)
 	if err != nil {
 		return err
@@ -48,6 +62,21 @@ func (this *Transfers) Deserialization(source *common.ZeroCopySource) error {
 			return err
 		}
 		this.States = append(this.States, state)
+	}
+	return nil
+}
+
+func (this *TransferStatesV2) Deserialization(source *common.ZeroCopySource) error {
+	n, err := utils.DecodeVarUint(source)
+	if err != nil {
+		return err
+	}
+	for i := 0; uint64(i) < n; i++ {
+		var state TransferStateV2
+		if err := state.Deserialization(source); err != nil {
+			return err
+		}
+		this.States = append(this.States, &state)
 	}
 	return nil
 }
@@ -79,6 +108,10 @@ func (this *TransferStateV2) Deserialization(source *common.ZeroCopySource) erro
 	buf, err := utils.DecodeVarBytes(source)
 	if err != nil {
 		return err
+	}
+	value := bigint.New(common.BigIntFromNeoBytes(buf))
+	if value.LessThan(bigint.New(0)) {
+		return errors.New("nagative value")
 	}
 	this.Value = states.NativeTokenBalance{Balance: bigint.New(common.BigIntFromNeoBytes(buf))}
 	return nil
