@@ -39,16 +39,25 @@ func InitOng() {
 
 func RegisterOngContract(native *native.NativeService) {
 	native.Register(ont.INIT_NAME, OngInit)
+	native.Register(ont.NAME_NAME, OngName)
+	native.Register(ont.SYMBOL_NAME, OngSymbol)
 	native.Register(ont.TRANSFER_NAME, OngTransfer)
 	native.Register(ont.APPROVE_NAME, OngApprove)
 	native.Register(ont.TRANSFERFROM_NAME, OngTransferFrom)
-	native.Register(ont.NAME_NAME, OngName)
-	native.Register(ont.SYMBOL_NAME, OngSymbol)
 	native.Register(ont.DECIMALS_NAME, OngDecimals)
 	native.Register(ont.TOTAL_SUPPLY_NAME, OngTotalSupply)
 	native.Register(ont.BALANCEOF_NAME, OngBalanceOf)
 	native.Register(ont.ALLOWANCE_NAME, OngAllowance)
 	native.Register(ont.TOTAL_ALLOWANCE_NAME, OngTotalAllowance)
+
+	native.Register(ont.TRANSFER_V2_NAME, OngTransferV2)
+	native.Register(ont.APPROVE_V2_NAME, OngApproveV2)
+	native.Register(ont.TRANSFERFROM_V2_NAME, OngTransferFromV2)
+	native.Register(ont.DECIMALS_V2_NAME, OngDecimalsV2)
+	native.Register(ont.TOTAL_SUPPLY_V2_NAME, OngTotalSupplyV2)
+	native.Register(ont.BALANCEOF_V2_NAME, OngBalanceOfV2)
+	native.Register(ont.ALLOWANCE_V2_NAME, OngAllowanceV2)
+	native.Register(ont.TOTAL_ALLOWANCE_V2_NAME, OngTotalAllowanceV2)
 }
 
 func OngInit(native *native.NativeService) ([]byte, error) {
@@ -83,21 +92,48 @@ func OngTransfer(native *native.NativeService) ([]byte, error) {
 	if err := transfers.Deserialization(source); err != nil {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "[OngTransfer] TransferStates deserialize error!")
 	}
+
+	return doTransfer(native, transfers.ToV2())
+}
+
+func OngTransferV2(native *native.NativeService) ([]byte, error) {
+	var transfers ont.TransferStatesV2
+	source := common.NewZeroCopySource(native.Input)
+	if err := transfers.Deserialization(source); err != nil {
+		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "[OngTransfer] TransferStates deserialize error!")
+	}
+
+	return doTransfer(native, &transfers)
+}
+
+func doTransfer(native *native.NativeService, transfers *ont.TransferStatesV2) ([]byte, error) {
 	contract := native.ContextRef.CurrentContext().ContractAddress
 	for _, v := range transfers.States {
-		if v.Value == 0 {
+		if v.Value.IsZero() {
 			continue
 		}
-		if v.Value > constants.ONG_TOTAL_SUPPLY {
-			return utils.BYTE_FALSE, fmt.Errorf("transfer ong amount:%d over totalSupply:%d", v.Value, constants.ONG_TOTAL_SUPPLY)
+		if constants.ONG_TOTAL_SUPPLY_V2.LessThan(v.Value.Balance) {
+			return utils.BYTE_FALSE, fmt.Errorf("transfer ong amount:%s over totalSupply:%d", v.Value, constants.ONG_TOTAL_SUPPLY)
 		}
-		v2 := v.ToV2()
-		if _, _, err := ont.Transfer(native, contract, v2.From, v2.To, v2.Value); err != nil {
+		if _, _, err := ont.Transfer(native, contract, v.From, v.To, v.Value); err != nil {
 			return utils.BYTE_FALSE, err
 		}
-		ont.AddTransferNotifications(native, contract, v2)
+		ont.AddTransferNotifications(native, contract, v)
 	}
 	return utils.BYTE_TRUE, nil
+}
+
+func doApprove(native *native.NativeService, state *ont.TransferStateV2) ([]byte, error) {
+	if constants.ONG_TOTAL_SUPPLY_V2.LessThan(state.Value.Balance) {
+		return utils.BYTE_FALSE, fmt.Errorf("approve ong amount:%s over totalSupply:%d", state.Value, constants.ONG_TOTAL_SUPPLY)
+	}
+	if !native.ContextRef.CheckWitness(state.From) {
+		return utils.BYTE_FALSE, errors.NewErr("authentication failed!")
+	}
+	contract := native.ContextRef.CurrentContext().ContractAddress
+	native.CacheDB.Put(ont.GenApproveKey(contract, state.From, state.To), state.Value.MustToStorageItemBytes())
+	return utils.BYTE_TRUE, nil
+
 }
 
 func OngApprove(native *native.NativeService) ([]byte, error) {
@@ -106,15 +142,44 @@ func OngApprove(native *native.NativeService) ([]byte, error) {
 	if err := state.Deserialization(source); err != nil {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "[OngApprove] state deserialize error!")
 	}
-	if state.Value > constants.ONG_TOTAL_SUPPLY {
-		return utils.BYTE_FALSE, fmt.Errorf("approve ong amount:%d over totalSupply:%d", state.Value, constants.ONG_TOTAL_SUPPLY)
+
+	return doApprove(native, state.ToV2())
+}
+
+func OngApproveV2(native *native.NativeService) ([]byte, error) {
+	var state ont.TransferStateV2
+	source := common.NewZeroCopySource(native.Input)
+	if err := state.Deserialization(source); err != nil {
+		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "[OngApprove] state deserialize error!")
 	}
-	if !native.ContextRef.CheckWitness(state.From) {
-		return utils.BYTE_FALSE, errors.NewErr("authentication failed!")
+
+	return doApprove(native, &state)
+}
+
+func doTransferFrom(native *native.NativeService, state *ont.TransferFromStateV2) ([]byte, error) {
+	if state.Value.IsZero() {
+		return utils.BYTE_FALSE, nil
+	}
+	if constants.ONG_TOTAL_SUPPLY_V2.LessThan(state.Value.Balance) {
+		return utils.BYTE_FALSE, fmt.Errorf("approve ong amount:%s over totalSupply:%d", state.Value, constants.ONG_TOTAL_SUPPLY)
 	}
 	contract := native.ContextRef.CurrentContext().ContractAddress
-	native.CacheDB.Put(ont.GenApproveKey(contract, state.From, state.To), utils.GenUInt64StorageItem(state.Value).ToArray())
+	if _, _, err := ont.TransferedFrom(native, contract, state); err != nil {
+		return utils.BYTE_FALSE, err
+	}
+	ont.AddTransferNotifications(native, contract, &state.TransferStateV2)
 	return utils.BYTE_TRUE, nil
+
+}
+
+func OngTransferFromV2(native *native.NativeService) ([]byte, error) {
+	var state ont.TransferFromStateV2
+	source := common.NewZeroCopySource(native.Input)
+	if err := state.Deserialization(source); err != nil {
+		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "[OntTransferFrom] State deserialize error!")
+	}
+
+	return doTransferFrom(native, &state)
 }
 
 func OngTransferFrom(native *native.NativeService) ([]byte, error) {
@@ -123,18 +188,8 @@ func OngTransferFrom(native *native.NativeService) ([]byte, error) {
 	if err := state.Deserialization(source); err != nil {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "[OntTransferFrom] State deserialize error!")
 	}
-	if state.Value == 0 {
-		return utils.BYTE_FALSE, nil
-	}
-	if state.Value > constants.ONG_TOTAL_SUPPLY {
-		return utils.BYTE_FALSE, fmt.Errorf("approve ong amount:%d over totalSupply:%d", state.Value, constants.ONG_TOTAL_SUPPLY)
-	}
-	contract := native.ContextRef.CurrentContext().ContractAddress
-	if _, _, err := ont.TransferedFrom(native, contract, state.ToV2()); err != nil {
-		return utils.BYTE_FALSE, err
-	}
-	ont.AddTransferNotifications(native, contract, state.TransferState.ToV2())
-	return utils.BYTE_TRUE, nil
+
+	return doTransferFrom(native, state.ToV2())
 }
 
 func OngName(native *native.NativeService) ([]byte, error) {
@@ -145,29 +200,43 @@ func OngDecimals(native *native.NativeService) ([]byte, error) {
 	return big.NewInt(int64(constants.ONG_DECIMALS)).Bytes(), nil
 }
 
+func OngDecimalsV2(native *native.NativeService) ([]byte, error) {
+	return big.NewInt(int64(constants.ONG_DECIMALS_V2)).Bytes(), nil
+}
+
 func OngSymbol(native *native.NativeService) ([]byte, error) {
 	return []byte(constants.ONG_SYMBOL), nil
 }
 
 func OngTotalSupply(native *native.NativeService) ([]byte, error) {
-	contract := native.ContextRef.CurrentContext().ContractAddress
-	amount, err := utils.GetStorageUInt64(native.CacheDB, ont.GenTotalSupplyKey(contract))
-	if err != nil {
-		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "[OntTotalSupply] get totalSupply error!")
-	}
-	return common.BigIntToNeoBytes(big.NewInt(int64(amount))), nil
+	return common.BigIntToNeoBytes(big.NewInt(constants.ONG_TOTAL_SUPPLY)), nil
+}
+
+func OngTotalSupplyV2(native *native.NativeService) ([]byte, error) {
+	return common.BigIntToNeoBytes(constants.ONG_TOTAL_SUPPLY_V2.BigInt()), nil
 }
 
 func OngBalanceOf(native *native.NativeService) ([]byte, error) {
 	return ont.GetBalanceValue(native, ont.TRANSFER_FLAG, false)
 }
 
+func OngBalanceOfV2(native *native.NativeService) ([]byte, error) {
+	return ont.GetBalanceValue(native, ont.TRANSFER_FLAG, true)
+}
+
 func OngAllowance(native *native.NativeService) ([]byte, error) {
 	return ont.GetBalanceValue(native, ont.APPROVE_FLAG, false)
 }
 
+func OngAllowanceV2(native *native.NativeService) ([]byte, error) {
+	return ont.GetBalanceValue(native, ont.APPROVE_FLAG, true)
+}
+
 func OngTotalAllowance(native *native.NativeService) ([]byte, error) {
 	return ont.TotalAllowance(native)
+}
+func OngTotalAllowanceV2(native *native.NativeService) ([]byte, error) {
+	return ont.TotalAllowanceV2(native)
 }
 
 type OngBalanceHandle struct{}
