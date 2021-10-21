@@ -27,6 +27,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ontio/ontology/core/states"
+
+	"github.com/laizy/bigint"
+
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/constants"
@@ -316,13 +320,13 @@ func GetBlockInfo(block *types.Block) BlockInfo {
 }
 
 func GetBalance(address common.Address) (*BalanceOfRsp, error) {
-	balances, height, err := GetContractBalance(0, []common.Address{utils.OntContractAddress, utils.OngContractAddress}, address, true)
+	balances, height, err := GetNativeTokenBalance(0, []common.Address{utils.OntContractAddress, utils.OngContractAddress}, address, true)
 	if err != nil {
 		return nil, fmt.Errorf("get ont balance error:%s", err)
 	}
 	return &BalanceOfRsp{
-		Ont:    fmt.Sprintf("%d", balances[0]),
-		Ong:    fmt.Sprintf("%d", balances[1]),
+		Ont:    fmt.Sprintf("%d", balances[0].MustToInteger64()),
+		Ong:    fmt.Sprintf("%d", balances[1].MustToInteger64()),
 		Height: fmt.Sprintf("%d", height),
 	}, nil
 }
@@ -356,11 +360,11 @@ func GetGrantOng(addr common.Address) (string, error) {
 	if eof {
 		return fmt.Sprintf("%v", 0), io.ErrUnexpectedEOF
 	}
-	onts, _, err := GetContractBalance(0, []common.Address{utils.OntContractAddress}, addr, false)
+	onts, _, err := GetNativeTokenBalance(0, []common.Address{utils.OntContractAddress}, addr, false)
 	if err != nil {
 		return fmt.Sprintf("%v", 0), err
 	}
-	boundong := utils.CalcUnbindOng(onts[0], v, uint32(time.Now().Unix())-constants.GENESIS_BLOCK_TIMESTAMP)
+	boundong := utils.CalcUnbindOng(onts[0].MustToInteger64(), v, uint32(time.Now().Unix())-constants.GENESIS_BLOCK_TIMESTAMP)
 	return fmt.Sprintf("%v", boundong), nil
 }
 
@@ -381,10 +385,11 @@ func GetAllowance(asset string, from, to common.Address) (string, error) {
 	return fmt.Sprintf("%v", allowance), nil
 }
 
-func GetContractBalance(cVersion byte, contractAddres []common.Address, accAddr common.Address, atomic bool) ([]uint64, uint32, error) {
+func GetNativeTokenBalance(cVersion byte, contractAddres []common.Address, accAddr common.Address, atomic bool) (
+	[]states.NativeTokenBalance, uint32, error) {
 	txes := make([]*types.Transaction, 0, len(contractAddres))
 	for _, contractAddr := range contractAddres {
-		mutable, err := NewNativeInvokeTransaction(0, 0, contractAddr, cVersion, "balanceOf", []interface{}{accAddr[:]})
+		mutable, err := NewNativeInvokeTransaction(0, 0, contractAddr, cVersion, "balanceOfV2", []interface{}{accAddr[:]})
 		if err != nil {
 			return nil, 0, fmt.Errorf("NewNativeInvokeTransaction error:%s", err)
 		}
@@ -401,7 +406,7 @@ func GetContractBalance(cVersion byte, contractAddres []common.Address, accAddr 
 	if err != nil {
 		return nil, 0, fmt.Errorf("PrepareInvokeContract error:%s", err)
 	}
-	balances := make([]uint64, 0, len(contractAddres))
+	balances := make([]states.NativeTokenBalance, 0, len(contractAddres))
 	for _, result := range results {
 		if result.State == 0 {
 			return nil, 0, fmt.Errorf("prepare invoke failed")
@@ -412,7 +417,7 @@ func GetContractBalance(cVersion byte, contractAddres []common.Address, accAddr 
 		}
 
 		balance := common.BigIntFromNeoBytes(data)
-		balances = append(balances, balance.Uint64())
+		balances = append(balances, states.NativeTokenBalance{Balance: bigint.New(balance)})
 	}
 
 	return balances, height, nil

@@ -18,7 +18,7 @@ require (
 	github.com/howeyc/gopass v0.0.0-20210920133722-c8aef6fb66ef
 	github.com/itchyny/base58-go v0.1.0
 	github.com/json-iterator/go v1.1.10
-	github.com/laizy/bigint v0.1.1
+	github.com/laizy/bigint v0.1.3
 	github.com/mattn/go-isatty v0.0.10 // indirect
 	github.com/ontio/ontology-crypto v1.2.1
 	github.com/ontio/ontology-eventbus v0.9.1

@@ -22,6 +22,10 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/laizy/bigint"
+
+	"github.com/ontio/ontology/core/states"
+
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/constants"
@@ -242,13 +246,17 @@ func OngTotalAllowanceV2(native *native.NativeService) ([]byte, error) {
 type OngBalanceHandle struct{}
 
 func (self OngBalanceHandle) SubBalance(cache *storage.CacheDB, addr common.Address, val *big.Int) error {
-	balance, err := self.GetBalance(cache, addr)
+	balance, err := getNativeTokenBalance(cache, addr)
 	if err != nil {
 		return err
 	}
 
-	balance.Sub(balance, val)
-	return self.SetBalance(cache, addr, balance)
+	newBalance, err := balance.Sub(states.NativeTokenBalance{Balance: bigint.New(val)})
+	if err != nil {
+		return err
+	}
+
+	return self.SetBalance(cache, addr, newBalance.ToBigInt())
 }
 
 func (self OngBalanceHandle) AddBalance(cache *storage.CacheDB, addr common.Address, val *big.Int) error {
@@ -263,25 +271,27 @@ func (self OngBalanceHandle) AddBalance(cache *storage.CacheDB, addr common.Addr
 
 func (self OngBalanceHandle) SetBalance(cache *storage.CacheDB, addr common.Address, val *big.Int) error {
 	balanceKey := ont.GenBalanceKey(utils.OngContractAddress, addr)
-	if !val.IsUint64() {
-		return fmt.Errorf("balance overflow uint64, %d", val)
-	}
-	result := val.Uint64()
-	if result == 0 {
+
+	balance := states.NativeTokenBalance{Balance: bigint.New(val)}
+	if balance.IsZero() {
 		cache.Delete(balanceKey)
 	} else {
-		cache.Put(balanceKey, utils.GenUInt64StorageItem(result).ToArray())
+		cache.Put(balanceKey, balance.MustToStorageItemBytes())
 	}
 
 	return nil
 }
 
-func (self OngBalanceHandle) GetBalance(cache *storage.CacheDB, addr common.Address) (*big.Int, error) {
+func getNativeTokenBalance(cache *storage.CacheDB, addr common.Address) (states.NativeTokenBalance, error) {
 	balanceKey := ont.GenBalanceKey(utils.OngContractAddress, addr)
-	amount, err := utils.GetStorageUInt64(cache, balanceKey)
+	return utils.GetNativeTokenBalance(cache, balanceKey)
+}
+
+func (self OngBalanceHandle) GetBalance(cache *storage.CacheDB, addr common.Address) (*big.Int, error) {
+	amount, err := getNativeTokenBalance(cache, addr)
 	if err != nil {
 		return nil, err
 	}
 
-	return big.NewInt(0).SetUint64(amount), nil
+	return amount.ToBigInt(), nil
 }

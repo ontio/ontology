@@ -19,6 +19,7 @@
 package states
 
 import (
+	"errors"
 	"fmt"
 	"math/big"
 
@@ -62,7 +63,7 @@ func (self NativeTokenBalance) MustToStorageItem() *StorageItem {
 	if self.IsFloat() {
 		return &StorageItem{
 			StateBase: StateBase{StateVersion: ScaleDecimal9Version},
-			Value:     self.Balance.BigInt().Bytes(),
+			Value:     common.BigIntToNeoBytes(self.Balance.BigInt()),
 		}
 	}
 
@@ -80,8 +81,12 @@ func NativeTokenBalanceFromStorageItem(val *StorageItem) (NativeTokenBalance, er
 		}
 		return NativeTokenBalance{Balance: bigint.Mul(balance, ScaleFactor)}, nil
 	}
+	balance := bigint.New(common.BigIntFromNeoBytes(val.Value))
+	if balance.IsNegative() {
+		return NativeTokenBalance{}, errors.New("negative balance")
+	}
 
-	return NativeTokenBalance{Balance: bigint.New(big.NewInt(0).SetBytes(val.Value))}, nil
+	return NativeTokenBalance{Balance: bigint.New(common.BigIntFromNeoBytes(val.Value))}, nil
 }
 
 func (self NativeTokenBalance) IsFloat() bool {

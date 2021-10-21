@@ -34,6 +34,8 @@ var (
 )
 
 // ont constants
+const GWei = 1000000000
+
 const (
 	ONT_NAME            = "ONT Token"
 	ONT_SYMBOL          = "ONT"
