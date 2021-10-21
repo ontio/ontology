@@ -55,7 +55,7 @@ const (
 )
 
 var (
-	ONG_TOTAL_SUPPLY_V2 = bigint.New(10).ExpUint8(18)
+	ONG_TOTAL_SUPPLY_V2 = bigint.New(10).ExpUint8(27)
 )
 
 // ont/ong unbound model constants

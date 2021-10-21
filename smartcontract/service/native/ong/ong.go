@@ -129,7 +129,7 @@ func doTransfer(native *native.NativeService, transfers *ont.TransferStatesV2) (
 
 func doApprove(native *native.NativeService, state *ont.TransferStateV2) ([]byte, error) {
 	if constants.ONG_TOTAL_SUPPLY_V2.LessThan(state.Value.Balance) {
-		return utils.BYTE_FALSE, fmt.Errorf("approve ong amount:%s over totalSupply:%d", state.Value, constants.ONG_TOTAL_SUPPLY)
+		return utils.BYTE_FALSE, fmt.Errorf("approve ong amount:%s over totalSupply:%s", state.Value, constants.ONG_TOTAL_SUPPLY_V2)
 	}
 	if !native.ContextRef.CheckWitness(state.From) {
 		return utils.BYTE_FALSE, errors.NewErr("authentication failed!")

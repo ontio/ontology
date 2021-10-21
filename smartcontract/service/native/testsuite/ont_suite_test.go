@@ -178,7 +178,7 @@ func TestGovernanceUnbound(t *testing.T) {
 
 		assert.Nil(t, ontTransfer(native, testAddr, testAddr, 1))
 		assert.Nil(t, unboundGovernanceOng(native))
-		assert.Equal(t, ongBalanceOf(native, gov)+ongBalanceOf(native, testAddr), constants.ONG_TOTAL_SUPPLY)
+		assert.EqualValues(t, ongBalanceOf(native, gov)+ongBalanceOf(native, testAddr), constants.ONG_TOTAL_SUPPLY)
 
 		return nil, nil
 	})
@@ -193,7 +193,7 @@ func TestGovernanceUnbound(t *testing.T) {
 
 		assert.Nil(t, unboundGovernanceOng(native))
 		assert.Nil(t, ontTransfer(native, testAddr, testAddr, 1))
-		assert.Equal(t, ongBalanceOf(native, gov)+ongBalanceOf(native, testAddr), constants.ONG_TOTAL_SUPPLY)
+		assert.EqualValues(t, ongBalanceOf(native, gov)+ongBalanceOf(native, testAddr), constants.ONG_TOTAL_SUPPLY)
 
 		return nil, nil
 	})
@@ -215,7 +215,7 @@ func TestGovernanceUnbound(t *testing.T) {
 
 		assert.Nil(t, unboundGovernanceOng(native))
 		assert.Nil(t, ontTransfer(native, testAddr, testAddr, 1))
-		assert.Equal(t, ongBalanceOf(native, gov)+ongBalanceOf(native, testAddr), constants.ONG_TOTAL_SUPPLY)
+		assert.EqualValues(t, ongBalanceOf(native, gov)+ongBalanceOf(native, testAddr), constants.ONG_TOTAL_SUPPLY)
 
 		return nil, nil
 	})
