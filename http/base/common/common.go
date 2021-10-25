@@ -331,6 +331,18 @@ func GetBalance(address common.Address) (*BalanceOfRsp, error) {
 	}, nil
 }
 
+func GetBalanceV2(address common.Address) (*BalanceOfRsp, error) {
+	balances, height, err := GetNativeTokenBalance(0, []common.Address{utils.OntContractAddress, utils.OngContractAddress}, address, true)
+	if err != nil {
+		return nil, fmt.Errorf("get ont balance error:%s", err)
+	}
+	return &BalanceOfRsp{
+		Ont:    balances[0].String(),
+		Ong:    balances[1].String(),
+		Height: fmt.Sprintf("%d", height),
+	}, nil
+}
+
 func GetOep4Balance(contractAddress common.Address, addrs []common.Address) (*Oep4BalanceOfRsp, error) {
 	balances, height, err := GetOep4ContractBalance(contractAddress, addrs, true)
 	if err != nil {
@@ -379,6 +391,23 @@ func GetAllowance(asset string, from, to common.Address) (string, error) {
 		return "", fmt.Errorf("unsupport asset")
 	}
 	allowance, err := GetContractAllowance(0, contractAddr, from, to)
+	if err != nil {
+		return "", fmt.Errorf("get allowance error:%s", err)
+	}
+	return fmt.Sprintf("%v", allowance), nil
+}
+
+func GetAllowanceV2(asset string, from, to common.Address) (string, error) {
+	var contractAddr common.Address
+	switch strings.ToLower(asset) {
+	case "ont":
+		contractAddr = utils.OntContractAddress
+	case "ong":
+		contractAddr = utils.OngContractAddress
+	default:
+		return "", fmt.Errorf("unsupport asset")
+	}
+	allowance, err := GetContractAllowanceV2(0, contractAddr, from, to)
 	if err != nil {
 		return "", fmt.Errorf("get allowance error:%s", err)
 	}
@@ -494,6 +523,40 @@ func GetContractAllowance(cVersion byte, contractAddr, fromAddr, toAddr common.A
 	}
 	allowance := common.BigIntFromNeoBytes(data)
 	return allowance.Uint64(), nil
+}
+
+func GetContractAllowanceV2(cVersion byte, contractAddr, fromAddr, toAddr common.Address) (string, error) {
+	type allowanceStruct struct {
+		From common.Address
+		To   common.Address
+	}
+	mutable, err := NewNativeInvokeTransaction(0, 0, contractAddr, cVersion, "allowanceV2",
+		[]interface{}{&allowanceStruct{
+			From: fromAddr,
+			To:   toAddr,
+		}})
+	if err != nil {
+		return "", fmt.Errorf("NewNativeInvokeTransaction error:%s", err)
+	}
+
+	tx, err := mutable.IntoImmutable()
+	if err != nil {
+		return "", err
+	}
+
+	result, err := bactor.PreExecuteContract(tx)
+	if err != nil {
+		return "", fmt.Errorf("PrepareInvokeContract error:%s", err)
+	}
+	if result.State == 0 {
+		return "", fmt.Errorf("prepare invoke failed")
+	}
+	data, err := hex.DecodeString(result.Result.(string))
+	if err != nil {
+		return "", fmt.Errorf("hex.DecodeString error:%s", err)
+	}
+	allowance := common.BigIntFromNeoBytes(data)
+	return allowance.String(), nil
 }
 
 func GetGasPrice() (gasPrice uint64, height uint32, err error) {

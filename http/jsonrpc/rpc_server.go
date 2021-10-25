@@ -54,8 +54,10 @@ func StartRPCServer() error {
 	rpc.HandleFunc("getblockheightbytxhash", GetBlockHeightByTxHash)
 
 	rpc.HandleFunc("getbalance", GetBalance)
+	rpc.HandleFunc("getbalancev2", GetBalanceV2)
 	rpc.HandleFunc("getoep4balance", GetOep4Balance)
 	rpc.HandleFunc("getallowance", GetAllowance)
+	rpc.HandleFunc("getallowancev2", GetAllowanceV2)
 	rpc.HandleFunc("getmerkleproof", GetMerkleProof)
 	rpc.HandleFunc("getblocktxsbyheight", GetBlockTxsByHeight)
 	rpc.HandleFunc("getgasprice", GetGasPrice)

@@ -23,16 +23,16 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ontio/ontology/smartcontract/event"
-
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	types2 "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ontio/ontology/account"
+	"github.com/ontio/ontology/common/constants"
 	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/core/types"
+	"github.com/ontio/ontology/smartcontract/event"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 	"github.com/stretchr/testify/assert"
 )
@@ -67,8 +67,9 @@ func checkEvmOngTransferEvent(t *testing.T, database *ledger.Ledger, acct *accou
 	logs := ontEventToStorageLogs(evt)
 	assert.Equal(t, len(logs), 2)
 	fromEthAddr := crypto.PubkeyToAddress(fromPrivateKey.PublicKey)
-	checkOngTransferLog(t, logs[0], fromEthAddr, toEthAddr, uint64(amt))
-	checkOngTransferLog(t, logs[1], fromEthAddr, common.Address(utils.GovernanceContractAddress), evt.GasConsumed)
+	checkOngTransferLog(t, logs[0], fromEthAddr, toEthAddr, uint64(amt*constants.GWei))
+
+	checkOngTransferLog(t, logs[1], fromEthAddr, common.Address(utils.GovernanceContractAddress), evt.GasConsumed*constants.GWei)
 }
 
 func ontEventToStorageLogs(evt *event.ExecuteNotify) []*types.StorageLog {
