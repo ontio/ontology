@@ -22,6 +22,8 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/ontio/ontology/common/constants"
+
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/types"
@@ -43,7 +45,7 @@ type NotifyEventInfo struct {
 type ExecuteNotify struct {
 	TxHash      common.Uint256
 	State       byte
-	GasConsumed uint64
+	GasConsumed uint64 // in GWei
 	Notify      []*NotifyEventInfo
 
 	GasStepUsed     uint64
@@ -55,7 +57,7 @@ func ExecuteNotifyFromEthReceipt(receipt *types.Receipt) *ExecuteNotify {
 	notify := &ExecuteNotify{
 		TxHash:          common.Uint256(receipt.TxHash),
 		State:           byte(receipt.Status),
-		GasConsumed:     receipt.GasUsed * receipt.GasPrice,
+		GasConsumed:     receipt.GasPrice / constants.GWei * receipt.GasUsed,
 		GasStepUsed:     receipt.GasUsed,
 		TxIndex:         receipt.TxIndex,
 		CreatedContract: common.Address(receipt.ContractAddress),

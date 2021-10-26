@@ -154,7 +154,7 @@ func NewDeployEvmContract(privateKey *ecdsa.PrivateKey, nonce int64, gasPrice, g
 	chainId := big.NewInt(int64(config.DefConfig.P2PNode.EVMChainId))
 	opts, err := bind.NewKeyedTransactorWithChainID(privateKey, chainId)
 	checkErr(err)
-	opts.GasPrice = big.NewInt(int64(gasPrice))
+	opts.GasPrice = big.NewInt(int64(gasPrice * constants.GWei))
 	opts.Nonce = big.NewInt(nonce)
 	opts.GasLimit = gasLimit
 	parsed, err := abi.JSON(strings.NewReader(jsonABI))

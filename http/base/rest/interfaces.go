@@ -428,6 +428,25 @@ func GetBalance(cmd map[string]interface{}) map[string]interface{} {
 	return resp
 }
 
+//get balance of address
+func GetBalanceV2(cmd map[string]interface{}) map[string]interface{} {
+	resp := ResponsePack(berr.SUCCESS)
+	addrBase58, ok := cmd["Addr"].(string)
+	if !ok {
+		return ResponsePack(berr.INVALID_PARAMS)
+	}
+	address, err := common.AddressFromBase58(addrBase58)
+	if err != nil {
+		return ResponsePack(berr.INVALID_PARAMS)
+	}
+	balance, err := bcomn.GetBalanceV2(address)
+	if err != nil {
+		return ResponsePack(berr.INVALID_PARAMS)
+	}
+	resp["Result"] = balance
+	return resp
+}
+
 //get merkle proof by transaction hash
 func GetMerkleProof(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(berr.SUCCESS)
@@ -505,6 +524,37 @@ func GetAllowance(cmd map[string]interface{}) map[string]interface{} {
 		return ResponsePack(berr.INVALID_PARAMS)
 	}
 	rsp, err := bcomn.GetAllowance(asset, fromAddr, toAddr)
+	if err != nil {
+		return ResponsePack(berr.INVALID_PARAMS)
+	}
+	resp["Result"] = rsp
+	return resp
+}
+
+//get allowance
+func GetAllowanceV2(cmd map[string]interface{}) map[string]interface{} {
+	resp := ResponsePack(berr.SUCCESS)
+	asset, ok := cmd["Asset"].(string)
+	if !ok {
+		return ResponsePack(berr.INVALID_PARAMS)
+	}
+	fromAddrStr, ok := cmd["From"].(string)
+	if !ok {
+		return ResponsePack(berr.INVALID_PARAMS)
+	}
+	toAddrStr, ok := cmd["To"].(string)
+	if !ok {
+		return ResponsePack(berr.INVALID_PARAMS)
+	}
+	fromAddr, err := bcomn.GetAddress(fromAddrStr)
+	if err != nil {
+		return ResponsePack(berr.INVALID_PARAMS)
+	}
+	toAddr, err := bcomn.GetAddress(toAddrStr)
+	if err != nil {
+		return ResponsePack(berr.INVALID_PARAMS)
+	}
+	rsp, err := bcomn.GetAllowanceV2(asset, fromAddr, toAddr)
 	if err != nil {
 		return ResponsePack(berr.INVALID_PARAMS)
 	}

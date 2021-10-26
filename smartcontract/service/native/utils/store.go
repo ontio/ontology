@@ -45,6 +45,18 @@ func GetStorageItem(cacheDB *storage.CacheDB, key []byte) (*cstates.StorageItem,
 	return item, nil
 }
 
+func GetNativeTokenBalance(cacheDB *storage.CacheDB, key []byte) (cstates.NativeTokenBalance, error) {
+	item, err := GetStorageItem(cacheDB, key)
+	if err != nil {
+		return cstates.NativeTokenBalance{}, err
+	}
+	if item == nil {
+		return cstates.NativeTokenBalance{}, nil
+	}
+
+	return cstates.NativeTokenBalanceFromStorageItem(item)
+}
+
 func GetStorageUInt64(cacheDB *storage.CacheDB, key []byte) (uint64, error) {
 	item, err := GetStorageItem(cacheDB, key)
 	if err != nil {

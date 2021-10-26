@@ -366,8 +366,8 @@ func TestBlock(t *testing.T) {
 }
 
 func transferTx(from, to common.Address, amount uint64) (*types.Transaction, error) {
-	var sts []ont.State
-	sts = append(sts, ont.State{
+	var sts []ont.TransferState
+	sts = append(sts, ont.TransferState{
 		From:  from,
 		To:    to,
 		Value: amount,

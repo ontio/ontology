@@ -97,9 +97,8 @@ pub fn invoke() {
             ];
 
             let address =
-                runtime::contract_migrate(code, 3, "name", "version", "author", "email", "desc")
-                    .expect("migrate failed");
-            let resv = runtime::call_contract(&address, &[]).expect("call_contract failed");
+                runtime::contract_migrate(code, 3, "name", "version", "author", "email", "desc");
+            let resv = runtime::call_contract(&address, &[]);
             let mut source = Source::new(&resv);
             let val: u64 = source.read().unwrap();
 
@@ -130,7 +129,7 @@ pub fn invoke() {
         b"test_callwasm" => {
             let mut isink = Sink::new(20);
             let helloaction: &[u8] = source.read().unwrap();
-            let (a, b): (u128, u128) = source.read().unwrap();
+            let (a, b): (U128, U128) = source.read().unwrap();
             //debug(&format!("{:}", String::from_utf8(helloaction.to_vec()).unwrap()));
 
             isink.write(helloaction);
@@ -138,9 +137,8 @@ pub fn invoke() {
             isink.write(b);
             let tc = get_tc(&mut source);
             let address = tc.map["helloworld.wasm"];
-            let resv = runtime::call_contract(&address, isink.bytes()).expect("get no return");
+            let resv = runtime::call_contract(&address, isink.bytes());
             runtime::ret(&resv);
-            return;
         }
         b"test_calljsvm" => {
             let mut isink = Sink::new(20);
@@ -152,9 +150,8 @@ pub fn invoke() {
             isink.write(a);
             let tc = get_tc(&mut source);
             let address = tc.map["jsvm.wasm"];
-            let resv = runtime::call_contract(&address, isink.bytes()).expect("get no return");
+            let resv = runtime::call_contract(&address, isink.bytes());
             runtime::ret(&resv);
-            return;
         }
         b"balanceOf" => {
             let balance = ont::balance_of(&runtime::address());

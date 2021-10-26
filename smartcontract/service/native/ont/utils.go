@@ -31,33 +31,53 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
+// storage key
 const (
-	UNBOUND_TIME_OFFSET       = "unboundTimeOffset"
-	TOTAL_SUPPLY_NAME         = "totalSupply"
-	INIT_NAME                 = "init"
-	TRANSFER_NAME             = "transfer"
-	APPROVE_NAME              = "approve"
-	TRANSFERFROM_NAME         = "transferFrom"
-	NAME_NAME                 = "name"
-	SYMBOL_NAME               = "symbol"
-	DECIMALS_NAME             = "decimals"
-	TOTALSUPPLY_NAME          = "totalSupply"
-	BALANCEOF_NAME            = "balanceOf"
-	ALLOWANCE_NAME            = "allowance"
-	TOTAL_ALLOWANCE_NAME      = "totalAllowance"
+	UNBOUND_TIME_OFFSET_KEY = "unboundTimeOffset"
+	TOTAL_SUPPLY_KEY        = "totalSupply"
+)
+
+// methods
+const (
+	INIT_NAME            = "init"
+	TRANSFER_NAME        = "transfer"
+	APPROVE_NAME         = "approve"
+	TRANSFERFROM_NAME    = "transferFrom"
+	NAME_NAME            = "name"
+	SYMBOL_NAME          = "symbol"
+	DECIMALS_NAME        = "decimals"
+	TOTAL_SUPPLY_NAME    = "totalSupply"
+	BALANCEOF_NAME       = "balanceOf"
+	ALLOWANCE_NAME       = "allowance"
+	TOTAL_ALLOWANCE_NAME = "totalAllowance"
+
+	TRANSFER_V2_NAME        = "transferV2"
+	APPROVE_V2_NAME         = "approveV2"
+	TRANSFERFROM_V2_NAME    = "transferFromV2"
+	DECIMALS_V2_NAME        = "decimalsV2"
+	TOTAL_SUPPLY_V2_NAME    = "totalSupplyV2"
+	BALANCEOF_V2_NAME       = "balanceOfV2"
+	ALLOWANCE_V2_NAME       = "allowanceV2"
+	TOTAL_ALLOWANCE_V2_NAME = "totalAllowanceV2"
+
 	UNBOUND_ONG_TO_GOVERNANCE = "unboundOngToGovernance"
 )
 
-func AddNotifications(native *native.NativeService, contract common.Address, state *State) {
+func AddTransferNotifications(native *native.NativeService, contract common.Address, state *TransferStateV2) {
 	if !config.DefConfig.Common.EnableEventLog {
 		return
+	}
+	states := []interface{}{TRANSFER_NAME, state.From.ToBase58(), state.To.ToBase58(), state.Value.MustToInteger64()}
+	if state.Value.IsFloat() {
+		states = append(states, state.Value.FloatPart())
 	}
 	native.Notifications = append(native.Notifications,
 		&event.NotifyEventInfo{
 			ContractAddress: contract,
-			States:          []interface{}{TRANSFER_NAME, state.From.ToBase58(), state.To.ToBase58(), state.Value},
+			States:          states,
 		})
 }
+
 func GetToUInt64StorageItem(toBalance, value uint64) *cstates.StorageItem {
 	sink := common.NewZeroCopySink(nil)
 	sink.WriteUint64(toBalance + value)
@@ -65,28 +85,26 @@ func GetToUInt64StorageItem(toBalance, value uint64) *cstates.StorageItem {
 }
 
 func GenTotalSupplyKey(contract common.Address) []byte {
-	return append(contract[:], TOTAL_SUPPLY_NAME...)
+	return append(contract[:], TOTAL_SUPPLY_KEY...)
 }
 
 func GenBalanceKey(contract, addr common.Address) []byte {
 	return append(contract[:], addr[:]...)
 }
 
-func Transfer(native *native.NativeService, contract common.Address, state *State) (uint64, uint64, error) {
-	if !native.ContextRef.CheckWitness(state.From) {
-		return 0, 0, errors.NewErr("authentication failed!")
+func Transfer(native *native.NativeService, contract common.Address, from, to common.Address,
+	value cstates.NativeTokenBalance) (oldFrom, oldTo cstates.NativeTokenBalance, err error) {
+	if !native.ContextRef.CheckWitness(from) {
+		return oldFrom, oldTo, errors.NewErr("authentication failed!")
 	}
 
-	fromBalance, err := fromTransfer(native, GenBalanceKey(contract, state.From), state.Value)
+	oldFrom, err = reduceFromBalance(native, GenBalanceKey(contract, from), value)
 	if err != nil {
-		return 0, 0, err
+		return
 	}
 
-	toBalance, err := toTransfer(native, GenBalanceKey(contract, state.To), state.Value)
-	if err != nil {
-		return 0, 0, err
-	}
-	return fromBalance, toBalance, nil
+	oldTo, err = increaseToBalance(native, GenBalanceKey(contract, to), value)
+	return
 }
 
 func GenApproveKey(contract, from, to common.Address) []byte {
@@ -94,31 +112,33 @@ func GenApproveKey(contract, from, to common.Address) []byte {
 	return append(temp, to[:]...)
 }
 
-func TransferedFrom(native *native.NativeService, currentContract common.Address, state *TransferFrom) (uint64, uint64, error) {
+func TransferedFrom(native *native.NativeService, currentContract common.Address, state *TransferFromStateV2) (oldFrom cstates.NativeTokenBalance, oldTo cstates.NativeTokenBalance, err error) {
 	if native.Time <= config.GetOntHolderUnboundDeadline()+constants.GENESIS_BLOCK_TIMESTAMP {
 		if !native.ContextRef.CheckWitness(state.Sender) {
-			return 0, 0, errors.NewErr("authentication failed!")
+			err = errors.NewErr("authentication failed!")
+			return
 		}
 	} else {
 		if state.Sender != state.To && !native.ContextRef.CheckWitness(state.Sender) {
-			return 0, 0, errors.NewErr("authentication failed!")
+			err = errors.NewErr("authentication failed!")
+			return
 		}
 	}
 
-	if err := fromApprove(native, genTransferFromKey(currentContract, state), state.Value); err != nil {
-		return 0, 0, err
+	if err = fromApprove(native, genTransferFromKey(currentContract, state.From, state.Sender), state.Value); err != nil {
+		return
 	}
 
-	fromBalance, err := fromTransfer(native, GenBalanceKey(currentContract, state.From), state.Value)
+	oldFrom, err = reduceFromBalance(native, GenBalanceKey(currentContract, state.From), state.Value)
 	if err != nil {
-		return 0, 0, err
+		return
 	}
 
-	toBalance, err := toTransfer(native, GenBalanceKey(currentContract, state.To), state.Value)
+	oldTo, err = increaseToBalance(native, GenBalanceKey(currentContract, state.To), state.Value)
 	if err != nil {
-		return 0, 0, err
+		return
 	}
-	return fromBalance, toBalance, nil
+	return oldFrom, oldTo, nil
 }
 
 func getUnboundOffset(native *native.NativeService, contract, address common.Address) (uint32, error) {
@@ -137,58 +157,64 @@ func getGovernanceUnboundOffset(native *native.NativeService, contract common.Ad
 	return offset, nil
 }
 
-func genTransferFromKey(contract common.Address, state *TransferFrom) []byte {
-	temp := append(contract[:], state.From[:]...)
-	return append(temp, state.Sender[:]...)
+func genTransferFromKey(contract common.Address, from, sender common.Address) []byte {
+	temp := append(contract[:], from[:]...)
+	return append(temp, sender[:]...)
 }
 
-func fromApprove(native *native.NativeService, fromApproveKey []byte, value uint64) error {
-	approveValue, err := utils.GetStorageUInt64(native.CacheDB, fromApproveKey)
+func fromApprove(native *native.NativeService, fromApproveKey []byte, value cstates.NativeTokenBalance) error {
+	approveValue, err := utils.GetNativeTokenBalance(native.CacheDB, fromApproveKey)
 	if err != nil {
 		return err
 	}
-	if approveValue < value {
-		return fmt.Errorf("[TransferFrom] approve balance insufficient! have %d, got %d", approveValue, value)
-	} else if approveValue == value {
+	newApprove, err := approveValue.Sub(value)
+	if err != nil {
+		return fmt.Errorf("[TransferFrom] approve balance insufficient: %v", err)
+	}
+	if newApprove.IsZero() {
 		native.CacheDB.Delete(fromApproveKey)
 	} else {
-		native.CacheDB.Put(fromApproveKey, utils.GenUInt64StorageItem(approveValue-value).ToArray())
+		native.CacheDB.Put(fromApproveKey, newApprove.MustToStorageItemBytes())
 	}
 	return nil
 }
 
-func fromTransfer(native *native.NativeService, fromKey []byte, value uint64) (uint64, error) {
-	fromBalance, err := utils.GetStorageUInt64(native.CacheDB, fromKey)
+func reduceFromBalance(native *native.NativeService, fromKey []byte, value cstates.NativeTokenBalance) (cstates.NativeTokenBalance, error) {
+	fromBalance, err := utils.GetNativeTokenBalance(native.CacheDB, fromKey)
 	if err != nil {
-		return 0, err
+		return cstates.NativeTokenBalance{}, err
 	}
-	if fromBalance < value {
+	newFromBalance, err := fromBalance.Sub(value)
+	if err != nil {
 		addr, _ := common.AddressParseFromBytes(fromKey[20:])
-		return 0, fmt.Errorf("[Transfer] balance insufficient. contract:%s, account:%s,balance:%d, transfer amount:%d",
-			native.ContextRef.CurrentContext().ContractAddress.ToHexString(), addr.ToBase58(), fromBalance, value)
-	} else if fromBalance == value {
+		return cstates.NativeTokenBalance{}, fmt.Errorf("[Transfer] balance insufficient. contract:%s, account:%s, err: %v",
+			native.ContextRef.CurrentContext().ContractAddress.ToHexString(), addr.ToBase58(), err)
+	}
+
+	if newFromBalance.IsZero() {
 		native.CacheDB.Delete(fromKey)
 	} else {
-		native.CacheDB.Put(fromKey, utils.GenUInt64StorageItem(fromBalance-value).ToArray())
+		native.CacheDB.Put(fromKey, newFromBalance.MustToStorageItemBytes())
 	}
+
 	return fromBalance, nil
 }
 
-func toTransfer(native *native.NativeService, toKey []byte, value uint64) (uint64, error) {
-	toBalance, err := utils.GetStorageUInt64(native.CacheDB, toKey)
+func increaseToBalance(native *native.NativeService, toKey []byte, value cstates.NativeTokenBalance) (cstates.NativeTokenBalance, error) {
+	toBalance, err := utils.GetNativeTokenBalance(native.CacheDB, toKey)
 	if err != nil {
-		return 0, err
+		return cstates.NativeTokenBalance{}, err
 	}
-	native.CacheDB.Put(toKey, GetToUInt64StorageItem(toBalance, value).ToArray())
+	native.CacheDB.Put(toKey, toBalance.Add(value).MustToStorageItemBytes())
 	return toBalance, nil
 }
 
 func genAddressUnboundOffsetKey(contract, address common.Address) []byte {
-	temp := append(contract[:], UNBOUND_TIME_OFFSET...)
+	temp := append(contract[:], UNBOUND_TIME_OFFSET_KEY...)
 	return append(temp, address[:]...)
 }
 
 func genGovernanceUnboundOffsetKey(contract common.Address) []byte {
-	temp := append(contract[:], UNBOUND_TIME_OFFSET...)
+	temp := append(contract[:], UNBOUND_TIME_OFFSET_KEY...)
 	return temp
 }

@@ -293,7 +293,7 @@ func (self *resolver) GetTx(args struct{ Hash H256 }) (*transaction, error) {
 }
 
 func (self *resolver) GetBalance(args struct{ Addr Addr }) (*balance, error) {
-	balances, height, err := comm.GetContractBalance(0,
+	balances, height, err := comm.GetNativeTokenBalance(0,
 		[]common.Address{utils.OntContractAddress, utils.OngContractAddress}, args.Addr.Address, true)
 	if err != nil {
 		return nil, err
@@ -301,8 +301,8 @@ func (self *resolver) GetBalance(args struct{ Addr Addr }) (*balance, error) {
 
 	return &balance{
 		Height: Uint32(height),
-		Ont:    Uint64(balances[0]),
-		Ong:    Uint64(balances[1]),
+		Ont:    Uint64(balances[0].MustToInteger64()),
+		Ong:    Uint64(balances[1].MustToInteger64()),
 	}, nil
 }
 

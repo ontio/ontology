@@ -440,6 +440,26 @@ func GetBalance(params []interface{}) map[string]interface{} {
 }
 
 //get balance of address
+func GetBalanceV2(params []interface{}) map[string]interface{} {
+	if len(params) < 1 {
+		return rpc.ResponsePack(berr.INVALID_PARAMS, "")
+	}
+	addrBase58, ok := params[0].(string)
+	if !ok {
+		return rpc.ResponsePack(berr.INVALID_PARAMS, "")
+	}
+	address, err := common.AddressFromBase58(addrBase58)
+	if err != nil {
+		return rpc.ResponsePack(berr.INVALID_PARAMS, "")
+	}
+	rsp, err := bcomn.GetBalanceV2(address)
+	if err != nil {
+		return rpc.ResponsePack(berr.INVALID_PARAMS, "")
+	}
+	return rpc.ResponseSuccess(rsp)
+}
+
+//get balance of address
 func GetOep4Balance(params []interface{}) map[string]interface{} {
 	if len(params) < 2 {
 		return rpc.ResponsePack(berr.INVALID_PARAMS, "")
@@ -478,6 +498,38 @@ func parseAddressParam(params []interface{}) ([]common.Address, error) {
 
 //get allowance
 func GetAllowance(params []interface{}) map[string]interface{} {
+	if len(params) < 3 {
+		return rpc.ResponsePack(berr.INVALID_PARAMS, "")
+	}
+	asset, ok := params[0].(string)
+	if !ok {
+		return rpc.ResponsePack(berr.INVALID_PARAMS, "")
+	}
+	fromAddrStr, ok := params[1].(string)
+	if !ok {
+		return rpc.ResponsePack(berr.INVALID_PARAMS, "")
+	}
+	fromAddr, err := bcomn.GetAddress(fromAddrStr)
+	if err != nil {
+		return rpc.ResponsePack(berr.INVALID_PARAMS, "")
+	}
+	toAddrStr, ok := params[2].(string)
+	if !ok {
+		return rpc.ResponsePack(berr.INVALID_PARAMS, "")
+	}
+	toAddr, err := bcomn.GetAddress(toAddrStr)
+	if err != nil {
+		return rpc.ResponsePack(berr.INVALID_PARAMS, "")
+	}
+	rsp, err := bcomn.GetAllowance(asset, fromAddr, toAddr)
+	if err != nil {
+		return rpc.ResponsePack(berr.INVALID_PARAMS, "")
+	}
+	return rpc.ResponseSuccess(rsp)
+}
+
+//get allowance
+func GetAllowanceV2(params []interface{}) map[string]interface{} {
 	if len(params) < 3 {
 		return rpc.ResponsePack(berr.INVALID_PARAMS, "")
 	}

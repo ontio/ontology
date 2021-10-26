@@ -23,6 +23,9 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/laizy/bigint"
+	"github.com/ontio/ontology/common/constants"
+
 	ethcomm "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -67,7 +70,7 @@ func genTx(nonce uint64) *Transaction {
 	privateKey, _ := crypto.HexToECDSA("fad9c8855b740a0b7ed4c221dbad0f33a83a49cad6b3fe8d5817ac83d38b6a19")
 	value := big.NewInt(1000000000)
 	gaslimit := uint64(21000)
-	gasPrice := big.NewInt(2500)
+	gasPrice := bigint.Mul(2500, constants.GWei).BigInt()
 	toAddress := ethcomm.HexToAddress("0x4592d8f8d7b001e72cb26a73e4fa1806a51ac79d")
 	tx := types.NewTransaction(nonce, toAddress, value, gaslimit, gasPrice, nil)
 

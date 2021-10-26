@@ -28,6 +28,7 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/rlp"
 	sysconfig "github.com/ontio/ontology/common/config"
+	"github.com/ontio/ontology/common/constants"
 	txtypes "github.com/ontio/ontology/core/types"
 	"github.com/stretchr/testify/assert"
 )
@@ -41,7 +42,7 @@ func genTxWithNonceAndPrice(nonce uint64, gp int64) *txtypes.Transaction {
 
 	value := big.NewInt(1000000000)
 	gaslimit := uint64(21000)
-	gasPrice := big.NewInt(gp)
+	gasPrice := big.NewInt(gp * constants.GWei)
 
 	toAddress := ethcomm.HexToAddress("0x4592d8f8d7b001e72cb26a73e4fa1806a51ac79d")
 

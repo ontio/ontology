@@ -65,6 +65,7 @@ const (
 	GET_TX                = "/api/v1/transaction/:hash"
 	GET_STORAGE           = "/api/v1/storage/:hash/:key"
 	GET_BALANCE           = "/api/v1/balance/:addr"
+	GET_BALANCE_V2        = "/api/v1/balancev2/:addr"
 	GET_CONTRACT_STATE    = "/api/v1/contract/:hash"
 	GET_SMTCOCE_EVT_TXS   = "/api/v1/smartcode/event/transactions/:height"
 	GET_SMTCOCE_EVTS      = "/api/v1/smartcode/event/txhash/:hash"
@@ -72,6 +73,7 @@ const (
 	GET_MERKLE_PROOF      = "/api/v1/merkleproof/:hash"
 	GET_GAS_PRICE         = "/api/v1/gasprice"
 	GET_ALLOWANCE         = "/api/v1/allowance/:asset/:from/:to"
+	GET_ALLOWANCE_V2      = "/api/v1/allowancev2/:asset/:from/:to"
 	GET_UNBOUNDONG        = "/api/v1/unboundong/:addr"
 	GET_GRANTONG          = "/api/v1/grantong/:addr"
 	GET_MEMPOOL_TXCOUNT   = "/api/v1/mempool/txcount"
@@ -164,7 +166,9 @@ func (this *restServer) registryMethod() {
 		GET_BLK_HGT_BY_TXHASH: {name: "getblockheightbytxhash", handler: rest.GetBlockHeightByTxHash},
 		GET_STORAGE:           {name: "getstorage", handler: rest.GetStorage},
 		GET_BALANCE:           {name: "getbalance", handler: rest.GetBalance},
+		GET_BALANCE_V2:        {name: "getbalancev2", handler: rest.GetBalanceV2},
 		GET_ALLOWANCE:         {name: "getallowance", handler: rest.GetAllowance},
+		GET_ALLOWANCE_V2:      {name: "getallowancev2", handler: rest.GetAllowanceV2},
 		GET_MERKLE_PROOF:      {name: "getmerkleproof", handler: rest.GetMerkleProof},
 		GET_GAS_PRICE:         {name: "getgasprice", handler: rest.GetGasPrice},
 		GET_UNBOUNDONG:        {name: "getunboundong", handler: rest.GetUnboundOng},
@@ -207,10 +211,14 @@ func (this *restServer) getPath(url string) string {
 		return GET_STORAGE
 	} else if strings.Contains(url, strings.TrimRight(GET_BALANCE, ":addr")) {
 		return GET_BALANCE
+	} else if strings.Contains(url, strings.TrimRight(GET_BALANCE_V2, ":addr")) {
+		return GET_BALANCE_V2
 	} else if strings.Contains(url, strings.TrimRight(GET_MERKLE_PROOF, ":hash")) {
 		return GET_MERKLE_PROOF
 	} else if strings.Contains(url, strings.TrimRight(GET_ALLOWANCE, ":asset/:from/:to")) {
 		return GET_ALLOWANCE
+	} else if strings.Contains(url, strings.TrimRight(GET_ALLOWANCE_V2, ":asset/:from/:to")) {
+		return GET_ALLOWANCE_V2
 	} else if strings.Contains(url, strings.TrimRight(GET_UNBOUNDONG, ":addr")) {
 		return GET_UNBOUNDONG
 	} else if strings.Contains(url, strings.TrimRight(GET_GRANTONG, ":addr")) {
@@ -248,11 +256,11 @@ func (this *restServer) getParams(r *http.Request, url string, req map[string]in
 		req["Hash"] = getParam(r, "hash")
 	case GET_BLK_HGT_BY_TXHASH:
 		req["Hash"] = getParam(r, "hash")
-	case GET_BALANCE:
+	case GET_BALANCE, GET_BALANCE_V2:
 		req["Addr"] = getParam(r, "addr")
 	case GET_MERKLE_PROOF:
 		req["Hash"] = getParam(r, "hash")
-	case GET_ALLOWANCE:
+	case GET_ALLOWANCE, GET_ALLOWANCE_V2:
 		req["Asset"] = getParam(r, "asset")
 		req["From"], req["To"] = getParam(r, "from"), getParam(r, "to")
 	case GET_UNBOUNDONG:

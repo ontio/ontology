@@ -50,12 +50,12 @@ func NewTxPoolActor(s *TXPoolServer) *TxPoolActor {
 
 // isBalanceEnough checks if the tranactor has enough to cover gas cost
 func isBalanceEnough(address common.Address, gas uint64) bool {
-	balance, _, err := hComm.GetContractBalance(0, []common.Address{utils.OngContractAddress}, address, false)
+	balance, _, err := hComm.GetNativeTokenBalance(0, []common.Address{utils.OngContractAddress}, address, false)
 	if err != nil {
 		log.Debugf("failed to get contract balance %s err %v", address.ToHexString(), err)
 		return false
 	}
-	return balance[0] >= gas
+	return balance[0].MustToInteger64() >= gas
 }
 
 func replyTxResult(txResultCh chan *tc.TxResult, hash common.Uint256, err errors.ErrCode, desc string) {
