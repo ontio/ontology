@@ -250,6 +250,17 @@ func GetTrackDestroyedContractHeight() uint32 {
 	}
 }
 
+func GetAddDecimalsHeight() uint32 {
+	switch DefConfig.P2PNode.NetworkId {
+	case NETWORK_ID_MAIN_NET:
+		return constants.BLOCKHEIGHT_ADD_DECIMALS_MAINNET
+	case NETWORK_ID_POLARIS_NET:
+		return constants.BLOCKHEIGHT_ADD_DECIMALS_POLARIS
+	default:
+		return 0
+	}
+}
+
 // the end of unbound timestamp offset from genesis block's timestamp
 func GetGovUnboundDeadline() (uint32, uint64) {
 	count := uint64(0)

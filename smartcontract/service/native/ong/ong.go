@@ -23,12 +23,10 @@ import (
 	"math/big"
 
 	"github.com/laizy/bigint"
-
-	"github.com/ontio/ontology/core/states"
-
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/constants"
+	"github.com/ontio/ontology/core/states"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/smartcontract/service/native"
@@ -54,14 +52,17 @@ func RegisterOngContract(native *native.NativeService) {
 	native.Register(ont.ALLOWANCE_NAME, OngAllowance)
 	native.Register(ont.TOTAL_ALLOWANCE_NAME, OngTotalAllowance)
 
-	native.Register(ont.TRANSFER_V2_NAME, OngTransferV2)
-	native.Register(ont.APPROVE_V2_NAME, OngApproveV2)
-	native.Register(ont.TRANSFERFROM_V2_NAME, OngTransferFromV2)
-	native.Register(ont.DECIMALS_V2_NAME, OngDecimalsV2)
-	native.Register(ont.TOTAL_SUPPLY_V2_NAME, OngTotalSupplyV2)
-	native.Register(ont.BALANCEOF_V2_NAME, OngBalanceOfV2)
-	native.Register(ont.ALLOWANCE_V2_NAME, OngAllowanceV2)
-	native.Register(ont.TOTAL_ALLOWANCE_V2_NAME, OngTotalAllowanceV2)
+	if native.Height >= config.GetAddDecimalsHeight() {
+		native.Register(ont.TRANSFER_V2_NAME, OngTransferV2)
+		native.Register(ont.APPROVE_V2_NAME, OngApproveV2)
+		native.Register(ont.TRANSFERFROM_V2_NAME, OngTransferFromV2)
+		native.Register(ont.DECIMALS_V2_NAME, OngDecimalsV2)
+		native.Register(ont.TOTAL_SUPPLY_V2_NAME, OngTotalSupplyV2)
+		native.Register(ont.BALANCEOF_V2_NAME, OngBalanceOfV2)
+		native.Register(ont.ALLOWANCE_V2_NAME, OngAllowanceV2)
+		native.Register(ont.TOTAL_ALLOWANCE_V2_NAME, OngTotalAllowanceV2)
+	}
+
 }
 
 func OngInit(native *native.NativeService) ([]byte, error) {
