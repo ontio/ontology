@@ -152,7 +152,7 @@ func (ta *TxPoolService) handleTransaction(sender tc.SenderType, txn *tx.Transac
 	if txn.IsEipTx() {
 		curBlkHeight := ledger.DefLedger.GetCurrentBlockHeight()
 		if curBlkHeight < config.GetAddDecimalsHeight() {
-			replyTxResult(txResultCh, txn.Hash(), errors.ErrUnknown, "block height is not reached ")
+			replyTxResult(txResultCh, txn.Hash(), errors.ErrUnknown, "block height is not reached, evm is not support")
 			return
 		}
 		if txn.GasLimit > config.DefConfig.Common.ETHTxGasLimit {
