@@ -52,6 +52,8 @@ This document describes the Websocket api format for the ws/wss used in the Onch
 | [getnetworkid](#25-getnetworkid) |  | get the network id |
 | [getgrantong](#26-getgrantong) |  | get grant ong |
 | [getsyncstatus](#27-getsyncstatus) |  | gets the synchronization status of the node |
+| [getbalancev2](#12-getbalancev2) | address | return balance of the account address,ont decimals is 9,ong decimals is 18 |
+| [getallowancev2](#20-getallowancev2) | asset, from, to | return the allowance from transfer-from accout to transfer-to account, ont decimals is 9,ong decimals is 18  |
 
 
 ###  1. heartbeat
@@ -991,6 +993,62 @@ gets the synchronization status of the node
 }
 ```
 
+### 28. getbalancev2
+
+return balance of the account address,ont decimals is 9,ong decimals is 18
+
+
+#### Request Example
+```
+{
+    "Action": "getbalancev2",
+    "Version": "1.0.0",
+    "Id":12345, //optional
+    "Addr": "TA63xZXqdPLtDeznWQ6Ns4UsbqprLrrLJk"
+}
+```
+
+#### Response Example
+```
+{
+    "Action": "getbalancev2",
+    "Desc": "SUCCESS",
+    "Error": 0,
+    "Result": {
+        "ont": "999999996000000000",
+        "ong": "999999998000000000000000000",
+        "height":"1455"
+    },
+    "Version": "1.0.0"
+}
+```
+
+
+### 29. getallowancev2
+
+return the allowance from transfer-from accout to transfer-to account, ont decimals is 9,ong decimals is 18.
+
+#### Request Example:
+```
+{
+    "Action": "getallowancev2",
+    "Id":12345, //optional
+    "Asset": "ont",
+    "From" :  "A9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb",
+    "To"   :  "AA4WVfUB1ipHL8s3PRSYgeV1HhAU3KcKTq",
+    "Version": "1.0.0"
+}
+```
+#### Response Example
+```
+{
+    "Action": "getallowancev2",
+    "Desc": "SUCCESS",
+    "Error": 0,
+    "Result": "10000000000",
+    "Version": "1.0.0"
+}
+```
 
 ## Error Code
 

@@ -52,6 +52,8 @@
 | [getnetworkid](#25-getnetworkid) |  | 得到network id |
 | [getgrantong](#26-getgrantong) |  | 得到grant ong |
 | [getsyncstatus](#27-getsyncstatus) |  | 得到节点的同步状态 |
+| [getbalancev2](#12-getbalancev2) | address | 得到该地址的账户的余额,ont精度9,ong精度18  |
+| [getallowancev2](#20-getallowancev2) | asset, from, to | 返回允许从from账户转出到to账户的额度, ont精度9,ong精度18  |
 
 ###  1. heartbeat
 
@@ -995,6 +997,63 @@ raw：可选参数，默认值为零，不设置时为默认值。当值为1时�
 }
 ```
 
+
+### 28. getbalancev2
+
+得到该地址的账户的余额。
+
+
+#### Request Example
+```
+{
+    "Action": "getbalancev2",
+    "Version": "1.0.0",
+    "Id":12345, //optional
+    "Addr": "TA63xZXqdPLtDeznWQ6Ns4UsbqprLrrLJk"
+}
+```
+
+#### Response Example
+```
+{
+    "Action": "getbalancev2",
+    "Desc": "SUCCESS",
+    "Error": 0,
+    "Result": {
+        "ont": "999999996000000000",
+        "ong": "999999998000000000000000000",
+        "height":"1455"
+    },
+    "Version": "1.0.0"
+}
+```
+
+
+### 29. getallowancev2
+
+得到允许从from账户转出到to账户的额度。
+
+#### Request Example:
+```
+{
+    "Action": "getallowancev2",
+    "Id":12345, //optional
+    "Asset": "ont",
+    "From" :  "A9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb",
+    "To"   :  "AA4WVfUB1ipHL8s3PRSYgeV1HhAU3KcKTq",
+    "Version": "1.0.0"
+}
+```
+#### Response Example
+```
+{
+    "Action": "getallowancev2",
+    "Desc": "SUCCESS",
+    "Error": 0,
+    "Result": "10000000000",
+    "Version": "1.0.0"
+}
+```
 
 ## 错误代码
 

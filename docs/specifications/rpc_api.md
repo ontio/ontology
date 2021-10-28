@@ -98,6 +98,8 @@ There are some description of parameter used in rpc:
 | [getnetworkid](#21-getnetworkid) |  | Get the network id |  |
 | [getgrantong](#22-getgrantong) |  | Get grant ong |  |
 | [getsyncstatus](#23-getsyncstatus) |  | Get the synchronization status of the node |  |
+| [getbalancev2](#24-getbalancev2) | address | return balance of the account address,ont decimals is 9,ong decimals is 18 |  |
+| [getallowancev2](#25-getallowancev2) | asset, from, to | return the allowance from transfer-from accout to transfer-to account, ont decimals is 9,ong decimals is 18 |  |
 
 ### 1. getbestblockhash
 
@@ -1132,6 +1134,81 @@ Response:
         "ConnectCount": 20,
         "MaxPeerBlockHeight": 16224663
     }
+}
+```
+
+#### 24. getbalancev2
+
+return balance of the account address,ont decimals is 9,ong decimals is 18
+
+#### 参数定义
+
+address: base58 encoded address
+
+#### Example
+
+Request:
+
+```
+{
+  "jsonrpc": "2.0",
+  "method": "getbalancev2",
+  "params": ["TA5uYzLU2vBvvfCMxyV2sdzc9kPqJzGZWq"],
+  "id": 1
+}
+```
+
+Response:
+
+```
+{
+   "desc":"SUCCESS",
+   "error":0,
+   "id":1,
+   "jsonrpc":"2.0",
+   "result":{
+        "ont": "999999996000000000",
+        "ong": "999999998000000000000000000",
+        "height":"1455"
+       }
+}
+```
+
+
+#### 25. getallowancev2
+
+return the allowance from transfer-from accout to transfer-to account, ont decimals is 9,ong decimals is 18
+
+#### 参数定义
+
+asset: "ont" or "ong"
+
+from: transfer out base58 encoded address
+
+to: transfer in base58 encoded address
+
+#### Example
+
+Request:
+
+```
+{
+  "jsonrpc": "2.0",
+  "method": "getallowancev2",
+  "params": ["ont","from address","to address"],
+  "id": 1
+}
+```
+
+Response:
+
+```
+{
+   "desc":"SUCCESS",
+   "error":0,
+   "id":1,
+   "jsonrpc":"2.0",
+   "result": "100000000000"
 }
 ```
 

@@ -48,6 +48,8 @@
 | [get_networkid](#22-get_networkid) |  GET /api/v1/networkid | 得到network id |
 | [get_grantong](#23-get_grantong) |  GET /api/v1/grantong/:addr | 得到grant ong |
 | [get_syncstatus](#24-get_syncstatus) |  GET /api/v1/node/syncstatus | 得到节点同步状态 |
+| [get_balancev2](#25-get_balancev2) | GET /api/v1/balance/:addr | 得到该地址的账户的余额,ont精度9,ong精度18 |
+| [get_allowancev2](#26-get_allowancev2) | GET /api/v1/allowance/:asset/:from/:to | 返回允许从from账户转出到to账户的额度,ont精度9,ong精度18 |
 
 ### 1 get_conn_count
 
@@ -897,6 +899,60 @@ curl -i http://localhost:20334/api/v1/node/syncstatus
         "MaxPeerBlockHeight":16224658
     },
     "Version":"1.0.0"
+}
+```
+
+
+### 25 get_balancev2
+
+得到该地址的账户的余额。ont精度9，ong精度18
+
+GET
+```
+/api/v1/balancev2/:addr
+```
+> addr: Base58编码后的账户地址
+
+#### Request Example
+```
+curl -i http://localhost:20334/api/v1/balancev2/TA5uYzLU2vBvvfCMxyV2sdzc9kPqJzGZWq
+```
+
+#### Response
+```
+{
+    "Action": "getbalancev2",
+    "Desc": "SUCCESS",
+    "Error": 0,
+    "Result": {
+        "ont": "999999996000000000",
+        "ong": "999999998000000000000000000",
+        "height":"1455"
+    },
+    "Version": "1.0.0"
+}
+```
+
+### 26 get_allowancev2
+
+得到允许从from账户转出到to账户的额度。ont精度9，ong精度18
+
+GET
+```
+/api/v1/allowancev2
+```
+#### Request Example:
+```
+curl -i http://localhost:20334/api/v1/allowancev2/:asset/:from/:to
+```
+#### Response
+```
+{
+    "Action": "getallowancev2",
+    "Desc": "SUCCESS",
+    "Error": 0,
+    "Result": "10000000000",
+    "Version": "1.0.0"
 }
 ```
 
