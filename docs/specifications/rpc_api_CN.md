@@ -89,7 +89,7 @@
 | [getmempooltxstate](#12-getmempooltxstate) | tx_hash | 查询内存中的交易的状态 |  |
 | [getsmartcodeevent](#13-getsmartcodeevent) |  | 得到智能合约执行的结果 |  |
 | [getblockheightbytxhash](#14-getblockheightbytxhash) | tx_hash | 得到该交易哈希所落账的区块的高度 |  |
-| [getbalance](#15-getbalance) | address | 返回base58地址的余额 |  |
+| [getbalance](#15-getbalance) | address | 返回base58地址的余额, ont精度0，ong精度9 |  |
 | [getmerkleproof](#16-getmerkleproof) | tx_hash | 返回merkle证明 |  |
 | [getgasprice](#17-getgasprice) |  | 返回gas的价格 |  |
 | [getallowance](#18-getallowance) | asset, from, to | 返回允许从from转出到to账户的额度 |  |
@@ -98,6 +98,8 @@
 | [getnetworkid](#21-getnetworkid) |  | 获取 network id |  |
 | [getgrantong](#22-getgrantong) |  | 获取 grant ong |  |
 | [getsyncstatus](#23-getsyncstatus) |  | 获取 节点同步的状态 |  |
+| [getbalancev2](#24-getbalancev2) | address | 返回base58地址的余额, ont精度9， ong精度18 |  |
+| [getallowancev2](#25-getallowancev2) | asset, from, to | 返回允许从from转出到to账户的额度,ont精度9， ong精度18 |  |
 
 ### 1. getbestblockhash
 
@@ -1146,6 +1148,82 @@ Response:
     }
 }
 ```
+
+#### 24. getbalancev2
+
+返回base58地址的余额, ont精度9， ong精度18
+
+#### 参数定义
+
+address: base58地址
+
+#### Example
+
+Request:
+
+```
+{
+  "jsonrpc": "2.0",
+  "method": "getbalance",
+  "params": ["TA5uYzLU2vBvvfCMxyV2sdzc9kPqJzGZWq"],
+  "id": 1
+}
+```
+
+Response:
+
+```
+{
+   "desc":"SUCCESS",
+   "error":0,
+   "id":1,
+   "jsonrpc":"2.0",
+   "result":{
+        "ont": "999999996000000000",
+        "ong": "999999998000000000000000000",
+        "height":"1455"
+       }
+}
+```
+
+
+#### 25. getallowancev2
+
+返回允许从from转出到to账户的额度, ont精度9, ong精度18
+
+#### 参数定义
+
+asset: "ont"或者"ong"
+
+from: 转出账户base58地址
+
+to: 转入账户base58地址
+
+#### Example
+
+Request:
+
+```
+{
+  "jsonrpc": "2.0",
+  "method": "getallowancev2",
+  "params": ["ont","from address","to address"],
+  "id": 1
+}
+```
+
+Response:
+
+```
+{
+   "desc":"SUCCESS",
+   "error":0,
+   "id":1,
+   "jsonrpc":"2.0",
+   "result": "100000000000"
+}
+```
+
 
 ## 错误代码
 

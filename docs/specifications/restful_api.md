@@ -48,6 +48,8 @@ This document describes the restful api format for the http/https used in the On
 | [get_networkid](#22-get_networkid) |  GET /api/v1/networkid | return the networkid |
 | [get_grantong](#23-get_grantong) |  GET /api/v1/grantong/:addr | get grant ong |
 | [get_syncstatus](#24-get_syncstatus) |  GET /api/v1/node/syncstatus |gets the synchronization status of the node |
+| [get_balancev2](#25-get_balancev2) | GET /api/v1/balance/:addr | return balance of the account address,ont decimals is 9,ong decimals is 18 |
+| [get_allowancev2](#26-get_allowancev2) | GET /api/v1/allowance/:asset/:from/:to | return the allowance from transfer-from accout to transfer-to account, ont decimals is 9,ong decimals is 18 |
 
 ### 1 get_conn_count
 
@@ -900,6 +902,60 @@ curl -i http://localhost:20334/api/v1/node/syncstatus
         "MaxPeerBlockHeight":16224658
     },
     "Version":"1.0.0"
+}
+```
+
+
+### 25 get_balancev2
+
+return balance of the account address,ont decimals is 9,ong decimals is 18
+
+GET
+```
+/api/v1/balancev2/:addr
+```
+> addr: Base58 encoded address
+
+#### Request Example
+```
+curl -i http://localhost:20334/api/v1/balancev2/TA5uYzLU2vBvvfCMxyV2sdzc9kPqJzGZWq
+```
+
+#### Response
+```
+{
+    "Action": "getbalancev2",
+    "Desc": "SUCCESS",
+    "Error": 0,
+    "Result": {
+        "ont": "999999996000000000",
+        "ong": "999999998000000000000000000",
+        "height":"1455"
+    },
+    "Version": "1.0.0"
+}
+```
+
+### 26 get_allowancev2
+
+return the allowance from transfer-from accout to transfer-to account, ont decimals is 9,ong decimals is 18
+
+GET
+```
+/api/v1/allowancev2
+```
+#### Request Example:
+```
+curl -i http://localhost:20334/api/v1/allowancev2/:asset/:from/:to
+```
+#### Response
+```
+{
+    "Action": "getallowancev2",
+    "Desc": "SUCCESS",
+    "Error": 0,
+    "Result": "10000000000",
+    "Version": "1.0.0"
 }
 ```
 
