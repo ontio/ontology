@@ -150,6 +150,11 @@ func (ta *TxPoolService) handleTransaction(sender tc.SenderType, txn *tx.Transac
 	}
 
 	if txn.IsEipTx() {
+		curBlkHeight := ledger.DefLedger.GetCurrentBlockHeight()
+		if curBlkHeight < config.GetAddDecimalsHeight() {
+			replyTxResult(txResultCh, txn.Hash(), errors.ErrUnknown, "block height is not reached ")
+			return
+		}
 		if txn.GasLimit > config.DefConfig.Common.ETHTxGasLimit {
 			replyTxResult(txResultCh, txn.Hash(), errors.ErrUnknown, "EIP155 tx gaslimit exceed ")
 			return
@@ -161,7 +166,6 @@ func (ta *TxPoolService) handleTransaction(sender tc.SenderType, txn *tx.Transac
 			replyTxResult(txResultCh, txn.Hash(), errors.ErrUnknown, "Invalid EIP155 transaction format ")
 			return
 		}
-
 		currentNonce := ta.server.CurrentNonce(txn.Payer)
 		if eiptx.Nonce() < currentNonce {
 			replyTxResult(txResultCh, txn.Hash(), errors.ErrUnknown,
