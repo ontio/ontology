@@ -367,8 +367,6 @@ func TestGovernanceUnboundV2(t *testing.T) {
 		native.Height = config.GetAddDecimalsHeight()
 		assert.Nil(t, ontTransferV2(native, testAddr, testAddr, constants.ONT_TOTAL_SUPPLY_V2/2))
 
-		alll := ongAllowanceV2(native, utils.OntContractAddress, testAddr)
-		fmt.Println("alll:", alll.String())
 		assert.Nil(t, ongTransferFromV2(native, testAddr, utils.OntContractAddress, testAddr, states.NativeTokenBalance{Balance: bigint.New(1)}))
 		native.ContextRef.CurrentContext().ContractAddress = utils.OntContractAddress
 		native.Time = native.Time + 100000
