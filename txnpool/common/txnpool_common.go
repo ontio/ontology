@@ -175,12 +175,12 @@ func (n OrderByNetWorkFee) Less(i, j int) bool { return n[j].Tx.GasPrice < n[i].
 func GetOngBalance(account common.Address) (*big.Int, error) {
 	cache := ledger.DefLedger.GetStore().GetCacheDB()
 	balanceKey := ont.GenBalanceKey(utils.OngContractAddress, account)
-	amount, err := utils.GetStorageUInt64(cache, balanceKey)
+	amount, err := utils.GetNativeTokenBalance(cache, balanceKey)
 	if err != nil {
 		return nil, err
 	}
 
-	return big.NewInt(0).SetUint64(amount), nil
+	return amount.ToBigInt(), nil
 }
 
 func ShowTraceLog(format string, a ...interface{}) {
