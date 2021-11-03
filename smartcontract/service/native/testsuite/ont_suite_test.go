@@ -107,6 +107,16 @@ func ongAllowanceV2(native *native.NativeService, from, to common.Address) bigin
 	return bigint.New(val)
 }
 
+func ongTransferFromV2(native *native.NativeService, spender, from, to common.Address, amt states.NativeTokenBalance) error {
+	native.ContextRef.CurrentContext().ContractAddress = utils.OngContractAddress
+	native.Tx.SignedAddr = append(native.Tx.SignedAddr, from)
+	state := &ont.TransferFromStateV2{Sender: spender, TransferStateV2: ont.TransferStateV2{From: from, To: to, Value: amt}}
+	native.Input = common.SerializeToBytes(state)
+
+	_, err := ong.OngTransferFromV2(native)
+	return err
+}
+
 func ontTotalAllowance(native *native.NativeService, addr common.Address) int {
 	sink := common.NewZeroCopySink(nil)
 	utils.EncodeAddress(sink, addr)
@@ -350,10 +360,19 @@ func TestGovernanceUnboundV2(t *testing.T) {
 		setOngBalance(native.CacheDB, utils.OntContractAddress, constants.ONG_TOTAL_SUPPLY)
 
 		native.Time = constants.GENESIS_BLOCK_TIMESTAMP + 1
-
 		assert.Nil(t, ontTransferV2(native, testAddr, testAddr, 1))
 		assert.Equal(t, ongAllowanceV2(native, utils.OntContractAddress, testAddr).String(), big.NewInt(5000000000*states.ScaleFactor).String())
+		native.ContextRef.CurrentContext().ContractAddress = utils.OntContractAddress
+		native.Time = native.Time + 100000
+		native.Height = config.GetAddDecimalsHeight()
+		assert.Nil(t, ontTransferV2(native, testAddr, testAddr, constants.ONT_TOTAL_SUPPLY_V2/2))
 
+		alll := ongAllowanceV2(native, utils.OntContractAddress, testAddr)
+		fmt.Println("alll:", alll.String())
+		assert.Nil(t, ongTransferFromV2(native, testAddr, utils.OntContractAddress, testAddr, states.NativeTokenBalance{Balance: bigint.New(1)}))
+		native.ContextRef.CurrentContext().ContractAddress = utils.OntContractAddress
+		native.Time = native.Time + 100000
+		assert.Nil(t, ontTransferV2(native, testAddr, testAddr, 1))
 		return nil, nil
 	})
 

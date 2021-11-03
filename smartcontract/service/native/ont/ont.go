@@ -415,18 +415,32 @@ func grantOng(native *native.NativeService, contract, address common.Address, ba
 		if err != nil {
 			return err
 		}
-		if _, err := native.NativeCall(utils.OngContractAddress, "approve", args); err != nil {
-			return err
+		if amount.IsFloat() {
+			if _, err := native.NativeCall(utils.OngContractAddress, "approveV2", args); err != nil {
+				return err
+			}
+		} else {
+			if _, err := native.NativeCall(utils.OngContractAddress, "approve", args); err != nil {
+				return err
+			}
 		}
+
 		if endOffset > config.GetOntHolderUnboundDeadline() {
 			if address != utils.GovernanceContractAddress {
 				args, err := getTransferFromArgs(address, contract, address, amount)
 				if err != nil {
 					return err
 				}
-				if _, err := native.NativeCall(utils.OngContractAddress, "transferFrom", args); err != nil {
-					return err
+				if amount.IsFloat() {
+					if _, err := native.NativeCall(utils.OngContractAddress, "transferFromV2", args); err != nil {
+						return err
+					}
+				} else {
+					if _, err := native.NativeCall(utils.OngContractAddress, "transferFrom", args); err != nil {
+						return err
+					}
 				}
+
 			}
 		}
 	}
@@ -472,21 +486,28 @@ func unboundOngToGovernance(native *native.NativeService) error {
 	return nil
 }
 
-func getApproveArgs(native *native.NativeService, contract, ongContract, address common.Address, value uint64) ([]byte, uint64, error) {
+func getApproveArgs(native *native.NativeService, contract, ongContract, address common.Address, value uint64) ([]byte, cstates.NativeTokenBalance, error) {
 	bf := common.NewZeroCopySink(nil)
-	approve := TransferState{
+	approve := TransferStateV2{
 		From:  contract,
 		To:    address,
-		Value: value,
+		Value: cstates.NativeTokenBalanceFromInteger(value),
 	}
-
-	stateValue, err := utils.GetStorageUInt64(native.CacheDB, GenApproveKey(ongContract, approve.From, approve.To))
+	stateValue, err := utils.GetNativeTokenBalance(native.CacheDB, GenApproveKey(ongContract, approve.From, approve.To))
 	if err != nil {
-		return nil, 0, err
+		return nil, cstates.NativeTokenBalance{}, err
 	}
-
-	approve.Value += stateValue
-	approve.Serialization(bf)
+	approve.Value = approve.Value.Add(stateValue)
+	if approve.Value.IsFloat() {
+		approve.Serialization(bf)
+	} else {
+		approveOld := TransferState{
+			From:  contract,
+			To:    address,
+			Value: approve.Value.MustToInteger64(),
+		}
+		approveOld.Serialization(bf)
+	}
 	return bf.Bytes(), approve.Value, nil
 }
 
@@ -503,17 +524,28 @@ func getTransferArgs(contract, address common.Address, value uint64) ([]byte, er
 	return bf.Bytes(), nil
 }
 
-func getTransferFromArgs(sender, from, to common.Address, value uint64) ([]byte, error) {
+func getTransferFromArgs(sender, from, to common.Address, value cstates.NativeTokenBalance) ([]byte, error) {
 	sink := common.NewZeroCopySink(nil)
-	param := TransferFrom{
+	param := TransferFromStateV2{
 		Sender: sender,
-		TransferState: TransferState{
+		TransferStateV2: TransferStateV2{
 			From:  from,
 			To:    to,
 			Value: value,
 		},
 	}
-
-	param.Serialization(sink)
+	if value.IsFloat() {
+		param.Serialization(sink)
+	} else {
+		paramOld := TransferFrom{
+			Sender: sender,
+			TransferState: TransferState{
+				From:  from,
+				To:    to,
+				Value: value.MustToInteger64(),
+			},
+		}
+		paramOld.Serialization(sink)
+	}
 	return sink.Bytes(), nil
 }
