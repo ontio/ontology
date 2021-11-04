@@ -66,7 +66,11 @@ func setOngBalance(db *storage.CacheDB, addr common.Address, value uint64) {
 }
 
 func ongBalanceOf(native *native.NativeService, addr common.Address) uint64 {
+	origin := native.ContextRef.CurrentContext().ContractAddress
 	native.ContextRef.CurrentContext().ContractAddress = utils.OngContractAddress
+	defer func() {
+		native.ContextRef.CurrentContext().ContractAddress = origin
+	}()
 	sink := common.NewZeroCopySink(nil)
 	utils.EncodeAddress(sink, addr)
 	native.Input = sink.Bytes()
@@ -76,7 +80,11 @@ func ongBalanceOf(native *native.NativeService, addr common.Address) uint64 {
 }
 
 func ongBalanceOfV2(native *native.NativeService, addr common.Address) bigint.Int {
+	origin := native.ContextRef.CurrentContext().ContractAddress
 	native.ContextRef.CurrentContext().ContractAddress = utils.OngContractAddress
+	defer func() {
+		native.ContextRef.CurrentContext().ContractAddress = origin
+	}()
 	sink := common.NewZeroCopySink(nil)
 	utils.EncodeAddress(sink, addr)
 	native.Input = sink.Bytes()
@@ -86,7 +94,11 @@ func ongBalanceOfV2(native *native.NativeService, addr common.Address) bigint.In
 }
 
 func ongAllowance(native *native.NativeService, from, to common.Address) uint64 {
+	origin := native.ContextRef.CurrentContext().ContractAddress
 	native.ContextRef.CurrentContext().ContractAddress = utils.OngContractAddress
+	defer func() {
+		native.ContextRef.CurrentContext().ContractAddress = origin
+	}()
 	sink := common.NewZeroCopySink(nil)
 	utils.EncodeAddress(sink, from)
 	utils.EncodeAddress(sink, to)
