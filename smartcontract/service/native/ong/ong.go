@@ -67,12 +67,12 @@ func RegisterOngContract(native *native.NativeService) {
 
 func OngInit(native *native.NativeService) ([]byte, error) {
 	contract := native.ContextRef.CurrentContext().ContractAddress
-	amount, err := utils.GetStorageUInt64(native.CacheDB, ont.GenTotalSupplyKey(contract))
+	amount, err := utils.GetNativeTokenBalance(native.CacheDB, ont.GenTotalSupplyKey(contract))
 	if err != nil {
 		return utils.BYTE_FALSE, err
 	}
 
-	if amount > 0 {
+	if !amount.IsZero() {
 		return utils.BYTE_FALSE, errors.NewErr("Init ong has been completed!")
 	}
 	addr := common.Address{}

@@ -57,21 +57,6 @@ func GetNativeTokenBalance(cacheDB *storage.CacheDB, key []byte) (cstates.Native
 	return cstates.NativeTokenBalanceFromStorageItem(item)
 }
 
-func GetStorageUInt64(cacheDB *storage.CacheDB, key []byte) (uint64, error) {
-	item, err := GetStorageItem(cacheDB, key)
-	if err != nil {
-		return 0, err
-	}
-	if item == nil {
-		return 0, nil
-	}
-	v, err := serialization.ReadUint64(bytes.NewBuffer(item.Value))
-	if err != nil {
-		return 0, err
-	}
-	return v, nil
-}
-
 func GetStorageUInt32(cacheDB *storage.CacheDB, key []byte) (uint32, error) {
 	item, err := GetStorageItem(cacheDB, key)
 	if err != nil {
