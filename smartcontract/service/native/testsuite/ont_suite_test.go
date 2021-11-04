@@ -97,7 +97,11 @@ func ongAllowance(native *native.NativeService, from, to common.Address) uint64 
 }
 
 func ongAllowanceV2(native *native.NativeService, from, to common.Address) bigint.Int {
+	origin := native.ContextRef.CurrentContext().ContractAddress
 	native.ContextRef.CurrentContext().ContractAddress = utils.OngContractAddress
+	defer func() {
+		native.ContextRef.CurrentContext().ContractAddress = origin
+	}()
 	sink := common.NewZeroCopySink(nil)
 	utils.EncodeAddress(sink, from)
 	utils.EncodeAddress(sink, to)
@@ -108,7 +112,11 @@ func ongAllowanceV2(native *native.NativeService, from, to common.Address) bigin
 }
 
 func ongTransferFromV2(native *native.NativeService, spender, from, to common.Address, amt states.NativeTokenBalance) error {
+	origin := native.ContextRef.CurrentContext().ContractAddress
 	native.ContextRef.CurrentContext().ContractAddress = utils.OngContractAddress
+	defer func() {
+		native.ContextRef.CurrentContext().ContractAddress = origin
+	}()
 	native.Tx.SignedAddr = append(native.Tx.SignedAddr, from)
 	state := &ont.TransferFromStateV2{Sender: spender, TransferStateV2: ont.TransferStateV2{From: from, To: to, Value: amt}}
 	native.Input = common.SerializeToBytes(state)
@@ -362,13 +370,11 @@ func TestGovernanceUnboundV2(t *testing.T) {
 		native.Time = constants.GENESIS_BLOCK_TIMESTAMP + 1
 		assert.Nil(t, ontTransferV2(native, testAddr, testAddr, 1))
 		assert.Equal(t, ongAllowanceV2(native, utils.OntContractAddress, testAddr).String(), big.NewInt(5000000000*states.ScaleFactor).String())
-		native.ContextRef.CurrentContext().ContractAddress = utils.OntContractAddress
 		native.Time = native.Time + 100000
 		native.Height = config.GetAddDecimalsHeight()
 		assert.Nil(t, ontTransferV2(native, testAddr, testAddr, constants.ONT_TOTAL_SUPPLY_V2/2))
 
 		assert.Nil(t, ongTransferFromV2(native, testAddr, utils.OntContractAddress, testAddr, states.NativeTokenBalance{Balance: bigint.New(1)}))
-		native.ContextRef.CurrentContext().ContractAddress = utils.OntContractAddress
 		native.Time = native.Time + 100000
 		assert.Nil(t, ontTransferV2(native, testAddr, testAddr, 1))
 		return nil, nil
