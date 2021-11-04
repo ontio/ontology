@@ -187,8 +187,8 @@ func reduceFromBalance(native *native.NativeService, fromKey []byte, value cstat
 	newFromBalance, err := fromBalance.Sub(value)
 	if err != nil {
 		addr, _ := common.AddressParseFromBytes(fromKey[20:])
-		return cstates.NativeTokenBalance{}, fmt.Errorf("[Transfer] balance insufficient. contract:%s, account:%s, err: %v",
-			native.ContextRef.CurrentContext().ContractAddress.ToHexString(), addr.ToBase58(), err)
+		return cstates.NativeTokenBalance{}, fmt.Errorf("[Transfer] balance insufficient. contract:%s, account:%s, fromBalance:%s,value:%s, err: %v",
+			native.ContextRef.CurrentContext().ContractAddress.ToHexString(), addr.ToBase58(), fromBalance.String(), value.String(), err)
 	}
 
 	if newFromBalance.IsZero() {
