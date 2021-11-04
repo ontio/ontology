@@ -34,7 +34,7 @@ import (
 
 // UseNumber can be set to true to enable the use of json.Number when decoding
 // event state.
-var UseNumber = false
+var UseNumber = true
 
 //Saving event notifies gen by smart contract execution
 type EventStore struct {
