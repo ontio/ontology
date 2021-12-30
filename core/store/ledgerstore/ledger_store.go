@@ -491,15 +491,17 @@ func (this *LedgerStoreImp) verifyHeader(header *types.Header) error {
 		if len(header.Bookkeepers) < m {
 			return fmt.Errorf("header Bookkeepers %d more than 6/7 len vbftPeerInfo%d", len(header.Bookkeepers), len(vbftPeerInfo))
 		}
+		usedPubKey := make(map[string]bool)
 		for _, bookkeeper := range header.Bookkeepers {
 			pubkey := vconfig.PubkeyID(bookkeeper)
 			_, present := vbftPeerInfo[pubkey]
-			if !present {
+			if !present || usedPubKey[pubkey] {
 				val, _ := json.Marshal(vbftPeerInfo)
 				log.Errorf("verify header error: invalid pubkey :%v, height:%d, current vbftPeerInfo :%s",
 					pubkey, header.Height, string(val))
 				return fmt.Errorf("verify header error: invalid pubkey : %v", pubkey)
 			}
+			usedPubKey[pubkey] = true
 		}
 		hash := header.Hash()
 		err = signature.VerifyMultiSignature(hash[:], header.Bookkeepers, m, header.SigData)
