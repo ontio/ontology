@@ -518,7 +518,7 @@ func (this *LedgerStoreImp) verifyHeader(header *types.Header) error {
 			}
 			usedPubKey[pubkey] = true
 		}
-		if uint32(len(usedPubKey)) < c+1 && header.Height != 183 {
+		if uint32(len(usedPubKey)) < c+1 {
 			log.Errorf("verify header error:  height:%d,pubkey len:%d,c:%d",
 				header.Height, len(usedPubKey), c)
 			return fmt.Errorf("verify header error height:%d", header.Height)
