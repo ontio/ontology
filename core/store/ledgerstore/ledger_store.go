@@ -480,7 +480,6 @@ func (this *LedgerStoreImp) verifyHeader(header *types.Header) error {
 		} else {
 			chainConfigHeight = blkInfo.LastConfigBlockNum
 		}
-		this.lock.RLock()
 		chainConfigHeader, err := this.GetHeaderByHeight(chainConfigHeight)
 		if err != nil && err != scom.ErrNotFound {
 			return fmt.Errorf("get chain config header error %s,height:%d", err, chainConfigHeight)
@@ -496,6 +495,7 @@ func (this *LedgerStoreImp) verifyHeader(header *types.Header) error {
 			return fmt.Errorf("cannot find newchainconfig header by height:%d", chainConfigHeight)
 		}
 		c := chanConfigBlkInfo.NewChainConfig.C
+		this.lock.RLock()
 		vbftPeerInfo, ok := this.vbftPeerInfoMap[chainConfigHeight]
 		if !ok {
 			this.lock.RUnlock()
