@@ -578,7 +578,6 @@ func GetUnboundOng(cmd map[string]interface{}) map[string]interface{} {
 	if err != nil {
 		return ResponsePack(berr.INVALID_PARAMS)
 	}
-	bcomn.GetGrantOng(toAddr)
 	resp["Result"] = rsp
 	return resp
 }
