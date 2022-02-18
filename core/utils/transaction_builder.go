@@ -26,6 +26,8 @@ import (
 	"reflect"
 	"time"
 
+	"github.com/laizy/bigint"
+
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/types"
@@ -130,6 +132,8 @@ func BuildNeoVMParam(builder *vm.ParamsBuilder, smartContractParams []interface{
 			builder.EmitPushByteArray([]byte(v))
 		case *big.Int:
 			builder.EmitPushInteger(v)
+		case bigint.Int:
+			builder.EmitPushInteger(v.BigInt())
 		case []byte:
 			builder.EmitPushByteArray(v)
 		case common.Address:
