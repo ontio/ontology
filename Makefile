@@ -39,7 +39,7 @@ ontology-linux:
 	GOOS=linux GOARCH=amd64 $(GC) $(BUILD_NODE_PAR) -o ontology-linux-amd64 main.go
 
 ontology-darwin:
-	GOOS=darwin GOARCH=amd64 $(GC) $(BUILD_NODE_PAR) -o ontology-darwin-amd64 main.go
+	CGO_CFLAGS=-Wno-undef-prefix GOOS=darwin GOARCH=amd64 $(GC) $(BUILD_NODE_PAR) -o ontology-darwin-amd64 main.go
 
 tools-cross: tools-windows tools-linux tools-darwin
 
@@ -54,7 +54,7 @@ tools-linux: abi
 	@mv sigsvr-linux-amd64 $(TOOLS)
 
 tools-darwin: abi 
-	GOOS=darwin GOARCH=amd64 $(GC) $(BUILD_NODE_PAR) -o sigsvr-darwin-amd64 cmd-tools/sigsvr/sigsvr.go
+	CGO_CFLAGS=-Wno-undef-prefix GOOS=darwin GOARCH=amd64 $(GC) $(BUILD_NODE_PAR) -o sigsvr-darwin-amd64 cmd-tools/sigsvr/sigsvr.go
 	@if [ ! -d $(TOOLS) ];then mkdir -p $(TOOLS) ;fi
 	@mv sigsvr-darwin-amd64 $(TOOLS)
 
