@@ -56,15 +56,18 @@ func RegisterOntContract(native *native.NativeService) {
 	native.Register(ALLOWANCE_NAME, OntAllowance)
 	native.Register(TOTAL_ALLOWANCE_NAME, TotalAllowance)
 
+	if native.Height >= config.GetAddDecimalsHeight() || native.PreExec {
+		native.Register(BALANCEOF_V2_NAME, OntBalanceOfV2)
+		native.Register(ALLOWANCE_V2_NAME, OntAllowanceV2)
+		native.Register(TOTAL_ALLOWANCE_V2_NAME, TotalAllowanceV2)
+	}
+
 	if native.Height >= config.GetAddDecimalsHeight() {
 		native.Register(TRANSFER_V2_NAME, OntTransferV2)
 		native.Register(APPROVE_V2_NAME, OntApproveV2)
 		native.Register(TRANSFERFROM_V2_NAME, OntTransferFromV2)
 		native.Register(DECIMALS_V2_NAME, OntDecimalsV2)
 		native.Register(TOTAL_SUPPLY_V2_NAME, OntTotalSupplyV2)
-		native.Register(BALANCEOF_V2_NAME, OntBalanceOfV2)
-		native.Register(ALLOWANCE_V2_NAME, OntAllowanceV2)
-		native.Register(TOTAL_ALLOWANCE_V2_NAME, TotalAllowanceV2)
 	}
 
 	native.Register(UNBOUND_ONG_TO_GOVERNANCE, UnboundOngToGovernance)
