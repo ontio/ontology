@@ -101,8 +101,8 @@ func FormatBlock(block types.Block, gasLimit uint64, gasUsed *big.Int, transacti
 		switch transactions.(type) {
 		case []common.Hash:
 			ret["transactions"] = transactions.([]common.Hash)
-		case []*types2.Transaction:
-			ret["transactions"] = transactions.([]*types2.Transaction)
+		case []*types3.Transaction:
+			ret["transactions"] = transactions.([]*types3.Transaction)
 		}
 	} else {
 		ret["transactions"] = []common.Hash{}
