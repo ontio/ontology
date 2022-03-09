@@ -54,6 +54,7 @@ import (
 	"github.com/ontio/ontology/smartcontract/event"
 	"github.com/ontio/ontology/smartcontract/service/evm"
 	types4 "github.com/ontio/ontology/smartcontract/service/evm/types"
+	"github.com/ontio/ontology/smartcontract/service/evm/witness"
 	"github.com/ontio/ontology/smartcontract/service/native/ong"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 	"github.com/ontio/ontology/smartcontract/service/neovm"
@@ -743,6 +744,7 @@ func (this *LedgerStoreImp) saveBlockToBlockStore(block *types.Block) error {
 
 func (this *LedgerStoreImp) executeBlock(block *types.Block) (result store.ExecuteResult, err error) {
 	overlay := this.stateStore.NewOverlayDB()
+	var evmWitness common2.Address
 	if block.Header.Height != 0 {
 		config := &smartcontract.Config{
 			Time:   block.Header.Timestamp,
@@ -754,6 +756,7 @@ func (this *LedgerStoreImp) executeBlock(block *types.Block) (result store.Execu
 		if err != nil {
 			return
 		}
+		evmWitness = getEvmSystemWitnessAddress(config, storage.NewCacheDB(this.stateStore.NewOverlayDB()), this)
 	}
 	gasTable := make(map[string]uint64)
 	neovm.GAS_TABLE.Range(func(k, value interface{}) bool {
@@ -766,7 +769,7 @@ func (this *LedgerStoreImp) executeBlock(block *types.Block) (result store.Execu
 	cache := storage.NewCacheDB(overlay)
 	for i, tx := range block.Transactions {
 		cache.Reset()
-		notify, crossStateHashes, e := this.handleTransaction(overlay, cache, gasTable, block, tx, uint32(i))
+		notify, crossStateHashes, e := this.handleTransaction(overlay, cache, gasTable, block, tx, uint32(i), evmWitness)
 		if e != nil {
 			err = e
 			return
@@ -1023,7 +1026,7 @@ func (this *LedgerStoreImp) saveBlock(block *types.Block, ccMsg *types.CrossChai
 }
 
 func (this *LedgerStoreImp) handleTransaction(overlay *overlaydb.OverlayDB, cache *storage.CacheDB, gasTable map[string]uint64,
-	block *types.Block, tx *types.Transaction, txIndex uint32) (*event.ExecuteNotify, []common.Uint256, error) {
+	block *types.Block, tx *types.Transaction, txIndex uint32, evmWitness common2.Address) (*event.ExecuteNotify, []common.Uint256, error) {
 	txHash := tx.Hash()
 	notify := &event.ExecuteNotify{TxHash: txHash, State: event.CONTRACT_STATE_FAIL, TxIndex: txIndex}
 	var crossStateHashes []common.Uint256
@@ -1057,12 +1060,23 @@ func (this *LedgerStoreImp) handleTransaction(overlay *overlaydb.OverlayDB, cach
 			Height:    block.Header.Height,
 			Timestamp: block.Header.Timestamp,
 		}
-		_, err = this.stateStore.HandleEIP155Transaction(this, cache, eiptx, ctx, notify, true)
+		_, receipt, err := this.stateStore.HandleEIP155Transaction(this, cache, eiptx, ctx, notify, true)
 		if overlay.Error() != nil {
 			return nil, nil, fmt.Errorf("HandleInvokeTransaction tx %s error %s", txHash.ToHexString(), overlay.Error())
 		}
 		if err != nil {
 			log.Debugf("HandleInvokeTransaction tx %s error %s", txHash.ToHexString(), err)
+		}
+		for _, log := range receipt.Logs {
+			if log.Address != evmWitness {
+				continue
+			}
+			event, err := witness.DecodeEventWitness(log)
+			if err != nil {
+				continue
+			}
+
+			crossStateHashes = append(crossStateHashes, event.Hash)
 		}
 	}
 	return notify, crossStateHashes, nil
@@ -1265,7 +1279,7 @@ func (this *LedgerStoreImp) PreExecuteEIP155(tx *types3.Transaction, ctx Eip155C
 	cache := storage.NewCacheDB(overlay)
 
 	notify := &event.ExecuteNotify{State: event.CONTRACT_STATE_FAIL, TxIndex: ctx.TxIndex}
-	result, err := this.stateStore.HandleEIP155Transaction(this, cache, tx, ctx, notify, false)
+	result, _, err := this.stateStore.HandleEIP155Transaction(this, cache, tx, ctx, notify, false)
 	return result, notify, err
 }
 
