@@ -1,13 +1,14 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: MIT
 pragma solidity 0.8.10;
 
 contract EventWitness {
     event EventWitnessed(address indexed sender, bytes32 indexed hash);
 
     function witness(bytes calldata evt) external {
-        bytes memory witnessData = abi.encodePacked(msg.sender, evt);
-        bytes32 hash = sha256(witnessData);
-        emit EventWitnessed(msg.sender, hash);
+        // ugly hack: append byte1(0) since we are hashing a merkle leaf. see: ontology/merkle/merkle_hasher.go
+        bytes memory leafData = abi.encodePacked(bytes1(0), msg.sender, evt);
+        bytes32 merkleLeafHash = sha256(leafData);
+        emit EventWitnessed(msg.sender, merkleLeafHash);
     }
 }
 

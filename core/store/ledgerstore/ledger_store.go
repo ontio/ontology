@@ -1136,6 +1136,10 @@ func (this *LedgerStoreImp) GetBlockRootWithNewTxRoots(startHeight uint32, txRoo
 	return this.stateStore.GetBlockRootWithNewTxRoots(needs)
 }
 
+func (this *LedgerStoreImp) GetCrossStates(height uint32) ([]common.Uint256, error) {
+	return this.stateStore.GetCrossStates(height)
+}
+
 func (this *LedgerStoreImp) GetCrossStatesRoot(height uint32) (common.Uint256, error) {
 	return this.stateStore.GetCrossStatesRoot(height)
 }
