@@ -328,6 +328,9 @@ func (self *StateStore) GetEthState(addr common2.Address, stateKey common2.Hash)
 	key := genStateKey(addr, stateKey)
 	value, err := self.store.Get(key)
 	if err != nil {
+		if err == scom.ErrNotFound {
+			return nil, nil
+		}
 		return nil, err
 	}
 	return value, nil
