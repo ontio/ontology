@@ -104,6 +104,7 @@ type PreExecuteResult struct {
 type NotifyEventInfo struct {
 	ContractAddress string
 	States          interface{}
+	IsEvm           bool
 }
 
 type TxAttributeInfo struct {
@@ -204,10 +205,10 @@ func GetLogEvent(obj *event.LogEventArgs) (map[string]bool, LogEventArgs) {
 }
 
 func GetExecuteNotify(obj *event.ExecuteNotify) (map[string]bool, ExecuteNotify) {
-	evts := []NotifyEventInfo{}
+	var evts []NotifyEventInfo
 	var contractAddrs = make(map[string]bool)
 	for _, v := range obj.Notify {
-		evts = append(evts, NotifyEventInfo{v.ContractAddress.ToHexString(), v.States})
+		evts = append(evts, NotifyEventInfo{v.ContractAddress.ToHexString(), v.States, v.IsEvm})
 		contractAddrs[v.ContractAddress.ToHexString()] = true
 	}
 	txhash := obj.TxHash.ToHexString()
@@ -216,9 +217,9 @@ func GetExecuteNotify(obj *event.ExecuteNotify) (map[string]bool, ExecuteNotify)
 }
 
 func ConvertPreExecuteResult(obj *cstate.PreExecResult) PreExecuteResult {
-	evts := []NotifyEventInfo{}
+	var evts []NotifyEventInfo
 	for _, v := range obj.Notify {
-		evts = append(evts, NotifyEventInfo{v.ContractAddress.ToHexString(), v.States})
+		evts = append(evts, NotifyEventInfo{v.ContractAddress.ToHexString(), v.States, v.IsEvm})
 	}
 	return PreExecuteResult{obj.State, obj.Gas, obj.Result, evts}
 }
