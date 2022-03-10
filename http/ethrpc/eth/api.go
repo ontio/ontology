@@ -295,9 +295,6 @@ func (api *EthereumAPI) Call(args types2.CallArgs, blockNumber types2.BlockNumbe
 	if len(res.Revert()) > 0 {
 		return nil, newRevertError(res)
 	}
-	if res.Failed() {
-		return nil, res.Err
-	}
 	return res.Return(), res.Err
 }
 
