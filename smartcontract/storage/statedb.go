@@ -169,6 +169,10 @@ func (self *EthAccount) IsEmpty() bool {
 	return self.Nonce == 0 && self.CodeHash == common.Hash{}
 }
 
+func (self *EthAccount) IsEmptyContract() bool {
+	return self.CodeHash == common.Hash{}
+}
+
 func (self *EthAccount) Serialization(sink *comm.ZeroCopySink) {
 	sink.WriteUint64(self.Nonce)
 	sink.WriteHash(comm.Uint256(self.CodeHash))
