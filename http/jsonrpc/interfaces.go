@@ -694,6 +694,26 @@ func GetCrossChainMsg(params []interface{}) map[string]interface{} {
 	return rpc.ResponseSuccess(bcomn.TransferCrossChainMsg(msg, header.Bookkeepers))
 }
 
+func GetCrossStatesLeafHashes(params []interface{}) map[string]interface{} {
+	if len(params) < 1 {
+		return rpc.ResponsePack(berr.INVALID_PARAMS, "")
+	}
+	height, ok := (params[0]).(float64)
+	if !ok {
+		return rpc.ResponsePack(berr.INVALID_PARAMS, "")
+	}
+	hashes, err := bactor.GetCrossStatesLeafHashes(uint32(height))
+	if err != nil {
+		log.Errorf("GetCrossStateLeafHashes error: %s", err)
+		return rpc.ResponsePack(berr.INTERNAL_ERROR, "")
+	}
+	var hexHashes []string
+	for _, v := range hashes {
+		hexHashes = append(hexHashes, v.ToHexString())
+	}
+	return rpc.ResponseSuccess(bcomn.CrossStatesLeafHashes{Height: uint32(height), Hashes: hexHashes})
+}
+
 //get cross chain state proof
 func GetCrossStatesProof(params []interface{}) map[string]interface{} {
 	if len(params) < 1 {

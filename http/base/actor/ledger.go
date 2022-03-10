@@ -117,6 +117,10 @@ func GetCrossChainMsg(height uint32) (*types.CrossChainMsg, error) {
 	return ledger.DefLedger.GetCrossChainMsg(height)
 }
 
+func GetCrossStatesLeafHashes(height uint32) ([]common.Uint256, error) {
+	return ledger.DefLedger.GetCrossStates(height)
+}
+
 func GetCrossStatesProof(height uint32, key []byte) ([]byte, error) {
 	return ledger.DefLedger.GetCrossStatesProof(height, key)
 }
