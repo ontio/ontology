@@ -185,7 +185,7 @@ func (st *StateTransition) buyGas() {
 	mgval := new(big.Int).Mul(new(big.Int).SetUint64(gas), st.gasPrice)
 	if have, want := st.state.GetBalance(st.msg.From()), mgval; have.Cmp(want) < 0 {
 		mgval = have
-		gas = have.Div(have, st.gasPrice).Uint64()
+		gas = big.NewInt(0).Div(have, st.gasPrice).Uint64()
 	}
 
 	st.gas += gas

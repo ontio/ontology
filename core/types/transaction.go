@@ -252,6 +252,8 @@ func (tx *Transaction) Value() *big.Int {
 
 func (tx *Transaction) Cost() *big.Int {
 	total := new(big.Int).Mul(new(big.Int).SetUint64(tx.GasPrice), new(big.Int).SetUint64(tx.GasLimit))
+	gwei := big.NewInt(constants.GWei)
+	total = total.Mul(total, gwei)
 	total.Add(total, tx.Value())
 	return total
 }
