@@ -66,6 +66,7 @@ func StartRPCServer() error {
 
 	rpc.HandleFunc("getcrosschainmsg", GetCrossChainMsg)
 	rpc.HandleFunc("getcrossstatesproof", GetCrossStatesProof)
+	rpc.HandleFunc("getcrossstatesleafhashes", GetCrossStatesLeafHashes)
 
 	err := http.ListenAndServe(":"+strconv.Itoa(int(cfg.DefConfig.Rpc.HttpJsonPort)), nil)
 	if err != nil {

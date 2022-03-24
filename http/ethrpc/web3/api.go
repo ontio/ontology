@@ -22,6 +22,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/ontio/ontology/common/config"
 )
 
 // PublicWeb3API is the web3_ prefixed set of APIs in the Web3 JSON-RPC spec.
@@ -34,7 +35,7 @@ func NewAPI() *PublicWeb3API {
 
 // ClientVersion returns the client version in the Web3 user agent format.
 func (PublicWeb3API) ClientVersion() string {
-	return fmt.Sprintf("%s-%s", "Ontology", "1.0.0")
+	return fmt.Sprintf("%s-%s", "Ontology", config.Version)
 }
 
 // Sha3 returns the keccak-256 hash of the passed-in input.

@@ -133,6 +133,11 @@ type CrossStatesProof struct {
 	AuditPath string
 }
 
+type CrossStatesLeafHashes struct {
+	Height uint32
+	Hashes []string
+}
+
 type Transactions struct {
 	Version    byte
 	Nonce      uint32

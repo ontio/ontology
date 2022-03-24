@@ -79,6 +79,7 @@ type LedgerStore interface {
 	GetEthAccount(address common2.Address) (*storage.EthAccount, error)
 	//cross chain states root
 	GetCrossStatesRoot(height uint32) (common.Uint256, error)
+	GetCrossStates(height uint32) ([]common.Uint256, error)
 	GetCrossChainMsg(height uint32) (*types.CrossChainMsg, error)
 	GetCrossStatesProof(height uint32, key []byte) ([]byte, error)
 	EnableBlockPrune(numBeforeCurr uint32)
