@@ -24,6 +24,7 @@ import (
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ontio/ontology/common/constants"
 	"github.com/ontio/ontology/smartcontract/service/evm/types"
 	"github.com/ontio/ontology/vm/evm"
 	"github.com/ontio/ontology/vm/evm/params"
@@ -186,6 +187,9 @@ func (st *StateTransition) buyGas() (adjustedGas bool) {
 	if have, want := st.state.GetBalance(st.msg.From()), mgval; have.Cmp(want) < 0 {
 		mgval = have
 		gas = big.NewInt(0).Div(have, st.gasPrice).Uint64()
+		if st.evm.ChainConfig().ChainID.Uint64() != constants.EIP155_CHAINID_MAINNET || st.evm.Context.BlockNumber.Uint64() >= 14100000 {
+			mgval = big.NewInt(0).Mul(big.NewInt(0).SetUint64(gas), st.gasPrice)
+		}
 		adjustedGas = true
 	}
 
