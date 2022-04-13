@@ -21,6 +21,8 @@
 package proc
 
 import (
+	"github.com/ontio/ontology/events"
+	"github.com/ontio/ontology/events/message"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -218,6 +220,13 @@ func (s *TXPoolServer) setPendingTx(tx *txtypes.Transaction, sender tc.SenderTyp
 	}
 
 	s.allPendingTxs[tx.Hash()] = pt
+	if tx.IsEipTx() {
+		if events.DefActorPublisher != nil {
+			ethTx, _ := tx.GetEIP155Tx()
+			events.DefActorPublisher.Publish(message.TOPIC_PENDING_TX_EVENT,
+				&message.PendingTxMsg{Event: []*ethtype.Transaction{ethTx}})
+		}
+	}
 	return pt
 }
 

@@ -292,7 +292,7 @@ func (self *StateStore) HandleInvokeTransaction(store store.LedgerStore, overlay
 	return sc.CrossHashes, nil
 }
 
-func SaveNotify(eventStore scommon.EventStore, txHash common.Uint256, notify *event.ExecuteNotify) error {
+func SaveNotify(eventStore scommon.EventStore, txHash common.Uint256, notify *event.ExecuteNotify, blk *types.Block) error {
 	if !sysconfig.DefConfig.Common.EnableEventLog {
 		return nil
 	}
@@ -300,6 +300,7 @@ func SaveNotify(eventStore scommon.EventStore, txHash common.Uint256, notify *ev
 		return fmt.Errorf("SaveEventNotifyByTx error %s", err)
 	}
 	event.PushSmartCodeEvent(txHash, 0, event.EVENT_NOTIFY, notify)
+	event.PushEthSmartCodeEvent(notify, blk)
 	return nil
 }
 

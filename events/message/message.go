@@ -19,12 +19,17 @@
 package message
 
 import (
+	"github.com/ethereum/go-ethereum/core"
+	types2 "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ontio/ontology/core/types"
 )
 
 const (
 	TOPIC_SAVE_BLOCK_COMPLETE = "svblkcmp"
 	TOPIC_SMART_CODE_EVENT    = "scevt"
+	TOPIC_PENDING_TX_EVENT    = "pendingtx"
+	TOPIC_CHAIN_EVENT         = "chainevt"
+	TOPIC_ETH_SC_EVENT        = "ethscevt"
 )
 
 type SaveBlockCompleteMsg struct {
@@ -37,4 +42,19 @@ type SmartCodeEventMsg struct {
 
 type BlockConsensusComplete struct {
 	Block *types.Block
+}
+
+type EthSmartCodeEventMsg struct {
+	Event EthSmartCodeEvent
+}
+type PendingTxs []*types2.Transaction
+
+type PendingTxMsg struct {
+	Event PendingTxs
+}
+
+type EthSmartCodeEvent []*types2.Log
+
+type ChainEventMsg struct {
+	ChainEvent *core.ChainEvent
 }

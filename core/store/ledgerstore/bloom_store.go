@@ -15,77 +15,66 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
+
 package ledgerstore
 
 import (
 	"encoding/binary"
 	"fmt"
-	"os"
-
-	"github.com/ontio/ontology/common"
+	"github.com/ethereum/go-ethereum/core/types"
 	scom "github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/core/store/leveldbstore"
-	"github.com/ontio/ontology/core/types"
+	"os"
 )
 
 const (
-	DBDirCrossChain = "crosschain"
+	DBDirBloom = "bloom"
 )
 
-//Block store save the data of block & transaction
-type CrossChainStore struct {
+//Bloom store save the data of block & transaction
+type BloomStore struct {
 	dbDir string                     //The path of store file
 	store *leveldbstore.LevelDBStore //block store handler
 }
 
-//NewCrossChainStore return cross chain store instance
-func NewCrossChainStore(dataDir string) (*CrossChainStore, error) {
-	dbDir := fmt.Sprintf("%s%s%s", dataDir, string(os.PathSeparator), DBDirCrossChain)
+//NewBloomStore return bloom store instance
+func NewBloomStore(dataDir string) (*BloomStore, error) {
+	dbDir := fmt.Sprintf("%s%s%s", dataDir, string(os.PathSeparator), DBDirBloom)
 	store, err := leveldbstore.NewLevelDBStore(dbDir)
 	if err != nil {
-		return nil, fmt.Errorf("NewCrossShardStore error %s", err)
+		return nil, err
 	}
-	return &CrossChainStore{
+	return &BloomStore{
 		dbDir: dbDir,
 		store: store,
 	}, nil
 }
 
-func (this *CrossChainStore) SaveMsgToCrossChainStore(crossChainMsg *types.CrossChainMsg) error {
-	if crossChainMsg == nil {
-		return nil
-	}
-	key := this.genCrossChainMsgKey(crossChainMsg.Height)
-	sink := common.NewZeroCopySink(nil)
-	crossChainMsg.Serialization(sink)
-	return this.store.Put(key, sink.Bytes())
+func (this *BloomStore) SaveBloomData(height uint32, bloom types.Bloom) error {
+	key := this.genBloomKey(height)
+	return this.store.Put(key, bloom.Bytes())
 }
 
-func (this *CrossChainStore) GetCrossChainMsg(height uint32) (*types.CrossChainMsg, error) {
-	key := this.genCrossChainMsgKey(height)
+func (this *BloomStore) GetBloomData(height uint32) (types.Bloom, error) {
+	key := this.genBloomKey(height)
 	value, err := this.store.Get(key)
 	if err != nil && err != scom.ErrNotFound {
-		return nil, err
+		return types.Bloom{}, err
 	}
 	if err == scom.ErrNotFound {
-		return nil, nil
+		return types.Bloom{}, nil
 	}
-	source := common.NewZeroCopySource(value)
-	msg := new(types.CrossChainMsg)
-	if err := msg.Deserialization(source); err != nil {
-		return nil, err
-	}
-	return msg, nil
+	return types.BytesToBloom(value), nil
 }
 
-//Close CrossChainStore store
-func (this *CrossChainStore) Close() error {
+//Close BloomStore store
+func (this *BloomStore) Close() error {
 	return this.store.Close()
 }
 
-func (this *CrossChainStore) genCrossChainMsgKey(height uint32) []byte {
+func (this *BloomStore) genBloomKey(height uint32) []byte {
 	temp := make([]byte, 5)
-	temp[0] = byte(scom.SYS_CROSS_CHAIN_MSG)
+	temp[0] = byte(scom.DATA_BLOOM)
 	binary.LittleEndian.PutUint32(temp[1:], height)
 	return temp
 }

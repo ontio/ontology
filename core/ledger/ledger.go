@@ -20,6 +20,7 @@ package ledger
 
 import (
 	"fmt"
+	"github.com/ontio/ontology/core/store/indexstore"
 
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/core/store"
@@ -39,6 +40,10 @@ func (self *Ledger) GetStore() store.LedgerStore {
 
 func InitLedger(dataDir string, stateHashHeight uint32, defaultBookkeeper []keypair.PublicKey,
 	genesisBlock *types.Block) (*Ledger, error) {
+	// must init indexer before ledger store
+	if err := indexstore.InitIndexer(dataDir); err != nil {
+		return nil, fmt.Errorf("InitIndexer error %s", err)
+	}
 	ldgStore, err := ledgerstore.NewLedgerStore(dataDir, stateHashHeight)
 	if err != nil {
 		return nil, fmt.Errorf("NewLedgerStore error %s", err)

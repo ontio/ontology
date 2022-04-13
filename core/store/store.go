@@ -40,6 +40,7 @@ type ExecuteResult struct {
 	CrossStates     []common.Uint256
 	CrossStatesRoot common.Uint256
 	Notify          []*event.ExecuteNotify
+	Bloom           types2.Bloom
 }
 
 // LedgerStore provides func with store package.
@@ -62,6 +63,8 @@ type LedgerStore interface {
 	GetBlockByHash(blockHash common.Uint256) (*types.Block, error)
 	GetBlockByHeight(height uint32) (*types.Block, error)
 	GetTransaction(txHash common.Uint256) (*types.Transaction, uint32, error)
+	GetBloomData(height uint32) (types2.Bloom, error)
+	BloomStatus() (uint32, uint32)
 	IsContainBlock(blockHash common.Uint256) (bool, error)
 	IsContainTransaction(txHash common.Uint256) (bool, error)
 	GetBlockRootWithNewTxRoots(startHeight uint32, txRoots []common.Uint256) common.Uint256

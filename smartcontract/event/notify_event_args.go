@@ -85,17 +85,13 @@ func NotifyEventInfoToEvmLog(info *NotifyEventInfo) (*types.StorageLog, error) {
 	if !n.IsEvm {
 		return nil, fmt.Errorf("not evm event")
 	}
-	states, ok := n.States.(string)
+	states, ok := n.States.(hexutil.Bytes)
 	if !ok {
 		return nil, errors.New("event info states is not string")
 	}
-	data, err := hexutil.Decode(states)
-	if err != nil {
-		return nil, err
-	}
-	source := common.NewZeroCopySource(data)
+	source := common.NewZeroCopySource(states)
 	var storageLog types.StorageLog
-	err = storageLog.Deserialization(source)
+	err := storageLog.Deserialization(source)
 	if err != nil {
 		return nil, err
 	}

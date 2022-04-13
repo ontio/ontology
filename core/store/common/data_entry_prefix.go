@@ -27,6 +27,7 @@ const (
 	DATA_HEADER                            = 0x01 //Block hash => block header+txhashes key prefix
 	DATA_TRANSACTION                       = 0x02 //Transction hash => transaction key prefix
 	DATA_STATE_MERKLE_ROOT                 = 0x21 // block height => write set hash + state merkle root
+	DATA_BLOOM                             = 0x22 // block height => block bloom data
 
 	// Transaction
 	ST_BOOKKEEPER DataEntryPrefix = 0x03 //BookKeeper state key prefix

@@ -24,6 +24,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	types2 "github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/trie"
 	oComm "github.com/ontio/ontology/common"
 	sysconfig "github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/core/types"
@@ -47,6 +48,33 @@ func EthBlockFromOntology(block *types.Block, fullTx bool) map[string]interface{
 	return FormatBlock(*block, 0, gasUsed, blockTxs)
 }
 
+func RawEthBlockFromOntology(block *types.Block, bloom types2.Bloom) *types2.Block {
+	if block == nil {
+		return nil
+	}
+	hash := block.Hash()
+	gasUsed, ethTxs := RawEthTransactionsFromOntology(block.Transactions, common.BytesToHash(hash.ToArray()), uint64(block.Header.Height))
+
+	h := &types2.Header{
+		ParentHash:  common.Hash(block.Header.PrevBlockHash),
+		UncleHash:   common.Hash{},
+		Coinbase:    common.Address{},
+		Root:        common.Hash{},
+		TxHash:      common.Hash(block.Header.TransactionsRoot),
+		ReceiptHash: common.Hash{},
+		Bloom:       bloom,
+		Difficulty:  big.NewInt(0),
+		Number:      big.NewInt(int64(block.Header.Height)),
+		GasLimit:    0,
+		GasUsed:     gasUsed.Uint64(),
+		Time:        uint64(block.Header.Timestamp),
+		Extra:       []byte{},
+		MixDigest:   common.Hash{},
+		Nonce:       types2.BlockNonce{},
+	}
+	return types2.NewBlock(h, ethTxs, nil, nil, new(trie.Trie))
+}
+
 func EthTransactionsFromOntology(txs []*types.Transaction, blockHash common.Hash, blockNumber uint64) ([]common.Hash, *big.Int, []*types3.Transaction) {
 	var transactionHashes []common.Hash
 	var transactions []*types3.Transaction
@@ -62,6 +90,22 @@ func EthTransactionsFromOntology(txs []*types.Transaction, blockHash common.Hash
 		transactions = append(transactions, rpcTx)
 	}
 	return transactionHashes, gasUsed, transactions
+}
+
+func RawEthTransactionsFromOntology(txs []*types.Transaction, blockHash common.Hash, blockNumber uint64) (*big.Int, []*types2.Transaction) {
+	var transactions []*types2.Transaction
+	gasUsed := big.NewInt(0)
+	for _, tx := range txs {
+		if tx.IsEipTx() {
+			eipTx, err := tx.GetEIP155Tx()
+			if err != nil {
+				continue
+			}
+			gasUsed.Add(gasUsed, big.NewInt(int64(eipTx.Gas())))
+			transactions = append(transactions, eipTx)
+		}
+	}
+	return gasUsed, transactions
 }
 
 func OntTxToEthTx(tx types.Transaction, blockHash common.Hash, blockNumber, index uint64) (*types3.Transaction, error) {
@@ -81,7 +125,7 @@ func FormatBlock(block types.Block, gasLimit uint64, gasUsed *big.Int, transacti
 		"hash":             hexutil.Bytes(hash[:]),
 		"parentHash":       hexutil.Bytes(header.PrevBlockHash[:]),
 		"nonce":            types2.BlockNonce{}, // PoW specific
-		"sha3Uncles":       common.Hash{},       // No uncles in Tendermint
+		"sha3Uncles":       common.Hash{},
 		"logsBloom":        types2.Bloom{},
 		"transactionsRoot": hexutil.Bytes(header.TransactionsRoot[:]),
 		"stateRoot":        hexutil.Bytes{},

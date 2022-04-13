@@ -141,3 +141,11 @@ func PreExecuteEip155Tx(msg types2.Message) (*types3.ExecutionResult, error) {
 	res, err := ledger.DefLedger.PreExecuteEip155Tx(msg)
 	return res, err
 }
+
+func BloomStatus() (uint32, uint32) {
+	return ledger.DefLedger.BloomStatus()
+}
+
+func GetBloomData(height uint32) (types2.Bloom, error) {
+	return ledger.DefLedger.GetBloomData(height)
+}
