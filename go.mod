@@ -14,7 +14,6 @@ require (
 	github.com/holiman/uint256 v1.1.1
 	github.com/howeyc/gopass v0.0.0-20210920133722-c8aef6fb66ef
 	github.com/itchyny/base58-go v0.1.0
-	github.com/json-iterator/go v1.1.10
 	github.com/laizy/bigint v0.1.3
 	github.com/ontio/ontology-crypto v1.2.1
 	github.com/ontio/ontology-eventbus v0.9.1
@@ -57,8 +56,6 @@ require (
 	github.com/mattn/go-isatty v0.0.10 // indirect
 	github.com/mattn/go-runewidth v0.0.4 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.1 // indirect
-	github.com/modern-go/concurrent v0.0.0-20180228061459-e0a39a4cb421 // indirect
-	github.com/modern-go/reflect2 v0.0.0-20180701023420-4b7aa43c6742 // indirect
 	github.com/olekukonko/tablewriter v0.0.2-0.20190409134802-7e037d187b0c // indirect
 	github.com/opentracing/opentracing-go v1.1.0 // indirect
 	github.com/orcaman/concurrent-map v0.0.0-20210501183033-44dafcb38ecc // indirect
