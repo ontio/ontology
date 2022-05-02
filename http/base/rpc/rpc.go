@@ -20,6 +20,7 @@
 package rpc
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -28,15 +29,9 @@ import (
 	"strings"
 	"sync"
 
-	// fast json marshal/unmarshal
-	jsoniter "github.com/json-iterator/go"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/http/base/common"
 	berr "github.com/ontio/ontology/http/base/error"
-)
-
-var (
-	json = jsoniter.ConfigCompatibleWithStandardLibrary
 )
 
 type JReq struct {
