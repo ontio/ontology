@@ -20,14 +20,15 @@ package filters
 
 import (
 	"fmt"
+	"math/big"
+	"testing"
+	"time"
+
 	common2 "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ontio/ontology/events"
 	"github.com/ontio/ontology/events/message"
-	"math/big"
-	"testing"
-	"time"
 )
 
 func TestNewEventSystem(t *testing.T) {
