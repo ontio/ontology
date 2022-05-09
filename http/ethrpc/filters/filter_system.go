@@ -19,6 +19,9 @@ package filters
 
 import (
 	"fmt"
+	"sync"
+	"time"
+
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core"
@@ -26,8 +29,6 @@ import (
 	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/ontio/ontology/events/message"
 	bactor "github.com/ontio/ontology/http/base/actor"
-	"sync"
-	"time"
 )
 
 // Type determines the kind of filter and is used to put the filter in to
