@@ -20,10 +20,10 @@ package ledger
 
 import (
 	"fmt"
-	"github.com/ontio/ontology/core/store/indexstore"
 
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/core/store"
+	"github.com/ontio/ontology/core/store/indexstore"
 	"github.com/ontio/ontology/core/store/ledgerstore"
 	"github.com/ontio/ontology/core/types"
 )

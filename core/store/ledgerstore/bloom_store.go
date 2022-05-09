@@ -21,10 +21,11 @@ package ledgerstore
 import (
 	"encoding/binary"
 	"fmt"
+	"os"
+
 	"github.com/ethereum/go-ethereum/core/types"
 	scom "github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/core/store/leveldbstore"
-	"os"
 )
 
 const (
