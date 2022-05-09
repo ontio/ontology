@@ -21,10 +21,9 @@ package event
 import (
 	"fmt"
 
-	"github.com/ontio/ontology/common/constants"
-
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/constants"
 	"github.com/ontio/ontology/core/types"
 )
 
