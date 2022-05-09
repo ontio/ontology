@@ -252,6 +252,7 @@ func generateLog(rawNotify *event.ExecuteNotify) ([]*ethtypes.Log, error) {
 				Removed:     false,
 			})
 	}
+
 	return res, nil
 }
 
