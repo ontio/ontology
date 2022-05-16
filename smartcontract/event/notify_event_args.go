@@ -85,20 +85,13 @@ func NotifyEventInfoToEvmLog(n *NotifyEventInfo) (*types.StorageLog, error) {
 
 	var data []byte
 	var err error
-	switch n.States.(type) {
+	switch val := n.States.(type) {
 	case string:
-		states, ok := n.States.(string)
-		if !ok {
-			return nil, fmt.Errorf("event info states is not string")
-		}
-		if data, err = hexutil.Decode(states); err != nil {
+		if data, err = hexutil.Decode(val); err != nil {
 			return nil, err
 		}
 	case hexutil.Bytes:
-		var ok bool
-		if data, ok = n.States.(hexutil.Bytes); !ok {
-			return nil, fmt.Errorf("event info states is not byte array")
-		}
+		data = val
 	default:
 		return nil, fmt.Errorf("not support such states type")
 	}

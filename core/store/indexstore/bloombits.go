@@ -66,7 +66,6 @@ var (
 // bloomIndexer implements a core.ChainIndexer, building up a rotated bloom bits index
 // for the Ethereum header bloom filters, permitting blazing fast filtering.
 type bloomIndexer struct {
-	size    uint32                     // section size to generate bloombits for
 	store   *leveldbstore.LevelDBStore // database instance to write index data and metadata into
 	gen     *bloombits.Generator       // generator to rotate the bloom bits crating the bloom index
 	section uint32                     // Section is the section number being processed currently
@@ -81,23 +80,24 @@ type KV struct {
 func initBloomIndexer(store *leveldbstore.LevelDBStore) bloomIndexer {
 	return bloomIndexer{
 		store: store,
-		size:  BloomBitsBlocks,
 	}
 }
 
 // Reset implements core.ChainIndexerBackend, starting a new bloombits index
 // section.
-func (b *bloomIndexer) Reset(section uint32) error {
-	gen, err := bloombits.NewGenerator(uint(b.size))
+func (b *bloomIndexer) Reset(section uint32) {
+	gen, err := bloombits.NewGenerator(uint(BloomBitsBlocks))
+	if err != nil {
+		panic(err) // never fired since BloomBitsBlocks is multiple of 8
+	}
 	b.gen, b.section, b.head = gen, section, common.Hash{}
-	return err
 }
 
 // Process implements core.ChainIndexerBackend, adding a new header's bloom into
 // the index.
 func (b *bloomIndexer) Process(hash common.Hash, height uint32, bloom types.Bloom) {
 	// the initial height is 1 but it on ethereum is 0. so subtract 1
-	b.gen.AddBloom(uint(height-b.section*b.size-config.GetAddFilterHeight()), bloom)
+	b.gen.AddBloom(uint(height-b.section*BloomBitsBlocks-config.GetAddFilterHeight()), bloom)
 	b.head = hash
 }
 

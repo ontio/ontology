@@ -106,10 +106,7 @@ func (i *Indexer) ProcessSection(k store.LedgerStore, interval uint32) error {
 		var err error
 
 		// Reset and partial processing
-		if err = i.backend.Reset(section); err != nil {
-			i.setValidSections(0)
-			return fmt.Errorf(err.Error())
-		}
+		i.backend.Reset(section)
 
 		begin := section*BloomBitsBlocks + config.GetAddFilterHeight()
 		end := (section+1)*BloomBitsBlocks + config.GetAddFilterHeight()
@@ -125,7 +122,7 @@ func (i *Indexer) ProcessSection(k store.LedgerStore, interval uint32) error {
 				hash = common.Hash{}
 			} else {
 				blockHash := k.GetBlockHash(number)
-				hash = common.BytesToHash(blockHash.ToArray())
+				hash = common.Hash(blockHash)
 				if hash == (common.Hash{}) {
 					return fmt.Errorf("canonical block %d unknown", number)
 				}

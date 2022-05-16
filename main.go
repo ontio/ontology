@@ -289,10 +289,6 @@ func initLedger(ctx *cli.Context, stateHashHeight uint32) (*ledger.Ledger, error
 	return ledger.DefLedger, nil
 }
 
-func initIndex(ctx *cli.Context, stateHashHeight uint32) {
-
-}
-
 func initTxPool(ctx *cli.Context) (*proc.TXPoolServer, error) {
 	disablePreExec := ctx.GlobalBool(utils.GetFlagName(utils.TxpoolPreExecDisableFlag))
 	bactor.DisableSyncVerifyTx = ctx.GlobalBool(utils.GetFlagName(utils.DisableSyncVerifyTxFlag))
