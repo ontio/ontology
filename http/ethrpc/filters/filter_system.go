@@ -106,12 +106,6 @@ func NewEventSystem(backend Backend) *EventSystem {
 	bactor.SubscribeEvent(message.TOPIC_ETH_SC_EVENT, m.pushSCEvent)
 	bactor.SubscribeEvent(message.TOPIC_CHAIN_EVENT, m.pushChainEvent)
 
-	//m.txsSub = m.backend.SubscribeNewTxsEvent(m.txsCh)
-	//m.logsSub = m.backend.SubscribeLogsEvent(m.logsCh)
-	//m.rmLogsSub = m.backend.SubscribeRemovedLogsEvent(m.rmLogsCh)
-	//m.chainSub = m.backend.SubscribeChainEvent(m.chainCh)
-	//m.pendingLogsSub = m.backend.SubscribePendingLogsEvent(m.pendingLogsCh)
-
 	go m.eventLoop()
 	return m
 }
