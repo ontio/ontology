@@ -286,7 +286,7 @@ func (api *EthereumAPI) SendRawTransaction(data hexutil.Bytes) (common.Hash, err
 }
 
 func (api *EthereumAPI) Call(args types2.CallArgs, blockNumber types2.BlockNumber, _ *map[common.Address]types2.Account) (hexutil.Bytes, error) {
-	log.Debugf("eth_call args %v ,block number %v ", args, blockNumber)
+	//log.Debugf("eth_call args %v ,block number %v ", args, blockNumber)
 	msg := args.AsMessage(RPCGasCap)
 	res, err := bactor.PreExecuteEip155Tx(msg)
 	if err != nil {
@@ -316,7 +316,7 @@ type revertError struct {
 }
 
 func (api *EthereumAPI) EstimateGas(args types2.CallArgs) (hexutil.Uint64, error) {
-	log.Debugf("eth_estimateGas args %v", args)
+	//log.Debugf("eth_estimateGas args %v", args)
 	var (
 		lo  uint64 = params.TxGas
 		hi  uint64
