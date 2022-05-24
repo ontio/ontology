@@ -18,13 +18,14 @@
 package ethrpc
 
 import (
+	"github.com/ontio/ontology/core/store"
+	"github.com/ontio/ontology/http/base/actor"
 	"net/http"
 	"strconv"
 
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/rpc"
 	cfg "github.com/ontio/ontology/common/config"
-	"github.com/ontio/ontology/core/store/indexstore"
 	backend2 "github.com/ontio/ontology/http/ethrpc/backend"
 	"github.com/ontio/ontology/http/ethrpc/eth"
 	filters2 "github.com/ontio/ontology/http/ethrpc/filters"
@@ -42,7 +43,10 @@ func StartEthServer(txpool *tp.TXPoolServer) error {
 	}
 
 	backend := backend2.NewBloomBackend()
-	backend.StartBloomHandlers(indexstore.BloomBitsBlocks, indexstore.GetIndexer().GetDB())
+	err := backend.StartBloomHandlers(store.BloomBitsBlocks, actor.GetIndexStore().GetDB())
+	if err != nil {
+		return err
+	}
 
 	if err := server.RegisterName("eth", filters2.NewPublicFilterAPI(backend)); err != nil {
 		return err
@@ -53,7 +57,7 @@ func StartEthServer(txpool *tp.TXPoolServer) error {
 	if err := server.RegisterName("web3", web3.NewAPI()); err != nil {
 		return err
 	}
-	err := http.ListenAndServe(":"+strconv.Itoa(int(cfg.DefConfig.Rpc.EthJsonPort)), server)
+	err = http.ListenAndServe(":"+strconv.Itoa(int(cfg.DefConfig.Rpc.EthJsonPort)), server)
 	if err != nil {
 		return err
 	}

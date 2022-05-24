@@ -321,9 +321,10 @@ func (api *PublicFilterAPI) NewFilter(criteria filters.FilterCriteria) (rpc.ID, 
 // https://github.com/ethereum/wiki/wiki/JSON-RPC#eth_getLogs
 func (api *PublicFilterAPI) GetLogs(ctx context.Context, criteria filters.FilterCriteria) ([]*ethtypes.Log, error) {
 	var filter *Filter
+	var err error
 	if criteria.BlockHash != nil {
 		// Block filter requested, construct a single-shot filter
-		filter = NewBlockFilter(api.backend, criteria)
+		filter, err = NewBlockFilter(api.backend, criteria)
 	} else {
 		// Convert the RPC block numbers into internal representations
 		begin := rpc.LatestBlockNumber.Int64()
@@ -335,7 +336,11 @@ func (api *PublicFilterAPI) GetLogs(ctx context.Context, criteria filters.Filter
 			end = criteria.ToBlock.Int64()
 		}
 		// Construct the range filter
-		filter = NewRangeFilter(api.backend, begin, end, criteria.Addresses, criteria.Topics)
+		filter, err = NewRangeFilter(api.backend, begin, end, criteria.Addresses, criteria.Topics)
+	}
+
+	if err != nil {
+		return nil, err
 	}
 
 	// Run the filter and return all the logs
@@ -381,9 +386,10 @@ func (api *PublicFilterAPI) GetFilterLogs(ctx context.Context, id rpc.ID) ([]*et
 	}
 
 	var filter *Filter
+	var err error
 	if f.crit.BlockHash != nil {
 		// Block filter requested, construct a single-shot filter
-		filter = NewBlockFilter(api.backend, f.crit)
+		filter, err = NewBlockFilter(api.backend, f.crit)
 	} else {
 		// Convert the RPC block numbers into internal representations
 		begin := rpc.LatestBlockNumber.Int64()
@@ -395,7 +401,10 @@ func (api *PublicFilterAPI) GetFilterLogs(ctx context.Context, id rpc.ID) ([]*et
 			end = f.crit.ToBlock.Int64()
 		}
 		// Construct the range filter
-		filter = NewRangeFilter(api.backend, begin, end, f.crit.Addresses, f.crit.Topics)
+		filter, err = NewRangeFilter(api.backend, begin, end, f.crit.Addresses, f.crit.Topics)
+	}
+	if err != nil {
+		return nil, err
 	}
 	// Run the filter and return all the logs
 	logs, err := filter.Logs(ctx)

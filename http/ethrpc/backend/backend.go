@@ -20,12 +20,11 @@ package backend
 
 import (
 	"context"
+	"github.com/ontio/ontology/core/store"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/bitutil"
 	"github.com/ethereum/go-ethereum/core/bloombits"
-	"github.com/ontio/ontology/common/config"
-	"github.com/ontio/ontology/core/store/indexstore"
 	"github.com/ontio/ontology/core/store/leveldbstore"
 	"github.com/ontio/ontology/http/base/actor"
 )
@@ -48,8 +47,8 @@ func (b *BloomBackend) Close() {
 }
 
 func (b *BloomBackend) ServiceFilter(ctx context.Context, session *bloombits.MatcherSession) {
-	for i := 0; i < indexstore.BloomFilterThreads; i++ {
-		go session.Multiplex(indexstore.BloomRetrievalBatch, indexstore.BloomRetrievalWait, b.bloomRequests)
+	for i := 0; i < store.BloomFilterThreads; i++ {
+		go session.Multiplex(store.BloomRetrievalBatch, store.BloomRetrievalWait, b.bloomRequests)
 	}
 }
 
@@ -59,8 +58,12 @@ func (b *BloomBackend) BloomStatus() (uint32, uint32) {
 
 // startBloomHandlers starts a batch of goroutines to accept bloom bit database
 // retrievals from possibly a range of filters and serving the data to satisfy.
-func (b *BloomBackend) StartBloomHandlers(sectionSize uint32, store *leveldbstore.LevelDBStore) {
-	for i := 0; i < indexstore.BloomServiceThreads; i++ {
+func (b *BloomBackend) StartBloomHandlers(sectionSize uint32, db *leveldbstore.LevelDBStore) error {
+	start, err := actor.GetIndexStore().GetFilterStart()
+	if err != nil {
+		return err
+	}
+	for i := 0; i < store.BloomServiceThreads; i++ {
 		go func() {
 			for {
 				select {
@@ -71,9 +74,9 @@ func (b *BloomBackend) StartBloomHandlers(sectionSize uint32, store *leveldbstor
 					task := <-request
 					task.Bitsets = make([][]byte, len(task.Sections))
 					for i, section := range task.Sections {
-						height := ((uint32(section)+1)*sectionSize - 1) + config.GetAddFilterHeight()
+						height := ((uint32(section)+1)*sectionSize - 1) + start
 						hash := actor.GetBlockHashFromStore(height)
-						if compVector, err := indexstore.ReadBloomBits(store, task.Bit, uint32(section), common.Hash(hash)); err == nil {
+						if compVector, err := store.ReadBloomBits(db, task.Bit, uint32(section), common.Hash(hash)); err == nil {
 							if blob, err := bitutil.DecompressBytes(compVector, int(sectionSize/8)); err == nil {
 								task.Bitsets[i] = blob
 							} else {
@@ -88,4 +91,5 @@ func (b *BloomBackend) StartBloomHandlers(sectionSize uint32, store *leveldbstor
 			}
 		}()
 	}
+	return nil
 }

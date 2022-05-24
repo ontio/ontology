@@ -28,7 +28,6 @@ import (
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/eth/filters"
 	common2 "github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/common/config"
 	common4 "github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/http/base/actor"
@@ -46,18 +45,19 @@ type Filter struct {
 	backend  Backend
 	criteria filters.FilterCriteria
 	matcher  *bloombits.Matcher
+	start    uint32
 }
 
 // NewBlockFilter creates a new filter which directly inspects the contents of
 // a block to figure out whether it is interesting or not.
-func NewBlockFilter(backend Backend, criteria filters.FilterCriteria) *Filter {
+func NewBlockFilter(backend Backend, criteria filters.FilterCriteria) (*Filter, error) {
 	// Create a generic filter and convert it into a block filter
 	return newFilter(backend, criteria, nil)
 }
 
 // NewRangeFilter creates a new filter which uses a bloom filter on blocks to
 // figure out whether a particular block is interesting or not.
-func NewRangeFilter(backend Backend, begin, end int64, addresses []common.Address, topics [][]common.Hash) *Filter {
+func NewRangeFilter(backend Backend, begin, end int64, addresses []common.Address, topics [][]common.Hash) (*Filter, error) {
 	// Flatten the address and topic filter clauses into a single bloombits filter
 	// system. Since the bloombits are not positional, nil topics are permitted,
 	// which get flattened into a nil byte slice.
@@ -92,18 +92,23 @@ func NewRangeFilter(backend Backend, begin, end int64, addresses []common.Addres
 }
 
 // newFilter returns a new Filter
-func newFilter(backend Backend, criteria filters.FilterCriteria, matcher *bloombits.Matcher) *Filter {
+func newFilter(backend Backend, criteria filters.FilterCriteria, matcher *bloombits.Matcher) (*Filter, error) {
+	start, err := actor.GetIndexStore().GetFilterStart()
+	if err != nil {
+		return nil, err
+	}
 	return &Filter{
 		backend:  backend,
 		criteria: criteria,
 		matcher:  matcher,
-	}
+		start:    start,
+	}, nil
 }
 
 // Logs searches the blockchain for matching log entries, returning all from the
 // first block that contains matches, updating the start of the filter accordingly.
 func (f *Filter) Logs(ctx context.Context) ([]*ethtypes.Log, error) {
-	logs := []*ethtypes.Log{}
+	var logs []*ethtypes.Log
 	var err error
 
 	// If we're doing singleton block filtering, execute and return
@@ -140,9 +145,9 @@ func (f *Filter) Logs(ctx context.Context) ([]*ethtypes.Log, error) {
 		f.criteria.ToBlock = big.NewInt(int64(curHeight))
 	}
 
-	if f.criteria.FromBlock.Int64() < int64(config.GetAddFilterHeight()) ||
-		f.criteria.ToBlock.Int64() < int64(config.GetAddFilterHeight()) {
-		return nil, fmt.Errorf("from and to block height must greater than %d", int64(config.GetAddFilterHeight()))
+	if f.criteria.FromBlock.Int64() < int64(f.start) ||
+		f.criteria.ToBlock.Int64() < int64(f.start) {
+		return nil, fmt.Errorf("from and to block height must greater than %d", int64(f.start))
 	}
 
 	// TODO limit search span
@@ -150,19 +155,19 @@ func (f *Filter) Logs(ctx context.Context) ([]*ethtypes.Log, error) {
 	begin := f.criteria.FromBlock.Uint64()
 	end := f.criteria.ToBlock.Uint64()
 	size, sections := actor.BloomStatus()
-	if indexed := uint64(sections*size + config.GetAddFilterHeight()); indexed > begin {
+	if indexed := uint64(sections*size + f.start); indexed > begin {
 		// update from block height
-		f.criteria.FromBlock.Sub(f.criteria.FromBlock, big.NewInt(int64(config.GetAddFilterHeight())))
+		f.criteria.FromBlock.Sub(f.criteria.FromBlock, big.NewInt(int64(f.start)))
 		if indexed > end {
-			logs, err = f.indexedLogs(ctx, end-uint64(config.GetAddFilterHeight()))
+			logs, err = f.indexedLogs(ctx, end-uint64(f.start))
 		} else {
-			logs, err = f.indexedLogs(ctx, indexed-1-uint64(config.GetAddFilterHeight()))
+			logs, err = f.indexedLogs(ctx, indexed-1-uint64(f.start))
 		}
 		if err != nil {
 			return logs, err
 		}
 		// recover from block height
-		f.criteria.FromBlock.Add(f.criteria.FromBlock, big.NewInt(int64(config.GetAddFilterHeight())))
+		f.criteria.FromBlock.Add(f.criteria.FromBlock, big.NewInt(int64(f.start)))
 	}
 	rest, err := f.unindexedLogs(ctx, end)
 	logs = append(logs, rest...)
@@ -292,7 +297,7 @@ func (f *Filter) indexedLogs(ctx context.Context, end uint64) ([]*ethtypes.Log, 
 	for {
 		select {
 		case number, ok := <-matches:
-			number += uint64(config.GetAddFilterHeight())
+			number += uint64(f.start)
 
 			// Abort if all matches have been fulfilled
 			if !ok {

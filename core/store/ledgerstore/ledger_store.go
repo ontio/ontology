@@ -44,7 +44,6 @@ import (
 	"github.com/ontio/ontology/core/states"
 	"github.com/ontio/ontology/core/store"
 	scom "github.com/ontio/ontology/core/store/common"
-	"github.com/ontio/ontology/core/store/indexstore"
 	"github.com/ontio/ontology/core/store/overlaydb"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/errors"
@@ -92,7 +91,7 @@ type LedgerStoreImp struct {
 	stateStore           *StateStore                      //StateStore for saving state data, like balance, smart contract execution result, and so on.
 	eventStore           *EventStore                      //EventStore for saving log those gen after smart contract executed.
 	crossChainStore      *CrossChainStore                 //crossChainStore for saving cross chain msg.
-	bloomStore           *BloomStore                      //bloomStore for saving block bloom.
+	indexStore           *store.Indexer                   //indexStore bloom index for logs.
 	storedIndexCount     uint32                           //record the count of have saved block index
 	currBlockHeight      uint32                           //Current block height
 	currBlockHash        common.Uint256                   //Current block hash
@@ -129,12 +128,6 @@ func NewLedgerStore(dataDir string, stateHashHeight uint32) (*LedgerStoreImp, er
 	}
 	ledgerStore.crossChainStore = crossChainStore
 
-	bloomStore, err := NewBloomStore(dataDir)
-	if err != nil {
-		return nil, fmt.Errorf("NewBloomStore error %s", err)
-	}
-	ledgerStore.bloomStore = bloomStore
-
 	dbPath := fmt.Sprintf("%s%s%s", dataDir, string(os.PathSeparator), DBDirState)
 	merklePath := fmt.Sprintf("%s%s%s", dataDir, string(os.PathSeparator), MerkleTreeStorePath)
 	stateStore, err := NewStateStore(dbPath, merklePath, stateHashHeight)
@@ -148,6 +141,12 @@ func NewLedgerStore(dataDir string, stateHashHeight uint32) (*LedgerStoreImp, er
 		return nil, fmt.Errorf("NewEventStore error %s", err)
 	}
 	ledgerStore.eventStore = eventState
+
+	index, err := store.New(dataDir)
+	if err != nil {
+		return nil, fmt.Errorf("InitIndexer error %s", err)
+	}
+	ledgerStore.indexStore = index
 
 	return ledgerStore, nil
 }
@@ -417,6 +416,10 @@ func (this *LedgerStoreImp) GetCurrentBlockHash() common.Uint256 {
 	this.lock.RLock()
 	defer this.lock.RUnlock()
 	return this.currBlockHash
+}
+
+func (this *LedgerStoreImp) GetIndexer() *store.Indexer {
+	return this.indexStore
 }
 
 //GetCurrentBlockHeight return the current block height
@@ -729,7 +732,7 @@ func (this *LedgerStoreImp) AddBlock(block *types.Block, ccMsg *types.CrossChain
 	return nil
 }
 
-func (this *LedgerStoreImp) saveBlockToBlockStore(block *types.Block) error {
+func (this *LedgerStoreImp) saveBlockToBlockStore(block *types.Block, bloom types3.Bloom) error {
 	blockHash := block.Hash()
 	blockHeight := block.Header.Height
 
@@ -747,6 +750,7 @@ func (this *LedgerStoreImp) saveBlockToBlockStore(block *types.Block) error {
 	if err != nil {
 		return fmt.Errorf("SaveBlock height %d hash %s error %s", blockHeight, blockHash.ToHexString(), err)
 	}
+	this.blockStore.SaveBloomData(block.Header.Height, bloom)
 	return nil
 }
 
@@ -894,13 +898,6 @@ func (this *LedgerStoreImp) saveBlockToStateStore(block *types.Block, result sto
 		return fmt.Errorf("SaveCrossStates error %s", err)
 	}
 
-	if blockHeight >= config.GetAddFilterHeight() {
-		err = this.bloomStore.SaveBloomData(blockHeight, result.Bloom)
-		if err != nil {
-			return fmt.Errorf("save to block bloom store height:%d error:%s", blockHeight, err)
-		}
-	}
-
 	log.Debugf("the state transition hash of block %d is:%s", blockHeight, result.Hash.ToHexString())
 
 	result.WriteSet.ForEach(func(key, val []byte) {
@@ -992,7 +989,7 @@ func (this *LedgerStoreImp) submitBlock(block *types.Block, crossChainMsg *types
 	this.stateStore.NewBatch()
 	this.eventStore.NewBatch()
 
-	err := this.saveBlockToBlockStore(block)
+	err := this.saveBlockToBlockStore(block, result.Bloom)
 	if err != nil {
 		return fmt.Errorf("save to block store height:%d error:%s", blockHeight, err)
 	}
@@ -1021,19 +1018,11 @@ func (this *LedgerStoreImp) submitBlock(block *types.Block, crossChainMsg *types
 	}
 	this.setCurrentBlock(blockHeight, blockHash)
 
-	if indexer := indexstore.GetIndexer(); blockHeight >= config.GetAddFilterHeight() && indexer != nil {
-		if indexer.IsProcessing() {
-			// notify new height
-			go func() {
-				indexer.NotifyNewHeight()
-			}()
-		} else {
-			interval := block.Header.Height - config.GetAddFilterHeight()
-			if interval >= (indexer.GetValidSections()+1)*indexstore.BloomBitsBlocks {
-				go indexer.ProcessSection(this, interval)
-			}
-		}
+	err = this.indexStore.ProcessSection(this, blockHeight)
+	if err != nil {
+		return err
 	}
+
 	if events.DefActorPublisher != nil {
 		events.DefActorPublisher.Publish(
 			message.TOPIC_SAVE_BLOCK_COMPLETE,
@@ -1351,12 +1340,12 @@ func (this *LedgerStoreImp) GetEthAccount(address common2.Address) (*storage.Eth
 }
 
 func (this *LedgerStoreImp) GetBloomData(height uint32) (types3.Bloom, error) {
-	return this.bloomStore.GetBloomData(height)
+	return this.blockStore.GetBloomData(height)
 }
 
 func (this *LedgerStoreImp) BloomStatus() (uint32, uint32) {
-	sections := indexstore.GetIndexer().StoredSection()
-	return indexstore.BloomBitsBlocks, sections
+	sections := this.indexStore.StoredSection()
+	return store.BloomBitsBlocks, sections
 }
 
 //PreExecuteContract return the result of smart contract execution without commit to store
@@ -1536,13 +1525,13 @@ func (this *LedgerStoreImp) Close() error {
 	if err != nil {
 		return fmt.Errorf("crossChainStore close error %s", err)
 	}
-	err = this.bloomStore.Close()
-	if err != nil {
-		return fmt.Errorf("bloomStore close error %s", err)
-	}
 	err = this.stateStore.Close()
 	if err != nil {
 		return fmt.Errorf("stateStore close error %s", err)
+	}
+	err = this.indexStore.Close()
+	if err != nil {
+		return fmt.Errorf("indexStore close error %s", err)
 	}
 	return nil
 }

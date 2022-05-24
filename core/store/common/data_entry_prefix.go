@@ -27,7 +27,7 @@ const (
 	DATA_HEADER                            = 0x01 //Block hash => block header+txhashes key prefix
 	DATA_TRANSACTION                       = 0x02 //Transction hash => transaction key prefix
 	DATA_STATE_MERKLE_ROOT                 = 0x21 // block height => write set hash + state merkle root
-	DATA_BLOOM                             = 0x22 // block height => block bloom data
+	DATA_BLOOM                             = 0x23 // block height => block bloom data
 
 	// Transaction
 	ST_BOOKKEEPER DataEntryPrefix = 0x03 //BookKeeper state key prefix
@@ -36,8 +36,10 @@ const (
 	ST_DESTROYED  DataEntryPrefix = 0x06 // record destroyed smart contract: prefix+address -> height
 
 	// eth state
-	ST_ETH_CODE    DataEntryPrefix = 0x30 // eth contract code:hash -> bytes
-	ST_ETH_ACCOUNT DataEntryPrefix = 0x31 // eth account: address -> [nonce, codeHash]
+	ST_ETH_CODE           DataEntryPrefix = 0x30 // eth contract code:hash -> bytes
+	ST_ETH_ACCOUNT        DataEntryPrefix = 0x31 // eth account: address -> [nonce, codeHash]
+	ST_ETH_FILTER_START   DataEntryPrefix = 0x32 // support eth filter height
+	ST_ETH_SECTIONS_COUNT DataEntryPrefix = 0x33 // support eth filter height
 
 	IX_HEADER_HASH_LIST DataEntryPrefix = 0x09 //Block height => block hash key prefix
 

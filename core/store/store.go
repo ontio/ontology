@@ -55,6 +55,7 @@ type LedgerStore interface {
 	GetCurrentBlockHash() common.Uint256
 	GetCurrentBlockHeight() uint32
 	GetCurrentHeaderHeight() uint32
+	GetIndexer() *Indexer
 	GetCurrentHeaderHash() common.Uint256
 	GetBlockHash(height uint32) common.Uint256
 	GetHeaderByHash(blockHash common.Uint256) (*types.Header, error)

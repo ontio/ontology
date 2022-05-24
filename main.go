@@ -42,7 +42,6 @@ import (
 	"github.com/ontio/ontology/consensus"
 	"github.com/ontio/ontology/core/genesis"
 	"github.com/ontio/ontology/core/ledger"
-	"github.com/ontio/ontology/core/store/indexstore"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/events"
 	bactor "github.com/ontio/ontology/http/base/actor"
@@ -490,7 +489,6 @@ func waitToExit(db *ledger.Ledger) {
 			log.Infof("Ontology received exit signal: %v.", sig.String())
 			log.Infof("closing ledger...")
 			db.Close()
-			indexstore.CloseIndexer()
 			close(exit)
 			break
 		}

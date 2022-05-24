@@ -15,17 +15,19 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
-package indexstore
+package store
 
 import (
 	"encoding/binary"
+	"io"
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/bitutil"
 	"github.com/ethereum/go-ethereum/core/bloombits"
 	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ontio/ontology/common/config"
+	common2 "github.com/ontio/ontology/common"
+	scom "github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/core/store/leveldbstore"
 )
 
@@ -72,11 +74,6 @@ type bloomIndexer struct {
 	head    common.Hash                // Head is the hash of the last header processed
 }
 
-type KV struct {
-	Key   []byte `json:"key"`
-	Value []byte `json:"value"`
-}
-
 func initBloomIndexer(store *leveldbstore.LevelDBStore) bloomIndexer {
 	return bloomIndexer{
 		store: store,
@@ -95,28 +92,25 @@ func (b *bloomIndexer) Reset(section uint32) {
 
 // Process implements core.ChainIndexerBackend, adding a new header's bloom into
 // the index.
-func (b *bloomIndexer) Process(hash common.Hash, height uint32, bloom types.Bloom) {
+func (b *bloomIndexer) Process(hash common.Hash, height uint32, bloom types.Bloom, start uint32) {
 	// the initial height is 1 but it on ethereum is 0. so subtract 1
-	b.gen.AddBloom(uint(height-b.section*BloomBitsBlocks-config.GetAddFilterHeight()), bloom)
+	b.gen.AddBloom(uint(height-b.section*BloomBitsBlocks-start), bloom)
 	b.head = hash
 }
 
 // Commit implements core.ChainIndexerBackend, finalizing the bloom section and
 // writing it out into the database.
-func (b *bloomIndexer) Commit() ([]*KV, error) {
+func (b *bloomIndexer) Commit() error {
 	b.NewBatch()
-	bloomData := make([]*KV, types.BloomBitLength)
 	for i := 0; i < types.BloomBitLength; i++ {
 		bits, err := b.gen.Bitset(uint(i))
 		if err != nil {
-			return nil, nil
+			return err
 		}
 		value := bitutil.CompressBytes(bits)
 		b.store.BatchPut(bloomBitsKey(uint(i), b.section, b.head), value)
-		bloomData[i] = &KV{Key: bloomBitsKey(uint(i), b.section, b.head), Value: value}
 	}
-	err := b.CommitTo()
-	return bloomData, err
+	return b.CommitTo()
 }
 
 //NewBatch start a commit batch
@@ -129,9 +123,49 @@ func (this *bloomIndexer) CommitTo() error {
 	return this.store.BatchCommit()
 }
 
+func (this *bloomIndexer) PutFilterStart(height uint32) error {
+	key := genFilterStartKey()
+	sink := common2.NewZeroCopySink(nil)
+	sink.WriteUint32(height)
+	return this.store.Put(key, sink.Bytes())
+}
+
+func (this *bloomIndexer) GetFilterStart() (uint32, error) {
+	key := genFilterStartKey()
+	data, err := this.store.Get(key)
+	if err != nil {
+		return 0, err
+	}
+	height, eof := common2.NewZeroCopySource(data).NextUint32()
+	if eof {
+		return 0, io.ErrUnexpectedEOF
+	}
+	return height, nil
+}
+
+func genFilterStartKey() []byte {
+	return []byte{byte(scom.ST_ETH_FILTER_START)}
+}
+
+// setValidSections writes the number of valid sections to the index database
+func (this *bloomIndexer) SetValidSections(sections uint32) error {
+	// Set the current number of valid sections in the database
+	var data [4]byte
+	binary.BigEndian.PutUint32(data[:], sections)
+	return this.store.Put([]byte{byte(scom.ST_ETH_SECTIONS_COUNT)}, data[:])
+}
+
+func (this *bloomIndexer) GetValidSections() uint32 {
+	data, _ := this.store.Get([]byte{byte(scom.ST_ETH_SECTIONS_COUNT)})
+	if len(data) == 4 {
+		return binary.BigEndian.Uint32(data)
+	}
+	return 0
+}
+
 // bloomBitsKey = bloomBitsPrefix + bit (uint16 big endian) + section (uint32 big endian) + hash
 func bloomBitsKey(bit uint, section uint32, hash common.Hash) []byte {
-	key := append(append(bloomBitsPrefix, make([]byte, 10)...), hash.Bytes()...)
+	key := append(append(bloomBitsPrefix, make([]byte, 6)...), hash.Bytes()...)
 
 	binary.BigEndian.PutUint16(key[1:], uint16(bit))
 	binary.BigEndian.PutUint32(key[3:], section)

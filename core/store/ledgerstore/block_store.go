@@ -22,6 +22,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	types2 "github.com/ethereum/go-ethereum/core/types"
 	"io"
 
 	"github.com/ontio/ontology/common"
@@ -346,6 +347,32 @@ func (this *BlockStore) GetBlockHash(height uint32) (common.Uint256, error) {
 func (this *BlockStore) SaveBlockHash(height uint32, blockHash common.Uint256) {
 	key := genBlockHashKey(height)
 	this.store.BatchPut(key, blockHash.ToArray())
+}
+
+//SaveBloomData persist block bloom data to store
+func (this *BlockStore) SaveBloomData(height uint32, bloom types2.Bloom) {
+	key := this.genBloomKey(height)
+	this.store.BatchPut(key, bloom.Bytes())
+}
+
+//GetBloomData return bloom data by block height
+func (this *BlockStore) GetBloomData(height uint32) (types2.Bloom, error) {
+	key := this.genBloomKey(height)
+	value, err := this.store.Get(key)
+	if err != nil && err != scom.ErrNotFound {
+		return types2.Bloom{}, err
+	}
+	if err == scom.ErrNotFound {
+		return types2.Bloom{}, nil
+	}
+	return types2.BytesToBloom(value), nil
+}
+
+func (this *BlockStore) genBloomKey(height uint32) []byte {
+	temp := make([]byte, 5)
+	temp[0] = byte(scom.DATA_BLOOM)
+	binary.LittleEndian.PutUint32(temp[1:], height)
+	return temp
 }
 
 //SaveTransaction persist transaction to store
