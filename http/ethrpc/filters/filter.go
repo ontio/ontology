@@ -35,6 +35,8 @@ import (
 	"github.com/ontio/ontology/smartcontract/event"
 )
 
+const MAX_SEARCH_RANGE = 100000
+
 type Backend interface {
 	BloomStatus() (uint32, uint32)
 	ServiceFilter(ctx context.Context, session *bloombits.MatcherSession)
@@ -150,7 +152,9 @@ func (f *Filter) Logs(ctx context.Context) ([]*ethtypes.Log, error) {
 		return nil, fmt.Errorf("from and to block height must greater than %d", int64(f.start))
 	}
 
-	// TODO limit search span
+	if f.criteria.ToBlock.Int64()-f.criteria.FromBlock.Int64() > MAX_SEARCH_RANGE {
+		return nil, fmt.Errorf("the span between fromBlock and toBlock must be less than or equal to %d", MAX_SEARCH_RANGE)
+	}
 
 	begin := f.criteria.FromBlock.Uint64()
 	end := f.criteria.ToBlock.Uint64()
