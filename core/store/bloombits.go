@@ -110,7 +110,8 @@ func (b *bloomIndexer) Commit() error {
 		value := bitutil.CompressBytes(bits)
 		b.store.BatchPut(bloomBitsKey(uint(i), b.section, b.head), value)
 	}
-	return b.CommitTo()
+	err := b.CommitTo()
+	return err
 }
 
 //NewBatch start a commit batch

@@ -316,7 +316,6 @@ type revertError struct {
 }
 
 func (api *EthereumAPI) EstimateGas(args types2.CallArgs) (hexutil.Uint64, error) {
-	//log.Debugf("eth_estimateGas args %v", args)
 	var (
 		lo  uint64 = params.TxGas
 		hi  uint64
