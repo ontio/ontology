@@ -20,11 +20,10 @@ package backend
 
 import (
 	"context"
-	"github.com/ontio/ontology/core/store"
-
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/bitutil"
 	"github.com/ethereum/go-ethereum/core/bloombits"
+	"github.com/ontio/ontology/core/store/indexstore"
 	"github.com/ontio/ontology/core/store/leveldbstore"
 	"github.com/ontio/ontology/http/base/actor"
 )
@@ -47,8 +46,8 @@ func (b *BloomBackend) Close() {
 }
 
 func (b *BloomBackend) ServiceFilter(ctx context.Context, session *bloombits.MatcherSession) {
-	for i := 0; i < store.BloomFilterThreads; i++ {
-		go session.Multiplex(store.BloomRetrievalBatch, store.BloomRetrievalWait, b.bloomRequests)
+	for i := 0; i < indexstore.BloomFilterThreads; i++ {
+		go session.Multiplex(indexstore.BloomRetrievalBatch, indexstore.BloomRetrievalWait, b.bloomRequests)
 	}
 }
 
@@ -63,7 +62,7 @@ func (b *BloomBackend) StartBloomHandlers(sectionSize uint32, db *leveldbstore.L
 	if err != nil {
 		return err
 	}
-	for i := 0; i < store.BloomServiceThreads; i++ {
+	for i := 0; i < indexstore.BloomServiceThreads; i++ {
 		go func() {
 			for {
 				select {
@@ -76,7 +75,7 @@ func (b *BloomBackend) StartBloomHandlers(sectionSize uint32, db *leveldbstore.L
 					for i, section := range task.Sections {
 						height := ((uint32(section)+1)*sectionSize - 1) + start
 						hash := actor.GetBlockHashFromStore(height)
-						if compVector, err := store.ReadBloomBits(db, task.Bit, uint32(section), common.Hash(hash)); err == nil {
+						if compVector, err := indexstore.ReadBloomBits(db, task.Bit, uint32(section), common.Hash(hash)); err == nil {
 							if blob, err := bitutil.DecompressBytes(compVector, int(sectionSize/8)); err == nil {
 								task.Bitsets[i] = blob
 							} else {

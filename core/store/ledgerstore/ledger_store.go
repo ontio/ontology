@@ -23,6 +23,7 @@ import (
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
+	"github.com/ontio/ontology/core/store"
 	"hash"
 	"math"
 	"os"
@@ -42,8 +43,8 @@ import (
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/signature"
 	"github.com/ontio/ontology/core/states"
-	"github.com/ontio/ontology/core/store"
 	scom "github.com/ontio/ontology/core/store/common"
+	"github.com/ontio/ontology/core/store/indexstore"
 	"github.com/ontio/ontology/core/store/overlaydb"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/errors"
@@ -53,7 +54,7 @@ import (
 	"github.com/ontio/ontology/smartcontract"
 	"github.com/ontio/ontology/smartcontract/event"
 	"github.com/ontio/ontology/smartcontract/service/evm"
-	types4 "github.com/ontio/ontology/smartcontract/service/evm/types"
+	types5 "github.com/ontio/ontology/smartcontract/service/evm/types"
 	"github.com/ontio/ontology/smartcontract/service/evm/witness"
 	"github.com/ontio/ontology/smartcontract/service/native/ong"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
@@ -91,7 +92,7 @@ type LedgerStoreImp struct {
 	stateStore           *StateStore                      //StateStore for saving state data, like balance, smart contract execution result, and so on.
 	eventStore           *EventStore                      //EventStore for saving log those gen after smart contract executed.
 	crossChainStore      *CrossChainStore                 //crossChainStore for saving cross chain msg.
-	indexStore           *store.Indexer                   //indexStore bloom index for logs.
+	indexStore           *indexstore.Indexer              //indexStore bloom index for logs.
 	storedIndexCount     uint32                           //record the count of have saved block index
 	currBlockHeight      uint32                           //Current block height
 	currBlockHash        common.Uint256                   //Current block hash
@@ -142,7 +143,7 @@ func NewLedgerStore(dataDir string, stateHashHeight uint32) (*LedgerStoreImp, er
 	}
 	ledgerStore.eventStore = eventState
 
-	index, err := store.New(dataDir)
+	index, err := indexstore.New(dataDir)
 	if err != nil {
 		return nil, fmt.Errorf("InitIndexer error %s", err)
 	}
@@ -418,7 +419,7 @@ func (this *LedgerStoreImp) GetCurrentBlockHash() common.Uint256 {
 	return this.currBlockHash
 }
 
-func (this *LedgerStoreImp) GetIndexer() *store.Indexer {
+func (this *LedgerStoreImp) GetIndexer() *indexstore.Indexer {
 	return this.indexStore
 }
 
@@ -1318,7 +1319,7 @@ func (this *LedgerStoreImp) PreExecuteContractBatch(txes []*types.Transaction, a
 	return results, height, nil
 }
 
-func (this *LedgerStoreImp) PreExecuteEIP155(tx *types3.Transaction, ctx Eip155Context) (*types4.ExecutionResult, *event.ExecuteNotify, error) {
+func (this *LedgerStoreImp) PreExecuteEIP155(tx *types3.Transaction, ctx Eip155Context) (*types5.ExecutionResult, *event.ExecuteNotify, error) {
 	overlay := this.stateStore.NewOverlayDB()
 	cache := storage.NewCacheDB(overlay)
 
@@ -1345,7 +1346,7 @@ func (this *LedgerStoreImp) GetBloomData(height uint32) (types3.Bloom, error) {
 
 func (this *LedgerStoreImp) BloomStatus() (uint32, uint32) {
 	sections := this.indexStore.StoredSection()
-	return store.BloomBitsBlocks, sections
+	return indexstore.BloomBitsBlocks, sections
 }
 
 //PreExecuteContract return the result of smart contract execution without commit to store
@@ -1481,7 +1482,7 @@ func (this *LedgerStoreImp) PreExecuteContract(tx *types.Transaction) (*sstate.P
 	return this.PreExecuteContractWithParam(tx, param)
 }
 
-func (this *LedgerStoreImp) PreExecuteEip155Tx(msg types3.Message) (*types4.ExecutionResult, error) {
+func (this *LedgerStoreImp) PreExecuteEip155Tx(msg types3.Message) (*types5.ExecutionResult, error) {
 	height := this.GetCurrentBlockHeight()
 	// use previous block time to make it predictable for easy test
 	blockTime := uint32(time.Now().Unix())

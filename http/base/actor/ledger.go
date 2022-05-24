@@ -24,7 +24,7 @@ import (
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/core/payload"
-	"github.com/ontio/ontology/core/store"
+	"github.com/ontio/ontology/core/store/indexstore"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract/event"
 	types3 "github.com/ontio/ontology/smartcontract/service/evm/types"
@@ -151,6 +151,6 @@ func GetBloomData(height uint32) (types2.Bloom, error) {
 	return ledger.DefLedger.GetBloomData(height)
 }
 
-func GetIndexStore() *store.Indexer {
+func GetIndexStore() *indexstore.Indexer {
 	return ledger.DefLedger.GetIndexer()
 }

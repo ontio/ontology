@@ -15,10 +15,12 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
-package store
+package indexstore
 
 import (
 	"fmt"
+	types2 "github.com/ethereum/go-ethereum/core/types"
+	common2 "github.com/ontio/ontology/common"
 	"path/filepath"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -62,6 +64,11 @@ func (i *Indexer) StoredSection() uint32 {
 	return 0
 }
 
+type LedgerStore interface {
+	GetBlockHash(height uint32) common2.Uint256
+	GetBloomData(height uint32) (types2.Bloom, error)
+}
+
 func (i *Indexer) ProcessSection(k LedgerStore, blockHeight uint32) error {
 	start, err := i.GetFilterStart()
 	if err != nil && err != common3.ErrNotFound {
@@ -90,7 +97,7 @@ func (i *Indexer) ProcessSection(k LedgerStore, blockHeight uint32) error {
 
 		for number := begin; number < end; number++ {
 			blockHash := k.GetBlockHash(number)
-			hash := common.BytesToHash(blockHash.ToArray())
+			hash = common.Hash(blockHash)
 			if hash == (common.Hash{}) {
 				return fmt.Errorf("canonical block %d unknown", number)
 			}

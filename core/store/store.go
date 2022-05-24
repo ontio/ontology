@@ -25,6 +25,7 @@ import (
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/states"
+	"github.com/ontio/ontology/core/store/indexstore"
 	"github.com/ontio/ontology/core/store/overlaydb"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract/event"
@@ -55,7 +56,7 @@ type LedgerStore interface {
 	GetCurrentBlockHash() common.Uint256
 	GetCurrentBlockHeight() uint32
 	GetCurrentHeaderHeight() uint32
-	GetIndexer() *Indexer
+	GetIndexer() *indexstore.Indexer
 	GetCurrentHeaderHash() common.Uint256
 	GetBlockHash(height uint32) common.Uint256
 	GetHeaderByHash(blockHash common.Uint256) (*types.Header, error)

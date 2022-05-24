@@ -18,7 +18,7 @@
 package ethrpc
 
 import (
-	"github.com/ontio/ontology/core/store"
+	"github.com/ontio/ontology/core/store/indexstore"
 	"github.com/ontio/ontology/http/base/actor"
 	"net/http"
 	"strconv"
@@ -43,7 +43,7 @@ func StartEthServer(txpool *tp.TXPoolServer) error {
 	}
 
 	backend := backend2.NewBloomBackend()
-	err := backend.StartBloomHandlers(store.BloomBitsBlocks, actor.GetIndexStore().GetDB())
+	err := backend.StartBloomHandlers(indexstore.BloomBitsBlocks, actor.GetIndexStore().GetDB())
 	if err != nil {
 		return err
 	}
