@@ -80,10 +80,7 @@ func (i *Indexer) ProcessSection(k LedgerStore, blockHeight uint32) error {
 
 		var err error
 		// Reset and partial processing
-		if err = i.backend.Reset(section); err != nil {
-			err = i.setValidSections(0)
-			return fmt.Errorf(err.Error())
-		}
+		i.backend.Reset(section)
 
 		begin := section*BloomBitsBlocks + start
 		end := (section+1)*BloomBitsBlocks + start
