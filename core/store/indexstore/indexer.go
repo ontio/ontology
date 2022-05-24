@@ -19,11 +19,11 @@ package indexstore
 
 import (
 	"fmt"
-	types2 "github.com/ethereum/go-ethereum/core/types"
-	common2 "github.com/ontio/ontology/common"
 	"path/filepath"
 
 	"github.com/ethereum/go-ethereum/common"
+	types2 "github.com/ethereum/go-ethereum/core/types"
+	common2 "github.com/ontio/ontology/common"
 	common3 "github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/core/store/leveldbstore"
 )
