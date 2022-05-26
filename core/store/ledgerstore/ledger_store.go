@@ -97,9 +97,9 @@ type LedgerStoreImp struct {
 	currBlockHeight      uint32                           //Current block height
 	currBlockHash        common.Uint256                   //Current block hash
 	headerCache          map[common.Uint256]*types.Header //BlockHash => Header
-	bloomCache           map[uint32]*types3.Bloom
-	headerIndex          map[uint32]common.Uint256    //Header index, Mapping header height => block hash
-	vbftPeerInfoMap      map[uint32]map[string]uint32 //key:block height,value:peerInfo
+	bloomCache           map[uint32]*types3.Bloom         //bloomCache for bloom index, delete cached bloom after calculating bloom index
+	headerIndex          map[uint32]common.Uint256        //Header index, Mapping header height => block hash
+	vbftPeerInfoMap      map[uint32]map[string]uint32     //key:block height,value:peerInfo
 	lock                 sync.RWMutex
 	stateHashCheckHeight uint32
 
