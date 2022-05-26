@@ -67,6 +67,7 @@ func (i *Indexer) StoredSection() uint32 {
 type LedgerStore interface {
 	GetBlockHash(height uint32) common2.Uint256
 	GetBloomData(height uint32) (types2.Bloom, error)
+	ClearBloomCache(begins, end uint32)
 }
 
 func (i *Indexer) ProcessSection(k LedgerStore, blockHeight uint32) error {
@@ -115,6 +116,8 @@ func (i *Indexer) ProcessSection(k LedgerStore, blockHeight uint32) error {
 		if err != nil {
 			return fmt.Errorf(err.Error())
 		}
+
+		k.ClearBloomCache(begin, end)
 	}
 	return nil
 }

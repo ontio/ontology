@@ -93,7 +93,6 @@ func (b *bloomIndexer) Reset(section uint32) {
 // Process implements core.ChainIndexerBackend, adding a new header's bloom into
 // the index.
 func (b *bloomIndexer) Process(hash common.Hash, height uint32, bloom types.Bloom, start uint32) {
-	// the initial height is 1 but it on ethereum is 0. so subtract 1
 	b.gen.AddBloom(uint(height-b.section*BloomBitsBlocks-start), bloom)
 	b.head = hash
 }

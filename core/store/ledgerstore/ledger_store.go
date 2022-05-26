@@ -97,8 +97,9 @@ type LedgerStoreImp struct {
 	currBlockHeight      uint32                           //Current block height
 	currBlockHash        common.Uint256                   //Current block hash
 	headerCache          map[common.Uint256]*types.Header //BlockHash => Header
-	headerIndex          map[uint32]common.Uint256        //Header index, Mapping header height => block hash
-	vbftPeerInfoMap      map[uint32]map[string]uint32     //key:block height,value:peerInfo
+	bloomCache           map[uint32]*types3.Bloom
+	headerIndex          map[uint32]common.Uint256    //Header index, Mapping header height => block hash
+	vbftPeerInfoMap      map[uint32]map[string]uint32 //key:block height,value:peerInfo
 	lock                 sync.RWMutex
 	stateHashCheckHeight uint32
 
@@ -281,6 +282,10 @@ func (this *LedgerStoreImp) init() error {
 	if err != nil {
 		return fmt.Errorf("recoverStore error %s", err)
 	}
+	err = this.loadBloomCache()
+	if err != nil {
+		return fmt.Errorf("loadBloomCache error %s", err)
+	}
 	return nil
 }
 
@@ -315,6 +320,26 @@ func (this *LedgerStoreImp) loadHeaderIndexList() error {
 			return fmt.Errorf("LoadBlockHash height %d hash nil", height)
 		}
 		this.headerIndex[height] = blockHash
+	}
+	return nil
+}
+
+func (this *LedgerStoreImp) loadBloomCache() error {
+	curBlockHeight := this.GetCurrentBlockHeight()
+	start, err := this.indexStore.GetFilterStart()
+	if err != nil {
+		if err == scom.ErrNotFound {
+			return nil
+		}
+		return err
+	}
+	BloomBitsBlocks, storedSections := this.BloomStatus()
+	for i := storedSections*BloomBitsBlocks + start; i <= curBlockHeight; i++ {
+		bloom, err := this.GetBloomData(i)
+		if err != nil {
+			return err
+		}
+		this.setBloomCache(i, bloom)
 	}
 	return nil
 }
@@ -751,7 +776,8 @@ func (this *LedgerStoreImp) saveBlockToBlockStore(block *types.Block, bloom type
 	if err != nil {
 		return fmt.Errorf("SaveBlock height %d hash %s error %s", blockHeight, blockHash.ToHexString(), err)
 	}
-	this.blockStore.SaveBloomData(block.Header.Height, bloom)
+	this.blockStore.SaveBloomData(blockHeight, bloom)
+	this.setBloomCache(blockHeight, bloom)
 	return nil
 }
 
@@ -1341,7 +1367,28 @@ func (this *LedgerStoreImp) GetEthAccount(address common2.Address) (*storage.Eth
 }
 
 func (this *LedgerStoreImp) GetBloomData(height uint32) (types3.Bloom, error) {
+	if v := this.getBloomCache(height); v != nil {
+		return *v, nil
+	}
 	return this.blockStore.GetBloomData(height)
+}
+
+func (this *LedgerStoreImp) setBloomCache(height uint32, bloom types3.Bloom) {
+	this.bloomCache[height] = &bloom
+}
+
+func (this *LedgerStoreImp) getBloomCache(height uint32) *types3.Bloom {
+	v, ok := this.bloomCache[height]
+	if !ok {
+		return nil
+	}
+	return v
+}
+
+func (this *LedgerStoreImp) ClearBloomCache(begin, end uint32) {
+	for i := begin; i <= end; i++ {
+		delete(this.bloomCache, i)
+	}
 }
 
 func (this *LedgerStoreImp) BloomStatus() (uint32, uint32) {
