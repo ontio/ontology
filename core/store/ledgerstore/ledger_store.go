@@ -113,6 +113,7 @@ func NewLedgerStore(dataDir string, stateHashHeight uint32) (*LedgerStoreImp, er
 	ledgerStore := &LedgerStoreImp{
 		headerIndex:          make(map[uint32]common.Uint256),
 		headerCache:          make(map[common.Uint256]*types.Header, 0),
+		bloomCache:           make(map[uint32]*types3.Bloom, 4096),
 		vbftPeerInfoMap:      make(map[uint32]map[string]uint32),
 		savingBlockSemaphore: make(chan bool, 1),
 		stateHashCheckHeight: stateHashHeight,
