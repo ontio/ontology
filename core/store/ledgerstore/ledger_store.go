@@ -1368,6 +1368,8 @@ func (this *LedgerStoreImp) GetEthAccount(address common2.Address) (*storage.Eth
 }
 
 func (this *LedgerStoreImp) GetBloomData(height uint32) (types3.Bloom, error) {
+	this.lock.Lock()
+	defer this.lock.Unlock()
 	if v := this.getBloomCache(height); v != nil {
 		return *v, nil
 	}
@@ -1375,10 +1377,14 @@ func (this *LedgerStoreImp) GetBloomData(height uint32) (types3.Bloom, error) {
 }
 
 func (this *LedgerStoreImp) setBloomCache(height uint32, bloom types3.Bloom) {
+	this.lock.Lock()
+	defer this.lock.Unlock()
 	this.bloomCache[height] = &bloom
 }
 
 func (this *LedgerStoreImp) getBloomCache(height uint32) *types3.Bloom {
+	this.lock.Lock()
+	defer this.lock.Unlock()
 	v, ok := this.bloomCache[height]
 	if !ok {
 		return nil
@@ -1387,6 +1393,8 @@ func (this *LedgerStoreImp) getBloomCache(height uint32) *types3.Bloom {
 }
 
 func (this *LedgerStoreImp) ClearBloomCache(begin, end uint32) {
+	this.lock.Lock()
+	defer this.lock.Unlock()
 	for i := begin; i <= end; i++ {
 		delete(this.bloomCache, i)
 	}
