@@ -71,17 +71,19 @@ type LedgerStore interface {
 }
 
 func (i *Indexer) ProcessSection(k LedgerStore, blockHeight uint32) error {
+
 	start, err := i.GetFilterStart()
 	if err != nil && err != common3.ErrNotFound {
-		return fmt.Errorf("get filter start height: %s", err.Error())
-	}
-	if err == common3.ErrNotFound {
+		if err != common3.ErrNotFound {
+			return fmt.Errorf("get filter start height: %s", err.Error())
+		}
 		err = i.putFilterStart(blockHeight)
 		if err != nil {
 			return fmt.Errorf("put filter start height: %s", err.Error())
 		}
 		start = blockHeight
 	}
+
 	knownSection := (blockHeight - start) / BloomBitsBlocks
 	for i.storedSections < knownSection {
 		section := i.storedSections
