@@ -1368,8 +1368,6 @@ func (this *LedgerStoreImp) GetEthAccount(address common2.Address) (*storage.Eth
 }
 
 func (this *LedgerStoreImp) GetBloomData(height uint32) (types3.Bloom, error) {
-	this.lock.Lock()
-	defer this.lock.Unlock()
 	if v := this.getBloomCache(height); v != nil {
 		return *v, nil
 	}
