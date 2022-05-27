@@ -124,35 +124,36 @@ func (i *Indexer) ProcessSection(k LedgerStore, blockHeight uint32) error {
 	return nil
 }
 
-func (b *Indexer) Close() error {
-	if b != nil && b.backend.store != nil {
-		return b.backend.store.Close()
+func (i *Indexer) Close() error {
+	if i != nil && i.backend.store != nil {
+		return i.backend.store.Close()
 	}
 	return nil
 }
 
 // GetDB get db of bloomIndexer
-func (b *Indexer) GetDB() *leveldbstore.LevelDBStore {
-	if b != nil {
-		return b.backend.store
+func (i *Indexer) GetDB() *leveldbstore.LevelDBStore {
+	if i != nil {
+		return i.backend.store
 	}
 	return nil
 }
 
-func (b *Indexer) GetFilterStart() (uint32, error) {
-	if b.start != nil {
-		return *b.start, nil
+func (i *Indexer) GetFilterStart() (uint32, error) {
+	if i.start != nil {
+		return *i.start, nil
 	}
-	start, err := b.backend.GetFilterStart()
+	start, err := i.backend.GetFilterStart()
 	if err != nil {
 		return 0, err
 	}
-	b.start = &start
+	i.start = &start
 	return start, nil
 }
 
-func (b *Indexer) putFilterStart(height uint32) error {
-	return b.backend.PutFilterStart(height)
+func (i *Indexer) putFilterStart(height uint32) error {
+	i.start = &height
+	return i.backend.PutFilterStart(height)
 }
 
 // setValidSections writes the number of valid sections to the index database
