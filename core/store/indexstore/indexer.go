@@ -73,7 +73,7 @@ type LedgerStore interface {
 func (i *Indexer) ProcessSection(k LedgerStore, blockHeight uint32) error {
 
 	start, err := i.GetFilterStart()
-	if err != nil && err != common3.ErrNotFound {
+	if err != nil {
 		if err != common3.ErrNotFound {
 			return fmt.Errorf("get filter start height: %s", err.Error())
 		}
