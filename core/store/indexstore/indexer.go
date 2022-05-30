@@ -39,18 +39,35 @@ import (
 // affect already finished sections.
 type Indexer struct {
 	backend        bloomIndexer // Background processor generating the index data content
-	start          *uint32      // Start is the start height of bloom filter supported
+	start          uint32       // Start is the start height of bloom filter supported
 	storedSections uint32       // Number of sections successfully indexed into the database
 }
 
-func New(dataDir string) (*Indexer, error) {
+func New(dataDir string, curBlockHeight uint32) (*Indexer, error) {
 	db, err := leveldbstore.NewLevelDBStore(filepath.Join(dataDir, bloomIdxDir))
 	if err != nil {
 		return nil, err
 	}
-	indexer := &Indexer{
-		backend: initBloomIndexer(db),
+
+	backend := initBloomIndexer(db)
+
+	start, err := backend.GetFilterStart()
+	if err != nil {
+		if err != common3.ErrNotFound {
+			return nil, fmt.Errorf("new indexer: %s", err.Error())
+		}
+		err = backend.PutFilterStart(curBlockHeight + 1)
+		if err != nil {
+			return nil, fmt.Errorf("new indexer: %s", err.Error())
+		}
+		start = curBlockHeight + 1
 	}
+
+	indexer := &Indexer{
+		start:   start,
+		backend: backend,
+	}
+
 	if err := indexer.setValidSections(indexer.getValidSections()); err != nil {
 		return nil, err
 	}
@@ -72,19 +89,7 @@ type LedgerStore interface {
 
 func (i *Indexer) ProcessSection(k LedgerStore, blockHeight uint32) error {
 
-	start, err := i.GetFilterStart()
-	if err != nil {
-		if err != common3.ErrNotFound {
-			return fmt.Errorf("get filter start height: %s", err.Error())
-		}
-		err = i.putFilterStart(blockHeight)
-		if err != nil {
-			return fmt.Errorf("put filter start height: %s", err.Error())
-		}
-		start = blockHeight
-	}
-
-	knownSection := (blockHeight - start) / BloomBitsBlocks
+	knownSection := (blockHeight - i.start) / BloomBitsBlocks
 	for i.storedSections < knownSection {
 		section := i.storedSections
 
@@ -92,8 +97,8 @@ func (i *Indexer) ProcessSection(k LedgerStore, blockHeight uint32) error {
 		// Reset and partial processing
 		i.backend.Reset(section)
 
-		begin := section*BloomBitsBlocks + start
-		end := (section+1)*BloomBitsBlocks + start
+		begin := section*BloomBitsBlocks + i.start
+		end := (section+1)*BloomBitsBlocks + i.start
 
 		for number := begin; number < end; number++ {
 			blockHash := k.GetBlockHash(number)
@@ -106,7 +111,7 @@ func (i *Indexer) ProcessSection(k LedgerStore, blockHeight uint32) error {
 			if err != nil {
 				return fmt.Errorf("get bloom data height: %d %s", number, err.Error())
 			}
-			i.backend.Process(hash, number, bloom, start)
+			i.backend.Process(hash, number, bloom, i.start)
 		}
 
 		err = i.backend.Commit()
@@ -139,21 +144,8 @@ func (i *Indexer) GetDB() *leveldbstore.LevelDBStore {
 	return nil
 }
 
-func (i *Indexer) GetFilterStart() (uint32, error) {
-	if i.start != nil {
-		return *i.start, nil
-	}
-	start, err := i.backend.GetFilterStart()
-	if err != nil {
-		return 0, err
-	}
-	i.start = &start
-	return start, nil
-}
-
-func (i *Indexer) putFilterStart(height uint32) error {
-	i.start = &height
-	return i.backend.PutFilterStart(height)
+func (i *Indexer) GetFilterStart() uint32 {
+	return i.start
 }
 
 // setValidSections writes the number of valid sections to the index database

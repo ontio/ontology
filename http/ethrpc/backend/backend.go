@@ -59,10 +59,7 @@ func (b *BloomBackend) BloomStatus() (uint32, uint32) {
 // startBloomHandlers starts a batch of goroutines to accept bloom bit database
 // retrievals from possibly a range of filters and serving the data to satisfy.
 func (b *BloomBackend) StartBloomHandlers(sectionSize uint32, db *leveldbstore.LevelDBStore) error {
-	start, err := actor.GetIndexStore().GetFilterStart()
-	if err != nil {
-		return err
-	}
+	start := actor.GetIndexStore().GetFilterStart()
 	for i := 0; i < indexstore.BloomServiceThreads; i++ {
 		go func() {
 			for {

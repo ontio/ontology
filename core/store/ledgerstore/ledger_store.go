@@ -144,8 +144,8 @@ func NewLedgerStore(dataDir string, stateHashHeight uint32) (*LedgerStoreImp, er
 		return nil, fmt.Errorf("NewEventStore error %s", err)
 	}
 	ledgerStore.eventStore = eventState
-
-	index, err := indexstore.New(dataDir)
+	currBlockHeight := ledgerStore.GetCurrentBlockHeight()
+	index, err := indexstore.New(dataDir, currBlockHeight)
 	if err != nil {
 		return nil, fmt.Errorf("InitIndexer error %s", err)
 	}
@@ -327,13 +327,7 @@ func (this *LedgerStoreImp) loadHeaderIndexList() error {
 
 func (this *LedgerStoreImp) loadBloomCache() error {
 	curBlockHeight := this.GetCurrentBlockHeight()
-	start, err := this.indexStore.GetFilterStart()
-	if err != nil {
-		if err == scom.ErrNotFound {
-			return nil
-		}
-		return err
-	}
+	start := this.indexStore.GetFilterStart()
 	BloomBitsBlocks, storedSections := this.BloomStatus()
 	for i := storedSections*BloomBitsBlocks + start; i <= curBlockHeight; i++ {
 		bloom, err := this.GetBloomData(i)
