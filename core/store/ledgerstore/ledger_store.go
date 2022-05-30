@@ -147,7 +147,10 @@ func NewLedgerStore(dataDir string, stateHashHeight uint32) (*LedgerStoreImp, er
 
 	_, currentBlockHeight, err := blockStore.GetCurrentBlock()
 	if err != nil {
-		return nil, fmt.Errorf("GetCurrentBlock error %s", err)
+		if err != scom.ErrNotFound {
+			return nil, fmt.Errorf("GetCurrentBlock error %s", err)
+		}
+		currentBlockHeight = 0
 	}
 
 	index, err := indexstore.New(dataDir, currentBlockHeight)
