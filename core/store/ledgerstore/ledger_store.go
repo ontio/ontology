@@ -145,7 +145,7 @@ func NewLedgerStore(dataDir string, stateHashHeight uint32) (*LedgerStoreImp, er
 	}
 	ledgerStore.eventStore = eventState
 
-	_, currentBlockHeight, err := ledgerStore.blockStore.GetCurrentBlock()
+	_, currentBlockHeight, err := blockStore.GetCurrentBlock()
 	if err != nil {
 		return nil, fmt.Errorf("GetCurrentBlock error %s", err)
 	}
