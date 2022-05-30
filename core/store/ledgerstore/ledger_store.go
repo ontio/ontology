@@ -144,8 +144,13 @@ func NewLedgerStore(dataDir string, stateHashHeight uint32) (*LedgerStoreImp, er
 		return nil, fmt.Errorf("NewEventStore error %s", err)
 	}
 	ledgerStore.eventStore = eventState
-	currBlockHeight := ledgerStore.GetCurrentBlockHeight()
-	index, err := indexstore.New(dataDir, currBlockHeight)
+
+	_, currentBlockHeight, err := ledgerStore.blockStore.GetCurrentBlock()
+	if err != nil {
+		return nil, fmt.Errorf("GetCurrentBlock error %s", err)
+	}
+
+	index, err := indexstore.New(dataDir, currentBlockHeight)
 	if err != nil {
 		return nil, fmt.Errorf("InitIndexer error %s", err)
 	}
