@@ -56,11 +56,11 @@ func New(dataDir string, curBlockHeight uint32) (*Indexer, error) {
 		if err != common3.ErrNotFound {
 			return nil, fmt.Errorf("new indexer: %s", err.Error())
 		}
-		err = backend.PutFilterStart(curBlockHeight + 1)
+		err = backend.PutFilterStart(curBlockHeight)
 		if err != nil {
 			return nil, fmt.Errorf("new indexer: %s", err.Error())
 		}
-		start = curBlockHeight + 1
+		start = curBlockHeight
 	}
 
 	indexer := &Indexer{
