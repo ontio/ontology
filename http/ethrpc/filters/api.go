@@ -403,9 +403,6 @@ func (api *PublicFilterAPI) GetFilterLogs(ctx context.Context, id rpc.ID) ([]*et
 		// Construct the range filter
 		filter = NewRangeFilter(api.backend, begin, end, f.crit.Addresses, f.crit.Topics)
 	}
-	if err != nil {
-		return nil, err
-	}
 	// Run the filter and return all the logs
 	logs, err := filter.Logs(ctx)
 	if err != nil {
