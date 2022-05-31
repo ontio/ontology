@@ -340,6 +340,9 @@ func (f *Filter) unindexedLogs(ctx context.Context, end uint64) ([]*ethtypes.Log
 		if err != nil {
 			return nil, err
 		}
+		if block == nil {
+			return logs, nil
+		}
 		if block.Header == nil {
 			return nil, fmt.Errorf("unknown block header %s", f.criteria.BlockHash.String())
 		}
