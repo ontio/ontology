@@ -315,6 +315,9 @@ func (f *Filter) indexedLogs(ctx context.Context, end uint64) ([]*ethtypes.Log, 
 			if err != nil {
 				return nil, err
 			}
+			if block == nil {
+				return nil, fmt.Errorf("block %v not found", number)
+			}
 			found, err := f.checkMatches(block.Hash())
 			if err != nil {
 				return logs, err
