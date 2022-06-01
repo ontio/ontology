@@ -321,7 +321,7 @@ func (api *PublicFilterAPI) NewFilter(criteria filters.FilterCriteria) (rpc.ID, 
 // https://github.com/ethereum/wiki/wiki/JSON-RPC#eth_getLogs
 func (api *PublicFilterAPI) GetLogs(ctx context.Context, criteria filters.FilterCriteria) ([]*ethtypes.Log, error) {
 	var filter *Filter
-	var err error
+
 	if criteria.BlockHash != nil {
 		// Block filter requested, construct a single-shot filter
 		filter = NewBlockFilter(api.backend, criteria)
@@ -337,10 +337,6 @@ func (api *PublicFilterAPI) GetLogs(ctx context.Context, criteria filters.Filter
 		}
 		// Construct the range filter
 		filter = NewRangeFilter(api.backend, begin, end, criteria.Addresses, criteria.Topics)
-	}
-
-	if err != nil {
-		return nil, err
 	}
 
 	// Run the filter and return all the logs
