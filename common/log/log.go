@@ -364,6 +364,7 @@ func createLog(logLevel int, a ...interface{}) *Logger {
 					os.Exit(1)
 				}
 				writers = append(writers, logFile)
+				PATH = o.(string)
 			case *os.File:
 				writers = append(writers, o.(*os.File))
 			default:
