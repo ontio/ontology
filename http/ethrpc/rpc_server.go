@@ -22,6 +22,7 @@ import (
 	"strconv"
 
 	"github.com/ethereum/go-ethereum/log"
+	"github.com/ethereum/go-ethereum/node"
 	"github.com/ethereum/go-ethereum/rpc"
 	cfg "github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/http/ethrpc/eth"
@@ -29,6 +30,16 @@ import (
 	"github.com/ontio/ontology/http/ethrpc/utils"
 	"github.com/ontio/ontology/http/ethrpc/web3"
 	tp "github.com/ontio/ontology/txnpool/proc"
+)
+
+var (
+	vhosts = []string{
+		"*",
+	}
+	// just like 20336/20334's Access-Control-Allow-Origin
+	cors = []string{
+		"*",
+	}
 )
 
 func StartEthServer(txpool *tp.TXPoolServer) error {
@@ -49,9 +60,14 @@ func StartEthServer(txpool *tp.TXPoolServer) error {
 	if err != nil {
 		return err
 	}
-	err = http.ListenAndServe(":"+strconv.Itoa(int(cfg.DefConfig.Rpc.EthJsonPort)), server)
+
+	// add cors wrapper
+	wrappedCORSHandler := node.NewHTTPHandlerStack(server, cors, vhosts)
+
+	err = http.ListenAndServe(":"+strconv.Itoa(int(cfg.DefConfig.Rpc.EthJsonPort)), wrappedCORSHandler)
 	if err != nil {
 		return err
 	}
+
 	return nil
 }
