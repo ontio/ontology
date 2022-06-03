@@ -62,7 +62,7 @@ func StartEthServer(txpool *tp.TXPoolServer) error {
 	}
 
 	// add cors wrapper
-	wrappedCORSHandler := node.NewHTTPHandlerStack(server, cors, []string{"*"})
+	wrappedCORSHandler := node.NewHTTPHandlerStack(server, cors, vhosts)
 
 	err = http.ListenAndServe(":"+strconv.Itoa(int(cfg.DefConfig.Rpc.EthJsonPort)), wrappedCORSHandler)
 	if err != nil {
