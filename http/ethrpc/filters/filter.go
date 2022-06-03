@@ -95,7 +95,7 @@ func NewRangeFilter(backend Backend, begin, end int64, addresses []common.Addres
 
 // newFilter returns a new Filter
 func newFilter(backend Backend, criteria filters.FilterCriteria, matcher *bloombits.Matcher) *Filter {
-	start := actor.GetIndexStore().GetFilterStart()
+	start := actor.GetFilterStart()
 	return &Filter{
 		backend:  backend,
 		criteria: criteria,

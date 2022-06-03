@@ -24,7 +24,7 @@ import (
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/rpc"
 	cfg "github.com/ontio/ontology/common/config"
-	"github.com/ontio/ontology/core/store/indexstore"
+	"github.com/ontio/ontology/core/store/ledgerstore"
 	"github.com/ontio/ontology/http/base/actor"
 	backend2 "github.com/ontio/ontology/http/ethrpc/backend"
 	"github.com/ontio/ontology/http/ethrpc/eth"
@@ -43,7 +43,7 @@ func StartEthServer(txpool *tp.TXPoolServer) error {
 	}
 
 	backend := backend2.NewBloomBackend()
-	err := backend.StartBloomHandlers(indexstore.BloomBitsBlocks, actor.GetIndexStore().GetDB())
+	err := backend.StartBloomHandlers(ledgerstore.BloomBitsBlocks, actor.GetIndexStore())
 	if err != nil {
 		return err
 	}

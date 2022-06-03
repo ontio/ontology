@@ -135,6 +135,10 @@ func (this *BlockStore) GetBlock(blockHash common.Uint256) (*types.Block, error)
 	return block, nil
 }
 
+func (this *BlockStore) GetDb() *leveldbstore.LevelDBStore {
+	return this.store
+}
+
 func (this *BlockStore) loadHeaderWithTx(blockHash common.Uint256) (*types.Header, []common.Uint256, error) {
 	key := genHeaderKey(blockHash)
 	value, err := this.store.Get(key)

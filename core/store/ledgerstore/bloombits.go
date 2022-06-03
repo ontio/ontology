@@ -15,7 +15,7 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
-package indexstore
+package ledgerstore
 
 import (
 	"encoding/binary"
@@ -57,8 +57,6 @@ const (
 	// bloomThrottling is the time to wait between processing two consecutive index
 	// sections. It's useful during chain upgrades to prevent disk overload.
 	bloomThrottling = 100 * time.Millisecond
-
-	bloomIdxDir = "bloomIdx"
 )
 
 var (

@@ -15,11 +15,10 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
-package indexstore
+package ledgerstore
 
 import (
 	"fmt"
-	"path/filepath"
 
 	"github.com/ethereum/go-ethereum/common"
 	types2 "github.com/ethereum/go-ethereum/core/types"
@@ -43,12 +42,10 @@ type Indexer struct {
 	storedSections uint32       // Number of sections successfully indexed into the database
 }
 
-func New(dataDir string, curBlockHeight uint32) (*Indexer, error) {
-	db, err := leveldbstore.NewLevelDBStore(filepath.Join(dataDir, bloomIdxDir))
-	if err != nil {
-		return nil, err
+func NewIndexer(db *leveldbstore.LevelDBStore, curBlockHeight uint32) (*Indexer, error) {
+	if db == nil {
+		return nil, fmt.Errorf("block store is nil")
 	}
-
 	backend := initBloomIndexer(db)
 
 	start, err := backend.GetFilterStart()

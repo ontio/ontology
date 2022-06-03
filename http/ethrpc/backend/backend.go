@@ -24,7 +24,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/bitutil"
 	"github.com/ethereum/go-ethereum/core/bloombits"
-	"github.com/ontio/ontology/core/store/indexstore"
+	"github.com/ontio/ontology/core/store/ledgerstore"
 	"github.com/ontio/ontology/core/store/leveldbstore"
 	"github.com/ontio/ontology/http/base/actor"
 )
@@ -47,8 +47,8 @@ func (b *BloomBackend) Close() {
 }
 
 func (b *BloomBackend) ServiceFilter(ctx context.Context, session *bloombits.MatcherSession) {
-	for i := 0; i < indexstore.BloomFilterThreads; i++ {
-		go session.Multiplex(indexstore.BloomRetrievalBatch, indexstore.BloomRetrievalWait, b.bloomRequests)
+	for i := 0; i < ledgerstore.BloomFilterThreads; i++ {
+		go session.Multiplex(ledgerstore.BloomRetrievalBatch, ledgerstore.BloomRetrievalWait, b.bloomRequests)
 	}
 }
 
@@ -59,8 +59,8 @@ func (b *BloomBackend) BloomStatus() (uint32, uint32) {
 // startBloomHandlers starts a batch of goroutines to accept bloom bit database
 // retrievals from possibly a range of filters and serving the data to satisfy.
 func (b *BloomBackend) StartBloomHandlers(sectionSize uint32, db *leveldbstore.LevelDBStore) error {
-	start := actor.GetIndexStore().GetFilterStart()
-	for i := 0; i < indexstore.BloomServiceThreads; i++ {
+	start := actor.GetFilterStart()
+	for i := 0; i < ledgerstore.BloomServiceThreads; i++ {
 		go func() {
 			for {
 				select {
@@ -73,7 +73,7 @@ func (b *BloomBackend) StartBloomHandlers(sectionSize uint32, db *leveldbstore.L
 					for i, section := range task.Sections {
 						height := ((uint32(section)+1)*sectionSize - 1) + start
 						hash := actor.GetBlockHashFromStore(height)
-						if compVector, err := indexstore.ReadBloomBits(db, task.Bit, uint32(section), common.Hash(hash)); err == nil {
+						if compVector, err := ledgerstore.ReadBloomBits(db, task.Bit, uint32(section), common.Hash(hash)); err == nil {
 							if blob, err := bitutil.DecompressBytes(compVector, int(sectionSize/8)); err == nil {
 								task.Bitsets[i] = blob
 							} else {

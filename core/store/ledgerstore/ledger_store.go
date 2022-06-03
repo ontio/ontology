@@ -44,7 +44,7 @@ import (
 	"github.com/ontio/ontology/core/states"
 	"github.com/ontio/ontology/core/store"
 	scom "github.com/ontio/ontology/core/store/common"
-	"github.com/ontio/ontology/core/store/indexstore"
+	"github.com/ontio/ontology/core/store/leveldbstore"
 	"github.com/ontio/ontology/core/store/overlaydb"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/errors"
@@ -92,7 +92,7 @@ type LedgerStoreImp struct {
 	stateStore           *StateStore                      //StateStore for saving state data, like balance, smart contract execution result, and so on.
 	eventStore           *EventStore                      //EventStore for saving log those gen after smart contract executed.
 	crossChainStore      *CrossChainStore                 //crossChainStore for saving cross chain msg.
-	indexStore           *indexstore.Indexer              //indexStore bloom index for logs.
+	indexStore           *Indexer                         //indexStore bloom index for logs.
 	storedIndexCount     uint32                           //record the count of have saved block index
 	currBlockHeight      uint32                           //Current block height
 	currBlockHash        common.Uint256                   //Current block hash
@@ -153,7 +153,7 @@ func NewLedgerStore(dataDir string, stateHashHeight uint32) (*LedgerStoreImp, er
 		currentBlockHeight = 0
 	}
 
-	index, err := indexstore.New(dataDir, currentBlockHeight)
+	index, err := NewIndexer(blockStore.GetDb(), currentBlockHeight)
 	if err != nil {
 		return nil, fmt.Errorf("InitIndexer error %s", err)
 	}
@@ -447,8 +447,12 @@ func (this *LedgerStoreImp) GetCurrentBlockHash() common.Uint256 {
 	return this.currBlockHash
 }
 
-func (this *LedgerStoreImp) GetIndexer() *indexstore.Indexer {
-	return this.indexStore
+func (this *LedgerStoreImp) GetFilterStart() uint32 {
+	return this.indexStore.GetFilterStart()
+}
+
+func (this *LedgerStoreImp) GetIndexStore() *leveldbstore.LevelDBStore {
+	return this.indexStore.GetDB()
 }
 
 //GetCurrentBlockHeight return the current block height
@@ -1402,7 +1406,7 @@ func (this *LedgerStoreImp) ClearBloomCache(begin, end uint32) {
 
 func (this *LedgerStoreImp) BloomStatus() (uint32, uint32) {
 	sections := this.indexStore.StoredSection()
-	return indexstore.BloomBitsBlocks, sections
+	return BloomBitsBlocks, sections
 }
 
 //PreExecuteContract return the result of smart contract execution without commit to store
