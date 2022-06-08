@@ -22,7 +22,6 @@ import (
 	"io"
 	"time"
 
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/bitutil"
 	"github.com/ethereum/go-ethereum/core/bloombits"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -53,12 +52,6 @@ const (
 	BloomBitsBlocks uint32 = 4096
 )
 
-const (
-	// bloomThrottling is the time to wait between processing two consecutive index
-	// sections. It's useful during chain upgrades to prevent disk overload.
-	bloomThrottling = 100 * time.Millisecond
-)
-
 var (
 	bloomBitsPrefix = []byte("B") // bloomBitsPrefix + bit (uint16 big endian) + section (uint32 big endian) + hash -> bloom bits
 )
@@ -69,56 +62,37 @@ type bloomIndexer struct {
 	store   *leveldbstore.LevelDBStore // database instance to write index data and metadata into
 	gen     *bloombits.Generator       // generator to rotate the bloom bits crating the bloom index
 	section uint32                     // Section is the section number being processed currently
-	head    common.Hash                // Head is the hash of the last header processed
 }
 
-func initBloomIndexer(store *leveldbstore.LevelDBStore) bloomIndexer {
-	return bloomIndexer{
-		store: store,
-	}
-}
-
-// Reset implements core.ChainIndexerBackend, starting a new bloombits index
-// section.
-func (b *bloomIndexer) Reset(section uint32) {
+func NewBloomIndexer(store *leveldbstore.LevelDBStore, section uint32) bloomIndexer {
 	gen, err := bloombits.NewGenerator(uint(BloomBitsBlocks))
 	if err != nil {
 		panic(err) // never fired since BloomBitsBlocks is multiple of 8
 	}
-	b.gen, b.section, b.head = gen, section, common.Hash{}
+	b := bloomIndexer{
+		store: store,
+	}
+	b.gen, b.section = gen, section
+	return b
 }
 
 // Process implements core.ChainIndexerBackend, adding a new header's bloom into
 // the index.
-func (b *bloomIndexer) Process(hash common.Hash, height uint32, bloom types.Bloom, start uint32) {
-	b.gen.AddBloom(uint(height-b.section*BloomBitsBlocks-start), bloom)
-	b.head = hash
+func (b *bloomIndexer) Process(height uint32, bloom types.Bloom) {
+	b.gen.AddBloom(uint(height-b.section*BloomBitsBlocks), bloom)
 }
 
 // Commit implements core.ChainIndexerBackend, finalizing the bloom section and
 // writing it out into the database.
-func (b *bloomIndexer) Commit() error {
-	b.NewBatch()
+func (b *bloomIndexer) BatchPut() {
 	for i := 0; i < types.BloomBitLength; i++ {
 		bits, err := b.gen.Bitset(uint(i))
 		if err != nil {
-			return err
+			panic(err) // never fired since idx is always less than 8 and section should be right
 		}
 		value := bitutil.CompressBytes(bits)
-		b.store.BatchPut(bloomBitsKey(uint(i), b.section, b.head), value)
+		b.store.BatchPut(bloomBitsKey(uint(i), b.section), value)
 	}
-	err := b.CommitTo()
-	return err
-}
-
-//NewBatch start a commit batch
-func (this *bloomIndexer) NewBatch() {
-	this.store.NewBatch()
-}
-
-//CommitTo commit the batch to store
-func (this *bloomIndexer) CommitTo() error {
-	return this.store.BatchCommit()
 }
 
 func (this *bloomIndexer) PutFilterStart(height uint32) error {
@@ -145,25 +119,9 @@ func genFilterStartKey() []byte {
 	return []byte{byte(scom.ST_ETH_FILTER_START)}
 }
 
-// setValidSections writes the number of valid sections to the index database
-func (this *bloomIndexer) SetValidSections(sections uint32) error {
-	// Set the current number of valid sections in the database
-	var data [4]byte
-	binary.BigEndian.PutUint32(data[:], sections)
-	return this.store.Put([]byte{byte(scom.ST_ETH_SECTIONS_COUNT)}, data[:])
-}
-
-func (this *bloomIndexer) GetValidSections() uint32 {
-	data, _ := this.store.Get([]byte{byte(scom.ST_ETH_SECTIONS_COUNT)})
-	if len(data) == 4 {
-		return binary.BigEndian.Uint32(data)
-	}
-	return 0
-}
-
-// bloomBitsKey = bloomBitsPrefix + bit (uint16 big endian) + section (uint32 big endian) + hash
-func bloomBitsKey(bit uint, section uint32, hash common.Hash) []byte {
-	key := append(append(bloomBitsPrefix, make([]byte, 6)...), hash.Bytes()...)
+// bloomBitsKey = bloomBitsPrefix + bit (uint16 big endian) + section (uint32 big endian)
+func bloomBitsKey(bit uint, section uint32) []byte {
+	key := append(bloomBitsPrefix, make([]byte, 6)...)
 
 	binary.BigEndian.PutUint16(key[1:], uint16(bit))
 	binary.BigEndian.PutUint32(key[3:], section)
@@ -173,6 +131,6 @@ func bloomBitsKey(bit uint, section uint32, hash common.Hash) []byte {
 
 // ReadBloomBits retrieves the compressed bloom bit vector belonging to the given
 // section and bit index from the.
-func ReadBloomBits(db *leveldbstore.LevelDBStore, bit uint, section uint32, head common.Hash) ([]byte, error) {
-	return db.Get(bloomBitsKey(bit, section, head))
+func ReadBloomBits(db *leveldbstore.LevelDBStore, bit uint, section uint32) ([]byte, error) {
+	return db.Get(bloomBitsKey(bit, section))
 }

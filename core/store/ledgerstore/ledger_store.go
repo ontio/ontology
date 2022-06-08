@@ -92,7 +92,6 @@ type LedgerStoreImp struct {
 	stateStore           *StateStore                      //StateStore for saving state data, like balance, smart contract execution result, and so on.
 	eventStore           *EventStore                      //EventStore for saving log those gen after smart contract executed.
 	crossChainStore      *CrossChainStore                 //crossChainStore for saving cross chain msg.
-	indexStore           *Indexer                         //indexStore bloom index for logs.
 	storedIndexCount     uint32                           //record the count of have saved block index
 	currBlockHeight      uint32                           //Current block height
 	currBlockHash        common.Uint256                   //Current block hash
@@ -145,20 +144,6 @@ func NewLedgerStore(dataDir string, stateHashHeight uint32) (*LedgerStoreImp, er
 	}
 	ledgerStore.eventStore = eventState
 
-	_, currentBlockHeight, err := blockStore.GetCurrentBlock()
-	if err != nil {
-		if err != scom.ErrNotFound {
-			return nil, fmt.Errorf("GetCurrentBlock error %s", err)
-		}
-		currentBlockHeight = 0
-	}
-
-	index, err := NewIndexer(blockStore.GetDb(), currentBlockHeight)
-	if err != nil {
-		return nil, fmt.Errorf("InitIndexer error %s", err)
-	}
-	ledgerStore.indexStore = index
-
 	return ledgerStore, nil
 }
 
@@ -172,6 +157,10 @@ func (this *LedgerStoreImp) InitLedgerStoreWithGenesisBlock(genesisBlock *types.
 		err = this.blockStore.ClearAll()
 		if err != nil {
 			return fmt.Errorf("blockStore.ClearAll error %s", err)
+		}
+		err = this.blockStore.PutFilterStart(0)
+		if err != nil {
+			return fmt.Errorf("blockStore.PutFilterStart error %s", err)
 		}
 		err = this.stateStore.ClearAll()
 		if err != nil {
@@ -291,9 +280,37 @@ func (this *LedgerStoreImp) init() error {
 	if err != nil {
 		return fmt.Errorf("recoverStore error %s", err)
 	}
-	err = this.loadBloomCache()
+	err = this.loadBloomBits()
 	if err != nil {
-		return fmt.Errorf("loadBloomCache error %s", err)
+		return fmt.Errorf("loadBloomBits error %s", err)
+	}
+	return nil
+}
+
+func (this *LedgerStoreImp) loadBloomBits() error {
+	_, currentBlockHeight, err := this.blockStore.GetCurrentBlock()
+	if err != nil {
+		if err != scom.ErrNotFound {
+			return fmt.Errorf("LoadCurrentBlock error %s", err)
+		}
+		return nil
+	}
+
+	if currentBlockHeight < this.blockStore.filterStart {
+		return nil
+	}
+
+	start := currentBlockHeight - currentBlockHeight%BloomBitsBlocks
+	if start < this.blockStore.filterStart {
+		start = this.blockStore.filterStart
+	}
+
+	for i := start; i <= currentBlockHeight; i++ {
+		bloom, err := this.blockStore.GetBloomData(i)
+		if err != nil {
+			return fmt.Errorf("LoadBloom error %s", err)
+		}
+		this.blockStore.Process(i, bloom)
 	}
 	return nil
 }
@@ -329,20 +346,6 @@ func (this *LedgerStoreImp) loadHeaderIndexList() error {
 			return fmt.Errorf("LoadBlockHash height %d hash nil", height)
 		}
 		this.headerIndex[height] = blockHash
-	}
-	return nil
-}
-
-func (this *LedgerStoreImp) loadBloomCache() error {
-	curBlockHeight := this.GetCurrentBlockHeight()
-	start := this.indexStore.GetFilterStart()
-	BloomBitsBlocks, storedSections := this.BloomStatus()
-	for i := storedSections*BloomBitsBlocks + start; i <= curBlockHeight; i++ {
-		bloom, err := this.GetBloomData(i)
-		if err != nil {
-			return err
-		}
-		this.setBloomCache(i, bloom)
 	}
 	return nil
 }
@@ -448,11 +451,11 @@ func (this *LedgerStoreImp) GetCurrentBlockHash() common.Uint256 {
 }
 
 func (this *LedgerStoreImp) GetFilterStart() uint32 {
-	return this.indexStore.GetFilterStart()
+	return this.blockStore.filterStart
 }
 
 func (this *LedgerStoreImp) GetIndexStore() *leveldbstore.LevelDBStore {
-	return this.indexStore.GetDB()
+	return this.blockStore.GetDb()
 }
 
 //GetCurrentBlockHeight return the current block height
@@ -783,8 +786,9 @@ func (this *LedgerStoreImp) saveBlockToBlockStore(block *types.Block, bloom type
 	if err != nil {
 		return fmt.Errorf("SaveBlock height %d hash %s error %s", blockHeight, blockHash.ToHexString(), err)
 	}
-	this.blockStore.SaveBloomData(blockHeight, bloom)
-	this.setBloomCache(blockHeight, bloom)
+	if blockHeight >= config.GetAddDecimalsHeight() {
+		this.blockStore.SaveBloomData(blockHeight, bloom)
+	}
 	return nil
 }
 
@@ -1009,6 +1013,10 @@ func (this *LedgerStoreImp) tryPruneBlock(header *types.Header) bool {
 	return true
 }
 
+func (this *LedgerStoreImp) BloomStatus() (uint32, uint32) {
+	return BloomBitsBlocks, this.currBlockHeight / BloomBitsBlocks
+}
+
 //saveBlock do the job of execution samrt contract and commit block to store.
 func (this *LedgerStoreImp) submitBlock(block *types.Block, crossChainMsg *types.CrossChainMsg, result store.ExecuteResult) error {
 	blockHash := block.Hash()
@@ -1051,11 +1059,6 @@ func (this *LedgerStoreImp) submitBlock(block *types.Block, crossChainMsg *types
 		return fmt.Errorf("stateStore.CommitTo height:%d error %s", blockHeight, err)
 	}
 	this.setCurrentBlock(blockHeight, blockHash)
-
-	err = this.indexStore.ProcessSection(this, blockHeight)
-	if err != nil {
-		return err
-	}
 
 	if events.DefActorPublisher != nil {
 		events.DefActorPublisher.Publish(
@@ -1374,39 +1377,7 @@ func (this *LedgerStoreImp) GetEthAccount(address common2.Address) (*storage.Eth
 }
 
 func (this *LedgerStoreImp) GetBloomData(height uint32) (types3.Bloom, error) {
-	if v := this.getBloomCache(height); v != nil {
-		return *v, nil
-	}
 	return this.blockStore.GetBloomData(height)
-}
-
-func (this *LedgerStoreImp) setBloomCache(height uint32, bloom types3.Bloom) {
-	this.lock.Lock()
-	defer this.lock.Unlock()
-	this.bloomCache[height] = &bloom
-}
-
-func (this *LedgerStoreImp) getBloomCache(height uint32) *types3.Bloom {
-	this.lock.Lock()
-	defer this.lock.Unlock()
-	v, ok := this.bloomCache[height]
-	if !ok {
-		return nil
-	}
-	return v
-}
-
-func (this *LedgerStoreImp) ClearBloomCache(begin, end uint32) {
-	this.lock.Lock()
-	defer this.lock.Unlock()
-	for i := begin; i <= end; i++ {
-		delete(this.bloomCache, i)
-	}
-}
-
-func (this *LedgerStoreImp) BloomStatus() (uint32, uint32) {
-	sections := this.indexStore.StoredSection()
-	return BloomBitsBlocks, sections
 }
 
 //PreExecuteContract return the result of smart contract execution without commit to store
@@ -1589,10 +1560,6 @@ func (this *LedgerStoreImp) Close() error {
 	err = this.stateStore.Close()
 	if err != nil {
 		return fmt.Errorf("stateStore close error %s", err)
-	}
-	err = this.indexStore.Close()
-	if err != nil {
-		return fmt.Errorf("indexStore close error %s", err)
 	}
 	return nil
 }

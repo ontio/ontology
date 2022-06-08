@@ -67,7 +67,6 @@ type LedgerStore interface {
 	GetBlockByHeight(height uint32) (*types.Block, error)
 	GetTransaction(txHash common.Uint256) (*types.Transaction, uint32, error)
 	GetBloomData(height uint32) (types2.Bloom, error)
-	ClearBloomCache(begin, end uint32)
 	BloomStatus() (uint32, uint32)
 	IsContainBlock(blockHash common.Uint256) (bool, error)
 	IsContainTransaction(txHash common.Uint256) (bool, error)

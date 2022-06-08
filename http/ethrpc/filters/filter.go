@@ -156,19 +156,16 @@ func (f *Filter) Logs(ctx context.Context) ([]*ethtypes.Log, error) {
 	begin := f.criteria.FromBlock.Uint64()
 	end := f.criteria.ToBlock.Uint64()
 	size, sections := actor.BloomStatus()
-	if indexed := uint64(sections*size + f.start); indexed > begin {
-		// update from block height
-		f.criteria.FromBlock.Sub(f.criteria.FromBlock, big.NewInt(int64(f.start)))
+
+	if indexed := uint64(sections * size); indexed > begin {
 		if indexed > end {
-			logs, err = f.indexedLogs(ctx, end-uint64(f.start))
+			logs, err = f.indexedLogs(ctx, end)
 		} else {
-			logs, err = f.indexedLogs(ctx, indexed-1-uint64(f.start))
+			logs, err = f.indexedLogs(ctx, indexed-1)
 		}
 		if err != nil {
 			return logs, err
 		}
-		// recover from block height
-		f.criteria.FromBlock.Add(f.criteria.FromBlock, big.NewInt(int64(f.start)))
 	}
 	rest, err := f.unindexedLogs(ctx, end)
 	logs = append(logs, rest...)
@@ -298,7 +295,6 @@ func (f *Filter) indexedLogs(ctx context.Context, end uint64) ([]*ethtypes.Log, 
 	for {
 		select {
 		case number, ok := <-matches:
-			number += uint64(f.start)
 
 			// Abort if all matches have been fulfilled
 			if !ok {
