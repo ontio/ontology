@@ -47,7 +47,6 @@ type Filter struct {
 	backend  Backend
 	criteria filters.FilterCriteria
 	matcher  *bloombits.Matcher
-	start    uint32
 }
 
 // NewBlockFilter creates a new filter which directly inspects the contents of
@@ -95,12 +94,10 @@ func NewRangeFilter(backend Backend, begin, end int64, addresses []common.Addres
 
 // newFilter returns a new Filter
 func newFilter(backend Backend, criteria filters.FilterCriteria, matcher *bloombits.Matcher) *Filter {
-	start := actor.GetFilterStart()
 	return &Filter{
 		backend:  backend,
 		criteria: criteria,
 		matcher:  matcher,
-		start:    start,
 	}
 }
 
@@ -144,9 +141,11 @@ func (f *Filter) Logs(ctx context.Context) ([]*ethtypes.Log, error) {
 		f.criteria.ToBlock = big.NewInt(int64(curHeight))
 	}
 
-	if f.criteria.FromBlock.Int64() < int64(f.start) ||
-		f.criteria.ToBlock.Int64() < int64(f.start) {
-		return nil, fmt.Errorf("from and to block height must greater than %d", int64(f.start))
+	start := actor.GetFilterStart()
+
+	if f.criteria.FromBlock.Int64() < int64(start) ||
+		f.criteria.ToBlock.Int64() < int64(start) {
+		return nil, fmt.Errorf("from and to block height must greater than %d", int64(start))
 	}
 
 	if f.criteria.ToBlock.Int64()-f.criteria.FromBlock.Int64() > MAX_SEARCH_RANGE {
