@@ -82,7 +82,7 @@ func (b *bloomIndexer) Process(height uint32, bloom types.Bloom) {
 	b.gen.AddBloom(uint(height-b.section*BloomBitsBlocks), bloom)
 }
 
-// Commit implements core.ChainIndexerBackend, finalizing the bloom section and
+// BatchPut implements core.ChainIndexerBackend, finalizing the bloom section and
 // writing it out into the database.
 func (b *bloomIndexer) BatchPut() {
 	for i := 0; i < types.BloomBitLength; i++ {
