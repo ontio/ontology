@@ -76,16 +76,6 @@ func NewBloomIndexer(store *leveldbstore.LevelDBStore, section uint32) bloomInde
 	return b
 }
 
-// Reset implements core.ChainIndexerBackend, starting a new bloombits index
-// section.
-//func (b *bloomIndexer) Reset(section uint32) {
-//	gen, err := bloombits.NewGenerator(uint(BloomBitsBlocks))
-//	if err != nil {
-//		panic(err) // never fired since BloomBitsBlocks is multiple of 8
-//	}
-//	b.gen, b.section = gen, section
-//}
-
 // Process implements core.ChainIndexerBackend, adding a new header's bloom into
 // the index.
 func (b *bloomIndexer) Process(height uint32, bloom types.Bloom) {
