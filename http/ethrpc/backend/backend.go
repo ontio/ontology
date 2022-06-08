@@ -20,12 +20,12 @@ package backend
 
 import (
 	"context"
-	"github.com/ontio/ontology/http/base/actor"
 
 	"github.com/ethereum/go-ethereum/common/bitutil"
 	"github.com/ethereum/go-ethereum/core/bloombits"
 	"github.com/ontio/ontology/core/store/ledgerstore"
 	"github.com/ontio/ontology/core/store/leveldbstore"
+	"github.com/ontio/ontology/http/base/actor"
 )
 
 type BloomBackend struct {

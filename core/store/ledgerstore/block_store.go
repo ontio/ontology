@@ -22,11 +22,11 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	"github.com/ontio/ontology/common/config"
 	"io"
 
 	types2 "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/serialization"
 	scom "github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/core/store/leveldbstore"
