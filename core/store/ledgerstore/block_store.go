@@ -35,11 +35,11 @@ import (
 
 //Block store save the data of block & transaction
 type BlockStore struct {
-	enableCache bool         //Is enable lru cache
-	dbDir       string       //The path of store file
-	cache       *BlockCache  //The cache of block, if have.
-	indexer     bloomIndexer // Background processor generating the index data content
-	filterStart uint32
+	enableCache bool                       //Is enable lru cache
+	dbDir       string                     //The path of store file
+	cache       *BlockCache                //The cache of block, if have.
+	indexer     bloomIndexer               // Background processor generating the index data content
+	filterStart uint32                     // Start block that filter supported
 	store       *leveldbstore.LevelDBStore //block store handler
 }
 
