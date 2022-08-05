@@ -645,7 +645,7 @@ GET
 ```
 #### Request Example:
 ```
-curl -i http://polaris2.ont.io:20334/api/v1/gasprice
+curl -i http://localhost:20334/api/v1/gasprice
 ```
 #### Response
 ```
