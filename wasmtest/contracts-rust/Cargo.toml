@@ -1,8 +1,7 @@
 [workspace]
 members = [
     "helloworld",
-    "contractop",
-	"js-vm"
+    "contractop"
 ]
 
 [profile.release]

@@ -209,13 +209,16 @@ fn testcase() -> String {
 
         {"method":"storage_write"},
         {"method":"storage_write2"},
-        {"needcontext":true, "env":{"witness":[]}, "method":"test_callwasm", "param":"string:add, int:1, int:2", "expected":"int:3"},
-        {"needcontext":true, "env":{"witness":[]}, "method":"test_calljsvm", "param":"string:evaluate,string:function fib(n) {if(n<=0){return 1;} else if (n == 1) {return 1;} else { return fib(n-1) + fib(n-2);}} fib(3)", "expected":"string:3"},
-        {"needcontext":true, "env":{"witness":[]}, "method":"test_calljsvm", "param":"string:evaluate,string:function sum(a) {var sum = 0;var i = 0;while (i<a) {sum = sum + i;i = i + 1;} return sum;};sum(5);", "expected":"string:10"},
-        {"needcontext":true, "env":{"witness":[]}, "method":"test_calljsvm", "param":"string:evaluate,string:function mul(a) { return a*a;}; function sum(n) { let sum = 0; let i = 0; while( i<n) { sum = sum + mul(i);i = i + 1}; return sum;};sum(10);", "expected":"string:285"},
         {"method":"test_migrate"}
         ]
     ]
         "#
     .to_string()
 }
+
+/*
+        {"needcontext":true, "env":{"witness":[]}, "method":"test_callwasm", "param":"string:add, int:1, int:2", "expected":"int:3"},
+        {"needcontext":true, "env":{"witness":[]}, "method":"test_calljsvm", "param":"string:evaluate,string:function fib(n) {if(n<=0){return 1;} else if (n == 1) {return 1;} else { return fib(n-1) + fib(n-2);}} fib(3)", "expected":"string:3"},
+        {"needcontext":true, "env":{"witness":[]}, "method":"test_calljsvm", "param":"string:evaluate,string:function sum(a) {var sum = 0;var i = 0;while (i<a) {sum = sum + i;i = i + 1;} return sum;};sum(5);", "expected":"string:10"},
+        {"needcontext":true, "env":{"witness":[]}, "method":"test_calljsvm", "param":"string:evaluate,string:function mul(a) { return a*a;}; function sum(n) { let sum = 0; let i = 0; while( i<n) { sum = sum + mul(i);i = i + 1}; return sum;};sum(10);", "expected":"string:285"},
+ */
