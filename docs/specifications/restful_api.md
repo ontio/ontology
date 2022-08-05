@@ -648,7 +648,7 @@ GET
 ```
 #### Request Example:
 ```
-curl -i http://localhost:20334/api/v1/block/height/txhash/3e23cf222a47739d4141255da617cd42925a12638ac19cadcc85501f907972c8
+curl -i http://localhost:20334/api/v1/gasprice
 ```
 #### Response
 ```
@@ -657,8 +657,8 @@ curl -i http://localhost:20334/api/v1/block/height/txhash/3e23cf222a47739d414125
     "Desc": "SUCCESS",
     "Error": 0,
     "Result": {
-          "gasprice": 0,
-          "height": 1
+          "gasprice": 2500,
+          "height": 16947486
     },
     "Version": "1.0.0"
 }
