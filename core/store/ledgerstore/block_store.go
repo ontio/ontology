@@ -24,7 +24,9 @@ import (
 	"fmt"
 	"io"
 
+	types2 "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/serialization"
 	scom "github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/core/store/leveldbstore"
@@ -36,6 +38,8 @@ type BlockStore struct {
 	enableCache bool                       //Is enable lru cache
 	dbDir       string                     //The path of store file
 	cache       *BlockCache                //The cache of block, if have.
+	indexer     bloomIndexer               // Background processor generating the index data content
+	filterStart uint32                     // Start block that filter supported
 	store       *leveldbstore.LevelDBStore //block store handler
 }
 
@@ -54,18 +58,60 @@ func NewBlockStore(dbDir string, enableCache bool) (*BlockStore, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	blockStore := &BlockStore{
 		dbDir:       dbDir,
 		enableCache: enableCache,
 		store:       store,
 		cache:       cache,
 	}
+
+	_, curBlockHeight, err := blockStore.GetCurrentBlock()
+	if err != nil {
+		if err != scom.ErrNotFound {
+			return nil, fmt.Errorf("get current block: %s", err.Error())
+		}
+		curBlockHeight = 0
+	}
+
+	indexer := NewBloomIndexer(store, curBlockHeight/BloomBitsBlocks)
+
+	start, err := indexer.GetFilterStart()
+	if err != nil {
+		if err != scom.ErrNotFound {
+			return nil, fmt.Errorf("get filter start: %s", err.Error())
+		}
+
+		var tmp uint32
+		if curBlockHeight < config.GetAddDecimalsHeight() {
+			tmp = config.GetAddDecimalsHeight()
+		} else {
+			tmp = curBlockHeight
+		}
+		err = indexer.PutFilterStart(tmp)
+		if err != nil {
+			return nil, fmt.Errorf("put filter start: %s", err.Error())
+		}
+		start = tmp
+	}
+
+	blockStore.indexer = indexer
+	blockStore.filterStart = start
+
 	return blockStore, nil
+}
+
+func (this *BlockStore) PutFilterStart(height uint32) error {
+	return this.indexer.PutFilterStart(height)
 }
 
 //NewBatch start a commit batch
 func (this *BlockStore) NewBatch() {
 	this.store.NewBatch()
+}
+
+func (this *BlockStore) GetIndexer() bloomIndexer {
+	return this.indexer
 }
 
 //SaveBlock persist block to store
@@ -132,6 +178,10 @@ func (this *BlockStore) GetBlock(blockHash common.Uint256) (*types.Block, error)
 		Transactions: txList,
 	}
 	return block, nil
+}
+
+func (this *BlockStore) GetDb() *leveldbstore.LevelDBStore {
+	return this.store
 }
 
 func (this *BlockStore) loadHeaderWithTx(blockHash common.Uint256) (*types.Header, []common.Uint256, error) {
@@ -346,6 +396,40 @@ func (this *BlockStore) GetBlockHash(height uint32) (common.Uint256, error) {
 func (this *BlockStore) SaveBlockHash(height uint32, blockHash common.Uint256) {
 	key := genBlockHashKey(height)
 	this.store.BatchPut(key, blockHash.ToArray())
+}
+
+//SaveBloomData persist block bloom data to store
+func (this *BlockStore) SaveBloomData(height uint32, bloom types2.Bloom) {
+	this.Process(height, bloom)
+	if height != 0 && height%BloomBitsBlocks == 0 {
+		this.indexer.BatchPut()
+	}
+	key := this.genBloomKey(height)
+	this.store.BatchPut(key, bloom.Bytes())
+}
+
+func (this *BlockStore) Process(height uint32, bloom types2.Bloom) {
+	this.indexer.Process(height, bloom)
+}
+
+//GetBloomData return bloom data by block height
+func (this *BlockStore) GetBloomData(height uint32) (types2.Bloom, error) {
+	key := this.genBloomKey(height)
+	value, err := this.store.Get(key)
+	if err != nil && err != scom.ErrNotFound {
+		return types2.Bloom{}, err
+	}
+	if err == scom.ErrNotFound {
+		return types2.Bloom{}, nil
+	}
+	return types2.BytesToBloom(value), nil
+}
+
+func (this *BlockStore) genBloomKey(height uint32) []byte {
+	temp := make([]byte, 5)
+	temp[0] = byte(scom.DATA_BLOOM)
+	binary.LittleEndian.PutUint32(temp[1:], height)
+	return temp
 }
 
 //SaveTransaction persist transaction to store

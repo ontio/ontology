@@ -27,16 +27,14 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ontio/ontology/core/states"
-
 	"github.com/laizy/bigint"
-
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/constants"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/core/payload"
+	"github.com/ontio/ontology/core/states"
 	"github.com/ontio/ontology/core/types"
 	cutils "github.com/ontio/ontology/core/utils"
 	ontErrors "github.com/ontio/ontology/errors"

@@ -24,6 +24,7 @@ import (
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/core/payload"
+	"github.com/ontio/ontology/core/store/leveldbstore"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract/event"
 	types3 "github.com/ontio/ontology/smartcontract/service/evm/types"
@@ -140,4 +141,20 @@ func GetEthStorage(addr common2.Address, key common2.Hash) ([]byte, error) {
 func PreExecuteEip155Tx(msg types2.Message) (*types3.ExecutionResult, error) {
 	res, err := ledger.DefLedger.PreExecuteEip155Tx(msg)
 	return res, err
+}
+
+func BloomStatus() (uint32, uint32) {
+	return ledger.DefLedger.BloomStatus()
+}
+
+func GetBloomData(height uint32) (types2.Bloom, error) {
+	return ledger.DefLedger.GetBloomData(height)
+}
+
+func GetFilterStart() uint32 {
+	return ledger.DefLedger.GetFilterStart()
+}
+
+func GetIndexStore() *leveldbstore.LevelDBStore {
+	return ledger.DefLedger.GetIndexStore()
 }

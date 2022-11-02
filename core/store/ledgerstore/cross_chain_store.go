@@ -78,6 +78,11 @@ func (this *CrossChainStore) GetCrossChainMsg(height uint32) (*types.CrossChainM
 	return msg, nil
 }
 
+//Close CrossChainStore store
+func (this *CrossChainStore) Close() error {
+	return this.store.Close()
+}
+
 func (this *CrossChainStore) genCrossChainMsgKey(height uint32) []byte {
 	temp := make([]byte, 5)
 	temp[0] = byte(scom.SYS_CROSS_CHAIN_MSG)

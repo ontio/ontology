@@ -19,13 +19,11 @@
 package event
 
 import (
-	"errors"
 	"fmt"
-
-	"github.com/ontio/ontology/common/constants"
 
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/constants"
 	"github.com/ontio/ontology/core/types"
 )
 
@@ -80,23 +78,27 @@ func NotifyEventInfoFromEvmLog(log *types.StorageLog) *NotifyEventInfo {
 	}
 }
 
-func NotifyEventInfoToEvmLog(info *NotifyEventInfo) (*types.StorageLog, error) {
-	n := info
+func NotifyEventInfoToEvmLog(n *NotifyEventInfo) (*types.StorageLog, error) {
 	if !n.IsEvm {
 		return nil, fmt.Errorf("not evm event")
 	}
-	states, ok := n.States.(string)
-	if !ok {
-		return nil, errors.New("event info states is not string")
+
+	var data []byte
+	var err error
+	switch val := n.States.(type) {
+	case string:
+		if data, err = hexutil.Decode(val); err != nil {
+			return nil, err
+		}
+	case hexutil.Bytes:
+		data = val
+	default:
+		return nil, fmt.Errorf("not support such states type")
 	}
-	data, err := hexutil.Decode(states)
-	if err != nil {
-		return nil, err
-	}
+
 	source := common.NewZeroCopySource(data)
 	var storageLog types.StorageLog
-	err = storageLog.Deserialization(source)
-	if err != nil {
+	if err = storageLog.Deserialization(source); err != nil {
 		return nil, err
 	}
 

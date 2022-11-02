@@ -33,6 +33,8 @@ import (
 	"github.com/ontio/ontology/core/ledger"
 	txtypes "github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/errors"
+	"github.com/ontio/ontology/events"
+	"github.com/ontio/ontology/events/message"
 	msgpack "github.com/ontio/ontology/p2pserver/message/msg_pack"
 	p2p "github.com/ontio/ontology/p2pserver/net/protocol"
 	tc "github.com/ontio/ontology/txnpool/common"
@@ -218,6 +220,10 @@ func (s *TXPoolServer) setPendingTx(tx *txtypes.Transaction, sender tc.SenderTyp
 	}
 
 	s.allPendingTxs[tx.Hash()] = pt
+	if ethTx, err := tx.GetEIP155Tx(); err == nil && events.DefActorPublisher != nil {
+		events.DefActorPublisher.Publish(message.TOPIC_PENDING_TX_EVENT,
+			&message.PendingTxMsg{Event: []*ethtype.Transaction{ethTx}})
+	}
 	return pt
 }
 

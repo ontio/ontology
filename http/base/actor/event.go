@@ -27,6 +27,9 @@ import (
 type EventActor struct {
 	blockPersistCompleted func(v interface{})
 	smartCodeEvt          func(v interface{})
+	chainEvt              func(v interface{})
+	ethSmartCodeEvt       func(v interface{})
+	pendingTxEvt          func(v interface{})
 }
 
 //receive from subscribed actor
@@ -36,6 +39,12 @@ func (t *EventActor) Receive(c actor.Context) {
 		t.blockPersistCompleted(*msg.Block)
 	case *message.SmartCodeEventMsg:
 		t.smartCodeEvt(*msg.Event)
+	case *message.ChainEventMsg:
+		t.chainEvt(*msg.ChainEvent)
+	case *message.PendingTxMsg:
+		t.pendingTxEvt(msg.Event)
+	case *message.EthSmartCodeEventMsg:
+		t.ethSmartCodeEvt(msg.Event)
 	default:
 	}
 }
@@ -47,6 +56,12 @@ func SubscribeEvent(topic string, handler func(v interface{})) {
 			return &EventActor{blockPersistCompleted: handler}
 		} else if topic == message.TOPIC_SMART_CODE_EVENT {
 			return &EventActor{smartCodeEvt: handler}
+		} else if topic == message.TOPIC_PENDING_TX_EVENT {
+			return &EventActor{pendingTxEvt: handler}
+		} else if topic == message.TOPIC_ETH_SC_EVENT {
+			return &EventActor{ethSmartCodeEvt: handler}
+		} else if topic == message.TOPIC_CHAIN_EVENT {
+			return &EventActor{chainEvt: handler}
 		} else {
 			return &EventActor{}
 		}

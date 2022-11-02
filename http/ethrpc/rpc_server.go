@@ -25,7 +25,11 @@ import (
 	"github.com/ethereum/go-ethereum/node"
 	"github.com/ethereum/go-ethereum/rpc"
 	cfg "github.com/ontio/ontology/common/config"
+	"github.com/ontio/ontology/core/store/ledgerstore"
+	"github.com/ontio/ontology/http/base/actor"
+	backend2 "github.com/ontio/ontology/http/ethrpc/backend"
 	"github.com/ontio/ontology/http/ethrpc/eth"
+	filters2 "github.com/ontio/ontology/http/ethrpc/filters"
 	"github.com/ontio/ontology/http/ethrpc/net"
 	"github.com/ontio/ontology/http/ethrpc/utils"
 	"github.com/ontio/ontology/http/ethrpc/web3"
@@ -44,20 +48,24 @@ var (
 
 func StartEthServer(txpool *tp.TXPoolServer) error {
 	log.Root().SetHandler(utils.OntLogHandler())
-	ethAPI := eth.NewEthereumAPI(txpool)
 	server := rpc.NewServer()
-	err := server.RegisterName("eth", ethAPI)
+	if err := server.RegisterName("eth", eth.NewEthereumAPI(txpool)); err != nil {
+		return err
+	}
+
+	backend := backend2.NewBloomBackend()
+	err := backend.StartBloomHandlers(ledgerstore.BloomBitsBlocks, actor.GetIndexStore())
 	if err != nil {
 		return err
 	}
-	netRpcService := net.NewPublicNetAPI()
-	err = server.RegisterName("net", netRpcService)
-	if err != nil {
+
+	if err := server.RegisterName("eth", filters2.NewPublicFilterAPI(backend)); err != nil {
 		return err
 	}
-	web3API := web3.NewAPI()
-	err = server.RegisterName("web3", web3API)
-	if err != nil {
+	if err := server.RegisterName("net", net.NewPublicNetAPI()); err != nil {
+		return err
+	}
+	if err := server.RegisterName("web3", web3.NewAPI()); err != nil {
 		return err
 	}
 

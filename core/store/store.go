@@ -25,6 +25,7 @@ import (
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/states"
+	"github.com/ontio/ontology/core/store/leveldbstore"
 	"github.com/ontio/ontology/core/store/overlaydb"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract/event"
@@ -40,6 +41,7 @@ type ExecuteResult struct {
 	CrossStates     []common.Uint256
 	CrossStatesRoot common.Uint256
 	Notify          []*event.ExecuteNotify
+	Bloom           types2.Bloom
 }
 
 // LedgerStore provides func with store package.
@@ -54,6 +56,8 @@ type LedgerStore interface {
 	GetCurrentBlockHash() common.Uint256
 	GetCurrentBlockHeight() uint32
 	GetCurrentHeaderHeight() uint32
+	GetFilterStart() uint32
+	GetIndexStore() *leveldbstore.LevelDBStore
 	GetCurrentHeaderHash() common.Uint256
 	GetBlockHash(height uint32) common.Uint256
 	GetHeaderByHash(blockHash common.Uint256) (*types.Header, error)
@@ -62,6 +66,8 @@ type LedgerStore interface {
 	GetBlockByHash(blockHash common.Uint256) (*types.Block, error)
 	GetBlockByHeight(height uint32) (*types.Block, error)
 	GetTransaction(txHash common.Uint256) (*types.Transaction, uint32, error)
+	GetBloomData(height uint32) (types2.Bloom, error)
+	BloomStatus() (uint32, uint32)
 	IsContainBlock(blockHash common.Uint256) (bool, error)
 	IsContainTransaction(txHash common.Uint256) (bool, error)
 	GetBlockRootWithNewTxRoots(startHeight uint32, txRoots []common.Uint256) common.Uint256

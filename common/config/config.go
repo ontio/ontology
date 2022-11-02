@@ -79,7 +79,7 @@ const (
 	DEFAULT_WASM_GAS_FACTOR                 = uint64(10)
 	DEFAULT_WASM_MAX_STEPCOUNT              = uint64(8000000)
 
-	DEFAULT_DATA_DIR      = "./Chain/"
+	DEFAULT_DATA_DIR      = "./Chain"
 	DEFAULT_RESERVED_FILE = "./peers.rsv"
 
 	//DEFAULT_ETH_BLOCK_GAS_LIMIT = 800000000
