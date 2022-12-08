@@ -128,7 +128,7 @@ func FormatBlock(block types.Block, gasLimit uint64, gasUsed *big.Int, transacti
 		"sha3Uncles":       common.Hash{},
 		"logsBloom":        types2.Bloom{},
 		"transactionsRoot": hexutil.Bytes(header.TransactionsRoot[:]),
-		"stateRoot":        hexutil.Bytes{},
+		"stateRoot":        common.Hash{},
 		"miner":            common.Address{},
 		"mixHash":          common.Hash{},
 		"difficulty":       hexutil.Uint64(0),
