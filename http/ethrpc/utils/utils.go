@@ -120,15 +120,19 @@ func FormatBlock(block types.Block, gasLimit uint64, gasUsed *big.Int, transacti
 	size := len(block.ToArray())
 	header := block.Header
 	hash := header.Hash()
+	transactionsRoot := types2.EmptyRootHash
+	if oComm.UINT256_EMPTY != header.TransactionsRoot {
+		transactionsRoot = common.BytesToHash(header.TransactionsRoot[:])
+	}
 	ret := map[string]interface{}{
 		"number":           hexutil.Uint64(header.Height),
-		"hash":             hexutil.Bytes(hash[:]),
-		"parentHash":       hexutil.Bytes(header.PrevBlockHash[:]),
+		"hash":             common.BytesToHash(hash[:]),
+		"parentHash":       common.BytesToHash(header.PrevBlockHash[:]),
 		"nonce":            types2.BlockNonce{}, // PoW specific
-		"sha3Uncles":       common.Hash{},
+		"sha3Uncles":       types2.EmptyUncleHash,
 		"logsBloom":        types2.Bloom{},
-		"transactionsRoot": hexutil.Bytes(header.TransactionsRoot[:]),
-		"stateRoot":        common.Hash{},
+		"transactionsRoot": transactionsRoot,
+		"stateRoot":        hexutil.Bytes{},
 		"miner":            common.Address{},
 		"mixHash":          common.Hash{},
 		"difficulty":       hexutil.Uint64(0),
@@ -138,8 +142,8 @@ func FormatBlock(block types.Block, gasLimit uint64, gasUsed *big.Int, transacti
 		"gasLimit":         hexutil.Uint64(gasLimit), // TODO Static gas limit
 		"gasUsed":          (*hexutil.Big)(gasUsed),
 		"timestamp":        hexutil.Uint64(header.Timestamp),
-		"uncles":           []string{},
-		"receiptsRoot":     common.Hash{},
+		"uncles":           []common.Hash{},
+		"receiptsRoot":     types2.EmptyRootHash,
 	}
 	if !reflect.ValueOf(transactions).IsNil() {
 		switch transactions.(type) {
