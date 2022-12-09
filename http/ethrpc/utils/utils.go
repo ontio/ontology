@@ -31,7 +31,7 @@ import (
 	types3 "github.com/ontio/ontology/http/ethrpc/types"
 )
 
-func EthBlockFromOntology(block *types.Block, fullTx bool) map[string]interface{} {
+func EthBlockFromOntology(block *types.Block, fullTx bool, bloom types2.Bloom) map[string]interface{} {
 	if block == nil {
 		return nil
 	}
@@ -45,7 +45,7 @@ func EthBlockFromOntology(block *types.Block, fullTx bool) map[string]interface{
 	} else {
 		blockTxs = transactions
 	}
-	return FormatBlock(*block, 0, gasUsed, blockTxs)
+	return FormatBlock(*block, 0, gasUsed, blockTxs, bloom)
 }
 
 func RawEthBlockFromOntology(block *types.Block, bloom types2.Bloom) *types2.Block {
@@ -116,18 +116,22 @@ func OntTxToEthTx(tx types.Transaction, blockHash common.Hash, blockNumber, inde
 	return NewTransaction(eip155Tx, common.Hash(tx.Hash()), blockHash, blockNumber, index)
 }
 
-func FormatBlock(block types.Block, gasLimit uint64, gasUsed *big.Int, transactions interface{}) map[string]interface{} {
+func FormatBlock(block types.Block, gasLimit uint64, gasUsed *big.Int, transactions interface{}, bloom types2.Bloom) map[string]interface{} {
 	size := len(block.ToArray())
 	header := block.Header
 	hash := header.Hash()
+	transactionsRoot := types2.EmptyRootHash
+	if oComm.UINT256_EMPTY != header.TransactionsRoot {
+		transactionsRoot = common.BytesToHash(header.TransactionsRoot[:])
+	}
 	ret := map[string]interface{}{
 		"number":           hexutil.Uint64(header.Height),
-		"hash":             hexutil.Bytes(hash[:]),
-		"parentHash":       hexutil.Bytes(header.PrevBlockHash[:]),
+		"hash":             common.BytesToHash(hash[:]),
+		"parentHash":       common.BytesToHash(header.PrevBlockHash[:]),
 		"nonce":            types2.BlockNonce{}, // PoW specific
-		"sha3Uncles":       common.Hash{},
-		"logsBloom":        types2.Bloom{},
-		"transactionsRoot": hexutil.Bytes(header.TransactionsRoot[:]),
+		"sha3Uncles":       types2.EmptyUncleHash,
+		"logsBloom":        bloom,
+		"transactionsRoot": transactionsRoot,
 		"stateRoot":        common.Hash{},
 		"miner":            common.Address{},
 		"mixHash":          common.Hash{},
@@ -135,11 +139,11 @@ func FormatBlock(block types.Block, gasLimit uint64, gasUsed *big.Int, transacti
 		"totalDifficulty":  hexutil.Uint64(0),
 		"extraData":        hexutil.Bytes{},
 		"size":             hexutil.Uint64(size),
-		"gasLimit":         hexutil.Uint64(gasLimit), // TODO Static gas limit
+		"gasLimit":         hexutil.Uint64(gasLimit),
 		"gasUsed":          (*hexutil.Big)(gasUsed),
 		"timestamp":        hexutil.Uint64(header.Timestamp),
-		"uncles":           []string{},
-		"receiptsRoot":     common.Hash{},
+		"uncles":           []common.Hash{},
+		"receiptsRoot":     types2.EmptyRootHash,
 	}
 	if !reflect.ValueOf(transactions).IsNil() {
 		switch transactions.(type) {
