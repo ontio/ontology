@@ -139,7 +139,7 @@ func FormatBlock(block types.Block, gasLimit uint64, gasUsed *big.Int, transacti
 		"totalDifficulty":  hexutil.Uint64(0),
 		"extraData":        hexutil.Bytes{},
 		"size":             hexutil.Uint64(size),
-		"gasLimit":         hexutil.Uint64(gasLimit), // TODO Static gas limit
+		"gasLimit":         hexutil.Uint64(gasLimit),
 		"gasUsed":          (*hexutil.Big)(gasUsed),
 		"timestamp":        hexutil.Uint64(header.Timestamp),
 		"uncles":           []common.Hash{},
