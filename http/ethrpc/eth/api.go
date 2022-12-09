@@ -409,7 +409,11 @@ func (api *EthereumAPI) GetBlockByHash(hash common.Hash, fullTx bool) (interface
 	if block == nil {
 		return nil, nil
 	}
-	return utils2.EthBlockFromOntology(block, fullTx), nil
+	bloom, err := bactor.GetBloomData(block.Header.Height)
+	if err != nil {
+		return nil, err
+	}
+	return utils2.EthBlockFromOntology(block, fullTx, bloom), nil
 }
 
 func (api *EthereumAPI) GetBlockByNumber(blockNum types2.BlockNumber, fullTx bool) (interface{}, error) {
@@ -428,7 +432,11 @@ func (api *EthereumAPI) GetBlockByNumber(blockNum types2.BlockNumber, fullTx boo
 	if block == nil {
 		return nil, nil
 	}
-	return utils2.EthBlockFromOntology(block, fullTx), nil
+	bloom, err := bactor.GetBloomData(block.Header.Height)
+	if err != nil {
+		return nil, err
+	}
+	return utils2.EthBlockFromOntology(block, fullTx, bloom), nil
 }
 
 func (api *EthereumAPI) GetTransactionByHash(hash common.Hash) (*types2.Transaction, error) {

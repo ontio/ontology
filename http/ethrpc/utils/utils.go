@@ -31,7 +31,7 @@ import (
 	types3 "github.com/ontio/ontology/http/ethrpc/types"
 )
 
-func EthBlockFromOntology(block *types.Block, fullTx bool) map[string]interface{} {
+func EthBlockFromOntology(block *types.Block, fullTx bool, bloom types2.Bloom) map[string]interface{} {
 	if block == nil {
 		return nil
 	}
@@ -45,7 +45,7 @@ func EthBlockFromOntology(block *types.Block, fullTx bool) map[string]interface{
 	} else {
 		blockTxs = transactions
 	}
-	return FormatBlock(*block, 0, gasUsed, blockTxs)
+	return FormatBlock(*block, 0, gasUsed, blockTxs, bloom)
 }
 
 func RawEthBlockFromOntology(block *types.Block, bloom types2.Bloom) *types2.Block {
@@ -116,7 +116,7 @@ func OntTxToEthTx(tx types.Transaction, blockHash common.Hash, blockNumber, inde
 	return NewTransaction(eip155Tx, common.Hash(tx.Hash()), blockHash, blockNumber, index)
 }
 
-func FormatBlock(block types.Block, gasLimit uint64, gasUsed *big.Int, transactions interface{}) map[string]interface{} {
+func FormatBlock(block types.Block, gasLimit uint64, gasUsed *big.Int, transactions interface{}, bloom types2.Bloom) map[string]interface{} {
 	size := len(block.ToArray())
 	header := block.Header
 	hash := header.Hash()
@@ -130,7 +130,7 @@ func FormatBlock(block types.Block, gasLimit uint64, gasUsed *big.Int, transacti
 		"parentHash":       common.BytesToHash(header.PrevBlockHash[:]),
 		"nonce":            types2.BlockNonce{}, // PoW specific
 		"sha3Uncles":       types2.EmptyUncleHash,
-		"logsBloom":        types2.Bloom{},
+		"logsBloom":        bloom,
 		"transactionsRoot": transactionsRoot,
 		"stateRoot":        common.Hash{},
 		"miner":            common.Address{},
