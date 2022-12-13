@@ -20,12 +20,31 @@ package backend
 
 import (
 	"context"
+	"time"
 
 	"github.com/ethereum/go-ethereum/common/bitutil"
 	"github.com/ethereum/go-ethereum/core/bloombits"
 	"github.com/ontio/ontology/core/store/ledgerstore"
 	"github.com/ontio/ontology/core/store/leveldbstore"
 	"github.com/ontio/ontology/http/base/actor"
+)
+
+const (
+	// bloomServiceThreads is the number of goroutines used globally by an Ethereum
+	// instance to service bloombits lookups for all running filters.
+	BloomServiceThreads = 16
+
+	// bloomFilterThreads is the number of goroutines used locally per filter to
+	// multiplex requests onto the global servicing goroutines.
+	BloomFilterThreads = 3
+
+	// bloomRetrievalBatch is the maximum number of bloom bit retrievals to service
+	// in a single batch.
+	BloomRetrievalBatch = 16
+
+	// bloomRetrievalWait is the maximum time to wait for enough bloom bit requests
+	// to accumulate request an entire batch (avoiding hysteresis).
+	BloomRetrievalWait = time.Duration(0)
 )
 
 type BloomBackend struct {
@@ -46,8 +65,8 @@ func (b *BloomBackend) Close() {
 }
 
 func (b *BloomBackend) ServiceFilter(ctx context.Context, session *bloombits.MatcherSession) {
-	for i := 0; i < ledgerstore.BloomFilterThreads; i++ {
-		go session.Multiplex(ledgerstore.BloomRetrievalBatch, ledgerstore.BloomRetrievalWait, b.bloomRequests)
+	for i := 0; i < BloomFilterThreads; i++ {
+		go session.Multiplex(BloomRetrievalBatch, BloomRetrievalWait, b.bloomRequests)
 	}
 }
 
@@ -58,7 +77,7 @@ func (b *BloomBackend) BloomStatus() (uint32, uint32) {
 // startBloomHandlers starts a batch of goroutines to accept bloom bit database
 // retrievals from possibly a range of filters and serving the data to satisfy.
 func (b *BloomBackend) StartBloomHandlers(sectionSize uint32, db *leveldbstore.LevelDBStore) error {
-	for i := 0; i < ledgerstore.BloomServiceThreads; i++ {
+	for i := 0; i < BloomServiceThreads; i++ {
 		go func() {
 			for {
 				select {

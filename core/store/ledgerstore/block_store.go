@@ -38,7 +38,7 @@ type BlockStore struct {
 	enableCache bool                       //Is enable lru cache
 	dbDir       string                     //The path of store file
 	cache       *BlockCache                //The cache of block, if have.
-	indexer     bloomIndexer               // Background processor generating the index data content
+	bloomCache  map[uint32]*types2.Bloom   //bloomCache for bloom index, delete cached bloom after calculating bloom index
 	filterStart uint32                     // Start block that filter supported
 	store       *leveldbstore.LevelDBStore //block store handler
 }
@@ -64,54 +64,15 @@ func NewBlockStore(dbDir string, enableCache bool) (*BlockStore, error) {
 		enableCache: enableCache,
 		store:       store,
 		cache:       cache,
+		bloomCache:  make(map[uint32]*types2.Bloom, 4096*2),
 	}
-
-	_, curBlockHeight, err := blockStore.GetCurrentBlock()
-	if err != nil {
-		if err != scom.ErrNotFound {
-			return nil, fmt.Errorf("get current block: %s", err.Error())
-		}
-		curBlockHeight = 0
-	}
-
-	indexer := NewBloomIndexer(store, curBlockHeight/BloomBitsBlocks)
-
-	start, err := indexer.GetFilterStart()
-	if err != nil {
-		if err != scom.ErrNotFound {
-			return nil, fmt.Errorf("get filter start: %s", err.Error())
-		}
-
-		var tmp uint32
-		if curBlockHeight < config.GetAddDecimalsHeight() {
-			tmp = config.GetAddDecimalsHeight()
-		} else {
-			tmp = curBlockHeight
-		}
-		err = indexer.PutFilterStart(tmp)
-		if err != nil {
-			return nil, fmt.Errorf("put filter start: %s", err.Error())
-		}
-		start = tmp
-	}
-
-	blockStore.indexer = indexer
-	blockStore.filterStart = start
 
 	return blockStore, nil
-}
-
-func (this *BlockStore) PutFilterStart(height uint32) error {
-	return this.indexer.PutFilterStart(height)
 }
 
 //NewBatch start a commit batch
 func (this *BlockStore) NewBatch() {
 	this.store.NewBatch()
-}
-
-func (this *BlockStore) GetIndexer() bloomIndexer {
-	return this.indexer
 }
 
 //SaveBlock persist block to store
@@ -400,16 +361,28 @@ func (this *BlockStore) SaveBlockHash(height uint32, blockHash common.Uint256) {
 
 //SaveBloomData persist block bloom data to store
 func (this *BlockStore) SaveBloomData(height uint32, bloom types2.Bloom) {
-	this.Process(height, bloom)
-	if height != 0 && height%BloomBitsBlocks == 0 {
-		this.indexer.BatchPut()
+	if height < this.filterStart {
+		return
 	}
 	key := this.genBloomKey(height)
 	this.store.BatchPut(key, bloom.Bytes())
+	this.bloomCache[height] = &bloom
+	this.cleanStaleBloomData(height)
+
+	if (height+1)%BloomBitsBlocks == 0 {
+		var blooms []types2.Bloom
+		for i := 0; i < BloomBitsBlocks; i++ {
+			blooms = append(blooms, *this.bloomCache[height+uint32(i)-BloomBitsBlocks])
+		}
+		section := height / BloomBitsBlocks
+		PutBloomIndex(this.store, blooms, section)
+	}
 }
 
-func (this *BlockStore) Process(height uint32, bloom types2.Bloom) {
-	this.indexer.Process(height, bloom)
+func (this *BlockStore) cleanStaleBloomData(curHeight uint32) {
+	if curHeight > BloomBitsBlocks*2 {
+		delete(this.bloomCache, curHeight-BloomBitsBlocks*2)
+	}
 }
 
 //GetBloomData return bloom data by block height
@@ -637,4 +610,39 @@ func (this *BlockStore) PruneBlock(hash common.Uint256) []common.Uint256 {
 	key := genHeaderKey(hash)
 	this.store.BatchDelete(key)
 	return txHashes
+}
+
+func (this *BlockStore) LoadBloomBits() error {
+	_, curBlockHeight, err := this.GetCurrentBlock()
+	if err != nil {
+		if err != scom.ErrNotFound {
+			return fmt.Errorf("get current block: %s", err.Error())
+		}
+		curBlockHeight = 0
+	}
+
+	initStart := (curBlockHeight + 4095) / 4096
+	if curBlockHeight < config.GetAddDecimalsHeight() {
+		initStart = config.GetAddDecimalsHeight() / 4096 * 4096
+	}
+
+	start, err := GetOrSetFilterStart(this.store, initStart)
+	if err != nil {
+		return err
+	}
+	this.filterStart = start
+
+	if curBlockHeight < this.filterStart {
+		return nil
+	}
+
+	loadStart := curBlockHeight - curBlockHeight%BloomBitsBlocks
+	for i := loadStart; i <= curBlockHeight; i++ {
+		bloom, err := this.GetBloomData(i)
+		if err != nil {
+			return fmt.Errorf("LoadBloom error %s", err)
+		}
+		this.bloomCache[i] = &bloom
+	}
+	return nil
 }

@@ -96,7 +96,6 @@ type LedgerStoreImp struct {
 	currBlockHeight      uint32                           //Current block height
 	currBlockHash        common.Uint256                   //Current block hash
 	headerCache          map[common.Uint256]*types.Header //BlockHash => Header
-	bloomCache           map[uint32]*types3.Bloom         //bloomCache for bloom index, delete cached bloom after calculating bloom index
 	headerIndex          map[uint32]common.Uint256        //Header index, Mapping header height => block hash
 	vbftPeerInfoMap      map[uint32]map[string]uint32     //key:block height,value:peerInfo
 	lock                 sync.RWMutex
@@ -112,7 +111,6 @@ func NewLedgerStore(dataDir string, stateHashHeight uint32) (*LedgerStoreImp, er
 	ledgerStore := &LedgerStoreImp{
 		headerIndex:          make(map[uint32]common.Uint256),
 		headerCache:          make(map[common.Uint256]*types.Header, 0),
-		bloomCache:           make(map[uint32]*types3.Bloom, 4096),
 		vbftPeerInfoMap:      make(map[uint32]map[string]uint32),
 		savingBlockSemaphore: make(chan bool, 1),
 		stateHashCheckHeight: stateHashHeight,
@@ -157,10 +155,6 @@ func (this *LedgerStoreImp) InitLedgerStoreWithGenesisBlock(genesisBlock *types.
 		err = this.blockStore.ClearAll()
 		if err != nil {
 			return fmt.Errorf("blockStore.ClearAll error %s", err)
-		}
-		err = this.blockStore.PutFilterStart(0)
-		if err != nil {
-			return fmt.Errorf("blockStore.PutFilterStart error %s", err)
 		}
 		err = this.stateStore.ClearAll()
 		if err != nil {
@@ -280,37 +274,9 @@ func (this *LedgerStoreImp) init() error {
 	if err != nil {
 		return fmt.Errorf("recoverStore error %s", err)
 	}
-	err = this.loadBloomBits()
+	err = this.blockStore.LoadBloomBits()
 	if err != nil {
 		return fmt.Errorf("loadBloomBits error %s", err)
-	}
-	return nil
-}
-
-func (this *LedgerStoreImp) loadBloomBits() error {
-	_, currentBlockHeight, err := this.blockStore.GetCurrentBlock()
-	if err != nil {
-		if err != scom.ErrNotFound {
-			return fmt.Errorf("LoadCurrentBlock error %s", err)
-		}
-		return nil
-	}
-
-	if currentBlockHeight < this.blockStore.filterStart {
-		return nil
-	}
-
-	start := currentBlockHeight - currentBlockHeight%BloomBitsBlocks
-	if start < this.blockStore.filterStart {
-		start = this.blockStore.filterStart
-	}
-
-	for i := start; i <= currentBlockHeight; i++ {
-		bloom, err := this.blockStore.GetBloomData(i)
-		if err != nil {
-			return fmt.Errorf("LoadBloom error %s", err)
-		}
-		this.blockStore.Process(i, bloom)
 	}
 	return nil
 }
@@ -786,9 +752,7 @@ func (this *LedgerStoreImp) saveBlockToBlockStore(block *types.Block, bloom type
 	if err != nil {
 		return fmt.Errorf("SaveBlock height %d hash %s error %s", blockHeight, blockHash.ToHexString(), err)
 	}
-	if blockHeight >= config.GetAddDecimalsHeight() {
-		this.blockStore.SaveBloomData(blockHeight, bloom)
-	}
+	this.blockStore.SaveBloomData(blockHeight, bloom)
 	return nil
 }
 
