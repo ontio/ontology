@@ -19,8 +19,8 @@ package ledgerstore
 
 import (
 	"encoding/binary"
+	"fmt"
 	"io"
-	"time"
 
 	"github.com/ethereum/go-ethereum/common/bitutil"
 	"github.com/ethereum/go-ethereum/core/bloombits"
@@ -30,82 +30,63 @@ import (
 	"github.com/ontio/ontology/core/store/leveldbstore"
 )
 
-const (
-	// bloomServiceThreads is the number of goroutines used globally by an Ethereum
-	// instance to service bloombits lookups for all running filters.
-	BloomServiceThreads = 16
-
-	// bloomFilterThreads is the number of goroutines used locally per filter to
-	// multiplex requests onto the global servicing goroutines.
-	BloomFilterThreads = 3
-
-	// bloomRetrievalBatch is the maximum number of bloom bit retrievals to service
-	// in a single batch.
-	BloomRetrievalBatch = 16
-
-	// bloomRetrievalWait is the maximum time to wait for enough bloom bit requests
-	// to accumulate request an entire batch (avoiding hysteresis).
-	BloomRetrievalWait = time.Duration(0)
-
-	// BloomBitsBlocks is the number of blocks a single bloom bit section vector
-	// contains on the server side.
-	BloomBitsBlocks uint32 = 4096
-)
+// BloomBitsBlocks is the number of blocks a single bloom bit section vector
+// contains on the server side.
+const BloomBitsBlocks = 4096
 
 var (
 	bloomBitsPrefix = []byte("B") // bloomBitsPrefix + bit (uint16 big endian) + section (uint32 big endian) + hash -> bloom bits
 )
 
-// bloomIndexer implements a core.ChainIndexer, building up a rotated bloom bits index
-// for the Ethereum header bloom filters, permitting blazing fast filtering.
-type bloomIndexer struct {
-	store   *leveldbstore.LevelDBStore // database instance to write index data and metadata into
-	gen     *bloombits.Generator       // generator to rotate the bloom bits crating the bloom index
-	section uint32                     // Section is the section number being processed currently
-}
-
-func NewBloomIndexer(store *leveldbstore.LevelDBStore, section uint32) bloomIndexer {
+func PutBloomIndex(store *leveldbstore.LevelDBStore, blooms []types.Bloom, section uint32) {
 	gen, err := bloombits.NewGenerator(uint(BloomBitsBlocks))
 	if err != nil {
 		panic(err) // never fired since BloomBitsBlocks is multiple of 8
 	}
-	b := bloomIndexer{
-		store: store,
+	for i, b := range blooms {
+		err := gen.AddBloom(uint(i), b)
+		if err != nil {
+			panic(err) // never fired
+		}
 	}
-	b.gen, b.section = gen, section
-	return b
-}
 
-// Process implements core.ChainIndexerBackend, adding a new header's bloom into
-// the index.
-func (b *bloomIndexer) Process(height uint32, bloom types.Bloom) {
-	b.gen.AddBloom(uint(height-b.section*BloomBitsBlocks), bloom)
-}
-
-// BatchPut implements core.ChainIndexerBackend, finalizing the bloom section and
-// writing it out into the database.
-func (b *bloomIndexer) BatchPut() {
 	for i := 0; i < types.BloomBitLength; i++ {
-		bits, err := b.gen.Bitset(uint(i))
+		bits, err := gen.Bitset(uint(i))
 		if err != nil {
 			panic(err) // never fired since idx is always less than 8 and section should be right
 		}
 		value := bitutil.CompressBytes(bits)
-		b.store.BatchPut(bloomBitsKey(uint(i), b.section), value)
+		store.BatchPut(bloomBitsKey(uint(i), section), value)
 	}
-	b.section++
 }
 
-func (this *bloomIndexer) PutFilterStart(height uint32) error {
+func PutFilterStart(db *leveldbstore.LevelDBStore, height uint32) error {
 	key := genFilterStartKey()
 	sink := common2.NewZeroCopySink(nil)
 	sink.WriteUint32(height)
-	return this.store.Put(key, sink.Bytes())
+	return db.Put(key, sink.Bytes())
 }
 
-func (this *bloomIndexer) GetFilterStart() (uint32, error) {
+func GetOrSetFilterStart(db *leveldbstore.LevelDBStore, def uint32) (uint32, error) {
+	start, err := GetFilterStart(db)
+	if err != nil {
+		if err != scom.ErrNotFound {
+			return 0, fmt.Errorf("get filter start: %s", err.Error())
+		}
+
+		err = PutFilterStart(db, def)
+		if err != nil {
+			return 0, fmt.Errorf("put filter start: %s", err.Error())
+		}
+		start = def
+	}
+
+	return start, nil
+}
+
+func GetFilterStart(db *leveldbstore.LevelDBStore) (uint32, error) {
 	key := genFilterStartKey()
-	data, err := this.store.Get(key)
+	data, err := db.Get(key)
 	if err != nil {
 		return 0, err
 	}
