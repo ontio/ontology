@@ -372,7 +372,7 @@ func (this *BlockStore) SaveBloomData(height uint32, bloom types2.Bloom) {
 	if (height+1)%BloomBitsBlocks == 0 {
 		var blooms []types2.Bloom
 		for i := 0; i < BloomBitsBlocks; i++ {
-			blooms = append(blooms, *this.bloomCache[height+uint32(i)-BloomBitsBlocks])
+			blooms = append(blooms, *this.bloomCache[height+uint32(i)+1-BloomBitsBlocks])
 		}
 		section := height / BloomBitsBlocks
 		PutBloomIndex(this.store, blooms, section)
