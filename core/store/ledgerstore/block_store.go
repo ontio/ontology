@@ -295,19 +295,6 @@ func (this *BlockStore) SaveCurrentBlock(height uint32, blockHash common.Uint256
 	return nil
 }
 
-//SaveHeaderIndexList persist header index list to store
-func (this *BlockStore) SaveHeaderIndexList(startIndex uint32, indexList []common.Uint256) {
-	indexKey := genHeaderIndexListKey(startIndex)
-	indexSize := uint32(len(indexList))
-	value := common.NewZeroCopySink(nil)
-	value.WriteUint32(indexSize)
-	for _, hash := range indexList {
-		value.WriteHash(hash)
-	}
-
-	this.store.BatchPut(indexKey, value.Bytes())
-}
-
 //GetBlockHash return block hash by block height
 func (this *BlockStore) GetBlockHash(height uint32) (common.Uint256, error) {
 	key := genBlockHashKey(height)
