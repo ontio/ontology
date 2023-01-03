@@ -295,50 +295,6 @@ func (this *BlockStore) SaveCurrentBlock(height uint32, blockHash common.Uint256
 	return nil
 }
 
-//GetHeaderIndexList return the head index store in header index list
-func (this *BlockStore) GetHeaderIndexList() (map[uint32]common.Uint256, error) {
-	result := make(map[uint32]common.Uint256)
-	iter := this.store.NewIterator([]byte{byte(scom.IX_HEADER_HASH_LIST)})
-	defer iter.Release()
-	for iter.Next() {
-		startCount, err := genStartHeightByHeaderIndexKey(iter.Key())
-		if err != nil {
-			return nil, fmt.Errorf("genStartHeightByHeaderIndexKey error %s", err)
-		}
-		reader := bytes.NewReader(iter.Value())
-		count, err := serialization.ReadUint32(reader)
-		if err != nil {
-			return nil, fmt.Errorf("serialization.ReadUint32 count error %s", err)
-		}
-		for i := uint32(0); i < count; i++ {
-			height := startCount + i
-			blockHash := common.Uint256{}
-			err = blockHash.Deserialize(reader)
-			if err != nil {
-				return nil, fmt.Errorf("blockHash.Deserialize error %s", err)
-			}
-			result[height] = blockHash
-		}
-	}
-	if err := iter.Error(); err != nil {
-		return nil, err
-	}
-	return result, nil
-}
-
-//SaveHeaderIndexList persist header index list to store
-func (this *BlockStore) SaveHeaderIndexList(startIndex uint32, indexList []common.Uint256) {
-	indexKey := genHeaderIndexListKey(startIndex)
-	indexSize := uint32(len(indexList))
-	value := common.NewZeroCopySink(nil)
-	value.WriteUint32(indexSize)
-	for _, hash := range indexList {
-		value.WriteHash(hash)
-	}
-
-	this.store.BatchPut(indexKey, value.Bytes())
-}
-
 //GetBlockHash return block hash by block height
 func (this *BlockStore) GetBlockHash(height uint32) (common.Uint256, error) {
 	key := genBlockHashKey(height)

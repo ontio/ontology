@@ -92,11 +92,10 @@ type LedgerStoreImp struct {
 	stateStore           *StateStore                      //StateStore for saving state data, like balance, smart contract execution result, and so on.
 	eventStore           *EventStore                      //EventStore for saving log those gen after smart contract executed.
 	crossChainStore      *CrossChainStore                 //crossChainStore for saving cross chain msg.
-	storedIndexCount     uint32                           //record the count of have saved block index
 	currBlockHeight      uint32                           //Current block height
 	currBlockHash        common.Uint256                   //Current block hash
 	headerCache          map[common.Uint256]*types.Header //BlockHash => Header
-	headerIndex          map[uint32]common.Uint256        //Header index, Mapping header height => block hash
+	headerIndexCache     *HeaderIndexCache                //Header index cache, Mapping header height => block hash
 	vbftPeerInfoMap      map[uint32]map[string]uint32     //key:block height,value:peerInfo
 	lock                 sync.RWMutex
 	stateHashCheckHeight uint32
@@ -109,7 +108,6 @@ type LedgerStoreImp struct {
 //NewLedgerStore return LedgerStoreImp instance
 func NewLedgerStore(dataDir string, stateHashHeight uint32) (*LedgerStoreImp, error) {
 	ledgerStore := &LedgerStoreImp{
-		headerIndex:          make(map[uint32]common.Uint256),
 		headerCache:          make(map[common.Uint256]*types.Header, 0),
 		vbftPeerInfoMap:      make(map[uint32]map[string]uint32),
 		savingBlockSemaphore: make(chan bool, 1),
@@ -142,6 +140,7 @@ func NewLedgerStore(dataDir string, stateHashHeight uint32) (*LedgerStoreImp, er
 	}
 	ledgerStore.eventStore = eventState
 
+	ledgerStore.headerIndexCache = NewHeaderIndexCache()
 	return ledgerStore, nil
 }
 
@@ -242,7 +241,7 @@ func (this *LedgerStoreImp) InitLedgerStoreWithGenesisBlock(genesisBlock *types.
 		this.vbftPeerInfoMap[chainConfigHeight] = vbftPeerInfo
 		this.lock.Unlock()
 		val, _ := json.Marshal(vbftPeerInfo)
-		log.Infof("loading vbftPeerInfo at height: %s : %s", header.Height, string(val))
+		log.Infof("loading vbftPeerInfo at height: %v : %s", header.Height, string(val))
 	}
 	// check and fix imcompatible states
 	err = this.stateStore.CheckStorage()
@@ -294,24 +293,21 @@ func (this *LedgerStoreImp) loadCurrentBlock() error {
 
 func (this *LedgerStoreImp) loadHeaderIndexList() error {
 	currBlockHeight := this.GetCurrentBlockHeight()
-	headerIndex, err := this.blockStore.GetHeaderIndexList()
-	if err != nil {
-		return fmt.Errorf("LoadHeaderIndexList error %s", err)
+	var height uint32
+	if currBlockHeight+1 > HEADER_INDEX_MAX_SIZE {
+		height = currBlockHeight - HEADER_INDEX_MAX_SIZE + 1
 	}
-	storeIndexCount := uint32(len(headerIndex))
-	this.headerIndex = headerIndex
-	this.storedIndexCount = storeIndexCount
-
-	for i := storeIndexCount; i <= currBlockHeight; i++ {
-		height := i
-		blockHash, err := this.blockStore.GetBlockHash(height)
+	this.headerIndexCache.setFirstIndex(height)
+	this.headerIndexCache.setLastIndex(height)
+	for i := height; i <= currBlockHeight; i++ {
+		blockHash, err := this.blockStore.GetBlockHash(i)
 		if err != nil {
-			return fmt.Errorf("LoadBlockHash height %d error %s", height, err)
+			return fmt.Errorf("LoadBlockHash height %d error %s", i, err)
 		}
 		if blockHash == common.UINT256_EMPTY {
-			return fmt.Errorf("LoadBlockHash height %d hash nil", height)
+			return fmt.Errorf("LoadBlockHash height %d hash nil", i)
 		}
-		this.headerIndex[height] = blockHash
+		this.headerIndexCache.setHeaderIndex(currBlockHeight, i, blockHash)
 	}
 	return nil
 }
@@ -358,15 +354,18 @@ func (this *LedgerStoreImp) recoverStore() error {
 func (this *LedgerStoreImp) setHeaderIndex(height uint32, blockHash common.Uint256) {
 	this.lock.Lock()
 	defer this.lock.Unlock()
-	this.headerIndex[height] = blockHash
+	this.headerIndexCache.setHeaderIndex(this.currBlockHeight, height, blockHash)
 }
 
 func (this *LedgerStoreImp) getHeaderIndex(height uint32) common.Uint256 {
 	this.lock.RLock()
 	defer this.lock.RUnlock()
-	blockHash, ok := this.headerIndex[height]
-	if !ok {
-		return common.Uint256{}
+	var blockHash common.Uint256
+	if blockHash = this.headerIndexCache.getHeaderIndex(height); blockHash == common.UINT256_EMPTY {
+		var err error
+		if blockHash, err = this.blockStore.GetBlockHash(height); err != nil {
+			return common.Uint256{}
+		}
 	}
 	return blockHash
 }
@@ -376,22 +375,22 @@ func (this *LedgerStoreImp) getHeaderIndex(height uint32) common.Uint256 {
 func (this *LedgerStoreImp) GetCurrentHeaderHeight() uint32 {
 	this.lock.RLock()
 	defer this.lock.RUnlock()
-	size := len(this.headerIndex)
-	if size == 0 {
-		return 0
+	idx := this.headerIndexCache.getLastIndex()
+	if idx == 0 {
+		return this.currBlockHeight
 	}
-	return uint32(size) - 1
+	return idx
 }
 
 //GetCurrentHeaderHash return the current header hash. The current header means the latest header.
 func (this *LedgerStoreImp) GetCurrentHeaderHash() common.Uint256 {
 	this.lock.RLock()
 	defer this.lock.RUnlock()
-	size := len(this.headerIndex)
-	if size == 0 {
-		return common.Uint256{}
+	var currentHeaderHash common.Uint256
+	if currentHeaderHash = this.headerIndexCache.getCurrentHeaderHash(); currentHeaderHash == common.UINT256_EMPTY {
+		return this.currBlockHash
 	}
-	return this.headerIndex[uint32(size)-1]
+	return currentHeaderHash
 }
 
 func (this *LedgerStoreImp) setCurrentBlock(height uint32, blockHash common.Uint256) {
@@ -739,11 +738,7 @@ func (this *LedgerStoreImp) saveBlockToBlockStore(block *types.Block, bloom type
 	blockHeight := block.Header.Height
 
 	this.setHeaderIndex(blockHeight, blockHash)
-	err := this.saveHeaderIndexList()
-	if err != nil {
-		return fmt.Errorf("saveHeaderIndexList error %s", err)
-	}
-	err = this.blockStore.SaveCurrentBlock(blockHeight, blockHash)
+	err := this.blockStore.SaveCurrentBlock(blockHeight, blockHash)
 	if err != nil {
 		return fmt.Errorf("SaveCurrentBlock error %s", err)
 	}
@@ -1121,30 +1116,6 @@ func (this *LedgerStoreImp) handleTransaction(overlay *overlaydb.OverlayDB, cach
 		}
 	}
 	return notify, crossStateHashes, receipt, nil
-}
-
-func (this *LedgerStoreImp) saveHeaderIndexList() error {
-	this.lock.RLock()
-	storeCount := this.storedIndexCount
-	currHeight := this.currBlockHeight
-	if currHeight-storeCount < HEADER_INDEX_BATCH_SIZE {
-		this.lock.RUnlock()
-		return nil
-	}
-
-	headerList := make([]common.Uint256, HEADER_INDEX_BATCH_SIZE)
-	for i := uint32(0); i < HEADER_INDEX_BATCH_SIZE; i++ {
-		height := storeCount + i
-		headerList[i] = this.headerIndex[height]
-	}
-	this.lock.RUnlock()
-
-	this.blockStore.SaveHeaderIndexList(storeCount, headerList)
-
-	this.lock.Lock()
-	this.storedIndexCount += HEADER_INDEX_BATCH_SIZE
-	this.lock.Unlock()
-	return nil
 }
 
 //IsContainBlock return whether the block is in store

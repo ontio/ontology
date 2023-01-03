@@ -20,7 +20,6 @@ package ledgerstore
 
 import (
 	"crypto/sha256"
-	"fmt"
 	"testing"
 	"time"
 
@@ -181,51 +180,6 @@ func TestSaveTransaction(t *testing.T) {
 	if !exist {
 		t.Errorf("TestSaveTransaction ContainTransaction should be true.")
 		return
-	}
-}
-
-func TestHeaderIndexList(t *testing.T) {
-	testBlockStore.NewBatch()
-	startHeight := uint32(0)
-	size := uint32(100)
-	indexMap := make(map[uint32]common.Uint256, size)
-	indexList := make([]common.Uint256, 0)
-	for i := startHeight; i < size; i++ {
-		hash := common.Uint256(sha256.Sum256([]byte(fmt.Sprintf("%v", i))))
-		indexMap[i] = hash
-		indexList = append(indexList, hash)
-	}
-	testBlockStore.SaveHeaderIndexList(startHeight, indexList)
-	startHeight = uint32(100)
-	size = uint32(100)
-	indexMap = make(map[uint32]common.Uint256, size)
-	for i := startHeight; i < size; i++ {
-		hash := common.Uint256(sha256.Sum256([]byte(fmt.Sprintf("%v", i))))
-		indexMap[i] = hash
-		indexList = append(indexList, hash)
-	}
-	err := testBlockStore.CommitTo()
-	if err != nil {
-		t.Errorf("CommitTo error %s", err)
-		return
-	}
-
-	totalMap, err := testBlockStore.GetHeaderIndexList()
-	if err != nil {
-		t.Errorf("GetHeaderIndexList error %s", err)
-		return
-	}
-
-	for height, hash := range indexList {
-		h, ok := totalMap[uint32(height)]
-		if !ok {
-			t.Errorf("TestHeaderIndexList failed height:%d hash not exist", height)
-			return
-		}
-		if hash != h {
-			t.Errorf("TestHeaderIndexList failed height:%d hash %x != %x", height, hash, h)
-			return
-		}
 	}
 }
 
