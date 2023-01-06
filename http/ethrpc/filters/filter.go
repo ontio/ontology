@@ -153,10 +153,6 @@ func (f *Filter) Logs(ctx context.Context) ([]*ethtypes.Log, error) {
 		f.criteria.FromBlock = big.NewInt(int64(minFilterStart))
 	}
 
-	if f.criteria.ToBlock.Int64() < int64(minFilterStart) {
-		f.criteria.ToBlock = big.NewInt(int64(minFilterStart))
-	}
-
 	if f.criteria.FromBlock.Int64() < int64(start) ||
 		f.criteria.ToBlock.Int64() < int64(start) {
 		return nil, fmt.Errorf("from and to block height must greater than %d", int64(start))
