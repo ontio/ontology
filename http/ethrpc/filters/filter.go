@@ -144,8 +144,7 @@ func (f *Filter) Logs(ctx context.Context) ([]*ethtypes.Log, error) {
 
 	start := actor.GetFilterStart()
 	minFilterStart := ledgerstore.MinFilterStart()
-	if f.criteria.FromBlock.Int64() < int64(minFilterStart) &&
-		f.criteria.ToBlock.Int64() < int64(minFilterStart) {
+	if f.criteria.ToBlock.Int64() < int64(minFilterStart) {
 		return nil, nil
 	}
 
