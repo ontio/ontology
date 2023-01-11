@@ -579,7 +579,7 @@ func (this *BlockStore) LoadBloomBits() error {
 
 	initStart := (curBlockHeight + 4095) / 4096
 	if curBlockHeight < config.GetAddDecimalsHeight() {
-		initStart = config.GetAddDecimalsHeight() / 4096 * 4096
+		initStart = MinFilterStart()
 	}
 
 	start, err := GetOrSetFilterStart(this.store, initStart)
@@ -601,4 +601,8 @@ func (this *BlockStore) LoadBloomBits() error {
 		this.bloomCache[i] = &bloom
 	}
 	return nil
+}
+
+func MinFilterStart() uint32 {
+	return config.GetAddDecimalsHeight() / 4096 * 4096
 }

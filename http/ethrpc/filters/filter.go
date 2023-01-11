@@ -29,6 +29,7 @@ import (
 	"github.com/ethereum/go-ethereum/eth/filters"
 	common2 "github.com/ontio/ontology/common"
 	common4 "github.com/ontio/ontology/core/store/common"
+	"github.com/ontio/ontology/core/store/ledgerstore"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/http/base/actor"
 	utils2 "github.com/ontio/ontology/http/ethrpc/utils"
@@ -142,6 +143,14 @@ func (f *Filter) Logs(ctx context.Context) ([]*ethtypes.Log, error) {
 	}
 
 	start := actor.GetFilterStart()
+	minFilterStart := ledgerstore.MinFilterStart()
+	if f.criteria.ToBlock.Int64() < int64(minFilterStart) {
+		return nil, nil
+	}
+
+	if f.criteria.FromBlock.Int64() < int64(minFilterStart) {
+		f.criteria.FromBlock = big.NewInt(int64(minFilterStart))
+	}
 
 	if f.criteria.FromBlock.Int64() < int64(start) ||
 		f.criteria.ToBlock.Int64() < int64(start) {
