@@ -355,6 +355,14 @@ func (self *StateDB) Snapshot() int {
 	return len(self.snapshots) - 1
 }
 
+func (self *StateDB) DiscardSnapshot(idx int) {
+	if idx+1 > len(self.snapshots) {
+		panic("can not to revert snapshot")
+	}
+
+	self.snapshots = self.snapshots[:idx]
+}
+
 func (self *StateDB) RevertToSnapshot(idx int) {
 	if idx+1 > len(self.snapshots) {
 		panic("can not to revert snapshot")
