@@ -106,9 +106,10 @@ func (self *ZeroCopySink) WriteUint16(data uint16) {
 	binary.LittleEndian.PutUint16(buf, data)
 }
 
-func (self *ZeroCopySink) WriteUint32(data uint32) {
+func (self *ZeroCopySink) WriteUint32(data uint32) *ZeroCopySink {
 	buf := self.NextBytes(4)
 	binary.LittleEndian.PutUint32(buf, data)
+	return self
 }
 
 func (self *ZeroCopySink) WriteUint64(data uint64) *ZeroCopySink {

@@ -72,6 +72,7 @@ func DecodeAddress(source *common.ZeroCopySource) (common.Address, error) {
 
 	return common.AddressParseFromBytes(from)
 }
+
 func DecodeVarBytes(source *common.ZeroCopySource) ([]byte, error) {
 	data, _, irregular, eof := source.NextVarBytes()
 	if eof {
