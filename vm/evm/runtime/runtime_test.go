@@ -1091,3 +1091,12 @@ func TestCreateOnDeletedAddress(t *testing.T) {
 	a.Nil(err, "fail")
 	a.True((big.NewInt(0).SetBytes(ret).Cmp(big.NewInt(0)) == 0), "should not get previous value 0x1234")
 }
+
+func TestVV(t *testing.T) {
+	//595b58323d5a58fa4656
+	input := []byte{0x59, 0x5b, 0x58, 0x32, 0x3d, 0x5a, 0x58, 0xfa, 0x46, 0x56}
+	Execute(input, input, &Config{
+		//GasLimit: 30000000,
+		GasLimit: 25000000,
+	})
+}

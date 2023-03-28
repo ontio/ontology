@@ -25,7 +25,6 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/holiman/uint256"
-
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 	"github.com/ontio/ontology/vm/evm/errors"
@@ -247,6 +246,8 @@ func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, gas 
 		if err != errors.ErrExecutionReverted {
 			gas = 0
 		}
+	} else {
+		evm.StateDB.DiscardSnapshot(snapshot)
 	}
 	return ret, gas, err
 }
@@ -292,6 +293,8 @@ func (evm *EVM) CallCode(caller ContractRef, addr common.Address, input []byte, 
 		if err != errors.ErrExecutionReverted {
 			gas = 0
 		}
+	} else {
+		evm.StateDB.DiscardSnapshot(snapshot)
 	}
 	return ret, gas, err
 }
@@ -327,6 +330,8 @@ func (evm *EVM) DelegateCall(caller ContractRef, addr common.Address, input []by
 		if err != errors.ErrExecutionReverted {
 			gas = 0
 		}
+	} else {
+		evm.StateDB.DiscardSnapshot(snapshot)
 	}
 	return ret, gas, err
 }
@@ -378,6 +383,8 @@ func (evm *EVM) StaticCall(caller ContractRef, addr common.Address, input []byte
 		if err != errors.ErrExecutionReverted {
 			gas = 0
 		}
+	} else {
+		evm.StateDB.DiscardSnapshot(snapshot)
 	}
 	return ret, gas, err
 }
@@ -458,6 +465,8 @@ func (evm *EVM) create(caller ContractRef, codeAndHash *codeAndHash, gas uint64,
 		if err != errors.ErrExecutionReverted {
 			contract.UseGas(contract.Gas)
 		}
+	} else {
+		evm.StateDB.DiscardSnapshot(snapshot)
 	}
 	// Assign err if contract code size exceeds the max while the err is still empty.
 	if maxCodeSizeExceeded && err == nil {
