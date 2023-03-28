@@ -81,6 +81,9 @@ const (
 	GET_PEER_POOL                    = "getPeerPool"
 	GET_PEER_INFO                    = "getPeerInfo"
 	GET_PEER_POOL_BY_ADDRESS         = "getPeerPoolByAddress"
+	GET_VIEW                         = "getView"
+	GET_AUTHOR_INFO                  = "getAuthorizeInfo"
+	GET_ADDRESS_FEE                  = "getAddressFee"
 
 	//key prefix
 	GLOBAL_PARAM      = "globalParam"
@@ -162,6 +165,10 @@ func RegisterGovernanceContract(native *native.NativeService) {
 	native.Register(GET_PEER_POOL, GetPeerPool)
 	native.Register(GET_PEER_INFO, GetPeerInfo)
 	native.Register(GET_PEER_POOL_BY_ADDRESS, GetPeerPoolByAddress)
+
+	native.Register(GET_VIEW, GetCurrView)
+	native.Register(GET_AUTHOR_INFO, GetAuthorizeInfo)
+	native.Register(GET_ADDRESS_FEE, GetAddressFee)
 }
 
 //Init governance contract, include vbft config, global param and ontid admin.
@@ -1783,6 +1790,52 @@ func GetPeerInfo(native *native.NativeService) ([]byte, error) {
 	sink := common.NewZeroCopySink(nil)
 	peerPoolItemForVm.Serialization(sink)
 	return sink.Bytes(), nil
+}
+
+func GetAddressFee(native *native.NativeService) ([]byte, error) {
+	contract := native.ContextRef.CurrentContext().ContractAddress
+	source := common.NewZeroCopySource(native.Input)
+	address, err := utils.DecodeAddress(source)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("GetAddressFee, get address error: %s", err)
+	}
+
+	splitFeeAddress, err := getSplitFeeAddress(native, contract, address)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("GetAddressFee, getSplitFeeAddress error: %s", err)
+	}
+
+	return common.NewZeroCopySink(nil).WriteUint64(splitFeeAddress.Amount).Bytes(), nil
+}
+
+func GetAuthorizeInfo(native *native.NativeService) ([]byte, error) {
+	contract := native.ContextRef.CurrentContext().ContractAddress
+	source := common.NewZeroCopySource(native.Input)
+	address, err := utils.DecodeAddress(source)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("get authorize info, param address error: %v", err)
+	}
+	peerPubKey, err := utils.DecodeString(source)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("get authorize info, param peer pubkey error: %v", err)
+	}
+	info, err := getAuthorizeInfo(native, contract, peerPubKey, address)
+
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("get authorize info error: %v", err)
+	}
+
+	return common.SerializeToBytes(info), nil
+}
+
+func GetCurrView(native *native.NativeService) ([]byte, error) {
+	contract := native.ContextRef.CurrentContext().ContractAddress
+	//get current view
+	view, err := GetView(native, contract)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("get view error: %v", err)
+	}
+	return common.NewZeroCopySink(nil).WriteUint32(view).Bytes(), nil
 }
 
 func GetPeerPoolByAddress(native *native.NativeService) ([]byte, error) {
