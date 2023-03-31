@@ -10,7 +10,7 @@ if ! which clang-9 ; then
 fi
 
 if ! which rustup ; then
-	curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain nightly 
+	curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain nightly-2022-12-07 
 	source $HOME/.cargo/env
 fi
 rustup target add wasm32-unknown-unknown

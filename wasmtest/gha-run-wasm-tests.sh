@@ -10,7 +10,7 @@ tar xf clang+llvm-9.0.0-x86_64-linux-gnu-ubuntu-18.04.tar.xz > /dev/null 2>&1
 export PATH="$(pwd)/clang+llvm-9.0.0-x86_64-linux-gnu-ubuntu-18.04/bin":$PATH
 
 # ensure rust
-curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain nightly
+curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain nightly-2022-12-07
 source $HOME/.cargo/env
 
 
