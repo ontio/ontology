@@ -9,10 +9,14 @@ if ! which clang-9 ; then
 	export PATH="$(pwd)/clang+llvm-9.0.0-x86_64-linux-gnu-ubuntu-18.04/bin":$PATH
 fi
 
+
+RUST_VERSION=nightly-2022-12-07
+
 if ! which rustup ; then
-	curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain nightly 
+	curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain $RUST_VERSION
 	source $HOME/.cargo/env
 fi
+
 rustup target add wasm32-unknown-unknown
 which ontio-wasm-build || cargo install --git=https://github.com/ontio/ontio-wasm-build
 
