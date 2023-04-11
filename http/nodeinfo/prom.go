@@ -19,9 +19,9 @@
 package nodeinfo
 
 import (
+	"os"
 	"time"
 
-	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/p2pserver/net/netserver"
 	p2p "github.com/ontio/ontology/p2pserver/net/protocol"
@@ -30,15 +30,10 @@ import (
 )
 
 var (
-	nodePortMetric = prom.NewGauge(prom.GaugeOpts{
-		Name: "ontology_nodeport",
-		Help: "ontology node port",
-	})
-
-	blockHeightMetric = prom.NewGauge(prom.GaugeOpts{
+	blockHeightMetric = prom.NewGaugeVec(prom.GaugeOpts{
 		Name: "ontology_block_height",
 		Help: "ontology blockchain block height",
-	})
+	}, []string{"version", "host"})
 
 	inboundsCountMetric = prom.NewGauge(prom.GaugeOpts{
 		Name: "ontology_p2p_inbounds_count",
@@ -62,8 +57,7 @@ var (
 )
 
 var (
-	metrics = []prom.Collector{nodePortMetric, blockHeightMetric, inboundsCountMetric,
-		outboundsCountMetric, peerStatusMetric, reconnectCountMetric}
+	metrics = []prom.Collector{blockHeightMetric, inboundsCountMetric, outboundsCountMetric, peerStatusMetric, reconnectCountMetric}
 )
 
 func initMetric() error {
@@ -77,14 +71,13 @@ func initMetric() error {
 }
 
 func metricUpdate(n p2p.P2P) {
-	nodePortMetric.Set(float64(config.DefConfig.P2PNode.NodePort))
-
-	blockHeightMetric.Set(float64(ledger.DefLedger.GetCurrentBlockHeight()))
-
 	ns, ok := n.(*netserver.NetServer)
 	if !ok {
 		return
 	}
+	host, _ := os.Hostname()
+
+	blockHeightMetric.WithLabelValues(ns.GetHostInfo().SoftVersion, host).Set(float64(ledger.DefLedger.GetCurrentBlockHeight()))
 
 	inboundsCountMetric.Set(float64(ns.ConnectController().InboundsCount()))
 	outboundsCountMetric.Set(float64(ns.ConnectController().OutboundsCount()))
