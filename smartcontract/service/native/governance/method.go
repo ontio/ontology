@@ -27,6 +27,7 @@ import (
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/constants"
+	"github.com/ontio/ontology/common/log"
 	cstates "github.com/ontio/ontology/core/states"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
@@ -1058,7 +1059,7 @@ func executeSplit2(native *native.NativeService, contract common.Address, view u
 	return splitSum, nil
 }
 
-func executeAddressSplit(native *native.NativeService, contract common.Address, authorizeInfo *AuthorizeInfo, preIfConsensus, ifConsensus bool, totalPos uint64, totalAmount uint64, peerAddress common.Address) (uint64, error) {
+func executeAddressSplit(native *native.NativeService, contract common.Address, authorizeInfo *AuthorizeInfo, preIfConsensus, ifConsensus bool, totalPos uint64, totalAmount uint64, peerAddress common.Address, peerPubkey string) (uint64, error) {
 	var validatePos uint64
 	if ifConsensus || preIfConsensus {
 		validatePos = authorizeInfo.ConsensusPos + authorizeInfo.WithdrawConsensusPos
@@ -1070,6 +1071,16 @@ func executeAddressSplit(native *native.NativeService, contract common.Address, 
 		return 0, nil
 	}
 	amount := validatePos * totalAmount / totalPos
+	amountReal := new(big.Int).Div(
+		new(big.Int).Mul(new(big.Int).SetUint64(validatePos), new(big.Int).SetUint64(totalAmount)),
+		new(big.Int).SetUint64(totalPos)).Uint64()
+	if native.Height > config.GetUserFeeSplitHeight() {
+		amount = amountReal
+	}
+	if amount != amountReal {
+		log.Errorf("address split overflow: preexec:%v, node: %s, pubkey: %s, user:%s, amount: %d, real: %d, diff: %d",
+			native.PreExec, peerAddress.ToBase58(), peerPubkey, authorizeInfo.Address.ToBase58(), amount, amountReal, amountReal-amount)
+	}
 	splitFeeAddress, err := getSplitFeeAddress(native, contract, authorizeInfo.Address)
 	if err != nil {
 		return 0, fmt.Errorf("getSplitFeeAddress, getSplitFeeAddress error: %v", err)
@@ -1438,7 +1449,7 @@ func splitNodeFee(native *native.NativeService, contract common.Address, peerPub
 		}
 
 		//fee split
-		splitAmount, err := executeAddressSplit(native, contract, &authorizeInfo, preIfConsensus, ifConsensus, totalPos, amount, peerAddress)
+		splitAmount, err := executeAddressSplit(native, contract, &authorizeInfo, preIfConsensus, ifConsensus, totalPos, amount, peerAddress, peerPubkey)
 		if err != nil {
 			return fmt.Errorf("excuteAddressSplit, excuteAddressSplit error: %v", err)
 		}

@@ -250,6 +250,17 @@ func GetTrackDestroyedContractHeight() uint32 {
 	}
 }
 
+func GetUserFeeSplitHeight() uint32 {
+	switch DefConfig.P2PNode.NetworkId {
+	case NETWORK_ID_MAIN_NET:
+		return constants.USER_FEE_SPLIT_OVERFLOW_MAINNET
+	case NETWORK_ID_POLARIS_NET:
+		return constants.USER_FEE_SPLIT_OVERFLOW_POLARIS
+	default:
+		return 0
+	}
+}
+
 func GetAddDecimalsHeight() uint32 {
 	switch DefConfig.P2PNode.NetworkId {
 	case NETWORK_ID_MAIN_NET:
@@ -447,9 +458,7 @@ func NewGenesisConfig() *GenesisConfig {
 	}
 }
 
-//
 // VBFT genesis config, from local config file
-//
 type VBFTConfig struct {
 	N                    uint32               `json:"n"` // network size
 	C                    uint32               `json:"c"` // consensus quorum
