@@ -36,7 +36,6 @@ import (
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
-	sysconfig "github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 	vconfig "github.com/ontio/ontology/consensus/vbft/config"
 	"github.com/ontio/ontology/core/payload"
@@ -1462,7 +1461,7 @@ func (this *LedgerStoreImp) PreExecuteEip155Tx(msg types3.Message) (*types5.Exec
 		Height:    height,
 		Timestamp: blockTime,
 	}
-	config := params.GetChainConfig(sysconfig.DefConfig.P2PNode.EVMChainId)
+	config := params.GetChainConfig(config.DefConfig.P2PNode.EVMChainId)
 	txContext := evm.NewEVMTxContext(msg)
 	blockContext := evm.NewEVMBlockContext(height, blockTime, this)
 	cache := this.GetCacheDB()

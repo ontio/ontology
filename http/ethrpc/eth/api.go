@@ -35,7 +35,6 @@ import (
 	"github.com/ontio/ontology/common/constants"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/states"
-	common2 "github.com/ontio/ontology/core/store/common"
 	sCom "github.com/ontio/ontology/core/store/common"
 	otypes "github.com/ontio/ontology/core/types"
 	ontErrors "github.com/ontio/ontology/errors"
@@ -443,7 +442,7 @@ func (api *EthereumAPI) GetTransactionByHash(hash common.Hash) (*types2.Transact
 	log.Debugf("eth_getTransactionByHash hash %v", hash.Hex())
 	height, tx, err := bactor.GetTxnWithHeightByTxHash(oComm.Uint256(hash))
 	if err != nil {
-		if err == common2.ErrNotFound {
+		if err == sCom.ErrNotFound {
 			return nil, nil
 		}
 		return nil, err
