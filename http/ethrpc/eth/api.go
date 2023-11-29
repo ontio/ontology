@@ -315,7 +315,7 @@ type revertError struct {
 	reason string // revert reason hex encoded
 }
 
-func (api *EthereumAPI) EstimateGas(args types2.CallArgs) (hexutil.Uint64, error) {
+func (api *EthereumAPI) EstimateGas(args types2.CallArgs, _ *rpc.BlockNumberOrHash) (hexutil.Uint64, error) {
 	var (
 		lo  uint64 = params.TxGas
 		hi  uint64
