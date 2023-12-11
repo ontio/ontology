@@ -24,7 +24,6 @@ import (
 
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/p2pserver/common"
-	"github.com/ontio/ontology/p2pserver/message/types"
 	msgTypes "github.com/ontio/ontology/p2pserver/message/types"
 	"github.com/ontio/ontology/p2pserver/net/netserver"
 	p2p "github.com/ontio/ontology/p2pserver/net/protocol"
@@ -82,7 +81,7 @@ func (self *DiscoveryProtocol) HandleSystemMessage(net p2p.P2P, msg p2p.SystemMe
 func (self *DiscoveryProtocol) HandlePeerMessage(ctx *p2p.Context, msg msgTypes.Message) {
 	log.Trace("[p2p]receive message", ctx.Sender().GetAddr(), ctx.Sender().GetID())
 	switch m := msg.(type) {
-	case *types.AddrReq:
+	case *msgTypes.AddrReq:
 		self.discovery.AddrReqHandle(ctx)
 	case *msgTypes.FindNodeResp:
 		self.discovery.FindNodeResponseHandle(ctx, m)
