@@ -826,6 +826,10 @@ func opSuicide(pc *uint64, interpreter *EVMInterpreter, callContext *callCtx) ([
 	interpreter.evm.StateDB.AddBalance(beneficiary.Bytes20(), balance)
 	MakeOngTransferLog(interpreter.evm.StateDB, callContext.contract.Address(), beneficiary.Bytes20(), balance)
 	interpreter.evm.StateDB.Suicide(callContext.contract.Address())
+	if interpreter.cfg.Debug {
+		interpreter.cfg.Tracer.CaptureEnter(SELFDESTRUCT, callContext.contract.Address(), beneficiary.Bytes20(), []byte{}, 0, balance)
+		interpreter.cfg.Tracer.CaptureExit([]byte{}, 0, nil)
+	}
 	return nil, nil
 }
 

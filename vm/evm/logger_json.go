@@ -42,7 +42,7 @@ func NewJSONLogger(cfg *LogConfig, writer io.Writer) *JSONLogger {
 	return l
 }
 
-func (l *JSONLogger) CaptureStart(from common.Address, to common.Address, create bool, input []byte,
+func (l *JSONLogger) CaptureStart(env *EVM, from common.Address, to common.Address, create bool, input []byte,
 	gas uint64, value *big.Int) {
 }
 
@@ -99,3 +99,8 @@ func (l *JSONLogger) CaptureEnd(output []byte, gasUsed uint64, t time.Duration, 
 	_ = l.encoder.Encode(endLog{common.Bytes2Hex(output), math.HexOrDecimal64(gasUsed), t, ""})
 	return
 }
+
+func (l *JSONLogger) CaptureEnter(typ OpCode, from common.Address, to common.Address, input []byte, gas uint64, value *big.Int) {
+}
+
+func (l *JSONLogger) CaptureExit(output []byte, gasUsed uint64, err error) {}
