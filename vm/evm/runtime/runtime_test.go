@@ -336,7 +336,7 @@ type stepCounter struct {
 	steps int
 }
 
-func (s *stepCounter) CaptureStart(from common.Address, to common.Address, create bool, input []byte, gas uint64, value *big.Int) {
+func (s *stepCounter) CaptureStart(env *evm.EVM, from common.Address, to common.Address, create bool, input []byte, gas uint64, value *big.Int) {
 }
 
 func (s *stepCounter) CaptureState(env *evm.EVM, pc uint64, op evm.OpCode, gas, cost uint64,
@@ -353,6 +353,11 @@ func (s *stepCounter) CaptureFault(env *evm.EVM, pc uint64, op evm.OpCode, gas, 
 
 func (s *stepCounter) CaptureEnd(output []byte, gasUsed uint64, t time.Duration, err error) {
 }
+
+func (s *stepCounter) CaptureEnter(typ evm.OpCode, from common.Address, to common.Address, input []byte, gas uint64, value *big.Int) {
+}
+
+func (s *stepCounter) CaptureExit(output []byte, gasUsed uint64, err error) {}
 
 func TestJumpSub1024Limit(t *testing.T) {
 	db := storage.NewCacheDB(overlaydb.NewOverlayDB(leveldbstore.NewMemLevelDBStore()))
