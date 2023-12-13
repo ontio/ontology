@@ -25,8 +25,8 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/holiman/uint256"
+	common2 "github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/types"
-	"github.com/ontio/ontology/smartcontract/service/native/utils"
 	"github.com/ontio/ontology/vm/evm/errors"
 	"github.com/ontio/ontology/vm/evm/params"
 )
@@ -554,8 +554,10 @@ func MakeOngTransferLog(stateDB StateDB, from, to common.Address, value *big.Int
 		topic[1] = common.BytesToHash(from[:])
 		topic[2] = common.BytesToHash(to[:])
 		val := common.BytesToHash(value.Bytes())
+		// copied from smartcontract/service/native/utils to avoid cycle dependencies
+		OngContractAddress, _ := common2.AddressParseFromBytes([]byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02})
 		sl := &types.StorageLog{
-			Address: common.BytesToAddress(utils.OngContractAddress[:]),
+			Address: common.BytesToAddress(OngContractAddress[:]),
 			Topics:  topic,
 			Data:    val[:],
 		}
