@@ -28,6 +28,7 @@ import (
 	"github.com/ontio/ontology/core/store/ledgerstore"
 	"github.com/ontio/ontology/http/base/actor"
 	backend2 "github.com/ontio/ontology/http/ethrpc/backend"
+	"github.com/ontio/ontology/http/ethrpc/debug"
 	"github.com/ontio/ontology/http/ethrpc/eth"
 	filters2 "github.com/ontio/ontology/http/ethrpc/filters"
 	"github.com/ontio/ontology/http/ethrpc/net"
@@ -66,6 +67,9 @@ func StartEthServer(txpool *tp.TXPoolServer) error {
 		return err
 	}
 	if err := server.RegisterName("web3", web3.NewAPI()); err != nil {
+		return err
+	}
+	if err := server.RegisterName("debug", debug.NewDebugAPI()); err != nil {
 		return err
 	}
 

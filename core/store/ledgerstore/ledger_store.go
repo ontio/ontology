@@ -16,6 +16,7 @@
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
 //Storage of ledger
+
 package ledgerstore
 
 import (
@@ -1447,7 +1448,15 @@ func (this *LedgerStoreImp) PreExecuteContract(tx *types.Transaction) (*sstate.P
 	return this.PreExecuteContractWithParam(tx, param)
 }
 
+func (this *LedgerStoreImp) TraceEip155Tx(msg types3.Message, tracer evm2.Tracer) (*types5.ExecutionResult, error) {
+	return this.executeEip155Tx(msg, evm2.Config{Debug: true, Tracer: tracer})
+}
+
 func (this *LedgerStoreImp) PreExecuteEip155Tx(msg types3.Message) (*types5.ExecutionResult, error) {
+	return this.executeEip155Tx(msg, evm2.Config{})
+}
+
+func (this *LedgerStoreImp) executeEip155Tx(msg types3.Message, conf evm2.Config) (*types5.ExecutionResult, error) {
 	height := this.GetCurrentBlockHeight()
 	// use previous block time to make it predictable for easy test
 	blockTime := uint32(time.Now().Unix())
@@ -1466,7 +1475,7 @@ func (this *LedgerStoreImp) PreExecuteEip155Tx(msg types3.Message) (*types5.Exec
 	blockContext := evm.NewEVMBlockContext(height, blockTime, this)
 	cache := this.GetCacheDB()
 	statedb := storage.NewStateDB(cache, common2.Hash{}, common2.Hash(ctx.BlockHash), ong.OngBalanceHandle{})
-	vmenv := evm2.NewEVM(blockContext, txContext, statedb, config, evm2.Config{})
+	vmenv := evm2.NewEVM(blockContext, txContext, statedb, config, conf)
 	res, err := evm.ApplyMessage(vmenv, msg, common2.Address(utils.GovernanceContractAddress))
 	return res, err
 }
