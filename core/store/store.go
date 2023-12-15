@@ -32,6 +32,7 @@ import (
 	types3 "github.com/ontio/ontology/smartcontract/service/evm/types"
 	cstates "github.com/ontio/ontology/smartcontract/states"
 	"github.com/ontio/ontology/smartcontract/storage"
+	"github.com/ontio/ontology/vm/evm"
 )
 
 type ExecuteResult struct {
@@ -78,6 +79,7 @@ type LedgerStore interface {
 	PreExecuteContract(tx *types.Transaction) (*cstates.PreExecResult, error)
 	PreExecuteContractBatch(txes []*types.Transaction, atomic bool) ([]*cstates.PreExecResult, uint32, error)
 	PreExecuteEip155Tx(msg types2.Message) (*types3.ExecutionResult, error)
+	TraceEip155Tx(msg types2.Message, tracer evm.Tracer) (*types3.ExecutionResult, error)
 	GetEventNotifyByTx(tx common.Uint256) (*event.ExecuteNotify, error)
 	GetEventNotifyByBlock(height uint32) ([]*event.ExecuteNotify, error)
 	GetEthCode(hash common2.Hash) ([]byte, error)
