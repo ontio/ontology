@@ -150,6 +150,8 @@ func (this *WasmVmService) Invoke() (interface{}, error) {
 
 	this.ContextRef.PushContext(&context.Context{ContractAddress: contract.Address, Code: wasmCode})
 
+	feature := NewVmFeatureFlag(this.Height)
+	host := &Runtime{Service: this, Input: contract.Args, Feature: feature}
 	var output []byte
 	if this.JitMode {
 		output, err = invokeJit(this, contract, wasmCode)
