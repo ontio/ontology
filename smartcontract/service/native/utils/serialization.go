@@ -55,6 +55,21 @@ func DecodeVarUint(source *common.ZeroCopySource) (uint64, error) {
 		return 0, common.ErrIrregularData
 	}
 	v := common.BigIntFromNeoBytes(value)
+	if v.Cmp(big.NewInt(0)) < 0 || !v.IsUint64() {
+		return 0, fmt.Errorf("%s", "value not uint64")
+	}
+	return v.Uint64(), nil
+}
+
+func DecodeVarUintUnchecked(source *common.ZeroCopySource) (uint64, error) {
+	value, _, irregular, eof := source.NextVarBytes()
+	if eof {
+		return 0, io.ErrUnexpectedEOF
+	}
+	if irregular {
+		return 0, common.ErrIrregularData
+	}
+	v := common.BigIntFromNeoBytes(value)
 	if v.Cmp(big.NewInt(0)) < 0 {
 		return 0, fmt.Errorf("%s", "value should not be a negative number.")
 	}
