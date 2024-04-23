@@ -31,7 +31,7 @@ func EncodeAddress(sink *common.ZeroCopySink, addr common.Address) (size uint64)
 }
 
 func EncodeVarUint(sink *common.ZeroCopySink, value uint64) (size uint64) {
-	return sink.WriteVarBytes(common.BigIntToNeoBytes(big.NewInt(int64(value))))
+	return sink.WriteVarBytes(common.BigIntToNeoBytes(big.NewInt(0).SetUint64(value)))
 }
 
 func EncodeVarBytes(sink *common.ZeroCopySink, v []byte) (size uint64) {
@@ -47,6 +47,21 @@ func EncodeBool(sink *common.ZeroCopySink, value bool) {
 }
 
 func DecodeVarUint(source *common.ZeroCopySource) (uint64, error) {
+	value, _, irregular, eof := source.NextVarBytes()
+	if eof {
+		return 0, io.ErrUnexpectedEOF
+	}
+	if irregular {
+		return 0, common.ErrIrregularData
+	}
+	v := common.BigIntFromNeoBytes(value)
+	if v.Cmp(big.NewInt(0)) < 0 || !v.IsUint64() {
+		return 0, fmt.Errorf("%s", "value not uint64")
+	}
+	return v.Uint64(), nil
+}
+
+func DecodeVarUintWrapping(source *common.ZeroCopySource) (uint64, error) {
 	value, _, irregular, eof := source.NextVarBytes()
 	if eof {
 		return 0, io.ErrUnexpectedEOF

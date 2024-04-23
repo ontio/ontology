@@ -398,6 +398,17 @@ func (s *TXPoolServer) verifyBlock(req *tc.VerifyBlockReq, sender *actor.PID) {
 	// Check whether a tx's gas price is lower than the required, if yes, just return error
 	txs := make(map[common.Uint256]*txtypes.Transaction, len(req.Txs))
 	for _, t := range req.Txs {
+		if isSenderLimited(t.GetSignatureAddresses()) {
+			entry := &tc.VerifyTxResult{
+				Height:  req.Height,
+				Tx:      t,
+				ErrCode: errors.ErrNoAccount,
+			}
+			processedTxs = append(processedTxs, entry)
+			sender.Tell(&tc.VerifyBlockRsp{TxnPool: processedTxs})
+			log.Warnf("no sender account for transaction: %x", t.ToArray())
+			return
+		}
 		if t.GasPrice < s.gasPrice {
 			entry := &tc.VerifyTxResult{
 				Height:  req.Height,

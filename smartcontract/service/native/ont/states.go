@@ -29,7 +29,8 @@ import (
 
 // TransferStates
 type TransferStates struct {
-	States []TransferState
+	States         []TransferState
+	uint64Wrapping bool
 }
 
 type TransferStatesV2 struct {
@@ -58,6 +59,7 @@ func (this *TransferStates) Deserialization(source *common.ZeroCopySource) error
 	}
 	for i := 0; uint64(i) < n; i++ {
 		var state TransferState
+		state.uint64Wrapping = this.uint64Wrapping
 		if err := state.Deserialization(source); err != nil {
 			return err
 		}
@@ -125,9 +127,10 @@ func (this *TransferStateV2) Deserialization(source *common.ZeroCopySource) erro
 }
 
 type TransferState struct {
-	From  common.Address
-	To    common.Address
-	Value uint64
+	From           common.Address
+	To             common.Address
+	Value          uint64
+	uint64Wrapping bool
 }
 
 func (this *TransferState) ToV2() *TransferStateV2 {
@@ -156,7 +159,11 @@ func (this *TransferState) Deserialization(source *common.ZeroCopySource) error 
 		return err
 	}
 
-	this.Value, err = utils.DecodeVarUint(source)
+	if this.uint64Wrapping {
+		this.Value, err = utils.DecodeVarUintWrapping(source)
+	} else {
+		this.Value, err = utils.DecodeVarUint(source)
+	}
 
 	return err
 }
