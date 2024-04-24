@@ -31,7 +31,7 @@ func EncodeAddress(sink *common.ZeroCopySink, addr common.Address) (size uint64)
 }
 
 func EncodeVarUint(sink *common.ZeroCopySink, value uint64) (size uint64) {
-	return sink.WriteVarBytes(common.BigIntToNeoBytes(big.NewInt(int64(value))))
+	return sink.WriteVarBytes(common.BigIntToNeoBytes(big.NewInt(0).SetUint64(value)))
 }
 
 func EncodeVarBytes(sink *common.ZeroCopySink, v []byte) (size uint64) {
