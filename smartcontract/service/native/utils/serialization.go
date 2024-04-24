@@ -61,7 +61,7 @@ func DecodeVarUint(source *common.ZeroCopySource) (uint64, error) {
 	return v.Uint64(), nil
 }
 
-func DecodeVarUintUnchecked(source *common.ZeroCopySource) (uint64, error) {
+func DecodeVarUintWrapping(source *common.ZeroCopySource) (uint64, error) {
 	value, _, irregular, eof := source.NextVarBytes()
 	if eof {
 		return 0, io.ErrUnexpectedEOF
