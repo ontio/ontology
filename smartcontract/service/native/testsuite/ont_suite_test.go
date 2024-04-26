@@ -157,7 +157,7 @@ func ontTotalAllowanceV2(native *native.NativeService, addr common.Address) uint
 
 func ontTransfer(native *native.NativeService, from, to common.Address, value uint64) error {
 	native.Tx.SignedAddr = append(native.Tx.SignedAddr, from)
-	state := ont.TransferState{from, to, value}
+	state := ont.TransferState{From: from, To: to, Value: value}
 	native.Input = common.SerializeToBytes(&ont.TransferStates{States: []ont.TransferState{state}})
 	_, err := ont.OntTransfer(native)
 	return err
@@ -165,7 +165,7 @@ func ontTransfer(native *native.NativeService, from, to common.Address, value ui
 
 func ontTransferV2(native *native.NativeService, from, to common.Address, value uint64) error {
 	native.Tx.SignedAddr = append(native.Tx.SignedAddr, from)
-	state := &ont.TransferStateV2{from, to, states.NativeTokenBalance{Balance: bigint.New(value)}}
+	state := &ont.TransferStateV2{From: from, To: to, Value: states.NativeTokenBalance{Balance: bigint.New(value)}}
 	native.Input = common.SerializeToBytes(&ont.TransferStatesV2{States: []*ont.TransferStateV2{state}})
 	_, err := ont.OntTransferV2(native)
 	return err
@@ -173,7 +173,7 @@ func ontTransferV2(native *native.NativeService, from, to common.Address, value 
 
 func ontTransferFrom(native *native.NativeService, sender, from, to common.Address, value uint64) error {
 	native.Tx.SignedAddr = append(native.Tx.SignedAddr, from)
-	state := &ont.TransferFrom{sender, ont.TransferState{from, to, value}}
+	state := &ont.TransferFrom{Sender: sender, TransferState: ont.TransferState{From: from, To: to, Value: value}}
 	native.Input = common.SerializeToBytes(state)
 	_, err := ont.OntTransferFrom(native)
 	return err
@@ -181,7 +181,7 @@ func ontTransferFrom(native *native.NativeService, sender, from, to common.Addre
 
 func ontTransferFromV2(native *native.NativeService, sender, from, to common.Address, value uint64) error {
 	native.Tx.SignedAddr = append(native.Tx.SignedAddr, from)
-	state := &ont.TransferFromStateV2{sender, ont.TransferStateV2{from, to, states.NativeTokenBalance{Balance: bigint.New(value)}}}
+	state := &ont.TransferFromStateV2{Sender: sender, TransferStateV2: ont.TransferStateV2{From: from, To: to, Value: states.NativeTokenBalance{Balance: bigint.New(value)}}}
 	native.Input = common.SerializeToBytes(state)
 	_, err := ont.OntTransferFromV2(native)
 	return err
@@ -190,7 +190,7 @@ func ontTransferFromV2(native *native.NativeService, sender, from, to common.Add
 func ontApprove(native *native.NativeService, from, to common.Address, value uint64) error {
 	native.Tx.SignedAddr = append(native.Tx.SignedAddr, from)
 
-	native.Input = common.SerializeToBytes(&ont.TransferState{from, to, value})
+	native.Input = common.SerializeToBytes(&ont.TransferState{From: from, To: to, Value: value})
 	_, err := ont.OntApprove(native)
 	return err
 }
@@ -198,7 +198,7 @@ func ontApprove(native *native.NativeService, from, to common.Address, value uin
 func ontApproveV2(native *native.NativeService, from, to common.Address, value uint64) error {
 	native.Tx.SignedAddr = append(native.Tx.SignedAddr, from)
 
-	native.Input = common.SerializeToBytes((&ont.TransferStateV2{from, to, states.NativeTokenBalance{Balance: bigint.New(value)}}))
+	native.Input = common.SerializeToBytes(&ont.TransferStateV2{From: from, To: to, Value: states.NativeTokenBalance{Balance: bigint.New(value)}})
 	_, err := ont.OntApproveV2(native)
 	return err
 }

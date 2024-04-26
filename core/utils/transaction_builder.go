@@ -27,7 +27,6 @@ import (
 	"time"
 
 	"github.com/laizy/bigint"
-
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/types"
@@ -170,13 +169,15 @@ func BuildNeoVMParam(builder *vm.ParamsBuilder, smartContractParams []interface{
 				builder.Emit(vm.TOALTSTACK)
 				for i := 0; i < object.NumField(); i++ {
 					field := object.Field(i)
-					err := BuildNeoVMParam(builder, []interface{}{field.Interface()})
-					if err != nil {
-						return err
+					if field.CanInterface() { // skip unexported fields
+						err := BuildNeoVMParam(builder, []interface{}{field.Interface()})
+						if err != nil {
+							return err
+						}
+						builder.Emit(vm.DUPFROMALTSTACK)
+						builder.Emit(vm.SWAP)
+						builder.Emit(vm.APPEND)
 					}
-					builder.Emit(vm.DUPFROMALTSTACK)
-					builder.Emit(vm.SWAP)
-					builder.Emit(vm.APPEND)
 				}
 				builder.Emit(vm.FROMALTSTACK)
 			default:
