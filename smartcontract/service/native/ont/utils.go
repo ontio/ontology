@@ -119,7 +119,10 @@ func TransferedFrom(native *native.NativeService, currentContract common.Address
 			return
 		}
 	} else {
-		if state.Sender != state.To && !native.ContextRef.CheckWitness(state.Sender) {
+		// after OntHolderUnboundDeadline, ong will be transfered automaticly when user's ont balance changed.
+		allowOntTransferOng := native.ContextRef.CheckWitness(utils.OntContractAddress) && state.Sender == state.To &&
+			state.From == utils.OntContractAddress
+		if !allowOntTransferOng && !native.ContextRef.CheckWitness(state.Sender) {
 			err = errors.NewErr("authentication failed!")
 			return
 		}
