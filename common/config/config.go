@@ -272,6 +272,15 @@ func GetAddDecimalsHeight() uint32 {
 	}
 }
 
+func GetUint64WrappingHeight() uint32 {
+	switch DefConfig.P2PNode.NetworkId {
+	case NETWORK_ID_MAIN_NET:
+		return constants.UINT64_WRAPPING_MAINNET
+	default:
+		return 0
+	}
+}
+
 // the end of unbound timestamp offset from genesis block's timestamp
 func GetGovUnboundDeadline() (uint32, uint64) {
 	count := uint64(0)
@@ -322,52 +331,39 @@ var PolarisConfig = &GenesisConfig{
 		HashMsgDelay:         10000,
 		PeerHandshakeTimeout: 10,
 		MaxBlockChangeView:   3000,
-		AdminOntID:           "did:ont:AMAx993nE6NEqZjwBssUfopxnnvTdob9ij",
+		AdminOntID:           "did:ont:AZYsUWrzNYoXKjUNmMNwRZFHgdFceepDY8",
 		MinInitStake:         10000,
 		VrfValue:             "1c9810aa9822e511d5804a9c4db9dd08497c31087b0daafa34d768a3253441fa20515e2f30f81741102af0ca3cefc4818fef16adb825fbaa8cad78647f3afb590e",
 		VrfProof:             "c57741f934042cb8d8b087b44b161db56fc3ffd4ffb675d36cd09f83935be853d8729f3f5298d12d6fd28d45dde515a4b9d7f67682d182ba5118abf451ff1988",
 		Peers: []*VBFTPeerStakeInfo{
 			{
 				Index:      1,
-				PeerPubkey: "037c9e6c6a446b6b296f89b722cbf686b81e0a122444ef05f0f87096777663284b",
-				Address:    "AXmQDzzvpEtPkNwBEFsREzApTTDZFW6frD",
-				InitPos:    10000,
-			},
-			{
+				PeerPubkey: "02991768dafcdc1fbd3a29fda0ba78ea52da8df118eceecbdc7c4520979b01f85f",
+				Address:    "AUtkbiCdZZudV9PpBCCnFnCVMzxHGwdgJG",
+			}, {
 				Index:      2,
-				PeerPubkey: "03dff4c63267ae5e23da44ace1bc47d0da1eb8d36fd71181dcccf0e872cb7b31fa",
-				Address:    "AY5W6p4jHeZG2jjW6nS1p4KDUhcqLkU6jz",
-				InitPos:    20000,
-			},
-			{
+				PeerPubkey: "022ae5cb71715f259f37181e2b5106a3f6cfc3f418856e98bea4170455eb60fb13",
+				Address:    "ANWGV5vY6G699cepY5QdfXhiVJPeE2YUVB",
+			}, {
 				Index:      3,
-				PeerPubkey: "0205bc592aa9121428c4144fcd669ece1fa73fee440616c75624967f83fb881050",
-				Address:    "ALZVrZrFqoSvqyi38n7mpPoeDp7DMtZ9b6",
-				InitPos:    30000,
-			},
-			{
+				PeerPubkey: "03ec62d87cb127f53da20ec0dd28170c67a967a09ff90678698060bf58ea791929",
+				Address:    "AWuBPBHGVNYyh9GsymGydjgmFdc4gTaqsH",
+			}, {
 				Index:      4,
-				PeerPubkey: "030a34dcb075d144df1f65757b85acaf053395bb47b019970607d2d1cdd222525c",
-				Address:    "AMogjmLf2QohTcGST7niV75ekZfj44SKme",
-				InitPos:    40000,
-			},
-			{
+				PeerPubkey: "0237313c1fc4dd3a7b83ac98293d813d5c5ae5f4f2c8ec0595fb99468d0a89af77",
+				Address:    "AXWUiHwtXhrgsZBiN7G92VfdyKjxtV9mKk",
+			}, {
 				Index:      5,
-				PeerPubkey: "021844159f97d81da71da52f84e8451ee573c83b296ff2446387b292e44fba5c98",
-				Address:    "AZzQTkZvjy7ih9gjvwU8KYiZZyNoy6jE9p",
-				InitPos:    30000,
-			},
-			{
+				PeerPubkey: "02712034342b182c61ab7f278defeacb0e5f986935559eb11a972e35eb11801801",
+				Address:    "ARqsMoZgQwin9qRQz1qM7WzDXvcYHsxf55",
+			}, {
 				Index:      6,
-				PeerPubkey: "020cc76feb375d6ea8ec9ff653bab18b6bbc815610cecc76e702b43d356f885835",
-				Address:    "AKEqQKmxCsjWJz8LPGryXzb6nN5fkK1WDY",
-				InitPos:    20000,
-			},
-			{
+				PeerPubkey: "03625c32d7d69d1ec9c7be2ad2d51a6832df0cab06415e3a5c943d6781ad566a55",
+				Address:    "AT4K1UQiGkNTs7akaggsqEai7uJoe86Ap1",
+			}, {
 				Index:      7,
-				PeerPubkey: "03aa4d52b200fd91ca12deff46505c4608a0f66d28d9ae68a342c8a8c1266de0f9",
-				Address:    "AQNpGWz4oHHFBejtBbakeR43DHfen7cm8L",
-				InitPos:    10000,
+				PeerPubkey: "035f52e2c1eff549e01d153eaf3a1da8a587c30c03ea3b3b1de049d051aeeac948",
+				Address:    "AdQ9SfUYcqwyv9YpBsodPeHnLe572UAH9k",
 			},
 		},
 	},

@@ -161,7 +161,7 @@ func doTransfer(native *native.NativeService, transfers *TransferStatesV2) ([]by
 
 func OntTransfer(native *native.NativeService) ([]byte, error) {
 	var transfers TransferStates
-	if native.Height <= 17370000 {
+	if native.Height <= config.GetUint64WrappingHeight() {
 		transfers.uint64Wrapping = true
 	}
 	source := common.NewZeroCopySource(native.Input)
