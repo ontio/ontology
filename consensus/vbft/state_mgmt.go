@@ -29,7 +29,7 @@ import (
 
 const (
 	// TODO: move to config file
-	MAX_PEER_CONNECTIONS      = 100
+	MAX_PEER_CONNECTIONS      = 10
 	MAX_SYNCING_CHECK_BLK_NUM = 10
 )
 
