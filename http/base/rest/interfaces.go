@@ -19,6 +19,7 @@
 package rest
 
 import (
+	"encoding/hex"
 	"strconv"
 
 	"github.com/ontio/ontology/common"
@@ -54,7 +55,7 @@ func GetNetworkId(cmd map[string]interface{}) map[string]interface{} {
 	return resp
 }
 
-//get connection node count
+// get connection node count
 func GetConnectionCount(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(berr.SUCCESS)
 	count := bactor.GetConnectionCnt()
@@ -72,7 +73,7 @@ func GetNodeSyncStatus(cmd map[string]interface{}) map[string]interface{} {
 	return resp
 }
 
-//get block height
+// get block height
 func GetBlockHeight(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(berr.SUCCESS)
 	height := bactor.GetCurrentBlockHeight()
@@ -80,7 +81,7 @@ func GetBlockHeight(cmd map[string]interface{}) map[string]interface{} {
 	return resp
 }
 
-//get block hash by height
+// get block hash by height
 func GetBlockHash(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(berr.SUCCESS)
 	param, ok := cmd["Height"].(string)
@@ -116,7 +117,7 @@ func getBlock(hash common.Uint256, getTxBytes bool) (interface{}, int64) {
 	return bcomn.GetBlockInfo(block), berr.SUCCESS
 }
 
-//get block by hash
+// get block by hash
 func GetBlockByHash(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(berr.SUCCESS)
 	str := cmd["Hash"].(string)
@@ -136,7 +137,7 @@ func GetBlockByHash(cmd map[string]interface{}) map[string]interface{} {
 	return resp
 }
 
-//get block height by transaction hash
+// get block height by transaction hash
 func GetBlockHeightByTxHash(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(berr.SUCCESS)
 	str, ok := cmd["Hash"].(string)
@@ -158,7 +159,7 @@ func GetBlockHeightByTxHash(cmd map[string]interface{}) map[string]interface{} {
 	return resp
 }
 
-//get block transaction hashes by height
+// get block transaction hashes by height
 func GetBlockTxsByHeight(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(berr.SUCCESS)
 
@@ -183,7 +184,7 @@ func GetBlockTxsByHeight(cmd map[string]interface{}) map[string]interface{} {
 	return resp
 }
 
-//get block by height
+// get block by height
 func GetBlockByHeight(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(berr.SUCCESS)
 
@@ -215,7 +216,7 @@ func GetBlockByHeight(cmd map[string]interface{}) map[string]interface{} {
 	return resp
 }
 
-//get transaction by hash
+// get transaction by hash
 func GetTransactionByHash(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(berr.SUCCESS)
 
@@ -247,7 +248,7 @@ func GetTransactionByHash(cmd map[string]interface{}) map[string]interface{} {
 	return resp
 }
 
-//send raw transaction
+// send raw transaction
 func SendRawTransaction(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(berr.SUCCESS)
 
@@ -291,7 +292,7 @@ func SendRawTransaction(cmd map[string]interface{}) map[string]interface{} {
 	return resp
 }
 
-//get smartcontract event by height
+// get smartcontract event by height
 func GetSmartCodeEventTxsByHeight(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(berr.SUCCESS)
 
@@ -323,7 +324,7 @@ func GetSmartCodeEventTxsByHeight(cmd map[string]interface{}) map[string]interfa
 	return resp
 }
 
-//get smartcontract event by transaction hash
+// get smartcontract event by transaction hash
 func GetSmartCodeEventByTxHash(cmd map[string]interface{}) map[string]interface{} {
 	if !config.DefConfig.Common.EnableEventLog {
 		return ResponsePack(berr.INVALID_METHOD)
@@ -354,7 +355,7 @@ func GetSmartCodeEventByTxHash(cmd map[string]interface{}) map[string]interface{
 	return resp
 }
 
-//get contract state
+// get contract state
 func GetContractState(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(berr.SUCCESS)
 	str, ok := cmd["Hash"].(string)
@@ -382,7 +383,7 @@ func GetContractState(cmd map[string]interface{}) map[string]interface{} {
 	return resp
 }
 
-//get storage from contract
+// get storage from contract
 func GetStorage(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(berr.SUCCESS)
 	str, ok := cmd["Hash"].(string)
@@ -409,7 +410,7 @@ func GetStorage(cmd map[string]interface{}) map[string]interface{} {
 	return resp
 }
 
-//get balance of address
+// get balance of address
 func GetBalance(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(berr.SUCCESS)
 	addrBase58, ok := cmd["Addr"].(string)
@@ -428,7 +429,7 @@ func GetBalance(cmd map[string]interface{}) map[string]interface{} {
 	return resp
 }
 
-//get balance of address
+// get balance of address
 func GetBalanceV2(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(berr.SUCCESS)
 	addrBase58, ok := cmd["Addr"].(string)
@@ -447,7 +448,7 @@ func GetBalanceV2(cmd map[string]interface{}) map[string]interface{} {
 	return resp
 }
 
-//get merkle proof by transaction hash
+// get merkle proof by transaction hash
 func GetMerkleProof(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(berr.SUCCESS)
 	str, ok := cmd["Hash"].(string)
@@ -488,7 +489,7 @@ func GetMerkleProof(cmd map[string]interface{}) map[string]interface{} {
 	return resp
 }
 
-//get avg gas price in block
+// get avg gas price in block
 func GetGasPrice(cmd map[string]interface{}) map[string]interface{} {
 	gasPrice, height, err := bcomn.GetGasPrice()
 	if err != nil {
@@ -500,7 +501,7 @@ func GetGasPrice(cmd map[string]interface{}) map[string]interface{} {
 	return resp
 }
 
-//get allowance
+// get allowance
 func GetAllowance(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(berr.SUCCESS)
 	asset, ok := cmd["Asset"].(string)
@@ -531,7 +532,7 @@ func GetAllowance(cmd map[string]interface{}) map[string]interface{} {
 	return resp
 }
 
-//get allowance
+// get allowance
 func GetAllowanceV2(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(berr.SUCCESS)
 	asset, ok := cmd["Asset"].(string)
@@ -562,7 +563,7 @@ func GetAllowanceV2(cmd map[string]interface{}) map[string]interface{} {
 	return resp
 }
 
-//get unbound ong
+// get unbound ong
 func GetUnboundOng(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(berr.SUCCESS)
 	toAddrStr, ok := cmd["Addr"].(string)
@@ -582,7 +583,7 @@ func GetUnboundOng(cmd map[string]interface{}) map[string]interface{} {
 	return resp
 }
 
-//get grant ong
+// get grant ong
 func GetGrantOng(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(berr.SUCCESS)
 	toAddrStr, ok := cmd["Addr"].(string)
@@ -601,7 +602,7 @@ func GetGrantOng(cmd map[string]interface{}) map[string]interface{} {
 	return resp
 }
 
-//get memory pool transaction count
+// get memory pool transaction count
 func GetMemPoolTxCount(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(berr.SUCCESS)
 	count := bactor.GetTxnCount()
@@ -609,7 +610,7 @@ func GetMemPoolTxCount(cmd map[string]interface{}) map[string]interface{} {
 	return resp
 }
 
-//get memory pool transaction hash list
+// get memory pool transaction hash list
 func GetMemPoolTxHashList(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(berr.SUCCESS)
 	txHashList := bactor.GetTxnHashList()
@@ -617,7 +618,7 @@ func GetMemPoolTxHashList(cmd map[string]interface{}) map[string]interface{} {
 	return resp
 }
 
-//get memory poll transaction state
+// get memory poll transaction state
 func GetMemPoolTxState(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(berr.SUCCESS)
 	str, ok := cmd["Hash"].(string)
@@ -632,10 +633,10 @@ func GetMemPoolTxState(cmd map[string]interface{}) map[string]interface{} {
 	if err != nil {
 		return ResponsePack(berr.UNKNOWN_TRANSACTION)
 	}
-	attrs := []bcomn.TXNAttrInfo{}
+	var attrs []bcomn.TXNAttrInfo
 	for _, t := range txEntry.Attrs {
-		attrs = append(attrs, bcomn.TXNAttrInfo{t.Height, int(t.Type), int(t.ErrCode)})
+		attrs = append(attrs, bcomn.TXNAttrInfo{Height: t.Height, Type: int(t.Type), ErrCode: int(t.ErrCode)})
 	}
-	resp["Result"] = bcomn.TXNEntryInfo{attrs}
+	resp["Result"] = bcomn.TXNEntryInfo{State: attrs, Raw: hex.EncodeToString(txEntry.Tx.ToArray())}
 	return resp
 }
