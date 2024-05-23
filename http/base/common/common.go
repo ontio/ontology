@@ -198,6 +198,7 @@ type TXNAttrInfo struct {
 
 type TXNEntryInfo struct {
 	State []TXNAttrInfo // the result from each validator
+	Raw   string
 }
 
 func GetLogEvent(obj *event.LogEventArgs) (map[string]bool, LogEventArgs) {
@@ -610,7 +611,7 @@ func GetBlockTransactions(block *types.Block) interface{} {
 	return b
 }
 
-//NewNativeInvokeTransaction return native contract invoke transaction
+// NewNativeInvokeTransaction return native contract invoke transaction
 func NewNativeInvokeTransaction(gasPirce, gasLimit uint64, contractAddress common.Address, version byte,
 	method string, params []interface{}) (*types.MutableTransaction, error) {
 	invokeCode, err := cutils.BuildNativeInvokeCode(contractAddress, version, method, params)
@@ -643,7 +644,7 @@ func NewSmartContractTransaction(gasPrice, gasLimit uint64, invokeCode []byte) (
 	return tx, nil
 }
 
-//BuildNeoVMInvokeCode build NeoVM Invoke code for params
+// BuildNeoVMInvokeCode build NeoVM Invoke code for params
 func BuildNeoVMInvokeCode(smartContractAddress common.Address, params []interface{}) ([]byte, error) {
 	builder := neovm.NewParamsBuilder(new(bytes.Buffer))
 	err := cutils.BuildNeoVMParam(builder, params)
