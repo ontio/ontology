@@ -60,11 +60,11 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/native/ong"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 	"github.com/ontio/ontology/smartcontract/service/neovm"
-	"github.com/ontio/ontology/smartcontract/service/wasmvm"
 	"github.com/ontio/ontology/smartcontract/storage"
 	evm2 "github.com/ontio/ontology/vm/evm"
 	"github.com/ontio/ontology/vm/evm/params"
 	types2 "github.com/ontio/ontology/vm/neovm/types"
+	"github.com/ontio/wagon/validate"
 )
 
 const (
@@ -479,13 +479,13 @@ func (this *LedgerStoreImp) verifyHeader(header *types.Header) error {
 		pubInfos := make(map[string]bool)
 		for _, p := range cfg.Peers {
 			pubInfos[p.ID] = true
-		}
+			}
 		m := cfg.C + 1
 		allowDupl := true
 		if config.GetCheckHeaderSigQuorumHeight() <= header.Height {
 			m = cfg.Quorum()
 			allowDupl = false
-		}
+			}
 		err = header.VerifyMultiSignature(pubInfos, allowDupl, m)
 		if err != nil {
 			log.Errorf("VerifyMultiSignature:%s,signatures:%d, quorum:%d, pubkeys:%d, height:%d", err, len(header.Bookkeepers), m, len(cfg.Peers), header.Height)
@@ -974,7 +974,7 @@ func (this *LedgerStoreImp) submitBlock(block *types.Block, crossChainMsg *types
 		events.DefActorPublisher.Publish(
 			message.TOPIC_SAVE_BLOCK_COMPLETE,
 			&message.SaveBlockCompleteMsg{
-				Block:      block,
+				Block: block,
 				ExecResult: &result,
 			})
 		PushChainEvent(result.Notify, block, result.Bloom)
@@ -1109,7 +1109,7 @@ func (this *LedgerStoreImp) IsContainTransaction(txHash common.Uint256) (bool, e
 // GetBlockRootWithNewTxRoots return the block root(merkle root of blocks) after add a new tx root of block
 func (this *LedgerStoreImp) GetBlockRootWithNewTxRoots(startHeight uint32, txRoots []common.Uint256) common.Uint256 {
 	return this.stateStore.GetBlockRootWithNewTxRoots(startHeight, txRoots)
-}
+	}
 
 func (this *LedgerStoreImp) GetCrossStates(height uint32) ([]common.Uint256, error) {
 	return this.stateStore.GetCrossStates(height)
@@ -1380,7 +1380,8 @@ func (this *LedgerStoreImp) PreExecuteContractWithParam(tx *types.Transaction, p
 
 		if deploy.VmType() == payload.WASMVM_TYPE {
 			wasmCode := deploy.GetRawCode()
-			err := wasmvm.WasmjitValidate(wasmCode)
+			err := validate.VerifyWasmCodeFromRust(wasmCode)
+			//err := wasmvm.WasmjitValidate(wasmCode)
 			if err != nil {
 				return stf, err
 			}

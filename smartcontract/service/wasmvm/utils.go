@@ -121,17 +121,9 @@ func ReadWasmModule(code []byte, verify config.VerifyMethod) (result *exec.Compi
 			return nil, err
 		}
 
-		switch verify {
-		case config.InterpVerifyMethod:
-			err = validate.VerifyWasmCodeFromRust(code)
-			if err != nil {
-				return nil, err
-			}
-		case config.JitVerifyMethod:
-			err := WasmjitValidate(code)
-			if err != nil {
-				return nil, err
-			}
+		err = validate.VerifyWasmCodeFromRust(code)
+		if err != nil {
+			return nil, err
 		}
 	}
 
