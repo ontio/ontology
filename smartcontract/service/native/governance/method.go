@@ -74,6 +74,8 @@ func registerCandidate(native *native.NativeService, flag string) error {
 	if err != nil {
 		return fmt.Errorf("hex.DecodeString, peerPubkey format error: %v", err)
 	}
+	params.PeerPubkey = hex.EncodeToString(peerPubkeyPrefix)
+
 	//get black list
 	blackList, err := native.CacheDB.Get(utils.ConcatKey(contract, []byte(BLACK_LIST), peerPubkeyPrefix))
 	if err != nil {
