@@ -172,7 +172,7 @@ func ontTransferV2(native *native.NativeService, from, to common.Address, value 
 }
 
 func ontTransferFrom(native *native.NativeService, sender, from, to common.Address, value uint64) error {
-	native.Tx.SignedAddr = append(native.Tx.SignedAddr, from)
+	native.Tx.SignedAddr = append(native.Tx.SignedAddr, sender)
 	state := &ont.TransferFrom{Sender: sender, TransferState: ont.TransferState{From: from, To: to, Value: value}}
 	native.Input = common.SerializeToBytes(state)
 	_, err := ont.OntTransferFrom(native)
@@ -180,7 +180,7 @@ func ontTransferFrom(native *native.NativeService, sender, from, to common.Addre
 }
 
 func ontTransferFromV2(native *native.NativeService, sender, from, to common.Address, value uint64) error {
-	native.Tx.SignedAddr = append(native.Tx.SignedAddr, from)
+	native.Tx.SignedAddr = append(native.Tx.SignedAddr, sender)
 	state := &ont.TransferFromStateV2{Sender: sender, TransferStateV2: ont.TransferStateV2{From: from, To: to, Value: states.NativeTokenBalance{Balance: bigint.New(value)}}}
 	native.Input = common.SerializeToBytes(state)
 	_, err := ont.OntTransferFromV2(native)
