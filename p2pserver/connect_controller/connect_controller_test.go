@@ -233,7 +233,7 @@ func TestCheckReserveWithDomain(t *testing.T) {
 	a := assert.New(t)
 	// this domain only have one A record, so we can assure two lookup below return the same IP
 	// other domain may fail the test sometimes
-	dname := "www.onchain.com"
+	dname := "ont.io"
 
 	gips, err := net.LookupHost(dname)
 	a.Nil(err, "fail to get domain record")
