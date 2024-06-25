@@ -1,9 +1,8 @@
 <h1 align="center">Ontology</h1>
-<h4 align="center">Version 2.2.0(Bin) 1.13.0(Lib)</h4>
+<h4 align="center">Version 2.5.8(Bin) 1.17.0(Lib)</h4>
 
 [![GoDoc](https://godoc.org/github.com/ontio/ontology?status.svg)](https://godoc.org/github.com/ontio/ontology)
 [![Go Report Card](https://goreportcard.com/badge/github.com/ontio/ontology)](https://goreportcard.com/report/github.com/ontio/ontology)
-[![Travis](https://travis-ci.com/ontio/ontology.svg?branch=master)](https://travis-ci.com/ontio/ontology)
 [![Discord](https://img.shields.io/discord/102860784329052160.svg)](https://discord.gg/gDkuCAq)
 
 English | [中文](README_CN.md)
@@ -29,16 +28,15 @@ New features are still being rapidly developed, therefore the master branch may 
 
 
 ## Install from Binaries
-You can download a stable compiled version of the Ontology node software by either:
+You can download a stable compiled version of the Ontology node software by:
 
-- Downloading the latest Ontology binary file with `curl https://dev.ont.io/ontology_install | sh`.
-- Downloading a specific version from the [release section](https://github.com/ontio/ontology/releases).
+Downloading a specific version from the [release section](https://github.com/ontio/ontology/releases).
 
 ## Build From Source
 
 ### Prerequisites
 
-- [Golang](https://golang.org/doc/install) version 1.15 or later
+- [Golang](https://golang.org/doc/install) version 1.17 or later
 
 
 ### Build
