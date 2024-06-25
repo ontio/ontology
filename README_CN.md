@@ -1,9 +1,8 @@
 <h1 align="center">Ontology </h1>
-<h4 align="center">Version 2.2.0(Bin) 1.13.0(Lib) </h4>
+<h4 align="center">Version 2.5.8(Bin) 1.17.0(Lib) </h4>
 
 [![GoDoc](https://godoc.org/github.com/ontio/ontology?status.svg)](https://godoc.org/github.com/ontio/ontology)
 [![Go Report Card](https://goreportcard.com/badge/github.com/ontio/ontology)](https://goreportcard.com/report/github.com/ontio/ontology)
-[![Travis](https://travis-ci.com/ontio/ontology.svg?branch=master)](https://travis-ci.com/ontio/ontology)
 [![Discord](https://img.shields.io/discord/102860784329052160.svg)](https://discord.gg/gDkuCAq)
 
 [English](README.md) | 中文
@@ -58,8 +57,7 @@ Ontology MainNet 已经在2018年6月30日成功上线。<br>
 ## 获取ontology
 
 ### 从release获取
-- 你可以通过命令 ` curl https://dev.ont.io/ontology_install | sh ` 获取最新的ontology版本
-- 你也可以从[下载页面](https://github.com/ontio/ontology/releases)获取.
+你可以从[下载页面](https://github.com/ontio/ontology/releases)获取.
 
 ### 从源码获取
 
