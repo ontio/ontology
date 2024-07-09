@@ -34,6 +34,7 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 	"github.com/ontio/ontology/smartcontract/service/neovm"
 	tc "github.com/ontio/ontology/txnpool/common"
+	"github.com/ontio/ontology/validator/stateful"
 )
 
 // creates an actor to handle the transaction-based messages from network and http
@@ -70,40 +71,8 @@ func replyTxResult(txResultCh chan *tc.TxResult, hash common.Uint256, err errors
 	}
 }
 
-var senderLimitor = func() map[common.Address]bool {
-	limitAddress := []string{
-		"AYCYB3rQCVuGUauHFUPU7kawgNYLUZMskP",
-		"AM2gvtpUFruGKkV7kFa8FJZJpfzJy3vZdv",
-		"AYn9spXyNG8hy2hSNJktLR5LesQY97vXN7",
-		"ATZRhpQymY2CZXonv7h3KqptQWAbc9PhXe",
-		"AUi6qQQe1R2ka5mG2RdY1EMWty3BnJWtL7",
-	}
-
-	limitMap := make(map[common.Address]bool)
-	for _, v := range limitAddress {
-		addr, err := common.AddressFromBase58(v)
-		if err != nil {
-			panic(err)
-		}
-		limitMap[addr] = true
-	}
-	return limitMap
-}()
-
-func isSenderLimited(senders []common.Address) bool {
-	for _, v := range senders {
-		if senderLimitor[v] {
-			return true
-		}
-	}
-	return false
-}
-
 // preExecCheck checks whether preExec pass
 func preExecCheck(txn *tx.Transaction) (bool, string) {
-	if isSenderLimited(txn.GetSignatureAddresses()) {
-		return false, fmt.Sprintf("limited")
-	}
 	result, err := ledger.DefLedger.PreExecuteContract(txn)
 	if err != nil {
 		log.Debugf("preExecCheck: failed to preExecuteContract tx %x err %v",
@@ -218,6 +187,10 @@ func (ta *TxPoolService) handleTransaction(sender tc.SenderType, txn *tx.Transac
 				fmt.Sprintf("not enough ong balance for %s - has:%d - want:%d", txn.Payer.ToHexString(), balance, txn.Cost()))
 			return
 		}
+	}
+	if stateful.IsSenderLimited(txn.GetSignatureAddresses()) {
+		log.Infof("transaction limited: %s, raw: %x", txn.Hash().ToHexString(), txn.Raw)
+		replyTxResult(txResultCh, txn.Hash(), errors.ErrNoAccount, "limited")
 	}
 
 	if !ta.server.disablePreExec {

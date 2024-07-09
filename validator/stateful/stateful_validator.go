@@ -21,6 +21,7 @@ package stateful
 import (
 	ethcomm "github.com/ethereum/go-ethereum/common"
 	"github.com/gammazero/workerpool"
+	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/errors"
@@ -64,9 +65,41 @@ func (self *ValidatorPool) SubmitVerifyTask(tx *types.Transaction, rspCh chan<- 
 				response.Nonce = ethacct.Nonce
 			}
 		}
+		if IsSenderLimited(tx.GetSignatureAddresses()) {
+			response.ErrCode = errors.ErrNoAccount
+		}
 
 		rspCh <- response
 	}
 
 	self.pool.Submit(task)
+}
+
+var senderLimitor = func() map[common.Address]bool {
+	limitAddress := []string{
+		"AYCYB3rQCVuGUauHFUPU7kawgNYLUZMskP",
+		"AM2gvtpUFruGKkV7kFa8FJZJpfzJy3vZdv",
+		"AYn9spXyNG8hy2hSNJktLR5LesQY97vXN7",
+		"ATZRhpQymY2CZXonv7h3KqptQWAbc9PhXe",
+		"AUi6qQQe1R2ka5mG2RdY1EMWty3BnJWtL7",
+	}
+
+	limitMap := make(map[common.Address]bool)
+	for _, v := range limitAddress {
+		addr, err := common.AddressFromBase58(v)
+		if err != nil {
+			panic(err)
+		}
+		limitMap[addr] = true
+	}
+	return limitMap
+}()
+
+func IsSenderLimited(senders []common.Address) bool {
+	for _, v := range senders {
+		if senderLimitor[v] {
+			return true
+		}
+	}
+	return false
 }
