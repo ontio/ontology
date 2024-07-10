@@ -26,26 +26,28 @@ import (
 
 	cfg "github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
-	"github.com/ontio/ontology/http/base/rpc"
+	"github.com/ontio/ontology/http/jsonrpc"
 )
 
 const (
 	LOCAL_HOST string = "127.0.0.1"
-	LOCAL_DIR  string = "/local"
 )
+
+var LocalRpcMux = jsonrpc.NewRPCHandler()
 
 func StartLocalServer() error {
 	log.Debug()
-	http.HandleFunc(LOCAL_DIR, rpc.Handle)
+	rpcMux := LocalRpcMux
 
-	rpc.HandleFunc("getneighbor", GetNeighbor)
-	rpc.HandleFunc("getnodestate", GetNodeState)
-	rpc.HandleFunc("startconsensus", StartConsensus)
-	rpc.HandleFunc("stopconsensus", StopConsensus)
-	rpc.HandleFunc("setdebuginfo", SetDebugInfo)
+	rpcMux.HandleFunc("getneighbor", GetNeighbor)
+	rpcMux.HandleFunc("getnodestate", GetNodeState)
+	rpcMux.HandleFunc("startconsensus", StartConsensus)
+	rpcMux.HandleFunc("stopconsensus", StopConsensus)
+	rpcMux.HandleFunc("setdebuginfo", SetDebugInfo)
 
-	// TODO: only listen to local host
-	err := http.ListenAndServe(LOCAL_HOST+":"+strconv.Itoa(int(cfg.DefConfig.Rpc.HttpLocalPort)), nil)
+	mux := http.NewServeMux()
+	mux.Handle("/", rpcMux)
+	err := http.ListenAndServe(LOCAL_HOST+":"+strconv.Itoa(int(cfg.DefConfig.Rpc.HttpLocalPort)), mux)
 	if err != nil {
 		return fmt.Errorf("ListenAndServe error:%s", err)
 	}

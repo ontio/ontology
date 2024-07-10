@@ -29,46 +29,54 @@ import (
 	"github.com/ontio/ontology/http/base/rpc"
 )
 
-func StartRPCServer() error {
-	log.Debug()
-	http.HandleFunc("/", rpc.Handle)
-	rpc.HandleFunc("getbestblockhash", GetBestBlockHash)
-	rpc.HandleFunc("getblock", GetBlock)
-	rpc.HandleFunc("getblockcount", GetBlockCount)
-	rpc.HandleFunc("getblockhash", GetBlockHash)
-	rpc.HandleFunc("getconnectioncount", GetConnectionCount)
-	rpc.HandleFunc("getsyncstatus", GetSyncStatus)
+func NewRPCHandler() *rpc.ServeMux {
+	mux := rpc.NewServeMux()
+	mux.HandleFunc("getbestblockhash", GetBestBlockHash)
+	mux.HandleFunc("getblock", GetBlock)
+	mux.HandleFunc("getblockcount", GetBlockCount)
+	mux.HandleFunc("getblockhash", GetBlockHash)
+	mux.HandleFunc("getconnectioncount", GetConnectionCount)
+	mux.HandleFunc("getsyncstatus", GetSyncStatus)
 	//HandleFunc("getrawmempool", GetRawMemPool)
 
-	rpc.HandleFunc("getrawtransaction", GetRawTransaction)
-	rpc.HandleFunc("sendrawtransaction", SendRawTransaction)
-	rpc.HandleFunc("getstorage", GetStorage)
-	rpc.HandleFunc("getversion", GetNodeVersion)
-	rpc.HandleFunc("getnetworkid", GetNetworkId)
+	mux.HandleFunc("getrawtransaction", GetRawTransaction)
+	mux.HandleFunc("sendrawtransaction", SendRawTransaction)
+	mux.HandleFunc("getstorage", GetStorage)
+	mux.HandleFunc("getversion", GetNodeVersion)
+	mux.HandleFunc("getnetworkid", GetNetworkId)
 
-	rpc.HandleFunc("getcontractstate", GetContractState)
-	rpc.HandleFunc("getmempooltxcount", GetMemPoolTxCount)
-	rpc.HandleFunc("getmempooltxstate", GetMemPoolTxState)
-	rpc.HandleFunc("getmempooltxhashlist", GetMemPoolTxHashList)
-	rpc.HandleFunc("getsmartcodeevent", GetSmartCodeEvent)
-	rpc.HandleFunc("getblockheightbytxhash", GetBlockHeightByTxHash)
+	mux.HandleFunc("getcontractstate", GetContractState)
+	mux.HandleFunc("getmempooltxcount", GetMemPoolTxCount)
+	mux.HandleFunc("getmempooltxstate", GetMemPoolTxState)
+	mux.HandleFunc("getmempooltxhashlist", GetMemPoolTxHashList)
+	mux.HandleFunc("getsmartcodeevent", GetSmartCodeEvent)
+	mux.HandleFunc("getblockheightbytxhash", GetBlockHeightByTxHash)
 
-	rpc.HandleFunc("getbalance", GetBalance)
-	rpc.HandleFunc("getbalancev2", GetBalanceV2)
-	rpc.HandleFunc("getoep4balance", GetOep4Balance)
-	rpc.HandleFunc("getallowance", GetAllowance)
-	rpc.HandleFunc("getallowancev2", GetAllowanceV2)
-	rpc.HandleFunc("getmerkleproof", GetMerkleProof)
-	rpc.HandleFunc("getblocktxsbyheight", GetBlockTxsByHeight)
-	rpc.HandleFunc("getgasprice", GetGasPrice)
-	rpc.HandleFunc("getunboundong", GetUnboundOng)
-	rpc.HandleFunc("getgrantong", GetGrantOng)
+	mux.HandleFunc("getbalance", GetBalance)
+	mux.HandleFunc("getbalancev2", GetBalanceV2)
+	mux.HandleFunc("getoep4balance", GetOep4Balance)
+	mux.HandleFunc("getallowance", GetAllowance)
+	mux.HandleFunc("getallowancev2", GetAllowanceV2)
+	mux.HandleFunc("getmerkleproof", GetMerkleProof)
+	mux.HandleFunc("getblocktxsbyheight", GetBlockTxsByHeight)
+	mux.HandleFunc("getgasprice", GetGasPrice)
+	mux.HandleFunc("getunboundong", GetUnboundOng)
+	mux.HandleFunc("getgrantong", GetGrantOng)
 
-	rpc.HandleFunc("getcrosschainmsg", GetCrossChainMsg)
-	rpc.HandleFunc("getcrossstatesproof", GetCrossStatesProof)
-	rpc.HandleFunc("getcrossstatesleafhashes", GetCrossStatesLeafHashes)
+	mux.HandleFunc("getcrosschainmsg", GetCrossChainMsg)
+	mux.HandleFunc("getcrossstatesproof", GetCrossStatesProof)
+	mux.HandleFunc("getcrossstatesleafhashes", GetCrossStatesLeafHashes)
 
-	err := http.ListenAndServe(":"+strconv.Itoa(int(cfg.DefConfig.Rpc.HttpJsonPort)), nil)
+	return mux
+}
+
+func StartRPCServer() error {
+	log.Debug()
+
+	rpcMux := NewRPCHandler()
+	mux := http.NewServeMux()
+	mux.Handle("/", rpcMux)
+	err := http.ListenAndServe(":"+strconv.Itoa(int(cfg.DefConfig.Rpc.HttpJsonPort)), mux)
 	if err != nil {
 		return fmt.Errorf("ListenAndServe error:%s", err)
 	}
