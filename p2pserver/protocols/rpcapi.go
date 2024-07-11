@@ -21,12 +21,13 @@ package protocols
 import (
 	"github.com/ontio/ontology/http/base/error"
 	"github.com/ontio/ontology/http/base/rpc"
+	"github.com/ontio/ontology/http/localrpc"
 	"github.com/ontio/ontology/p2pserver/protocols/subnet"
 )
 
 func RegisterProposeOfflineVote(subnet *subnet.SubNet) {
 	// curl http://localhost:20337/local -v -d '{"method":"proposeOfflineVote", "params":["pubkey1", "pubkey2"]}'
-	rpc.HandleFunc("proposeOfflineVote", func(params []interface{}) map[string]interface{} {
+	localrpc.LocalRpcMux.HandleFunc("proposeOfflineVote", func(params []interface{}) map[string]interface{} {
 		var nodes []string
 		for _, key := range params {
 			switch pubKey := key.(type) {
@@ -46,7 +47,7 @@ func RegisterProposeOfflineVote(subnet *subnet.SubNet) {
 	})
 
 	// curl http://localhost:20337/local -v -d '{"method":"getOfflineVotes", "params":[]}'
-	rpc.HandleFunc("getOfflineVotes", func(params []interface{}) map[string]interface{} {
+	localrpc.LocalRpcMux.HandleFunc("getOfflineVotes", func(params []interface{}) map[string]interface{} {
 		votes := subnet.GetOfflineVotes()
 
 		return rpc.ResponseSuccess(votes)

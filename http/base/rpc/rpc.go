@@ -21,12 +21,8 @@ package rpc
 
 import (
 	"encoding/json"
-	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
-	"os"
-	"strings"
 	"sync"
 
 	"github.com/ontio/ontology/common/log"
@@ -41,35 +37,32 @@ type JReq struct {
 	ID      interface{}   `json:"id"`
 }
 
-func init() {
-	mainMux.m = make(map[string]func([]interface{}) map[string]interface{})
-}
-
-//an instance of the multiplexer
-var mainMux ServeMux
-
-//multiplexer that keeps track of every function to be called on specific rpc call
+// multiplexer that keeps track of every function to be called on specific rpc call
 type ServeMux struct {
 	sync.RWMutex
 	m               map[string]func([]interface{}) map[string]interface{}
 	defaultFunction func(http.ResponseWriter, *http.Request)
 }
 
-//a function to register functions to be called for specific rpc calls
-func HandleFunc(pattern string, handler func([]interface{}) map[string]interface{}) {
-	mainMux.Lock()
-	defer mainMux.Unlock()
-	mainMux.m[pattern] = handler
+func NewServeMux() *ServeMux {
+	return &ServeMux{
+		m: make(map[string]func([]interface{}) map[string]interface{}),
+	}
 }
 
-//a function to be called if the request is not a HTTP JSON RPC call
-func SetDefaultFunc(def func(http.ResponseWriter, *http.Request)) {
-	mainMux.defaultFunction = def
+func (self *ServeMux) HandleFunc(pattern string, handler func([]interface{}) map[string]interface{}) {
+	self.Lock()
+	defer self.Unlock()
+	self.m[pattern] = handler
+}
+
+func (self *ServeMux) SetDefaultFunc(def func(http.ResponseWriter, *http.Request)) {
+	self.defaultFunction = def
 }
 
 // this is the function that should be called in order to answer an rpc call
 // should be registered like "http.HandleFunc("/", httpjsonrpc.Handle)"
-func Handle(w http.ResponseWriter, r *http.Request) {
+func (mainMux *ServeMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "OPTIONS" {
 		w.Header().Add("Access-Control-Allow-Headers", "Content-Type")
 		w.Header().Set("content-type", "application/json;charset=utf-8")
@@ -152,32 +145,4 @@ func Handle(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.Write(data)
 	}
-}
-
-// Call sends RPC request to server
-func Call(address string, method string, id interface{}, params []interface{}) ([]byte, error) {
-	data, err := json.Marshal(map[string]interface{}{
-		"method": method,
-		"id":     id,
-		"params": params,
-	})
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Marshal JSON request: %v\n", err)
-		return nil, err
-	}
-
-	resp, err := http.Post(address, "application/json", strings.NewReader(string(data)))
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "POST request: %v\n", err)
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "GET response: %v\n", err)
-		return nil, err
-	}
-
-	return body, nil
 }
