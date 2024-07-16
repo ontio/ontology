@@ -171,9 +171,7 @@ func (self *StateMgr) run() {
 
 			case SyncDone:
 				log.Infof("server %d sync done, curr blkNum: %d", self.server.Index, self.server.GetCurrentBlockNo())
-				if err := self.setSyncedReady(); err != nil {
-					log.Warnf("server %d set syncready: %s", self.server.Index, err)
-				}
+				self.setSyncedReady()
 
 			case LiveTick:
 				log.Infof("server %d peer update, current blk: %d, state: %d. received peer states: %v",
@@ -237,9 +235,7 @@ func (self *StateMgr) onPeerUpdate(peerState *PeerState) {
 		}
 		if self.isSyncedReady() {
 			log.Infof("server %d synced from syncing", self.server.Index)
-			if err := self.setSyncedReady(); err != nil {
-				log.Warnf("server %d, state %d set syncready: %s", self.server.Index, self.getState(), err)
-			}
+			self.setSyncedReady()
 		}
 	case WaitNetworkReady:
 		if self.isSyncedReady() {
@@ -256,9 +252,7 @@ func (self *StateMgr) onPeerUpdate(peerState *PeerState) {
 		}
 	case SyncingCheck:
 		if self.isSyncedReady() {
-			if err := self.setSyncedReady(); err != nil {
-				log.Warnf("server %d, state %d set syncready: %s", self.server.Index, self.getState(), err)
-			}
+			self.setSyncedReady()
 		} else {
 			self.checkStartSyncing(self.server.GetCommittedBlockNo()+MAX_SYNCING_CHECK_BLK_NUM, false)
 		}
@@ -361,7 +355,7 @@ func (self *StateMgr) isSyncedReady() bool {
 	return self.canFastForward(committedBlkNum)
 }
 
-func (self *StateMgr) setSyncedReady() error {
+func (self *StateMgr) setSyncedReady() {
 	prevState := self.getState()
 	self.setState(SyncReady)
 	if prevState <= SyncReady {
@@ -375,8 +369,6 @@ func (self *StateMgr) setSyncedReady() error {
 		})
 		self.server.makeFastForward()
 	}
-
-	return nil
 }
 
 func (self *StateMgr) checkStartSyncing(startBlkNum uint32, forceSync bool) {
