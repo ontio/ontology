@@ -79,17 +79,14 @@ type EventTimer struct {
 
 	// peer heartbeat tickers
 	peerTickers map[uint32]*time.Timer
-	// other timers
-	normalTimers map[uint32]*time.Timer
 }
 
 func NewEventTimer(server *Server) *EventTimer {
 	timer := &EventTimer{
-		server:       server,
-		C:            make(chan *TimerEvent, 64),
-		eventTimers:  make(map[TimerEventType]perBlockTimer),
-		peerTickers:  make(map[uint32]*time.Timer),
-		normalTimers: make(map[uint32]*time.Timer),
+		server:      server,
+		C:           make(chan *TimerEvent, 64),
+		eventTimers: make(map[TimerEventType]perBlockTimer),
+		peerTickers: make(map[uint32]*time.Timer),
 	}
 
 	for i := 0; i < int(EventMax); i++ {
@@ -113,42 +110,6 @@ func (self *EventTimer) stop() {
 	for i := 0; i < int(EventMax); i++ {
 		stopAllTimers(self.eventTimers[TimerEventType(i)])
 		self.eventTimers[TimerEventType(i)] = make(map[uint32]*time.Timer)
-	}
-
-	// clear normal timers
-	stopAllTimers(self.normalTimers)
-	self.normalTimers = make(map[uint32]*time.Timer)
-}
-
-func (self *EventTimer) StartTimer(Idx uint32, timeout time.Duration) {
-	self.lock.Lock()
-	defer self.lock.Unlock()
-
-	if t, present := self.normalTimers[Idx]; present {
-		t.Stop()
-		log.Infof("timer for %d got reset", Idx)
-	}
-
-	self.normalTimers[Idx] = time.AfterFunc(timeout, func() {
-		// remove timer from map
-		self.lock.Lock()
-		defer self.lock.Unlock()
-		delete(self.normalTimers, Idx)
-
-		self.C <- &TimerEvent{
-			evtType:  EventMax,
-			blockNum: Idx,
-		}
-	})
-}
-
-func (self *EventTimer) CancelTimer(idx uint32) {
-	self.lock.Lock()
-	defer self.lock.Unlock()
-
-	if t, present := self.normalTimers[idx]; present {
-		t.Stop()
-		delete(self.normalTimers, idx)
 	}
 }
 
@@ -185,9 +146,7 @@ func (self *EventTimer) getEventTimeout(evtType TimerEventType) time.Duration {
 	return 0
 }
 
-//
 // internal helper, should call with lock held
-//
 func (self *EventTimer) startEventTimer(evtType TimerEventType, blockNum uint32) error {
 	timers := self.eventTimers[evtType]
 	if t, present := timers[blockNum]; present {
@@ -210,9 +169,7 @@ func (self *EventTimer) startEventTimer(evtType TimerEventType, blockNum uint32)
 	return nil
 }
 
-//
 // internal helper, should call with lock held
-//
 func (self *EventTimer) cancelEventTimer(evtType TimerEventType, blockNum uint32) {
 	timers := self.eventTimers[evtType]
 
