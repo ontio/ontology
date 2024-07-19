@@ -19,7 +19,6 @@
 package vbft
 
 import (
-	"container/heap"
 	"math/rand"
 	"sync"
 	"sync/atomic"
@@ -347,52 +346,4 @@ func (self *EventTimer) stopTxTicker(blockNum uint32) {
 	defer self.lock.Unlock()
 
 	self.cancelEventTimer(EventTxPool, blockNum)
-}
-
-///////////////////////////////////////////////////////////
-//
-// timer queue
-//
-///////////////////////////////////////////////////////////
-
-type TimerItem struct {
-	due   time.Time
-	evt   *TimerEvent
-	index int
-}
-
-type TimerQueue []*TimerItem
-
-func (tq TimerQueue) Len() int {
-	return len(tq)
-}
-
-func (tq TimerQueue) Less(i, j int) bool {
-	return tq[j].due.After(tq[i].due)
-}
-
-func (tq TimerQueue) Swap(i, j int) {
-	tq[i], tq[j] = tq[j], tq[i]
-	tq[i].index = i
-	tq[j].index = j
-}
-
-func (tq *TimerQueue) Push(x interface{}) {
-	item := x.(*TimerItem)
-	item.index = len(*tq)
-	*tq = append(*tq, item)
-}
-
-func (tq *TimerQueue) Pop() interface{} {
-	old := *tq
-	n := len(old)
-	item := old[n-1]
-	item.index = -1
-	*tq = old[0 : n-1]
-	return item
-}
-
-func (tq *TimerQueue) update(item *TimerItem, due time.Time) {
-	item.due = due
-	heap.Fix(tq, item.index)
 }
