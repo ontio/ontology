@@ -302,7 +302,7 @@ func (self *EventTimer) CancelTxBlockTimeout(blockNum uint32) {
 	self.cancelEventTimer(EventTxBlockTimeout, blockNum)
 }
 
-func (self *EventTimer) startPeerTicker(peerIdx uint32) error {
+func (self *EventTimer) startPeerTicker(peerIdx uint32) {
 	self.lock.Lock()
 	defer self.lock.Unlock()
 
@@ -319,11 +319,9 @@ func (self *EventTimer) startPeerTicker(peerIdx uint32) error {
 		}
 		self.peerTickers[peerIdx].Reset(timeout)
 	})
-
-	return nil
 }
 
-func (self *EventTimer) stopPeerTicker(peerIdx uint32) error {
+func (self *EventTimer) stopPeerTicker(peerIdx uint32) {
 	self.lock.Lock()
 	defer self.lock.Unlock()
 
@@ -331,17 +329,16 @@ func (self *EventTimer) stopPeerTicker(peerIdx uint32) error {
 		p.Stop()
 		delete(self.peerTickers, peerIdx)
 	}
-	return nil
 }
 
-func (self *EventTimer) startTxTicker(blockNum uint32) {
+func (self *EventTimer) startTxPoolTicker(blockNum uint32) {
 	self.lock.Lock()
 	defer self.lock.Unlock()
 
 	self.startEventTimer(EventTxPool, blockNum)
 }
 
-func (self *EventTimer) stopTxTicker(blockNum uint32) {
+func (self *EventTimer) stopTxPoolTicker(blockNum uint32) {
 	self.lock.Lock()
 	defer self.lock.Unlock()
 

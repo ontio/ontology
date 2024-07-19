@@ -724,7 +724,7 @@ func (self *Server) startNewRound() error {
 		self.processProposalMsg(proposal)
 		return nil
 	}
-	self.timer.startTxTicker(blkNum)
+	self.timer.startTxPoolTicker(blkNum)
 	self.timer.StartTxBlockTimeout(blkNum)
 	return nil
 }
@@ -1835,7 +1835,7 @@ func (self *Server) processTimerEvent(evt *TimerEvent) error {
 		self.heartbeat()
 
 	case EventTxPool:
-		self.timer.stopTxTicker(evt.blockNum)
+		self.timer.stopTxPoolTicker(evt.blockNum)
 		if self.GetCompletedBlockNum()+1 == evt.blockNum {
 			validHeight := self.validHeight(evt.blockNum)
 			newProposal := false
@@ -1851,13 +1851,13 @@ func (self *Server) processTimerEvent(evt *TimerEvent) error {
 				self.startNewProposal(evt.blockNum)
 			} else {
 				//reset timer, continue waiting txs from txnpool
-				self.timer.startTxTicker(evt.blockNum)
+				self.timer.startTxPoolTicker(evt.blockNum)
 			}
 		} else {
-			self.timer.startTxTicker(evt.blockNum)
+			self.timer.startTxPoolTicker(evt.blockNum)
 		}
 	case EventTxBlockTimeout:
-		self.timer.stopTxTicker(evt.blockNum)
+		self.timer.stopTxPoolTicker(evt.blockNum)
 		self.timer.CancelTxBlockTimeout(evt.blockNum)
 		self.startNewProposal(evt.blockNum)
 	}
