@@ -112,7 +112,7 @@ func checkTransactionSignatures(tx *types.Transaction) error {
 		addrList = append(addrList, addr)
 	}
 
-	tx.SignedAddr = addrList
+	tx.SetSignedAddresses(addrList)
 
 	return nil
 }
