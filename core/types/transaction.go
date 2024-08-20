@@ -25,6 +25,7 @@ import (
 	"io"
 	"math"
 	"math/big"
+	"sync"
 
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/rlp"
@@ -39,8 +40,8 @@ import (
 
 const MAX_TX_SIZE = 1024 * 1024 // The max size of a transaction to prevent DOS attacks
 
-//this flag is used for check EIP155 transaction chainID
-//will be set to 'true' on ontology startup ,for sdk dependency will always be 'false'
+// this flag is used for check EIP155 transaction chainID
+// will be set to 'true' on ontology startup ,for sdk dependency will always be 'false'
 var CheckChainID = false
 
 type Transaction struct {
@@ -59,6 +60,7 @@ type Transaction struct {
 
 	hashUnsigned common.Uint256
 	hash         common.Uint256
+	signedLock   sync.Mutex
 	SignedAddr   []common.Address // this is assigned when passed signature verification
 
 	nonDirectConstracted bool // used to check literal construction like `tx := &Transaction{...}`
@@ -448,7 +450,15 @@ func (self *Sig) Serialization(sink *common.ZeroCopySink) error {
 	return nil
 }
 
+func (self *Transaction) SetSignedAddresses(signed []common.Address) {
+	self.signedLock.Lock()
+	defer self.signedLock.Unlock()
+	self.SignedAddr = signed
+}
+
 func (self *Transaction) GetSignatureAddresses() []common.Address {
+	self.signedLock.Lock()
+	defer self.signedLock.Unlock()
 	if len(self.SignedAddr) == 0 {
 		addrs := make([]common.Address, 0, len(self.Sigs))
 		for _, prog := range self.Sigs {
