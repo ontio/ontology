@@ -226,3 +226,14 @@ func (pool *MsgPool) onBlockSealed(blockNum uint32) {
 		delete(pool.rounds, n)
 	}
 }
+
+func (pool *MsgPool) dropMsgs(msgs []ConsensusMsg) {
+	pool.lock.Lock()
+	defer pool.lock.Unlock()
+
+	for _, msg := range msgs {
+		if roundMsgs, present := pool.rounds[msg.GetBlockNum()]; present {
+			roundMsgs.dropMsg(msg)
+		}
+	}
+}

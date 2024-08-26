@@ -38,6 +38,7 @@ var errDupEndorse = errors.New("multi endorsement from same endorser")
 var errDupCommit = errors.New("multi commit from same committer")
 
 type CandidateEndorseSigInfo struct {
+	BlockHash        common.Uint256
 	EndorsedProposer uint32
 	Signature        []byte
 	ForEmpty         bool
@@ -150,6 +151,7 @@ func (pool *BlockPool) newBlockProposal(msg *blockProposalMsg) error {
 	// add endorse-sig
 	proposer := msg.Block.getProposer()
 	eSig := &CandidateEndorseSigInfo{
+		BlockHash:        msg.Block.Block.Hash(),
 		EndorsedProposer: proposer,
 		Signature:        msg.BlockProposerSig,
 		ForEmpty:         false,
@@ -297,6 +299,7 @@ func (pool *BlockPool) newBlockEndorsement(msg *blockEndorseMsg) {
 	defer pool.lock.Unlock()
 
 	eSig := &CandidateEndorseSigInfo{
+		BlockHash:        msg.EndorsedBlockHash,
 		EndorsedProposer: msg.EndorsedProposer,
 		Signature:        msg.EndorserSig,
 		ForEmpty:         msg.EndorseForEmpty,
@@ -469,6 +472,7 @@ func (pool *BlockPool) newBlockCommitment(msg *blockCommitMsg) error {
 	// add all endorse sigs
 	for endorser, sig := range msg.EndorsersSig {
 		eSig := &CandidateEndorseSigInfo{
+			BlockHash:        msg.CommitBlockHash,
 			EndorsedProposer: msg.BlockProposer,
 			Signature:        sig,
 			ForEmpty:         msg.CommitForEmpty,
@@ -485,6 +489,7 @@ func (pool *BlockPool) newBlockCommitment(msg *blockCommitMsg) error {
 
 	// add committer sig
 	pool.addBlockEndorsementLocked(blkNum, msg.Committer, &CandidateEndorseSigInfo{
+		BlockHash:        msg.CommitBlockHash,
 		EndorsedProposer: msg.BlockProposer,
 		Signature:        msg.CommitterSig,
 		ForEmpty:         msg.CommitForEmpty,
@@ -640,6 +645,41 @@ func (pool *BlockPool) addSignaturesToBlockLocked(block *Block, forEmpty bool) e
 	return nil
 }
 
+func (pool *BlockPool) checkBlockSign(block *Block, forEmpty bool) bool {
+	blkNum := block.getBlockNum()
+	c := pool.getCandidateInfoLocked(blkNum)
+	if c == nil {
+		return false
+	}
+	proposer := block.getProposer()
+	sigData := make([][]byte, 0)
+	var blkHash common.Uint256
+	if !forEmpty {
+		sigData = append(sigData, block.Block.Header.SigData[0])
+		blkHash = block.Block.Hash()
+	} else {
+		if block.EmptyBlock == nil {
+			return false
+		}
+		sigData = append(sigData, block.EmptyBlock.Header.SigData[0])
+		blkHash = block.EmptyBlock.Hash()
+	}
+	for endorser, eSigs := range c.EndorseSigs {
+		for _, sig := range eSigs {
+			if sig.EndorsedProposer == proposer && sig.BlockHash == blkHash && sig.ForEmpty == forEmpty && endorser != proposer {
+				if pool.server.peerPool.GetPeerPubKey(endorser) != nil {
+					sigData = append(sigData, sig.Signature)
+				}
+				break
+			}
+		}
+	}
+	if uint32(len(sigData)) < pool.server.config.N-(pool.server.config.N-1)/3 {
+		return false
+	}
+	return true
+}
+
 func (pool *BlockPool) setBlockSealed(block *Block, forEmpty bool, sigdata bool) error {
 	pool.lock.Lock()
 	defer pool.lock.Unlock()
@@ -720,7 +760,7 @@ func (pool *BlockPool) getChainedBlock(blockNum uint32) (*Block, common.Uint256)
 	// get from chainstore
 	blk, err := pool.chainStore.getBlock(blockNum)
 	if err != nil {
-		log.Errorf("getSealedBlock %d err:%v", blockNum, err)
+		log.Errorf("getChainedBlock %d err:%v", blockNum, err)
 		return nil, common.Uint256{}
 	}
 	return blk, blk.Block.Hash()

@@ -396,7 +396,7 @@ func getCommitConsensus(commitMsgs []*blockCommitMsg, C int, N int) (uint32, boo
 	return math.MaxUint32, false
 }
 
-func (self *Server) findBlockProposal(blkNum uint32, proposer uint32, forEmpty bool) *blockProposalMsg {
+func (self *Server) findBlockProposal(blkNum uint32, proposer uint32) *blockProposalMsg {
 	for _, p := range self.blockPool.getBlockProposals(blkNum) {
 		if p.Block.getProposer() == proposer {
 			return p

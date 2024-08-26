@@ -312,11 +312,10 @@ func (self *Server) constructEndorseMsg(proposal *blockProposalMsg, forEmpty boo
 
 	// TODO, support faultyMsg reporting
 
-	var proposerSig, endorserSig []byte
+	var endorserSig []byte
 	var blkHash common.Uint256
 	var err error
 	if !forEmpty {
-		proposerSig = proposal.BlockProposerSig
 		blkHash = proposal.Block.Block.Hash()
 
 	} else {
@@ -325,7 +324,6 @@ func (self *Server) constructEndorseMsg(proposal *blockProposalMsg, forEmpty boo
 				proposal.GetBlockNum(), proposal.Block.getProposer())
 		}
 
-		proposerSig = proposal.EmptyBlockProposerSig
 		blkHash = proposal.Block.EmptyBlock.Hash()
 	}
 	endorserSig, err = signature.Sign(self.account, blkHash[:])
@@ -339,7 +337,6 @@ func (self *Server) constructEndorseMsg(proposal *blockProposalMsg, forEmpty boo
 		BlockNum:          proposal.Block.getBlockNum(),
 		EndorsedBlockHash: blkHash,
 		EndorseForEmpty:   forEmpty,
-		ProposerSig:       proposerSig,
 		EndorserSig:       endorserSig,
 	}
 	if proposal.Block.CrossChainMsg != nil {
@@ -358,12 +355,11 @@ func (self *Server) constructCommitMsg(proposal *blockProposalMsg, endorses []*b
 
 	// TODO, support faultyMsg reporting
 
-	var proposerSig, committerSig []byte
+	var committerSig []byte
 	var blkHash common.Uint256
 	var err error
 
 	if !forEmpty {
-		proposerSig = proposal.BlockProposerSig
 		blkHash = proposal.Block.Block.Hash()
 	} else {
 		if proposal.Block.EmptyBlock == nil {
@@ -371,7 +367,6 @@ func (self *Server) constructCommitMsg(proposal *blockProposalMsg, endorses []*b
 				proposal.GetBlockNum(), proposal.Block.getProposer())
 		}
 
-		proposerSig = proposal.EmptyBlockProposerSig
 		blkHash = proposal.Block.EmptyBlock.Hash()
 	}
 	committerSig, err = signature.Sign(self.account, blkHash[:])
@@ -403,7 +398,6 @@ func (self *Server) constructCommitMsg(proposal *blockProposalMsg, endorses []*b
 		BlockNum:                  proposal.Block.getBlockNum(),
 		CommitBlockHash:           blkHash,
 		CommitForEmpty:            forEmpty,
-		ProposerSig:               proposerSig,
 		EndorsersSig:              endorsersSig,
 		CommitterSig:              committerSig,
 		CommitCCMHash:             hash,
