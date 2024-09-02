@@ -53,7 +53,7 @@ func startActor(obj interface{}, id string) (*actor.PID, error) {
 func StartTxnPoolServer(disablePreExec, disableBroadcastNetTx bool) (*tp.TXPoolServer, error) {
 	var s *tp.TXPoolServer
 
-	// Start txnpool server to receive msgs from p2p, consensus and valdiators
+	// Start txnpool server to receive msgs from p2p, consensus and validators
 	s = tp.NewTxPoolServer(disablePreExec, disableBroadcastNetTx)
 
 	// Initialize an actor to handle the msgs from consensus
