@@ -90,7 +90,7 @@ The following are the command line parameters supported by Ontology CLI:
 #### 1.1.1 Ontology System Parameters
 
 --config
-The config parameter specifies the file path of the genesis block for the current Ontolgy node. If not specified, Ontology will use the config of Polaris TestNet. Note that the genesis block configuration must be the same for all nodes in the same network, otherwise it will not be able to synchronize blocks or start nodes due to block data incompatibility.
+The config parameter specifies the file path of the genesis block for the current Ontology node. If not specified, Ontology will use the config of Polaris TestNet. Note that the genesis block configuration must be the same for all nodes in the same network, otherwise it will not be able to synchronize blocks or start nodes due to block data incompatibility.
 
 --loglevel
 The loglevel parameter is used to set the log level the Ontology outputs. Ontology supports 7 different log levels, i.e. 0:Trace 1:Debug 2:Info 3:Warn 4:Error 5:Fatal 6:MaxLevel. The logs are logged from low to high, and the log output volume is from high to low. The default value is 2, which means that only logs at the info level or higher level.
@@ -192,9 +192,9 @@ According to different roles of nodes, they can be divided into bookkeeping node
 Recommended bookkeeping node startup parameters:
 
 ```
-./Ontology --enbale-consensus --disable-rpc --disable-event-log
+./Ontology --enable-consensus --disable-rpc --disable-event-log
 ```
-    - `enbale-consensus` is use to start the consensus
+    - `enbale-consensus` is used to start the consensus
     - `disable-rpc` is to close the rpc services for the safe concerns.
     - `disable-event-log` is to disable the event log for high performance.
 If the node does not use the default genesis block configuration file and wallet account, the node can specify them with the --config, --wallet, --account parameters.
@@ -630,7 +630,7 @@ The email parameter specifies the contact email of a smart contract.
 The desc parameter specifies the description of a smart contract.
 
 --prepare, -p
-The prepare parameter indicates that the current deploy is a pre-deploy contract. The transactions executed will not be packaged into blocks, nor will they consume any ONG. Via pre-deploy contract, user can known the the gas limit required for the current deploy.
+The prepare parameter indicates that the current deploy is a pre-deploy contract. The transactions executed will not be packaged into blocks, nor will they consume any ONG. Via pre-deploy contract, user can know the the gas limit required for the current deploy.
 
 **Smart Contract Deployment**
 
@@ -722,7 +722,7 @@ Before the smart contract is executed, the gas limit required by the current exe
 
 ### 5.3 Smart Contract Code Execution Directly
 
-Ontology supports direct execution of smart contact code after deploying a contract.
+Ontology supports direct execution of smart contract code after deploying a contract.
 
 #### 5.3.1 Smart Contract Code Execution Directly Parameters
 
@@ -790,7 +790,7 @@ The data-dir parameter specifies the storage path of the block data. The default
 The networkid parameter is used to specify the network ID. Default value is 1, means MainNet network ID.
 
 --config
-The config parameter specifies the file path of the genesis block for the current Ontolgy node. Default value is main net config.
+The config parameter specifies the file path of the genesis block for the current Ontology node. Default value is main net config.
 
 --disable-event-log
 The disable-event-log parameter is used to disable the event log output when the smart contract is executed to improve the node transaction execution performance. The Ontology node enables the event log output function by default.
@@ -809,7 +809,7 @@ Import block
 
 ## 7. Build Transaction
 
-Build transaction command can build transaction raw data, such as transfer transaction, approve tansaction, and so on. Note that before send to Ontology, the transaction after built should be signed by private key.
+Build transaction command can build transaction raw data, such as transfer transaction, approve transaction, and so on. Note that before send to Ontology, the transaction after built should be signed by private key.
 
 ### 7.1 Build Transfer Transaction
 
@@ -970,7 +970,7 @@ Withdraw raw tx:
 
 ## 8. Sign To Transaction
 
-The transaction build by buildtx command, should be signed before send to Ontology. Note that if transction fee payer is different with transfer from, both account should sign to the transaction.
+The transaction build by buildtx command, should be signed before send to Ontology. Note that if transaction fee payer is different with transfer from, both account should sign to the transaction.
 
 ### 8.1 Sign To Transaction Parameters
 
