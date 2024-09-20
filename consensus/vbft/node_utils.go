@@ -89,7 +89,7 @@ func (self *Server) isPeerAlive(peerIdx uint32, blockNum uint32) bool {
 		return true
 	}
 
-	return self.peerPool.isPeerAlive(peerIdx)
+	return self.peerPool.IsPeerConnected(peerIdx)
 }
 
 func (self *Server) isPeerActive(peerIdx uint32, blockNum uint32) bool {
@@ -99,8 +99,8 @@ func (self *Server) isPeerActive(peerIdx uint32, blockNum uint32) bool {
 			return false
 		}
 
-		if p.LatestInfo != nil {
-			return p.LatestInfo.CommittedBlockNumber+MAX_SYNCING_CHECK_BLK_NUM*4 > self.GetCommittedBlockNo()
+		if p.CommittedBlockNo != 0 {
+			return p.CommittedBlockNo+MAX_SYNCING_CHECK_BLK_NUM*4 > self.GetCommittedBlockNo()
 		}
 		return true
 	}
@@ -108,11 +108,9 @@ func (self *Server) isPeerActive(peerIdx uint32, blockNum uint32) bool {
 	return false
 }
 
-//
 // the first proposer as leader-proposer,
 // all other proposer as 2nd-proposer
 // before propose-timeout, only proposal from leader-proposer is accepted
-//
 func (self *Server) isProposer(blockNum uint32, peerIdx uint32) bool {
 	self.metaLock.RLock()
 	defer self.metaLock.RUnlock()
@@ -241,9 +239,7 @@ func (self *Server) updateTimerParams(config *vconfig.ChainConfig) {
 	atomic.StoreInt64(&zeroTxBlockTimeout, int64(config.BlockMsgDelay*3))
 }
 
-//
-//  call this method with metaLock locked
-//
+// call this method with metaLock locked
 func (self *Server) buildParticipantConfig(blkNum uint32, block *Block, chainCfg *vconfig.ChainConfig) (*BlockParticipantConfig, error) {
 
 	if blkNum == 0 {
@@ -363,12 +359,11 @@ func calcParticipant(vrf vconfig.VRFValue, dposTable []uint32, k uint32) uint32 
 	return dposTable[v]
 }
 
-//
 // check if commit msgs has reached consensus
 // return
-//		@ consensused proposer
-//		@ consensused for empty commit
 //
+//	@ consensused proposer
+//	@ consensused for empty commit
 func getCommitConsensus(commitMsgs []*blockCommitMsg, C int, N int) (uint32, bool) {
 	emptyCommitCount := 0
 	emptyCommit := false
@@ -446,8 +441,8 @@ func (self *Server) receiveFromPeer(peerIdx uint32) (uint32, []byte, error) {
 }
 
 func (self *Server) sendToPeer(peerIdx uint32, data []byte) error {
-	peer := self.peerPool.getPeer(peerIdx)
-	if peer == nil {
+	p2pid, present := self.peerPool.GetP2pId(peerIdx)
+	if !present {
 		return fmt.Errorf("send peer failed: failed to get peer %d", peerIdx)
 	}
 	msg := &p2pmsg.ConsensusPayload{
@@ -460,12 +455,7 @@ func (self *Server) sendToPeer(peerIdx uint32, data []byte) error {
 	msg.Signature, _ = signature.Sign(self.account, sink.Bytes())
 
 	cons := msgpack.NewConsensus(msg)
-	p2pid, present := self.peerPool.getP2pId(peerIdx)
-	if present {
-		go self.p2p.SendTo(p2pid, cons)
-	} else {
-		log.Errorf("sendToPeer transmit failed index:%d", peerIdx)
-	}
+	go self.p2p.SendTo(p2pid, cons)
 	return nil
 }
 

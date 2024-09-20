@@ -24,7 +24,6 @@ import (
 	"time"
 
 	"github.com/ontio/ontology-crypto/keypair"
-
 	"github.com/ontio/ontology/account"
 	"github.com/ontio/ontology/common"
 	vconfig "github.com/ontio/ontology/consensus/vbft/config"
@@ -159,36 +158,6 @@ func TestBlockCommitMsg(t *testing.T) {
 		return
 	}
 	t.Log("TestBlockCommitMsg succ")
-}
-
-func constructHandshakeMsg(acc *account.Account) (*peerHandshakeMsg, error) {
-	cc := &vconfig.ChainConfig{}
-	msg := &peerHandshakeMsg{
-		CommittedBlockNumber: 1,
-		CommittedBlockHash:   common.Uint256{},
-		CommittedBlockLeader: 3,
-		ChainConfig:          cc,
-	}
-	return msg, nil
-}
-func TestPeerHandshakeMsg(t *testing.T) {
-	acc := account.NewAccount("SHA256withECDSA")
-	if acc == nil {
-		t.Error("GetDefaultAccount error: acc is nil")
-		return
-	}
-	msg, err := constructHandshakeMsg(acc)
-	if err != nil {
-		t.Errorf("constructHandshakeMsg failed: %v", err)
-		return
-	}
-	pubs := make(map[uint32]keypair.PublicKey)
-	err = msg.Verify(acc.PublicKey, pubs)
-	if err != nil {
-		t.Errorf("peerHandshakeMsg Verify failed: %v\n", err)
-		return
-	}
-	t.Log("TestPeerHandshakeMsg succ")
 }
 
 func constructHeartbeatMsg(acc *account.Account) (*peerHeartbeatMsg, error) {

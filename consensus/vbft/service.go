@@ -26,7 +26,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology-crypto/vrf"
 	"github.com/ontio/ontology-eventbus/actor"
 	"github.com/ontio/ontology/account"
@@ -259,12 +258,12 @@ func (self *Server) NewConsensusPayload(payload *p2pmsg.ConsensusPayload) {
 		log.Debugf("invalid consensus node: %s", peerID)
 		return
 	}
-	if self.peerPool.isNewPeer(peerIdx) {
-		self.peerPool.peerConnected(peerIdx)
+	if !self.peerPool.IsPeerConnected(peerIdx) {
+		self.peerPool.OnPeerConnected(peerIdx)
 	}
-	p2pid, present := self.peerPool.getP2pId(peerIdx)
+	p2pid, present := self.peerPool.GetP2pId(peerIdx)
 	if !present || p2pid != payload.PeerId {
-		self.peerPool.addP2pId(peerIdx, payload.PeerId)
+		self.peerPool.AddP2pId(peerIdx, payload.PeerId)
 	}
 
 	if C := self.GetPeerMsgChan(peerIdx); C != nil {
@@ -366,57 +365,46 @@ func (self *Server) updateChainConfig() error {
 	self.updateTimerParams(self.config)
 
 	pubkey := vconfig.PubkeyID(self.account.PublicKey)
-	peermap := make(map[uint32]string)
+	peermap := make(map[string]uint32)
 	for _, p := range self.GetChainConfig().Peers {
-		peermap[p.Index] = p.ID
+		peermap[p.ID] = p.Index
 		if self.Index == math.MaxUint32 && pubkey == p.ID {
 			self.Index = p.Index
 			log.Infof("updateChainConfig add index :%d", self.Index)
 		}
-		_, present := self.peerPool.GetPeerIndex(p.ID)
-		if !present {
-			// check if peer pubkey support VRF
-			if pk, err := vconfig.Pubkey(p.ID); err != nil {
-				return fmt.Errorf("failed to parse peer %d PeerID: %s", p.Index, err)
-			} else if !vrf.ValidatePublicKey(pk) {
-				return fmt.Errorf("peer %d: invalid peer pubkey for VRF", p.Index)
-			}
+		// check if peer pubkey support VRF
+		publickey, err := vconfig.Pubkey(p.ID)
+		if err != nil {
+			return fmt.Errorf("failed to parse peer %d PeerID: %s", p.Index, err)
+		} else if !vrf.ValidatePublicKey(publickey) {
+			return fmt.Errorf("peer %d: invalid peer pubkey for VRF", p.Index)
+		}
+	}
 
-			if err := self.peerPool.addPeer(p); err != nil {
-				return fmt.Errorf("failed to add peer %d: %s", p.Index, err)
+	added, removed := self.peerPool.ResetNewConsuensusPeers(peermap)
+	for _, peerIdx := range added {
+		self.CreatePeerMsgChan(peerIdx)
+		go func() {
+			if err := self.run(peerIdx); err != nil {
+				log.Errorf("server %d, processor on peer %d failed: %s",
+					self.Index, peerIdx, err)
 			}
-			publickey, err := vconfig.Pubkey(p.ID)
-			if err != nil {
-				log.Errorf("Pubkey failed: %v", err)
-				return fmt.Errorf("Pubkey failed: %v", err)
-			}
-			peerIdx := p.Index
-			self.CreatePeerMsgChan(peerIdx)
-			go func() {
-				if err := self.run(publickey); err != nil {
-					log.Errorf("server %d, processor on peer %d failed: %s",
-						self.Index, peerIdx, err)
-				}
-			}()
-			log.Infof("updateChainConfig add peer index:%v,id:%v", p.ID, p.Index)
-		}
+		}()
+		log.Infof("updateChainConfig add peer index:%v", peerIdx)
 	}
-	for index, peerPubKey := range self.peerPool.GetAllPubKeys() {
-		_, present := peermap[index]
-		if !present {
-			if index == self.Index {
-				self.Index = math.MaxUint32
-				log.Infof("updateChainConfig remove index :%d", index)
-			} else {
-				if C := self.GetPeerMsgChan(index); C != nil {
-					pubkey := vconfig.PubkeyID(peerPubKey)
-					self.peerPool.RemovePeerIndex(pubkey)
-					log.Infof("updateChainConfig remove consensus:index:%d,id:%v", index, pubkey)
-					C <- nil
-				}
+
+	for _, index := range removed {
+		if index == self.Index {
+			self.Index = math.MaxUint32
+			log.Infof("updateChainConfig remove index :%d", index)
+		} else {
+			if C := self.GetPeerMsgChan(index); C != nil {
+				log.Infof("updateChainConfig remove consensus:index:%d", index)
+				C <- nil
 			}
 		}
 	}
+
 	return nil
 }
 
@@ -442,7 +430,6 @@ func (self *Server) initialize() error {
 		return fmt.Errorf("init blockpool: %s", err)
 	}
 	self.msgPool = newMsgPool(self, self.msgHistoryDuration)
-	self.peerPool = NewPeerPool(0, self) // FIXME: maxSize
 	self.timer = NewEventTimer(self)
 	self.syncer = newSyncer(self)
 
@@ -459,19 +446,18 @@ func (self *Server) initialize() error {
 	log.Infof("chain config loaded from local, current blockNum: %d", self.GetCurrentBlockNo())
 
 	// add all consensus peers to peer_pool
+	peermap := make(map[string]uint32)
 	for _, p := range self.GetChainConfig().Peers {
+		peermap[p.ID] = p.Index
 		// check if peer pubkey support VRF
 		if pk, err := vconfig.Pubkey(p.ID); err != nil {
 			return fmt.Errorf("failed to parse peer %d PeerID: %s", p.Index, err)
 		} else if !vrf.ValidatePublicKey(pk) {
 			return fmt.Errorf("peer %d: invalid peer pubkey for VRF", p.Index)
 		}
-
-		if err := self.peerPool.addPeer(p); err != nil {
-			return fmt.Errorf("failed to add peer %d: %s", p.Index, err)
-		}
 		log.Infof("added peer: %s", p.ID)
 	}
+	self.peerPool = NewPeerPool(peermap)
 
 	//index equal math.MaxUint32  is noconsensus node
 	id := vconfig.PubkeyID(self.account.PublicKey)
@@ -524,13 +510,11 @@ func (self *Server) start() error {
 	// start peers msg handlers
 	for _, p := range self.GetChainConfig().Peers {
 		peerIdx := p.Index
-		pk := self.peerPool.GetPeerPubKey(peerIdx)
 		self.CreatePeerMsgChan(peerIdx)
 
 		go func() {
-			if err := self.run(pk); err != nil {
-				log.Errorf("server %d, processor on peer %d failed: %s",
-					self.Index, peerIdx, err)
+			if err := self.run(peerIdx); err != nil {
+				log.Errorf("server %d, processor on peer %d failed: %s", self.Index, peerIdx, err)
 			}
 		}()
 	}
@@ -556,25 +540,19 @@ func (self *Server) stop() {
 }
 
 // go routine per net connection
-func (self *Server) run(peerPubKey keypair.PublicKey) error {
-	peerID := vconfig.PubkeyID(peerPubKey)
-	peerIdx, present := self.peerPool.GetPeerIndex(peerID)
-	if !present {
-		return fmt.Errorf("invalid consensus node: %s", peerID)
-	}
-
+func (self *Server) run(peerIdx uint32) error {
 	// broadcast heartbeat
 	self.heartbeat()
 
 	// wait remote msgs
-	self.peerPool.waitPeerConnected(peerIdx)
+	self.peerPool.WaitPeerConnected(peerIdx)
 
 	defer func() {
 		// TODO: handle peer disconnection here
 		log.Warnf("server %d: disconnected with peer %d", self.Index, peerIdx)
 		self.ClosePeerMsgChan(peerIdx)
 
-		self.peerPool.peerDisconnected(peerIdx)
+		self.peerPool.OnPeerDisconnected(peerIdx)
 		self.stateMgr.StateEventC <- &StateEvent{
 			Type: UpdatePeerState,
 			peerState: &PeerState{
@@ -2002,23 +1980,8 @@ func (self *Server) processTimerEvent(evt *TimerEvent) error {
 	return nil
 }
 
-func (self *Server) processHandshakeMsg(peerIdx uint32, msg *peerHandshakeMsg) error {
-	self.peerPool.peerHandshake(peerIdx, msg)
-	self.stateMgr.StateEventC <- &StateEvent{
-		Type: UpdatePeerConfig,
-		peerState: &PeerState{
-			peerIdx:           peerIdx,
-			connected:         true,
-			chainConfigView:   msg.ChainConfig.View,
-			committedBlockNum: msg.CommittedBlockNumber,
-		},
-	}
-
-	return nil
-}
-
 func (self *Server) processHeartbeatMsg(peerIdx uint32, msg *peerHeartbeatMsg) {
-	self.peerPool.peerHeartbeat(peerIdx, msg)
+	self.peerPool.UpdatePeerCommitBlockNo(peerIdx, msg.CommittedBlockNumber)
 	log.Debugf("server %d received heartbeat from peer %d, chainview %d, blkNum %d",
 		self.Index, peerIdx, msg.ChainConfigView, msg.CommittedBlockNumber)
 	self.stateMgr.StateEventC <- &StateEvent{

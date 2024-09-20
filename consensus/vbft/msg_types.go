@@ -28,7 +28,6 @@ import (
 	"github.com/ontio/ontology-crypto/signature"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/serialization"
-	vconfig "github.com/ontio/ontology/consensus/vbft/config"
 )
 
 type MsgType uint8
@@ -256,30 +255,6 @@ func (msg *blockCommitMsg) GetBlockNum() uint32 {
 }
 
 func (msg *blockCommitMsg) Serialize() ([]byte, error) {
-	return json.Marshal(msg)
-}
-
-type peerHandshakeMsg struct {
-	CommittedBlockNumber uint32               `json:"committed_block_number"`
-	CommittedBlockHash   common.Uint256       `json:"committed_block_hash"`
-	CommittedBlockLeader uint32               `json:"committed_block_leader"`
-	ChainConfig          *vconfig.ChainConfig `json:"chain_config"`
-}
-
-func (msg *peerHandshakeMsg) Type() MsgType {
-	return PeerHandshakeMessage
-}
-
-func (msg *peerHandshakeMsg) Verify(pub keypair.PublicKey, pubs map[uint32]keypair.PublicKey) error {
-
-	return nil
-}
-
-func (msg *peerHandshakeMsg) GetBlockNum() uint32 {
-	return 0
-}
-
-func (msg *peerHandshakeMsg) Serialize() ([]byte, error) {
 	return json.Marshal(msg)
 }
 

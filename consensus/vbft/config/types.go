@@ -36,6 +36,14 @@ func Pubkey(nodeid string) (keypair.PublicKey, error) {
 	return common.PubKeyFromHex(nodeid)
 }
 
+func MustPubkey(nodeid string) keypair.PublicKey {
+	key, err := common.PubKeyFromHex(nodeid)
+	if err != nil {
+		panic(fmt.Errorf("pubkey ID must be valid: got %s", nodeid))
+	}
+	return key
+}
+
 func VbftBlock(header *types.Header) (*VbftBlockInfo, error) {
 	blkInfo := &VbftBlockInfo{}
 	if err := json.Unmarshal(header.ConsensusPayload, blkInfo); err != nil {

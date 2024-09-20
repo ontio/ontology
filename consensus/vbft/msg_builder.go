@@ -68,11 +68,7 @@ func DeserializeVbftMsg(msgPayload []byte) (ConsensusMsg, error) {
 		}
 		return t, nil
 	case PeerHandshakeMessage:
-		t := &peerHandshakeMsg{}
-		if err := json.Unmarshal(m.Payload, t); err != nil {
-			return nil, fmt.Errorf("failed to unmarshal msg (type: %d): %s", m.Type, err)
-		}
-		return t, nil
+		return nil, fmt.Errorf("node will not send handshake msg")
 	case PeerHeartbeatMessage:
 		t := &peerHeartbeatMsg{}
 		if err := json.Unmarshal(m.Payload, t); err != nil {
@@ -132,24 +128,6 @@ func SerializeVbftMsg(msg ConsensusMsg) ([]byte, error) {
 		Len:     uint32(len(payload)),
 		Payload: payload,
 	})
-}
-
-func (self *Server) constructHandshakeMsg() (*peerHandshakeMsg, error) {
-
-	blkNum := self.GetCurrentBlockNo() - 1
-	block, blockhash := self.blockPool.getSealedBlock(blkNum)
-	if block == nil {
-		return nil, fmt.Errorf("failed to get sealed block, current block: %d", self.GetCurrentBlockNo())
-	}
-	cfg := self.GetChainConfig()
-	msg := &peerHandshakeMsg{
-		CommittedBlockNumber: blkNum,
-		CommittedBlockHash:   blockhash,
-		CommittedBlockLeader: block.getProposer(),
-		ChainConfig:          &cfg,
-	}
-
-	return msg, nil
 }
 
 func (self *Server) constructHeartbeatMsg() (*peerHeartbeatMsg, error) {

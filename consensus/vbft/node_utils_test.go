@@ -25,20 +25,8 @@ import (
 	"testing"
 
 	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/common/log"
 	vconfig "github.com/ontio/ontology/consensus/vbft/config"
 )
-
-func peerPool() *PeerPool {
-	nodeId := "120202c924ed1a67fd1719020ce599d723d09d48362376836e04b0be72dfe825e24d81"
-	peerconfig := &vconfig.PeerConfig{
-		Index: 1,
-		ID:    nodeId,
-	}
-	peerpool := constructPeerPool(false)
-	peerpool.addPeer(peerconfig)
-	return peerpool
-}
 
 func constructServer() *Server {
 	statemgr := &StateMgr{
@@ -71,72 +59,6 @@ func constructServer() *Server {
 		currentParticipantConfig: blockparticipantconfig,
 	}
 	return server
-}
-func TestIsPeerAlive(t *testing.T) {
-	server := constructServer()
-	server.peerPool = peerPool()
-	res := server.isPeerAlive(2, 1)
-	t.Logf("TestIsPeerAlive: %v", res)
-}
-
-func TestIsPeerActive(t *testing.T) {
-	server := constructServer()
-	server.peerPool = peerPool()
-	res := server.isPeerActive(uint32(2), 1)
-	t.Logf("TestIsPeerActive: %v", res)
-}
-
-func TestIsProposer(t *testing.T) {
-	server := constructServer()
-	server.peerPool = peerPool()
-	res := server.isProposer(1, 1)
-	t.Logf("TestIsProposer: %v", res)
-}
-
-func TestIs2ndProposer(t *testing.T) {
-	server := constructServer()
-	server.peerPool = peerPool()
-	res := server.is2ndProposer(1, 1)
-	t.Logf("TestIs2ndProposer %v", res)
-}
-
-func TestIsEndorser(t *testing.T) {
-	server := constructServer()
-	server.peerPool = peerPool()
-	res := server.isEndorser(1, 1)
-	t.Logf("TestIsEndorser %v", res)
-}
-
-func TestIsCommitter(t *testing.T) {
-	server := constructServer()
-	server.peerPool = peerPool()
-	res := server.isCommitter(1, 1)
-	t.Logf("TestIsCommitter %v", res)
-}
-
-func TestGetProposerRankLocked(t *testing.T) {
-	server := constructServer()
-	server.peerPool = peerPool()
-	rank := server.getProposerRankLocked(1, 1)
-	t.Logf("TestGetProposerRankLocked %v", rank)
-}
-
-func TestGetHighestRankProposal(t *testing.T) {
-	log.InitLog(log.InfoLog, log.Stdout)
-	server := constructServer()
-	server.peerPool = peerPool()
-	block, err := constructBlock()
-	if err != nil {
-		t.Errorf("constructBlock failed :%v", err)
-		return
-	}
-	blockproposalmsg := &blockProposalMsg{
-		Block: block,
-	}
-	var proposals []*blockProposalMsg
-	proposals = append(proposals, blockproposalmsg)
-	msg := server.getHighestRankProposal(1, proposals)
-	t.Logf("TestGetHighestRankProposal %v", msg)
 }
 
 func TestGetCommitConsensus(t *testing.T) {

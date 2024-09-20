@@ -275,7 +275,7 @@ func (self *StateMgr) onPeerDisconnected(peerIdx uint32) {
 	// start another connection if necessary
 	currentState := self.getState()
 	if currentState == Synced || currentState == SyncingCheck {
-		if self.server.peerPool.getActivePeerCount() < self.getMinActivePeerCount() {
+		if self.server.peerPool.GetConnectedPeerCount() < self.getMinActivePeerCount() {
 			self.setState(WaitNetworkReady)
 		}
 	}
