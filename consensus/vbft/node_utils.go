@@ -231,12 +231,17 @@ func (self *Server) getHighestRankProposal(blockNum uint32, proposals []*blockPr
 }
 
 func (self *Server) updateTimerParams(config *vconfig.ChainConfig) {
-	atomic.StoreInt64(&makeProposalTimeout, int64(config.BlockMsgDelay*2))
-	atomic.StoreInt64(&make2ndProposalTimeout, int64(config.BlockMsgDelay))
-	atomic.StoreInt64(&endorseBlockTimeout, int64(config.HashMsgDelay*2))
-	atomic.StoreInt64(&commitBlockTimeout, int64(config.HashMsgDelay*3))
-	atomic.StoreInt64(&peerHandshakeTimeout, int64(config.PeerHandshakeTimeout))
-	atomic.StoreInt64(&zeroTxBlockTimeout, int64(config.BlockMsgDelay*3))
+	setTimeout := func(time *int64, value int64) {
+		if value > 0 {
+			atomic.StoreInt64(time, value)
+		}
+	}
+	setTimeout(&makeProposalTimeout, int64(config.BlockMsgDelay*2))
+	setTimeout(&make2ndProposalTimeout, int64(config.BlockMsgDelay))
+	setTimeout(&endorseBlockTimeout, int64(config.HashMsgDelay*2))
+	setTimeout(&commitBlockTimeout, int64(config.HashMsgDelay*3))
+	setTimeout(&peerHandshakeTimeout, int64(config.PeerHandshakeTimeout))
+	setTimeout(&zeroTxBlockTimeout, int64(config.BlockMsgDelay*3))
 }
 
 // call this method with metaLock locked
