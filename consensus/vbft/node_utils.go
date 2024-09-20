@@ -434,7 +434,7 @@ func (self *Server) receiveFromPeer(peerIdx uint32) (uint32, []byte, error) {
 		select {
 		case payload := <-C:
 			if payload != nil {
-				return payload.fromPeer, payload.payload.Data, nil
+				return payload.fromPeer, payload.Data, nil
 			}
 
 		case <-self.quitC:

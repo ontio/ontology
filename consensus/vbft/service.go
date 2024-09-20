@@ -83,7 +83,7 @@ type BlockParticipantConfig struct {
 
 type p2pMsgPayload struct {
 	fromPeer uint32
-	payload  *p2pmsg.ConsensusPayload
+	Data     []byte
 }
 
 type Server struct {
@@ -91,12 +91,8 @@ type Server struct {
 	account       *account.Account
 	poolActor     *actorTypes.TxPoolActor
 	p2p           p2p.P2P
-	ledger        *ledger.Ledger
 	incrValidator *increment.IncrementValidator
 	pid           *actor.PID
-
-	// some config
-	msgHistoryDuration uint32
 
 	//
 	// Note:
@@ -132,12 +128,10 @@ type Server struct {
 
 func NewVbftServer(account *account.Account, txpool *actor.PID, p2p p2p.P2P) (*Server, error) {
 	server := &Server{
-		msgHistoryDuration: 64,
-		account:            account,
-		poolActor:          &actorTypes.TxPoolActor{Pool: txpool},
-		p2p:                p2p,
-		ledger:             ledger.DefLedger,
-		incrValidator:      increment.NewIncrementValidator(20),
+		account:       account,
+		poolActor:     &actorTypes.TxPoolActor{Pool: txpool},
+		p2p:           p2p,
+		incrValidator: increment.NewIncrementValidator(20),
 	}
 	server.stateMgr = newStateMgr(server)
 
@@ -229,7 +223,7 @@ func (self *Server) handleBlockPersistCompleted(block *types.Block) {
 }
 
 func (self *Server) CheckSubmitBlock(blkNum uint32, stateRoot common.Uint256) bool {
-	cMsgs := self.msgPool.GetBlockSubmitMsgNums(blkNum)
+	cMsgs := self.msgPool.GetBlockSubmitMsgs(blkNum)
 	var stateRootCnt uint32
 	for _, msg := range cMsgs {
 		c := msg.(*blockSubmitMsg)
@@ -269,7 +263,7 @@ func (self *Server) NewConsensusPayload(payload *p2pmsg.ConsensusPayload) {
 	if C := self.GetPeerMsgChan(peerIdx); C != nil {
 		C <- &p2pMsgPayload{
 			fromPeer: peerIdx,
-			payload:  payload,
+			Data:     payload.Data,
 		}
 	} else {
 		log.Errorf("consensus msg without receiver: %d node: %s", peerIdx, peerID)
@@ -416,7 +410,7 @@ func (self *Server) initialize() error {
 	selfNodeId := vconfig.PubkeyID(self.account.PublicKey)
 	log.Infof("server: %s starting", selfNodeId)
 
-	store, err := OpenBlockStore(self.ledger, self.pid)
+	store, err := OpenBlockStore(ledger.DefLedger, self.pid)
 	if err != nil {
 		log.Errorf("failed to open block store: %s", err)
 		return fmt.Errorf("failed to open block store: %s", err)
@@ -424,12 +418,13 @@ func (self *Server) initialize() error {
 	self.chainStore = store
 	log.Info("block store opened")
 
-	self.blockPool, err = newBlockPool(self, self.msgHistoryDuration, store)
+	var msgHistoryDuration uint32 = 64
+	self.blockPool, err = newBlockPool(self, msgHistoryDuration, store)
 	if err != nil {
 		log.Errorf("init blockpool: %s", err)
 		return fmt.Errorf("init blockpool: %s", err)
 	}
-	self.msgPool = newMsgPool(self, self.msgHistoryDuration)
+	self.msgPool = newMsgPool(self, msgHistoryDuration)
 	self.timer = NewEventTimer(self)
 	self.syncer = newSyncer(self)
 
@@ -1105,35 +1100,9 @@ func (self *Server) verifyCrossChainMsg(msg *blockProposalMsg) bool {
 }
 
 func (self *Server) processMsg(blockNum uint32) {
-	var consensusMsgs []ConsensusMsg
-	proposalMsgs := self.msgPool.GetProposalMsgs(blockNum)
-	consensusMsgs = append(consensusMsgs, proposalMsgs...)
-	endorseMsgs := self.msgPool.GetEndorsementsMsgs(blockNum)
-	consensusMsgs = append(consensusMsgs, endorseMsgs...)
-	commitMsgs := self.msgPool.GetCommitMsgs(blockNum)
-	consensusMsgs = append(consensusMsgs, commitMsgs...)
-
-	self.msgPool.dropMsgs(consensusMsgs)
-
+	consensusMsgs := self.msgPool.DropBftMsgs(blockNum)
 	for _, msg := range consensusMsgs {
-		h, _ := HashMsg(msg)
-		if msg.Type() == BlockProposalMessage {
-			if proposal := msg.(*blockProposalMsg); proposal != nil {
-				if err := self.msgPool.AddMsg(msg, h); err != nil {
-					log.Errorf("processMsg failed to add proposal msg blk:%d to pool", blockNum)
-					continue
-				}
-				self.processProposalMsg(proposal)
-			}
-		} else if msg.Type() == BlockEndorseMessage {
-			if endorse := msg.(*blockEndorseMsg); endorse != nil {
-				if err := self.msgPool.AddMsg(msg, h); err != nil {
-					log.Errorf("processMsg failed to add endorse msg blk:%d to pool,err:%s", blockNum, err)
-					continue
-				}
-				self.processConsensusMsg(msg)
-			}
-		} else if msg.Type() == BlockCommitMessage {
+		if msg.Type() == BlockCommitMessage {
 			if commit := msg.(*blockCommitMsg); commit != nil {
 				pk := self.peerPool.GetPeerPubKey(commit.Committer)
 				if pk == nil {
@@ -1145,13 +1114,13 @@ func (self *Server) processMsg(blockNum uint32) {
 						self.Index, msg.Type(), err)
 					continue
 				}
-				if err := self.msgPool.AddMsg(msg, h); err != nil {
-					log.Errorf("processMsg failed to add commit msg blk:%d to pool,err:%s", blockNum, err)
-					continue
-				}
-				self.processConsensusMsg(msg)
 			}
 		}
+		if err := self.msgPool.AddMsg(msg, MustHashMsg(msg)); err != nil {
+			log.Errorf("processMsg failed to add commit msg blk:%d to pool,err:%s", blockNum, err)
+			continue
+		}
+		self.processConsensusMsg(msg)
 	}
 	self.dealfutureBlockNum = blockNum
 }
@@ -2142,7 +2111,7 @@ func (self *Server) sealBlock(block *Block, empty bool, sigdata bool) error {
 
 	// notify other modules that block sealed
 	self.timer.OnBlockSealed(sealedBlkNum)
-	self.msgPool.onBlockSealed(sealedBlkNum)
+	self.msgPool.OnBlockSealed(sealedBlkNum)
 	self.blockPool.onBlockSealed(sealedBlkNum)
 
 	_, h := self.blockPool.getSealedBlock(sealedBlkNum)

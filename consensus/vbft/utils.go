@@ -56,8 +56,16 @@ func hashData(data []byte) common.Uint256 {
 	return common.Uint256(f)
 }
 
-func HashMsg(msg ConsensusMsg) (common.Uint256, error) {
+func MustHashMsg(msg ConsensusMsg) common.Uint256 {
+	hs, err := HashMsg(msg)
+	if err != nil {
+		panic(err)
+	}
 
+	return hs
+}
+
+func HashMsg(msg ConsensusMsg) (common.Uint256, error) {
 	// FIXME: has to do marshal on each call
 
 	data, err := SerializeVbftMsg(msg)

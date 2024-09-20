@@ -116,8 +116,8 @@ func DeserializeVbftMsg(msgPayload []byte) (ConsensusMsg, error) {
 	return nil, fmt.Errorf("unknown msg type: %d", m.Type)
 }
 
+// TODO: serialize should never fail.
 func SerializeVbftMsg(msg ConsensusMsg) ([]byte, error) {
-
 	payload, err := msg.Serialize()
 	if err != nil {
 		return nil, err

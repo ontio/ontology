@@ -58,7 +58,7 @@ type StateEventType int
 
 const (
 	ConfigLoaded     StateEventType = iota
-	UpdatePeerConfig                // notify statemgmt on peer heartbeat
+	UpdatePeerConfig                // todo: remove
 	UpdatePeerState                 // notify statemgmt on peer heartbeat
 	SyncReadyTimeout
 	ForceCheckSync
@@ -145,20 +145,7 @@ func (self *StateMgr) run() {
 					}
 				}
 			case UpdatePeerConfig:
-				peerIdx := evt.peerState.peerIdx
-				self.peers[peerIdx] = evt.peerState
-
-				if self.getState() >= LocalConfigured {
-					v := self.getSyncedChainConfigView()
-					if v == self.server.GetChainConfig().View && self.getState() < Syncing {
-						log.Infof("server %d, start syncing", self.server.Index)
-						self.setState(Syncing)
-					} else if v > self.server.GetChainConfig().View {
-						// update ChainConfig
-						log.Errorf("todo: chain config changed, need update chain config from peers")
-						self.setState(LocalConfigured)
-					}
-				}
+				// never happen
 			case UpdatePeerState:
 				if evt.peerState.connected {
 					self.onPeerUpdate(evt.peerState)

@@ -88,7 +88,7 @@ func TestOnBlockSealed(t *testing.T) {
 	t.Logf("TestOnBlockSealed,len:%v", len(msgpool.rounds))
 	if !msgpool.HasMsg(blockproposalmsg, h) {
 		msgpool.AddMsg(blockproposalmsg, h)
-		msgpool.onBlockSealed(blockproposalmsg.GetBlockNum())
+		msgpool.OnBlockSealed(blockproposalmsg.GetBlockNum())
 		t.Logf("TestOnBlockSealed,len:%v", len(msgpool.rounds))
 	}
 }

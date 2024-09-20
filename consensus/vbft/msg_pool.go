@@ -27,27 +27,16 @@ import (
 
 var errDropFarFutureMsg = errors.New("msg pool dropped msg for far future")
 
-type ConsensusRoundMsgs map[MsgType][]ConsensusMsg // indexed by MsgType (proposal, endorsement, ...)
-
 type ConsensusRound struct {
-	blockNum uint32
 	msgs     map[MsgType][]ConsensusMsg
-	msgHashs map[common.Uint256]interface{} // for msg-dup checking
+	msgHashs map[common.Uint256]ConsensusMsg // for msg-dup checking
 }
 
-func newConsensusRound(num uint32) *ConsensusRound {
-
-	r := &ConsensusRound{
-		blockNum: num,
+func newConsensusRound() *ConsensusRound {
+	return &ConsensusRound{
 		msgs:     make(map[MsgType][]ConsensusMsg),
-		msgHashs: make(map[common.Uint256]interface{}),
+		msgHashs: make(map[common.Uint256]ConsensusMsg),
 	}
-
-	r.msgs[BlockProposalMessage] = make([]ConsensusMsg, 0)
-	r.msgs[BlockEndorseMessage] = make([]ConsensusMsg, 0)
-	r.msgs[BlockCommitMessage] = make([]ConsensusMsg, 0)
-
-	return r
 }
 
 func (self *ConsensusRound) addMsg(msg ConsensusMsg, msgHash common.Uint256) {
@@ -64,24 +53,12 @@ func (self *ConsensusRound) dropMsg(msg ConsensusMsg) {
 	msgs := self.msgs[msg.Type()]
 	for i, m := range msgs {
 		if m == msg {
-			// msg found, remove from msg-list
 			self.msgs[msg.Type()] = append(msgs[:i], msgs[i+1:]...)
-			// remove from msg-hash-list
-			for hash, m := range self.msgHashs {
-				if m == msg {
-					delete(self.msgHashs, hash)
-					return
-				}
-			}
+			break
 		}
 	}
-}
 
-func (self *ConsensusRound) hasMsg(msg ConsensusMsg, msgHash common.Uint256) bool {
-	if _, present := self.msgHashs[msgHash]; present {
-		return present
-	}
-	return false
+	delete(self.msgHashs, MustHashMsg(msg))
 }
 
 type MsgPool struct {
@@ -92,7 +69,6 @@ type MsgPool struct {
 }
 
 func newMsgPool(server *Server, historyLen uint32) *MsgPool {
-	// TODO
 	return &MsgPool{
 		historyLen: historyLen,
 		server:     server,
@@ -117,11 +93,8 @@ func (pool *MsgPool) AddMsg(msg ConsensusMsg, msgHash common.Uint256) error {
 	}
 
 	if _, present := pool.rounds[blkNum]; !present {
-		pool.rounds[blkNum] = newConsensusRound(blkNum)
+		pool.rounds[blkNum] = newConsensusRound()
 	}
-
-	// TODO: limit #history rounds to historyLen
-	// Note: we accept msg for future rounds
 
 	pool.rounds[blkNum].addMsg(msg, msgHash)
 	return nil
@@ -140,13 +113,8 @@ func (pool *MsgPool) HasMsg(msg ConsensusMsg, msgHash common.Uint256) bool {
 	pool.lock.RLock()
 	defer pool.lock.RUnlock()
 
-	if roundMsgs, present := pool.rounds[msg.GetBlockNum()]; !present {
-		return false
-	} else {
-		return roundMsgs.hasMsg(msg, msgHash)
-	}
-
-	return false
+	roundMsgs, present := pool.rounds[msg.GetBlockNum()]
+	return present && roundMsgs.msgHashs[msgHash] != nil
 }
 
 func (pool *MsgPool) GetProposalMsgs(blocknum uint32) []ConsensusMsg {
@@ -165,21 +133,18 @@ func (pool *MsgPool) GetProposalMsgs(blocknum uint32) []ConsensusMsg {
 }
 
 func (pool *MsgPool) GetEndorsementsMsgs(blocknum uint32) []ConsensusMsg {
-	pool.lock.RLock()
-	defer pool.lock.RUnlock()
-
-	roundMsgs, ok := pool.rounds[blocknum]
-	if !ok {
-		return nil
-	}
-	msgs, ok := roundMsgs.msgs[BlockEndorseMessage]
-	if !ok {
-		return nil
-	}
-	return msgs
+	return pool.getRoundMsg(blocknum, BlockEndorseMessage)
 }
 
 func (pool *MsgPool) GetCommitMsgs(blocknum uint32) []ConsensusMsg {
+	return pool.getRoundMsg(blocknum, BlockCommitMessage)
+}
+
+func (pool *MsgPool) GetBlockSubmitMsgs(blocknum uint32) []ConsensusMsg {
+	return pool.getRoundMsg(blocknum, BlockSubmitMessage)
+}
+
+func (pool *MsgPool) getRoundMsg(blocknum uint32, msgType MsgType) (result []ConsensusMsg) {
 	pool.lock.RLock()
 	defer pool.lock.RUnlock()
 
@@ -187,53 +152,39 @@ func (pool *MsgPool) GetCommitMsgs(blocknum uint32) []ConsensusMsg {
 	if !ok {
 		return nil
 	}
-	msg, ok := roundMsgs.msgs[BlockCommitMessage]
+	msg, ok := roundMsgs.msgs[msgType]
 	if !ok {
 		return nil
 	}
-	return msg
+	result = append(result, msg...)
+	return
 }
 
-func (pool *MsgPool) GetBlockSubmitMsgNums(blocknum uint32) []ConsensusMsg {
-	pool.lock.RLock()
-	defer pool.lock.RUnlock()
-
-	roundMsgs, ok := pool.rounds[blocknum]
-	if !ok {
-		return nil
-	}
-	msg, ok := roundMsgs.msgs[BlockSubmitMessage]
-	if !ok {
-		return nil
-	}
-	return msg
-}
-
-func (pool *MsgPool) onBlockSealed(blockNum uint32) {
-	if blockNum <= pool.historyLen {
-		return
-	}
+func (pool *MsgPool) OnBlockSealed(blockNum uint32) {
 	pool.lock.Lock()
 	defer pool.lock.Unlock()
 
-	toFreeRound := make([]uint32, 0)
 	for n := range pool.rounds {
-		if n < blockNum-pool.historyLen {
-			toFreeRound = append(toFreeRound, n)
+		if n+pool.historyLen < blockNum {
+			delete(pool.rounds, n)
 		}
-	}
-	for _, n := range toFreeRound {
-		delete(pool.rounds, n)
 	}
 }
 
-func (pool *MsgPool) dropMsgs(msgs []ConsensusMsg) {
+func (pool *MsgPool) DropBftMsgs(block uint32) (result []ConsensusMsg) {
 	pool.lock.Lock()
 	defer pool.lock.Unlock()
 
-	for _, msg := range msgs {
-		if roundMsgs, present := pool.rounds[msg.GetBlockNum()]; present {
-			roundMsgs.dropMsg(msg)
-		}
+	roundMsgs, ok := pool.rounds[block]
+	if !ok {
+		return nil
 	}
+	result = append(result, roundMsgs.msgs[BlockProposalMessage]...)
+	result = append(result, roundMsgs.msgs[BlockEndorseMessage]...)
+	result = append(result, roundMsgs.msgs[BlockCommitMessage]...)
+	roundMsgs.msgHashs = make(map[common.Uint256]ConsensusMsg)
+	for _, msg := range roundMsgs.msgs[BlockSubmitMessage] {
+		roundMsgs.msgHashs[MustHashMsg(msg)] = msg
+	}
+	return
 }
