@@ -59,10 +59,10 @@ type SyncMsg struct {
 
 type BlockMsgFromPeer struct {
 	fromPeer uint32
-	block    *Block
+	block    *VbftBlock
 }
 
-type BlockFromPeers map[uint32]*Block // index by peerId
+type BlockFromPeers map[uint32]*VbftBlock // index by peerId
 
 type Syncer struct {
 	lock   sync.Mutex
@@ -175,7 +175,7 @@ func (self *Syncer) run() {
 			}
 			for self.nextReqBlkNum <= self.targetBlkNum {
 				// FIXME: compete with ledger syncing
-				var blk *Block
+				var blk *VbftBlock
 				if self.nextReqBlkNum <= ledger.DefLedger.GetCurrentBlockHeight() {
 					blk, _ = self.server.blockPool.getSealedBlock(self.nextReqBlkNum)
 				}
@@ -235,7 +235,7 @@ func (self *Syncer) run() {
 	}
 }
 
-func (self *Syncer) blockConsensusDone(blks BlockFromPeers) *Block {
+func (self *Syncer) blockConsensusDone(blks BlockFromPeers) *VbftBlock {
 	// TODO: also check blockhash
 	proposers := make(map[uint32]int)
 	for _, blk := range blks {
@@ -260,7 +260,7 @@ func (self *Syncer) getCurrentTargetBlockNum() uint32 {
 	return self.targetBlkNum
 }
 
-func (self *Syncer) blockCheckMerkleRoot(blks BlockFromPeers) *Block {
+func (self *Syncer) blockCheckMerkleRoot(blks BlockFromPeers) *VbftBlock {
 	merkleRoot := make(map[common.Uint256]int)
 	for _, blk := range blks {
 		merkleRoot[blk.getPrevExecMerkleRoot()] += 1
@@ -382,7 +382,7 @@ func (self *PeerSyncer) run() {
 			return
 		}
 
-		var proposalBlock *Block
+		var proposalBlock *VbftBlock
 		proposalBlock, _ = self.server.blockPool.getSealedBlock(blkNum)
 		if proposalBlock == nil {
 			if proposalBlock, err = self.requestBlock(blkNum); err != nil {
@@ -410,7 +410,7 @@ func (self *PeerSyncer) stop(force bool) bool {
 	return false
 }
 
-func (self *PeerSyncer) requestBlock(blkNum uint32) (*Block, error) {
+func (self *PeerSyncer) requestBlock(blkNum uint32) (*VbftBlock, error) {
 	msg := self.server.constructBlockFetchMsg(blkNum)
 	self.server.msgSendC <- &SendMsgEvent{
 		ToPeer: self.peerIdx,
@@ -473,7 +473,7 @@ func (self *PeerSyncer) requestBlockInfo(startBlkNum uint32) ([]*BlockInfo_, err
 	return nil, nil
 }
 
-func (self *PeerSyncer) fetchedBlock(blkNum uint32, block *Block) error {
+func (self *PeerSyncer) fetchedBlock(blkNum uint32, block *VbftBlock) error {
 	self.lock.Lock()
 	defer self.lock.Unlock()
 

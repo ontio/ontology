@@ -49,7 +49,7 @@ func TestBlock_getProposer(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			blk := &Block{
+			blk := &VbftBlock{
 				Block: tt.fields.Block,
 				Info:  tt.fields.Info,
 			}
@@ -82,7 +82,7 @@ func TestBlock_getBlockNum(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			blk := &Block{
+			blk := &VbftBlock{
 				Block: tt.fields.Block,
 				Info:  tt.fields.Info,
 			}
@@ -115,7 +115,7 @@ func TestBlock_getPrevBlockHash(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			blk := &Block{
+			blk := &VbftBlock{
 				Block: tt.fields.Block,
 				Info:  tt.fields.Info,
 			}
@@ -149,7 +149,7 @@ func TestBlock_getLastConfigBlockNum(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			blk := &Block{
+			blk := &VbftBlock{
 				Block: tt.fields.Block,
 				Info:  tt.fields.Info,
 			}
@@ -182,7 +182,7 @@ func TestBlock_getNewChainConfig(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			blk := &Block{
+			blk := &VbftBlock{
 				Block: tt.fields.Block,
 				Info:  tt.fields.Info,
 			}

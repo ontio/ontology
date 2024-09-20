@@ -284,7 +284,7 @@ func (self *Server) constructProposalMsg(blkNum uint32, sysTxs, userTxs []*types
 		return nil, fmt.Errorf("failed to crossChainMsgHash :%s,blkNum:%d", err, (blkNum - 1))
 	}
 	msg := &blockProposalMsg{
-		Block: &Block{
+		Block: &VbftBlock{
 			Block:              blk,
 			EmptyBlock:         emptyBlk,
 			Info:               vbftBlkInfo,
@@ -408,7 +408,7 @@ func (self *Server) constructBlockFetchMsg(blkNum uint32) *blockFetchMsg {
 	}
 }
 
-func (self *Server) constructBlockFetchRespMsg(blkNum uint32, blk *Block, blkHash common.Uint256) *BlockFetchRespMsg {
+func (self *Server) constructBlockFetchRespMsg(blkNum uint32, blk *VbftBlock, blkHash common.Uint256) *BlockFetchRespMsg {
 	return &BlockFetchRespMsg{
 		BlockNumber: blkNum,
 		BlockHash:   blkHash,

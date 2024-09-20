@@ -28,7 +28,7 @@ import (
 	"github.com/ontio/ontology/core/types"
 )
 
-type Block struct {
+type VbftBlock struct {
 	Block              *types.Block
 	EmptyBlock         *types.Block
 	Info               *vconfig.VbftBlockInfo
@@ -36,42 +36,40 @@ type Block struct {
 	CrossChainMsg      *types.CrossChainMsg
 }
 
-func (blk *Block) getProposer() uint32 {
+func (blk *VbftBlock) getProposer() uint32 {
 	return blk.Info.Proposer
 }
 
-func (blk *Block) getBlockNum() uint32 {
+func (blk *VbftBlock) getBlockNum() uint32 {
 	return blk.Block.Header.Height
 }
 
-func (blk *Block) getPrevBlockHash() common.Uint256 {
+func (blk *VbftBlock) getPrevBlockHash() common.Uint256 {
 	return blk.Block.Header.PrevBlockHash
 }
 
-func (blk *Block) getLastConfigBlockNum() uint32 {
+func (blk *VbftBlock) getLastConfigBlockNum() uint32 {
 	return blk.Info.LastConfigBlockNum
 }
 
-func (blk *Block) getNewChainConfig() *vconfig.ChainConfig {
+func (blk *VbftBlock) getNewChainConfig() *vconfig.ChainConfig {
 	return blk.Info.NewChainConfig
 }
 
-func (blk *Block) getPrevExecMerkleRoot() common.Uint256 {
+func (blk *VbftBlock) getPrevExecMerkleRoot() common.Uint256 {
 	return blk.PrevExecMerkleRoot
 }
 
-//
 // getVrfValue() is a helper function for participant selection.
-//
-func (blk *Block) getVrfValue() []byte {
+func (blk *VbftBlock) getVrfValue() []byte {
 	return blk.Info.VrfValue
 }
 
-func (blk *Block) getVrfProof() []byte {
+func (blk *VbftBlock) getVrfProof() []byte {
 	return blk.Info.VrfProof
 }
 
-func (blk *Block) Serialize() []byte {
+func (blk *VbftBlock) Serialize() []byte {
 	payload := common.NewZeroCopySink(nil)
 	payload.WriteVarBytes(common.SerializeToBytes(blk.Block))
 
@@ -87,7 +85,7 @@ func (blk *Block) Serialize() []byte {
 	return payload.Bytes()
 }
 
-func (blk *Block) Deserialize(data []byte) error {
+func (blk *VbftBlock) Deserialize(data []byte) error {
 	source := common.NewZeroCopySource(data)
 	//buf := bytes.NewBuffer(data)
 	buf1, _, irregular, eof := source.NextVarBytes()
@@ -154,7 +152,7 @@ func (blk *Block) Deserialize(data []byte) error {
 	return nil
 }
 
-func initVbftBlock(block *types.Block, ccMsg *types.CrossChainMsg, prevExecMerkleRoot common.Uint256) (*Block, error) {
+func initVbftBlock(block *types.Block, ccMsg *types.CrossChainMsg, prevExecMerkleRoot common.Uint256) (*VbftBlock, error) {
 	if block == nil {
 		return nil, fmt.Errorf("nil block in initVbftBlock")
 	}
@@ -164,7 +162,7 @@ func initVbftBlock(block *types.Block, ccMsg *types.CrossChainMsg, prevExecMerkl
 		return nil, fmt.Errorf("unmarshal blockInfo: %s", err)
 	}
 
-	return &Block{
+	return &VbftBlock{
 		Block:              block,
 		Info:               blkInfo,
 		PrevExecMerkleRoot: prevExecMerkleRoot,

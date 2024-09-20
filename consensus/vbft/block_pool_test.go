@@ -36,7 +36,7 @@ func buildTestBlockPool(t *testing.T) (*BlockPool, error) {
 	return newBlockPool(nil, 64, store)
 }
 
-func buildTestBlock(t *testing.T, lastBlock *types.Block, lgr *ledger.Ledger) (*Block, error) {
+func buildTestBlock(t *testing.T, lastBlock *types.Block, lgr *ledger.Ledger) (*VbftBlock, error) {
 	timestamp := uint32(time.Now().Unix())
 	if timestamp <= lastBlock.Header.Timestamp {
 		timestamp = lastBlock.Header.Timestamp + 1
@@ -79,7 +79,7 @@ func buildTestBlock(t *testing.T, lastBlock *types.Block, lgr *ledger.Ledger) (*
 		Header:       blkHeader,
 		Transactions: txs,
 	}
-	block := &Block{
+	block := &VbftBlock{
 		Block: blk,
 	}
 	return block, nil
@@ -106,7 +106,7 @@ func TestAddBlock(t *testing.T) {
 	}
 	merkleRoot, err := blockpool.getExecMerkleRoot(blockpool.chainStore.GetChainedBlockNum())
 	if err != nil {
-		t.Errorf("getExecMerkleRoot err:%s", err)
+		t.Errorf("GetExecMerkleRoot err:%s", err)
 	}
 	t.Logf("block height:%d,merkleRoot:%s", blockpool.chainStore.GetChainedBlockNum(), merkleRoot.ToHexString())
 	err = blockpool.submitBlock(blockpool.chainStore.GetChainedBlockNum())

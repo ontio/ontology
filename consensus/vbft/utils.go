@@ -82,7 +82,7 @@ type seedData struct {
 	VrfValue          []byte `json:"vrf_value"`
 }
 
-func getParticipantSelectionSeed(block *Block) vconfig.VRFValue {
+func getParticipantSelectionSeed(block *VbftBlock) vconfig.VRFValue {
 
 	data, err := json.Marshal(&seedData{
 		BlockNum:          block.getBlockNum() + 1,

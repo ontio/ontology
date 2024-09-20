@@ -530,7 +530,6 @@ func (self *Server) stop() {
 	self.timer.stop()
 	self.msgPool.clean()
 	self.blockPool.clean()
-	self.chainStore.close()
 	self.peerPool.clean()
 }
 
@@ -2060,7 +2059,7 @@ func (self *Server) sealProposal(proposal *blockProposalMsg, empty bool) error {
 	return nil
 }
 
-func (self *Server) fastForwardBlock(block *Block) error {
+func (self *Server) fastForwardBlock(block *VbftBlock) error {
 
 	// TODO: update chainconfig when forwarding
 
@@ -2082,7 +2081,7 @@ func (self *Server) fastForwardBlock(block *Block) error {
 		self.Index, block.getBlockNum(), self.GetCurrentBlockNo())
 }
 
-func (self *Server) sealBlock(block *Block, empty bool, sigdata bool) error {
+func (self *Server) sealBlock(block *VbftBlock, empty bool, sigdata bool) error {
 	sealedBlkNum := block.getBlockNum()
 	if sealedBlkNum < self.GetCurrentBlockNo() {
 		// we already in future round

@@ -226,7 +226,7 @@ func (self *Server) updateTimerParams(config *vconfig.ChainConfig) {
 }
 
 // call this method with metaLock locked
-func (self *Server) buildParticipantConfig(blkNum uint32, block *Block, chainCfg *vconfig.ChainConfig) (*BlockParticipantConfig, error) {
+func (self *Server) buildParticipantConfig(blkNum uint32, block *VbftBlock, chainCfg *vconfig.ChainConfig) (*BlockParticipantConfig, error) {
 
 	if blkNum == 0 {
 		return nil, fmt.Errorf("not participant config for genesis block")

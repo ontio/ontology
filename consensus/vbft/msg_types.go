@@ -56,7 +56,7 @@ type ConsensusMsg interface {
 }
 
 type blockProposalMsg struct {
-	Block                 *Block `json:"block"`
+	Block                 *VbftBlock `json:"block"`
 	BlockProposerSig      []byte
 	EmptyBlockProposerSig []byte
 }
@@ -122,7 +122,7 @@ func (msg *blockProposalMsg) Serialize() ([]byte, error) {
 }
 
 func (msg *blockProposalMsg) UnmarshalJSON(data []byte) error {
-	blk := &Block{}
+	blk := &VbftBlock{}
 	if err := blk.Deserialize(data); err != nil {
 		return err
 	}
@@ -354,7 +354,7 @@ func (msg *blockFetchMsg) Serialize() ([]byte, error) {
 type BlockFetchRespMsg struct {
 	BlockNumber uint32         `json:"block_number"`
 	BlockHash   common.Uint256 `json:"block_hash"`
-	BlockData   *Block         `json:"block_data"`
+	BlockData   *VbftBlock     `json:"block_data"`
 }
 
 func (msg *BlockFetchRespMsg) Type() MsgType {
@@ -389,7 +389,7 @@ func (msg *BlockFetchRespMsg) Deserialize(data []byte) error {
 	if err != nil {
 		return err
 	}
-	blk := &Block{}
+	blk := &VbftBlock{}
 	if err := blk.Deserialize(buffer.Bytes()); err != nil {
 		return fmt.Errorf("unmarshal block type: %s", err)
 	}

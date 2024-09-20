@@ -31,8 +31,6 @@ import (
 	"github.com/ontio/ontology/core/store/overlaydb"
 )
 
-type BlockList []*Block
-
 var errDupProposal = errors.New("multi proposal from same proposer")
 var errDupEndorse = errors.New("multi endorsement from same endorser")
 var errDupCommit = errors.New("multi commit from same committer")
@@ -57,7 +55,7 @@ type CandidateInfo struct {
 	commitDone bool
 
 	// server sealed block for this round
-	SealedBlock *Block
+	SealedBlock *VbftBlock
 
 	// candidate msgs for this round
 	Proposals  []*blockProposalMsg
@@ -91,7 +89,7 @@ func newBlockPool(server *Server, historyLen uint32, store *ChainStore) (*BlockP
 
 	// load history blocks from chainstore
 	for ; blkNum <= store.GetChainedBlockNum(); blkNum++ {
-		blk, err := store.getBlock(blkNum)
+		blk, err := store.GetBlock(blkNum)
 		if err != nil {
 			return nil, fmt.Errorf("failed to load block %d: %s", blkNum, err)
 		}
@@ -125,9 +123,7 @@ func (pool *BlockPool) getCandidateInfoLocked(blkNum uint32) *CandidateInfo {
 	return pool.candidateBlocks[blkNum]
 }
 
-//
 // add proposalMsg to CandidateInfo
-//
 func (pool *BlockPool) newBlockProposal(msg *blockProposalMsg) error {
 	pool.lock.Lock()
 	defer pool.lock.Unlock()
@@ -291,9 +287,7 @@ func (pool *BlockPool) addBlockEndorsementLocked(blkNum uint32, endorser uint32,
 	}
 }
 
-//
 // add endorsement msg to CandidateInfo
-//
 func (pool *BlockPool) newBlockEndorsement(msg *blockEndorseMsg) {
 	pool.lock.Lock()
 	defer pool.lock.Unlock()
@@ -308,14 +302,13 @@ func (pool *BlockPool) newBlockEndorsement(msg *blockEndorseMsg) {
 	pool.addBlockEndorsementLocked(msg.GetBlockNum(), msg.Endorser, eSig, false)
 }
 
-//
 // check if has reached consensus for endorse-msg
 //
 // return
-//		@ endorsable proposer
-//		@ for empty commit
-//		@ endorsable
 //
+//	@ endorsable proposer
+//	@ for empty commit
+//	@ endorsable
 func (pool *BlockPool) endorseDone(blkNum uint32, C uint32) (uint32, bool, bool) {
 	pool.lock.RLock()
 	defer pool.lock.RUnlock()
@@ -448,9 +441,7 @@ func (pool *BlockPool) setProposalCommitted(proposal *blockProposalMsg, forEmpty
 	return nil
 }
 
-//
 // add commit msg to CandidateInfo
-//
 func (pool *BlockPool) newBlockCommitment(msg *blockCommitMsg) error {
 	pool.lock.Lock()
 	defer pool.lock.Unlock()
@@ -501,16 +492,15 @@ func (pool *BlockPool) newBlockCommitment(msg *blockCommitMsg) error {
 	return nil
 }
 
-//
 // check if has reached consensus on block-commit
 // return
-//		@ consensused proposer
-//		@ for empty commit
-//		@ consensused
+//
+//	@ consensused proposer
+//	@ for empty commit
+//	@ consensused
 //
 // Note: Attentions on lock contention.
 // Only shared-lock for this function, because this function will also acquires shared-lock on peer-pool.
-//
 func (pool *BlockPool) commitDone(blkNum uint32, C uint32, N uint32) (uint32, bool, bool) {
 	pool.lock.RLock()
 	defer pool.lock.RUnlock()
@@ -566,12 +556,10 @@ func (pool *BlockPool) commitDone(blkNum uint32, C uint32, N uint32) (uint32, bo
 	return math.MaxUint32, false, false
 }
 
-//
 // @ set BlockPool as committed for given BlockNum
 //
 // Note: setCommitDone supposed to be called after commitDone.
 // Because setCommitDone requires exclusive lock, this function is provided separately.
-//
 func (pool *BlockPool) setCommitDone(blkNum uint32) {
 	pool.lock.Lock()
 	defer pool.lock.Unlock()
@@ -593,7 +581,7 @@ func (pool *BlockPool) isCommitHadDone(blkNum uint32) bool {
 	return candidate.commitDone
 }
 
-func (pool *BlockPool) addSignaturesToBlockLocked(block *Block, forEmpty bool) error {
+func (pool *BlockPool) addSignaturesToBlockLocked(block *VbftBlock, forEmpty bool) error {
 
 	blkNum := block.getBlockNum()
 	c := pool.getCandidateInfoLocked(blkNum)
@@ -645,7 +633,7 @@ func (pool *BlockPool) addSignaturesToBlockLocked(block *Block, forEmpty bool) e
 	return nil
 }
 
-func (pool *BlockPool) checkBlockSign(block *Block, forEmpty bool) bool {
+func (pool *BlockPool) checkBlockSign(block *VbftBlock, forEmpty bool) bool {
 	blkNum := block.getBlockNum()
 	c := pool.getCandidateInfoLocked(blkNum)
 	if c == nil {
@@ -680,7 +668,7 @@ func (pool *BlockPool) checkBlockSign(block *Block, forEmpty bool) bool {
 	return true
 }
 
-func (pool *BlockPool) setBlockSealed(block *Block, forEmpty bool, sigdata bool) error {
+func (pool *BlockPool) setBlockSealed(block *VbftBlock, forEmpty bool, sigdata bool) error {
 	pool.lock.Lock()
 	defer pool.lock.Unlock()
 
@@ -701,7 +689,7 @@ func (pool *BlockPool) setBlockSealed(block *Block, forEmpty bool, sigdata bool)
 			return fmt.Errorf("failed to add sig to block: %s", err)
 		}
 	}
-	sealedBlock := &Block{
+	sealedBlock := &VbftBlock{
 		Info:               block.Info,
 		PrevExecMerkleRoot: block.PrevExecMerkleRoot,
 		CrossChainMsg:      block.CrossChainMsg,
@@ -718,7 +706,7 @@ func (pool *BlockPool) setBlockSealed(block *Block, forEmpty bool, sigdata bool)
 	if err := pool.chainStore.AddBlock(sealedBlock); err != nil {
 		return fmt.Errorf("failed to seal block (%d) to chainstore: %s", blkNum, err)
 	}
-	stateRoot, err := pool.chainStore.getExecMerkleRoot(pool.chainStore.GetChainedBlockNum())
+	stateRoot, err := pool.chainStore.GetExecMerkleRoot(pool.chainStore.GetChainedBlockNum())
 	if err != nil {
 		log.Errorf("setBlockSealed blk %d failed:%s", blkNum, err)
 		return nil
@@ -730,7 +718,7 @@ func (pool *BlockPool) setBlockSealed(block *Block, forEmpty bool, sigdata bool)
 	return nil
 }
 
-func (pool *BlockPool) getSealedBlock(blockNum uint32) (*Block, common.Uint256) {
+func (pool *BlockPool) getSealedBlock(blockNum uint32) (*VbftBlock, common.Uint256) {
 	pool.lock.RLock()
 	defer pool.lock.RUnlock()
 
@@ -745,7 +733,7 @@ func (pool *BlockPool) getSealedBlock(blockNum uint32) (*Block, common.Uint256) 
 	}
 
 	// get from chainstore
-	blk, err := pool.chainStore.getBlock(blockNum)
+	blk, err := pool.chainStore.GetBlock(blockNum)
 	if err != nil {
 		log.Errorf("getSealedBlock %d err:%v", blockNum, err)
 		return nil, common.Uint256{}
@@ -753,12 +741,12 @@ func (pool *BlockPool) getSealedBlock(blockNum uint32) (*Block, common.Uint256) 
 	return blk, blk.Block.Hash()
 }
 
-func (pool *BlockPool) getChainedBlock(blockNum uint32) (*Block, common.Uint256) {
+func (pool *BlockPool) getChainedBlock(blockNum uint32) (*VbftBlock, common.Uint256) {
 	pool.lock.RLock()
 	defer pool.lock.RUnlock()
 
 	// get from chainstore
-	blk, err := pool.chainStore.getBlock(blockNum)
+	blk, err := pool.chainStore.GetBlock(blockNum)
 	if err != nil {
 		log.Errorf("getChainedBlock %d err:%v", blockNum, err)
 		return nil, common.Uint256{}
@@ -826,13 +814,13 @@ func (pool *BlockPool) onBlockSealed(blockNum uint32) {
 func (pool *BlockPool) getExecMerkleRoot(blkNum uint32) (common.Uint256, error) {
 	pool.lock.RLock()
 	defer pool.lock.RUnlock()
-	return pool.chainStore.getExecMerkleRoot(blkNum)
+	return pool.chainStore.GetExecMerkleRoot(blkNum)
 }
 
 func (pool *BlockPool) getCrossStatesRoot(blkNum uint32) (common.Uint256, error) {
 	pool.lock.RLock()
 	defer pool.lock.RUnlock()
-	return pool.chainStore.getCrossStatesRoot(blkNum)
+	return pool.chainStore.GetCrossStatesRoot(blkNum)
 }
 
 func (pool *BlockPool) getExecWriteSet(blkNum uint32) *overlaydb.MemDB {
@@ -844,7 +832,7 @@ func (pool *BlockPool) getExecWriteSet(blkNum uint32) *overlaydb.MemDB {
 func (pool *BlockPool) submitBlock(blkNum uint32) error {
 	pool.lock.Lock()
 	defer pool.lock.Unlock()
-	return pool.chainStore.submitBlock(blkNum)
+	return pool.chainStore.SubmitBlock(blkNum)
 }
 
 func (pool *BlockPool) ReloadFromLedger() {

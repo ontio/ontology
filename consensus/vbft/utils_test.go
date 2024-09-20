@@ -28,7 +28,7 @@ import (
 	"github.com/ontio/ontology/common"
 )
 
-func HashBlock(blk *Block) (common.Uint256, error) {
+func HashBlock(blk *VbftBlock) (common.Uint256, error) {
 	return blk.Block.Hash(), nil
 }
 

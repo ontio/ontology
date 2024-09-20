@@ -54,7 +54,7 @@ func constructProposalMsgTest(acc *account.Account) *blockProposalMsg {
 	hash := blkHeader.Hash()
 	sigdata, _ := signature.Sign(acc, hash[:])
 	blkHeader.SigData[0] = sigdata
-	blk := &Block{
+	blk := &VbftBlock{
 		Block: &types.Block{
 			Header:       blkHeader,
 			Transactions: nil,
@@ -279,7 +279,7 @@ func TestBlockFetchMsg(t *testing.T) {
 	t.Log("TestBlockFetchMsg succ")
 }
 
-func constructBlockFetchRespMsg(acc *account.Account, blk *Block) (*BlockFetchRespMsg, error) {
+func constructBlockFetchRespMsg(acc *account.Account, blk *VbftBlock) (*BlockFetchRespMsg, error) {
 	msg := &BlockFetchRespMsg{
 		BlockNumber: 1,
 		BlockHash:   common.Uint256{},
@@ -336,7 +336,7 @@ func TestProposalFetchMsg(t *testing.T) {
 	t.Log("TestProposalFetchMsg succ")
 }
 
-func constructBlock() (*Block, error) {
+func constructBlock() (*VbftBlock, error) {
 	var txs []*types.Transaction
 	txRoot := common.ComputeMerkleRoot(nil)
 	vbftBlkInfo := &vconfig.VbftBlockInfo{
@@ -357,7 +357,7 @@ func constructBlock() (*Block, error) {
 		ConsensusPayload: consensusPayload,
 		SigData:          [][]byte{{}, {}},
 	}
-	blk := &Block{
+	blk := &VbftBlock{
 		Block: &types.Block{
 			Header:       blkHeader,
 			Transactions: txs,
@@ -426,14 +426,14 @@ func TestBlockSerialization(t *testing.T) {
 
 	data := blk.Serialize()
 
-	blk2 := &Block{}
+	blk2 := &VbftBlock{}
 	if err := blk2.Deserialize(data); err != nil {
 		t.Fatalf("deserialize blk: %s", err)
 	}
 
 	blk.EmptyBlock = nil
 	data2 := blk.Serialize()
-	blk3 := &Block{}
+	blk3 := &VbftBlock{}
 	if err := blk3.Deserialize(data2); err != nil {
 		t.Fatalf("deserialize blk2: %s", err)
 	}
