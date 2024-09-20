@@ -39,15 +39,9 @@ type ConsensusPayload struct {
 	Owner           keypair.PublicKey
 	Signature       []byte
 	PeerId          common2.PeerId
-	hash            common.Uint256
 }
 
-//get the consensus payload hash
-func (this *ConsensusPayload) Hash() common.Uint256 {
-	return common.Uint256{}
-}
-
-//Check whether header is correct
+// Check whether header is correct
 func (this *ConsensusPayload) Verify() error {
 	sink := common.NewZeroCopySink(nil)
 	this.SerializationUnsigned(sink)
@@ -59,15 +53,9 @@ func (this *ConsensusPayload) Verify() error {
 	return nil
 }
 
-//serialize the consensus payload
+// serialize the consensus payload
 func (this *ConsensusPayload) ToArray() []byte {
 	return common.SerializeToBytes(this)
-}
-
-func (this *ConsensusPayload) GetMessage() []byte {
-	//TODO: GetMessage
-	//return sig.GetHashData(cp)
-	return []byte{}
 }
 
 func (this *ConsensusPayload) Serialization(sink *common.ZeroCopySink) {
@@ -77,7 +65,7 @@ func (this *ConsensusPayload) Serialization(sink *common.ZeroCopySink) {
 	sink.WriteVarBytes(this.Signature)
 }
 
-//Deserialize message payload
+// Deserialize message payload
 func (this *ConsensusPayload) Deserialization(source *common.ZeroCopySource) error {
 	err := this.DeserializationUnsigned(source)
 	if err != nil {

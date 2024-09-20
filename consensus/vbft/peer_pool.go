@@ -27,7 +27,6 @@ import (
 )
 
 type Peer struct {
-	Index            uint32
 	PubKey           keypair.PublicKey
 	CommittedBlockNo uint32
 	connected        bool
@@ -39,16 +38,13 @@ type PeerPool struct {
 	IDMap  map[string]uint32
 	P2pMap map[uint32]common.PeerId //value: p2p random id
 	peers  map[uint32]*Peer
-
-	peerConnectionWaitings map[uint32]chan struct{}
 }
 
 func NewPeerPool(peers map[string]uint32) *PeerPool {
 	pool := &PeerPool{
-		IDMap:                  make(map[string]uint32),
-		P2pMap:                 make(map[uint32]common.PeerId),
-		peers:                  make(map[uint32]*Peer),
-		peerConnectionWaitings: make(map[uint32]chan struct{}),
+		IDMap:  make(map[string]uint32),
+		P2pMap: make(map[uint32]common.PeerId),
+		peers:  make(map[uint32]*Peer),
 	}
 	pool.ResetNewConsuensusPeers(peers)
 	return pool
@@ -80,7 +76,6 @@ func (pool *PeerPool) ResetNewConsuensusPeers(peers map[string]uint32) (added []
 			added = append(added, index)
 			peerPK := vconfig.MustPubkey(id)
 			pool.peers[index] = &Peer{
-				Index:     index,
 				PubKey:    peerPK,
 				connected: false,
 			}
@@ -110,67 +105,26 @@ func (pool *PeerPool) GetConnectedPeerCount() int {
 	return n
 }
 
-func (pool *PeerPool) WaitPeerConnected(peerIdx uint32) {
-	if pool.IsPeerConnected(peerIdx) {
-		return
-	}
-
-	var C chan struct{}
-	pool.lock.Lock()
-	if _, present := pool.peerConnectionWaitings[peerIdx]; !present {
-		C = make(chan struct{})
-		pool.peerConnectionWaitings[peerIdx] = C
-	} else {
-		C = pool.peerConnectionWaitings[peerIdx]
-	}
-	pool.lock.Unlock()
-
-	<-C
-}
-
 func (pool *PeerPool) OnPeerConnected(peerIdx uint32) {
 	pool.lock.Lock()
 	defer pool.lock.Unlock()
 
-	// new peer, rather than modify
-	pool.peers[peerIdx] = &Peer{
-		Index:     peerIdx,
-		PubKey:    pool.peers[peerIdx].PubKey,
-		connected: true,
-	}
-	if C, present := pool.peerConnectionWaitings[peerIdx]; present {
-		delete(pool.peerConnectionWaitings, peerIdx)
-		close(C)
-	}
+	pool.peers[peerIdx].connected = true
 }
 
 func (pool *PeerPool) OnPeerDisconnected(peerIdx uint32) {
 	pool.lock.Lock()
 	defer pool.lock.Unlock()
 
-	pool.peers[peerIdx] = &Peer{
-		Index:     peerIdx,
-		PubKey:    pool.peers[peerIdx].PubKey,
-		connected: false,
-	}
+	pool.peers[peerIdx].connected = false
 }
 
 func (pool *PeerPool) UpdatePeerCommitBlockNo(peerIdx uint32, commitedBlockNo uint32) {
 	pool.lock.Lock()
 	defer pool.lock.Unlock()
 
-	if C, present := pool.peerConnectionWaitings[peerIdx]; present {
-		// wake up peer connection waitings
-		delete(pool.peerConnectionWaitings, peerIdx)
-		close(C)
-	}
-
-	pool.peers[peerIdx] = &Peer{
-		Index:            peerIdx,
-		PubKey:           pool.peers[peerIdx].PubKey,
-		CommittedBlockNo: commitedBlockNo,
-		connected:        true,
-	}
+	pool.peers[peerIdx].CommittedBlockNo = commitedBlockNo
+	pool.peers[peerIdx].connected = true
 }
 
 func (pool *PeerPool) GetPeerIndex(nodeId string) (uint32, bool) {
@@ -203,16 +157,15 @@ func (pool *PeerPool) GetAllPubKeys() map[uint32]keypair.PublicKey {
 	return keys
 }
 
-func (pool *PeerPool) getPeer(idx uint32) *Peer {
+func (pool *PeerPool) GetPeerCommittedBlockNo(idx uint32) uint32 {
 	pool.lock.RLock()
 	defer pool.lock.RUnlock()
-
 	peer := pool.peers[idx]
-	if peer != nil {
-		return peer
+	if peer == nil {
+		return 0
 	}
 
-	return nil
+	return peer.CommittedBlockNo
 }
 
 func (pool *PeerPool) AddP2pId(peerIdx uint32, p2pId common.PeerId) {

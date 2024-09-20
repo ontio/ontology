@@ -83,26 +83,13 @@ func (self *Server) GetCommittedBlockNo() uint32 {
 }
 
 func (self *Server) isPeerAlive(peerIdx uint32, blockNum uint32) bool {
-
-	// TODO
-	if peerIdx == self.Index {
-		return true
-	}
-
-	return self.peerPool.IsPeerConnected(peerIdx)
+	return peerIdx == self.Index || self.peerPool.IsPeerConnected(peerIdx)
 }
 
 func (self *Server) isPeerActive(peerIdx uint32, blockNum uint32) bool {
 	if self.isPeerAlive(peerIdx, blockNum) {
-		p := self.peerPool.getPeer(peerIdx)
-		if p == nil {
-			return false
-		}
-
-		if p.CommittedBlockNo != 0 {
-			return p.CommittedBlockNo+MAX_SYNCING_CHECK_BLK_NUM*4 > self.GetCommittedBlockNo()
-		}
-		return true
+		committedBlock := self.peerPool.GetPeerCommittedBlockNo(peerIdx)
+		return committedBlock != 0 && committedBlock+MAX_SYNCING_CHECK_BLK_NUM*4 > self.GetCommittedBlockNo()
 	}
 
 	return false
@@ -115,15 +102,13 @@ func (self *Server) isProposer(blockNum uint32, peerIdx uint32) bool {
 	self.metaLock.RLock()
 	defer self.metaLock.RUnlock()
 
-	{
-		if peerIdx == self.Index && !isActive(self.getState()) {
-			return false
-		}
-		// the first active proposer
-		for _, id := range self.currentParticipantConfig.Proposers {
-			if self.isPeerAlive(id, blockNum) {
-				return peerIdx == id
-			}
+	if peerIdx == self.Index && !isActive(self.getState()) {
+		return false
+	}
+	// the first active proposer
+	for _, id := range self.currentParticipantConfig.Proposers {
+		if self.isPeerAlive(id, blockNum) {
+			return peerIdx == id
 		}
 	}
 
@@ -149,16 +134,14 @@ func (self *Server) isEndorser(blockNum uint32, peerIdx uint32) bool {
 
 	// the first 2C+1 active endorsers
 	var activeN uint32
-	{
-		for _, id := range self.currentParticipantConfig.Endorsers {
-			if id == peerIdx {
-				return true
-			}
-			if self.isPeerActive(id, blockNum) {
-				activeN++
-				if activeN > self.config.C*2 {
-					break
-				}
+	for _, id := range self.currentParticipantConfig.Endorsers {
+		if id == peerIdx {
+			return true
+		}
+		if self.isPeerActive(id, blockNum) {
+			activeN++
+			if activeN > self.config.C*2 {
+				break
 			}
 		}
 	}
@@ -172,16 +155,14 @@ func (self *Server) isCommitter(blockNum uint32, peerIdx uint32) bool {
 
 	// the first 2C+1 active committers
 	var activeN uint32
-	{
-		for _, id := range self.currentParticipantConfig.Committers {
-			if id == peerIdx {
-				return true
-			}
-			if self.isPeerActive(id, blockNum) {
-				activeN++
-				if activeN > self.config.C*2 {
-					break
-				}
+	for _, id := range self.currentParticipantConfig.Committers {
+		if id == peerIdx {
+			return true
+		}
+		if self.isPeerActive(id, blockNum) {
+			activeN++
+			if activeN > self.config.C*2 {
+				break
 			}
 		}
 	}
@@ -445,22 +426,12 @@ func (self *Server) receiveFromPeer(peerIdx uint32) (uint32, []byte, error) {
 	return 0, nil, fmt.Errorf("nil consensus payload")
 }
 
-func (self *Server) sendToPeer(peerIdx uint32, data []byte) error {
+func (self *Server) sendToPeer(peerIdx uint32, msg ConsensusMsg) error {
 	p2pid, present := self.peerPool.GetP2pId(peerIdx)
 	if !present {
 		return fmt.Errorf("send peer failed: failed to get peer %d", peerIdx)
 	}
-	msg := &p2pmsg.ConsensusPayload{
-		Data:  data,
-		Owner: self.account.PublicKey,
-	}
-
-	sink := common.NewZeroCopySink(nil)
-	msg.SerializationUnsigned(sink)
-	msg.Signature, _ = signature.Sign(self.account, sink.Bytes())
-
-	cons := msgpack.NewConsensus(msg)
-	go self.p2p.SendTo(p2pid, cons)
+	go self.p2p.SendTo(p2pid, msgpack.NewConsensus(self.packAndSignP2PMsg(msg)))
 	return nil
 }
 
@@ -471,7 +442,8 @@ func (self *Server) broadcast(msg ConsensusMsg) {
 	}
 }
 
-func (self *Server) broadcastToAll(data []byte) {
+func (self *Server) packAndSignP2PMsg(msg ConsensusMsg) *p2pmsg.ConsensusPayload {
+	data := MustSerializeVbftMsg(msg)
 	payload := &p2pmsg.ConsensusPayload{
 		Data:  data,
 		Owner: self.account.PublicKey,
@@ -481,6 +453,9 @@ func (self *Server) broadcastToAll(data []byte) {
 	payload.SerializationUnsigned(sink)
 	payload.Signature, _ = signature.Sign(self.account, sink.Bytes())
 
-	msg := msgpack.NewConsensus(payload)
-	go self.p2p.Broadcast(msg)
+	return payload
+}
+
+func (self *Server) broadcastToAll(msg ConsensusMsg) {
+	go self.p2p.Broadcast(msgpack.NewConsensus(self.packAndSignP2PMsg(msg)))
 }

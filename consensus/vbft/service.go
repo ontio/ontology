@@ -539,9 +539,6 @@ func (self *Server) run(peerIdx uint32) error {
 	// broadcast heartbeat
 	self.heartbeat()
 
-	// wait remote msgs
-	self.peerPool.WaitPeerConnected(peerIdx)
-
 	defer func() {
 		// TODO: handle peer disconnection here
 		log.Warnf("server %d: disconnected with peer %d", self.Index, peerIdx)
@@ -557,87 +554,81 @@ func (self *Server) run(peerIdx uint32) error {
 		}
 	}()
 
-	errC := make(chan error)
-	go func() {
-		for {
-			fromPeer, msgData, err := self.receiveFromPeer(peerIdx)
-			if err != nil {
-				errC <- err
-				return
+	for {
+		fromPeer, msgData, err := self.receiveFromPeer(peerIdx)
+		if err != nil {
+			return err
+		}
+		msg, err := DeserializeVbftMsg(msgData)
+		if err != nil {
+			log.Errorf("server %d failed to deserialize vbft msg (len %d): %s", self.Index, len(msgData), err)
+			continue
+		}
+
+		pk := self.peerPool.GetPeerPubKey(fromPeer)
+		if pk == nil {
+			log.Errorf("server %d failed to get peer %d pubkey", self.Index, fromPeer)
+			continue
+		}
+
+		if msg.Type() == BlockProposalMessage {
+			if proposal := msg.(*blockProposalMsg); proposal != nil {
+				fromPeer = proposal.Block.getProposer()
+				pk = self.peerPool.GetPeerPubKey(proposal.Block.getProposer())
 			}
-			msg, err := DeserializeVbftMsg(msgData)
-
-			if err != nil {
-				log.Errorf("server %d failed to deserialize vbft msg (len %d): %s", self.Index, len(msgData), err)
-			} else {
-				pk := self.peerPool.GetPeerPubKey(fromPeer)
-				if pk == nil {
-					log.Errorf("server %d failed to get peer %d pubkey", self.Index, fromPeer)
-					continue
-				}
-
-				if msg.Type() == BlockProposalMessage {
-					if proposal := msg.(*blockProposalMsg); proposal != nil {
-						fromPeer = proposal.Block.getProposer()
-						pk = self.peerPool.GetPeerPubKey(proposal.Block.getProposer())
-					}
-				} else if msg.Type() == BlockEndorseMessage {
-					if endorseMsg := msg.(*blockEndorseMsg); endorseMsg != nil {
-						proposal := self.findBlockProposal(msg.GetBlockNum(), endorseMsg.EndorsedProposer)
-						if proposal != nil {
-							if endorseMsg.EndorseForEmpty {
-								if proposal.Block.EmptyBlock.Hash() != endorseMsg.EndorsedBlockHash {
-									log.Errorf("server %d failed to compare blkHash, type %d,blk:%d,emptyBlockHash:%x,endorsedBlockHash:%x,proposer:%d,from:%d",
-										self.Index, msg.Type(), msg.GetBlockNum(), proposal.Block.EmptyBlock.Hash(), endorseMsg.EndorsedBlockHash, endorseMsg.EndorsedProposer, fromPeer)
-									continue
-								}
-							} else {
-								if proposal.Block.Block.Hash() != endorseMsg.EndorsedBlockHash {
-									log.Errorf("server %d failed to compare blkHash, type %d,blk:%d,blockHash:%x,endorsedBlockHash:%x,proposer:%d,from:%d",
-										self.Index, msg.Type(), msg.GetBlockNum(), proposal.Block.Block.Hash(), endorseMsg.EndorsedBlockHash, endorseMsg.EndorsedProposer, fromPeer)
-									continue
-								}
-							}
+		} else if msg.Type() == BlockEndorseMessage {
+			if endorseMsg := msg.(*blockEndorseMsg); endorseMsg != nil {
+				proposal := self.findBlockProposal(msg.GetBlockNum(), endorseMsg.EndorsedProposer)
+				if proposal != nil {
+					if endorseMsg.EndorseForEmpty {
+						if proposal.Block.EmptyBlock.Hash() != endorseMsg.EndorsedBlockHash {
+							log.Errorf("server %d failed to compare blkHash, type %d,blk:%d,emptyBlockHash:%x,endorsedBlockHash:%x,proposer:%d,from:%d",
+								self.Index, msg.Type(), msg.GetBlockNum(), proposal.Block.EmptyBlock.Hash(), endorseMsg.EndorsedBlockHash, endorseMsg.EndorsedProposer, fromPeer)
+							continue
 						}
-					}
-				} else if msg.Type() == BlockCommitMessage {
-					if commitMsg := msg.(*blockCommitMsg); commitMsg != nil {
-						proposal := self.findBlockProposal(msg.GetBlockNum(), commitMsg.BlockProposer)
-						if proposal != nil {
-							if commitMsg.CommitForEmpty {
-								if proposal.Block.EmptyBlock.Hash() != commitMsg.CommitBlockHash {
-									log.Errorf("server %d failed to compare blkHash, type %d,blk:%d,emptyBlockHash:%x,CommitBlockHash:%x,proposer:%d,from:%d",
-										self.Index, msg.Type(), msg.GetBlockNum(), proposal.Block.EmptyBlock.Hash(), commitMsg.CommitBlockHash, commitMsg.BlockProposer, fromPeer)
-									continue
-								}
-							} else {
-								if proposal.Block.Block.Hash() != commitMsg.CommitBlockHash {
-									log.Errorf("server %d failed to compare blkHash, type %d,blk:%d,blockHash:%x,CommitBlockHash:%x,proposer:%d,from:%d",
-										self.Index, msg.Type(), msg.GetBlockNum(), proposal.Block.Block.Hash(), commitMsg.CommitBlockHash, commitMsg.BlockProposer, fromPeer)
-									continue
-								}
-							}
+					} else {
+						if proposal.Block.Block.Hash() != endorseMsg.EndorsedBlockHash {
+							log.Errorf("server %d failed to compare blkHash, type %d,blk:%d,blockHash:%x,endorsedBlockHash:%x,proposer:%d,from:%d",
+								self.Index, msg.Type(), msg.GetBlockNum(), proposal.Block.Block.Hash(), endorseMsg.EndorsedBlockHash, endorseMsg.EndorsedProposer, fromPeer)
+							continue
 						}
 					}
 				}
-
-				if err := msg.Verify(pk, self.peerPool.GetAllPubKeys()); err != nil {
-					log.Errorf("server %d failed to verify msg, type %d, err: %s",
-						self.Index, msg.Type(), err)
-					continue
+			}
+		} else if msg.Type() == BlockCommitMessage {
+			if commitMsg := msg.(*blockCommitMsg); commitMsg != nil {
+				proposal := self.findBlockProposal(msg.GetBlockNum(), commitMsg.BlockProposer)
+				if proposal != nil {
+					if commitMsg.CommitForEmpty {
+						if proposal.Block.EmptyBlock.Hash() != commitMsg.CommitBlockHash {
+							log.Errorf("server %d failed to compare blkHash, type %d,blk:%d,emptyBlockHash:%x,CommitBlockHash:%x,proposer:%d,from:%d",
+								self.Index, msg.Type(), msg.GetBlockNum(), proposal.Block.EmptyBlock.Hash(), commitMsg.CommitBlockHash, commitMsg.BlockProposer, fromPeer)
+							continue
+						}
+					} else {
+						if proposal.Block.Block.Hash() != commitMsg.CommitBlockHash {
+							log.Errorf("server %d failed to compare blkHash, type %d,blk:%d,blockHash:%x,CommitBlockHash:%x,proposer:%d,from:%d",
+								self.Index, msg.Type(), msg.GetBlockNum(), proposal.Block.Block.Hash(), commitMsg.CommitBlockHash, commitMsg.BlockProposer, fromPeer)
+							continue
+						}
+					}
 				}
-
-				if msg.Type() <= BlockCommitMessage || msg.Type() == BlockSubmitMessage {
-					log.Infof("server %d received consensus msg, blk %d, type: %d from %d",
-						self.Index, msg.GetBlockNum(), msg.Type(), fromPeer)
-				}
-
-				self.onConsensusMsg(fromPeer, msg, hashData(msgData))
 			}
 		}
-	}()
 
-	return <-errC
+		if err := msg.Verify(pk, self.peerPool.GetAllPubKeys()); err != nil {
+			log.Errorf("server %d failed to verify msg, type %d, err: %s",
+				self.Index, msg.Type(), err)
+			continue
+		}
+
+		if msg.Type() <= BlockCommitMessage || msg.Type() == BlockSubmitMessage {
+			log.Infof("server %d received consensus msg, blk %d, type: %d from %d",
+				self.Index, msg.GetBlockNum(), msg.Type(), fromPeer)
+		}
+
+		self.onConsensusMsg(fromPeer, msg, hashData(msgData))
+	}
 }
 
 func (self *Server) getState() ServerState {
@@ -2139,16 +2130,11 @@ func (self *Server) msgSendLoop() {
 			if self.nonConsensusNode() {
 				continue
 			}
-			payload, err := SerializeVbftMsg(evt.Msg)
-			if err != nil {
-				log.Errorf("server %d failed to serialized msg (type: %d): %s", self.Index, evt.Msg.Type(), err)
-				continue
-			}
 			if evt.ToPeer == math.MaxUint32 {
 				// broadcast
-				self.broadcastToAll(payload)
+				self.broadcastToAll(evt.Msg)
 			} else {
-				if err := self.sendToPeer(evt.ToPeer, payload); err != nil {
+				if err := self.sendToPeer(evt.ToPeer, evt.Msg); err != nil {
 					log.Errorf("server %d xmit to peer %d failed: %s", self.Index, evt.ToPeer, err)
 				}
 			}
