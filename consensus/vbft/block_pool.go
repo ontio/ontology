@@ -70,6 +70,7 @@ type BlockPool struct {
 	HistoryLen uint32
 
 	server          *Server
+	peerPool        *PeerPool // consensus peers
 	chainStore      *ChainStore
 	candidateBlocks map[uint32]*CandidateInfo // indexed by blockNum
 }
@@ -77,6 +78,7 @@ type BlockPool struct {
 func newBlockPool(server *Server, historyLen uint32, store *ChainStore) (*BlockPool, error) {
 	pool := &BlockPool{
 		server:          server,
+		peerPool:        server.peerPool,
 		HistoryLen:      historyLen,
 		chainStore:      store,
 		candidateBlocks: make(map[uint32]*CandidateInfo),
@@ -113,8 +115,6 @@ func (pool *BlockPool) getCandidateInfoLocked(blkNum uint32) *CandidateInfo {
 	if _, present := pool.candidateBlocks[blkNum]; !present {
 		// new candiateInfo for blockNum
 		candidate := &CandidateInfo{
-			Proposals:   make([]*blockProposalMsg, 0),
-			CommitMsgs:  make([]*blockCommitMsg, 0),
 			EndorseSigs: make(map[uint32][]*CandidateEndorseSigInfo),
 		}
 		pool.candidateBlocks[blkNum] = candidate
@@ -123,8 +123,7 @@ func (pool *BlockPool) getCandidateInfoLocked(blkNum uint32) *CandidateInfo {
 	return pool.candidateBlocks[blkNum]
 }
 
-// add proposalMsg to CandidateInfo
-func (pool *BlockPool) newBlockProposal(msg *blockProposalMsg) error {
+func (pool *BlockPool) AddBlockProposal(msg *blockProposalMsg) error {
 	pool.lock.Lock()
 	defer pool.lock.Unlock()
 
@@ -132,8 +131,9 @@ func (pool *BlockPool) newBlockProposal(msg *blockProposalMsg) error {
 	candidate := pool.getCandidateInfoLocked(blkNum)
 
 	// check dup-proposal from same proposer
+	proposer := msg.Block.getProposer()
 	for _, p := range candidate.Proposals {
-		if p.Block.getProposer() == msg.Block.getProposer() {
+		if p.Block.getProposer() == proposer {
 			if bytes.Equal(p.BlockProposerSig, msg.BlockProposerSig) {
 				return nil
 			}
@@ -145,7 +145,6 @@ func (pool *BlockPool) newBlockProposal(msg *blockProposalMsg) error {
 	candidate.Proposals = append(candidate.Proposals, msg)
 
 	// add endorse-sig
-	proposer := msg.Block.getProposer()
 	eSig := &CandidateEndorseSigInfo{
 		BlockHash:        msg.Block.Block.Hash(),
 		EndorsedProposer: proposer,
@@ -159,7 +158,7 @@ func (pool *BlockPool) newBlockProposal(msg *blockProposalMsg) error {
 	return nil
 }
 
-func (pool *BlockPool) getBlockProposals(blkNum uint32) []*blockProposalMsg {
+func (pool *BlockPool) GetBlockProposals(blkNum uint32) []*blockProposalMsg {
 	pool.lock.RLock()
 	defer pool.lock.RUnlock()
 
@@ -172,7 +171,7 @@ func (pool *BlockPool) getBlockProposals(blkNum uint32) []*blockProposalMsg {
 	return c.Proposals
 }
 
-func (pool *BlockPool) endorsedForBlock(blkNum uint32) bool {
+func (pool *BlockPool) HasEndorsedForBlock(blkNum uint32) bool {
 	pool.lock.RLock()
 	defer pool.lock.RUnlock()
 
@@ -181,20 +180,11 @@ func (pool *BlockPool) endorsedForBlock(blkNum uint32) bool {
 		return true
 	}
 
-	// check if had endorsed for some proposal
 	c := pool.candidateBlocks[blkNum]
-	if c == nil {
-		return false
-	}
-
-	return c.EndorsedProposal != nil || c.EndorsedEmptyProposal != nil
+	return c != nil && (c.EndorsedProposal != nil || c.EndorsedEmptyProposal != nil)
 }
 
-func (pool *BlockPool) getEndorsedProposal(blkNum uint32) (*blockProposalMsg, bool) {
-	if !pool.endorsedForBlock(blkNum) {
-		return nil, false
-	}
-
+func (pool *BlockPool) GetEndorsedProposal(blkNum uint32) (*blockProposalMsg, bool) {
 	pool.lock.RLock()
 	defer pool.lock.RUnlock()
 
@@ -212,17 +202,12 @@ func (pool *BlockPool) getEndorsedProposal(blkNum uint32) (*blockProposalMsg, bo
 	return nil, false
 }
 
-func (pool *BlockPool) endorsedForEmptyBlock(blkNum uint32) bool {
+func (pool *BlockPool) HasEndorsedForEmptyBlock(blkNum uint32) bool {
 	pool.lock.RLock()
 	defer pool.lock.RUnlock()
 
-	// check if had endorsed for some proposal
 	c := pool.candidateBlocks[blkNum]
-	if c == nil {
-		return false
-	}
-
-	return c.EndorsedEmptyProposal != nil
+	return c != nil && c.EndorsedEmptyProposal != nil
 }
 
 func (pool *BlockPool) setProposalEndorsed(proposal *blockProposalMsg, forEmpty bool) error {
@@ -231,24 +216,19 @@ func (pool *BlockPool) setProposalEndorsed(proposal *blockProposalMsg, forEmpty 
 
 	// check candidate Info for blkNum
 	blkNum := proposal.GetBlockNum()
-	if _, present := pool.candidateBlocks[blkNum]; !present {
-		return fmt.Errorf("non-candidates for block %d yet when set endorsed", blkNum)
-	}
+	c := pool.getCandidateInfoLocked(blkNum)
 
 	// check if had endorsed for some proposal
-	c := pool.candidateBlocks[blkNum]
 	if !forEmpty {
 		if c.EndorsedProposal == nil {
-			// no endorsedProposal yet
 			c.EndorsedProposal = proposal
 			return nil
-		} else {
-			if c.EndorsedProposal.Block.getProposer() == proposal.Block.getProposer() {
-				return nil
-			}
-			return fmt.Errorf("blk %d had endorsed for %d, skip %d", blkNum,
-				c.EndorsedProposal.Block.getProposer(), proposal.Block.getProposer())
 		}
+		if c.EndorsedProposal.Block.getProposer() == proposal.Block.getProposer() {
+			return nil
+		}
+		return fmt.Errorf("blk %d had endorsed for %d, skip %d", blkNum,
+			c.EndorsedProposal.Block.getProposer(), proposal.Block.getProposer())
 	}
 
 	// endorse for empty
@@ -262,33 +242,29 @@ func (pool *BlockPool) setProposalEndorsed(proposal *blockProposalMsg, forEmpty 
 func (pool *BlockPool) addBlockEndorsementLocked(blkNum uint32, endorser uint32, eSig *CandidateEndorseSigInfo, commitment bool) {
 	candidate := pool.getCandidateInfoLocked(blkNum)
 
-	if eSigs, present := candidate.EndorseSigs[endorser]; present && !commitment {
-		for _, eSig := range eSigs {
-			if eSig.ForEmpty {
-				// has endorsed for empty, ignore new endorsement
-				return
-			}
-		}
+	if commitment {
+		candidate.EndorseSigs[endorser] = []*CandidateEndorseSigInfo{eSig}
+		return
+	}
+	eSigs := candidate.EndorseSigs[endorser]
+	for _, eSig := range eSigs {
 		if eSig.ForEmpty {
-			// add empty endorsement
-			candidate.EndorseSigs[endorser] = append(eSigs, eSig)
-			return
+			return // has endorsed for empty, ignore new endorsement
 		}
-
+	}
+	if !eSig.ForEmpty {
 		// check dup endorsement
 		for _, esig := range eSigs {
 			if esig.EndorsedProposer == eSig.EndorsedProposer {
 				return
 			}
 		}
-		candidate.EndorseSigs[endorser] = append(eSigs, eSig)
-	} else {
-		candidate.EndorseSigs[endorser] = []*CandidateEndorseSigInfo{eSig}
 	}
+
+	candidate.EndorseSigs[endorser] = append(eSigs, eSig)
 }
 
-// add endorsement msg to CandidateInfo
-func (pool *BlockPool) newBlockEndorsement(msg *blockEndorseMsg) {
+func (pool *BlockPool) AddBlockEndorseMsg(msg *blockEndorseMsg) {
 	pool.lock.Lock()
 	defer pool.lock.Unlock()
 
@@ -350,8 +326,7 @@ func (pool *BlockPool) endorseFailed(blkNum uint32, C uint32) bool {
 	pool.lock.RLock()
 	defer pool.lock.RUnlock()
 
-	proposalCount := make(map[uint32]uint32)
-	endorserCount := make(map[uint32]uint32)
+	proposerCount := make(map[uint32]uint32)
 	candidate := pool.candidateBlocks[blkNum]
 	if candidate == nil {
 		return false
@@ -362,29 +337,28 @@ func (pool *BlockPool) endorseFailed(blkNum uint32, C uint32) bool {
 	}
 
 	var emptyEndorseCnt uint32
-	for endorser, eSigs := range candidate.EndorseSigs {
+	for _, eSigs := range candidate.EndorseSigs {
 		for _, esig := range eSigs {
 			if !esig.ForEmpty {
-				proposalCount[esig.EndorsedProposer] += 1
-				if proposalCount[esig.EndorsedProposer] > C+1 {
+				proposerCount[esig.EndorsedProposer] += 1
+				if proposerCount[esig.EndorsedProposer] > C+1 {
 					return false
 				}
 			} else {
 				emptyEndorseCnt++
 			}
 		}
-		endorserCount[endorser] += 1
 	}
 
-	if uint32(len(proposalCount)) > C+1 {
+	if uint32(len(proposerCount)) > C+1 {
 		return true
 	}
 	if emptyEndorseCnt > C {
 		return true
 	}
 
-	l := 2*C + 1 - uint32(len(endorserCount))
-	for _, v := range proposalCount {
+	l := 2*C + 1 - uint32(len(candidate.EndorseSigs))
+	for _, v := range proposerCount {
 		if v+l > C {
 			return false
 		}
@@ -397,7 +371,6 @@ func (pool *BlockPool) committedForBlock(blockNum uint32) bool {
 	pool.lock.RLock()
 	defer pool.lock.RUnlock()
 
-	// check if has committed for the block
 	if pool.chainStore.GetChainedBlockNum() >= blockNum {
 		return true
 	}
@@ -410,7 +383,7 @@ func (pool *BlockPool) committedForBlock(blockNum uint32) bool {
 	return c.CommittedProposal != nil || c.CommittedEmptyProposal != nil
 }
 
-func (pool *BlockPool) setProposalCommitted(proposal *blockProposalMsg, forEmpty bool) error {
+func (pool *BlockPool) SetProposalCommitted(proposal *blockProposalMsg, forEmpty bool) error {
 	pool.lock.Lock()
 	defer pool.lock.Unlock()
 
@@ -427,22 +400,15 @@ func (pool *BlockPool) setProposalCommitted(proposal *blockProposalMsg, forEmpty
 	}
 
 	if forEmpty {
-		if c.CommittedEmptyProposal != nil && c.CommittedEmptyProposal.Block.getProposer() != proposal.Block.getProposer() {
-			return fmt.Errorf("had committed for empty block %d (%d)", blkNum, c.CommittedEmptyProposal.Block.getProposer())
-		}
 		c.CommittedEmptyProposal = proposal
 	} else {
-		if c.CommittedProposal != nil && c.CommittedProposal.Block.getProposer() != proposal.Block.getProposer() {
-			return fmt.Errorf("had committed for block %d (%d)", blkNum, c.CommittedProposal.Block.getProposer())
-		}
 		c.CommittedProposal = proposal
 	}
 
 	return nil
 }
 
-// add commit msg to CandidateInfo
-func (pool *BlockPool) newBlockCommitment(msg *blockCommitMsg) error {
+func (pool *BlockPool) AddBlockCommitMsg(msg *blockCommitMsg) error {
 	pool.lock.Lock()
 	defer pool.lock.Unlock()
 
@@ -520,7 +486,7 @@ func (pool *BlockPool) commitDone(blkNum uint32, C uint32, N uint32) (uint32, bo
 		endorseCnt := make(map[uint32]uint32) // proposer -> endorsed-cnt
 		for endorser, eSigs := range candidate.EndorseSigs {
 			// check if from endorser
-			if !pool.server.isEndorser(blkNum, endorser) {
+			if !pool.server.isEndorser(endorser) {
 				for _, sig := range eSigs {
 					if sig.ForEmpty {
 						emptyCnt++
@@ -582,35 +548,30 @@ func (pool *BlockPool) isCommitHadDone(blkNum uint32) bool {
 }
 
 func (pool *BlockPool) addSignaturesToBlockLocked(block *VbftBlock, forEmpty bool) error {
-
 	blkNum := block.getBlockNum()
 	c := pool.getCandidateInfoLocked(blkNum)
-	if c == nil {
-		panic(fmt.Errorf("non-candidates for block %d yet when seal block", blkNum))
-	}
 
 	bookkeepers := make([]keypair.PublicKey, 0)
 	sigData := make([][]byte, 0)
 
 	// add proposer sig
 	proposer := block.getProposer()
-	proposerPk := pool.server.peerPool.GetPeerPubKey(proposer)
-	if !forEmpty {
-		bookkeepers = append(bookkeepers, proposerPk)
-		sigData = append(sigData, block.Block.Header.SigData[0])
-	} else {
+	proposerPk := pool.peerPool.GetPeerPubKey(proposer)
+	blockToAdd := block.Block
+	if forEmpty {
+		blockToAdd = block.EmptyBlock
 		if block.EmptyBlock == nil {
 			return fmt.Errorf("block has no empty candidate")
 		}
-		bookkeepers = append(bookkeepers, proposerPk)
-		sigData = append(sigData, block.EmptyBlock.Header.SigData[0])
 	}
+	bookkeepers = append(bookkeepers, proposerPk)
+	sigData = append(sigData, blockToAdd.Header.SigData[0])
 
 	// add endorsers' sig
 	for endorser, eSigs := range c.EndorseSigs {
 		for _, sig := range eSigs {
 			if sig.EndorsedProposer == proposer && sig.ForEmpty == forEmpty && endorser != proposer {
-				endoresrPk := pool.server.peerPool.GetPeerPubKey(endorser)
+				endoresrPk := pool.peerPool.GetPeerPubKey(endorser)
 				if endoresrPk != nil {
 					bookkeepers = append(bookkeepers, endoresrPk)
 					sigData = append(sigData, sig.Signature)
@@ -622,23 +583,16 @@ func (pool *BlockPool) addSignaturesToBlockLocked(block *VbftBlock, forEmpty boo
 			}
 		}
 	}
-	if !forEmpty {
-		block.Block.Header.Bookkeepers = bookkeepers
-		block.Block.Header.SigData = sigData
-	} else {
-		block.EmptyBlock.Header.Bookkeepers = bookkeepers
-		block.EmptyBlock.Header.SigData = sigData
-	}
+
+	blockToAdd.Header.Bookkeepers = bookkeepers
+	blockToAdd.Header.SigData = sigData
 
 	return nil
 }
 
-func (pool *BlockPool) checkBlockSign(block *VbftBlock, forEmpty bool) bool {
+func (pool *BlockPool) checkBlockSign(block *VbftBlock, forEmpty bool, requiredSigs uint32) bool {
 	blkNum := block.getBlockNum()
 	c := pool.getCandidateInfoLocked(blkNum)
-	if c == nil {
-		return false
-	}
 	proposer := block.getProposer()
 	sigData := make([][]byte, 0)
 	var blkHash common.Uint256
@@ -655,28 +609,23 @@ func (pool *BlockPool) checkBlockSign(block *VbftBlock, forEmpty bool) bool {
 	for endorser, eSigs := range c.EndorseSigs {
 		for _, sig := range eSigs {
 			if sig.EndorsedProposer == proposer && sig.BlockHash == blkHash && sig.ForEmpty == forEmpty && endorser != proposer {
-				if pool.server.peerPool.GetPeerPubKey(endorser) != nil {
+				if pool.peerPool.GetPeerPubKey(endorser) != nil {
 					sigData = append(sigData, sig.Signature)
 				}
 				break
 			}
 		}
 	}
-	if uint32(len(sigData)) < pool.server.config.N-(pool.server.config.N-1)/3 {
-		return false
-	}
-	return true
+
+	return uint32(len(sigData)) >= requiredSigs
 }
 
-func (pool *BlockPool) setBlockSealed(block *VbftBlock, forEmpty bool, sigdata bool) error {
+func (pool *BlockPool) SetBlockSealed(block *VbftBlock, forEmpty bool, sigdata bool) error {
 	pool.lock.Lock()
 	defer pool.lock.Unlock()
 
 	blkNum := block.getBlockNum()
 	c := pool.getCandidateInfoLocked(blkNum)
-	if c == nil {
-		panic(fmt.Errorf("non-candidates for block %d yet when seal block", blkNum))
-	}
 
 	if c.SealedBlock != nil {
 		if c.SealedBlock.getProposer() == block.getProposer() {
@@ -693,25 +642,26 @@ func (pool *BlockPool) setBlockSealed(block *VbftBlock, forEmpty bool, sigdata b
 		Info:               block.Info,
 		PrevExecMerkleRoot: block.PrevExecMerkleRoot,
 		CrossChainMsg:      block.CrossChainMsg,
+		Block:              block.Block,
 	}
-	if !forEmpty {
-		// remove empty block
-		sealedBlock.Block = block.Block
-	} else {
-		// replace with empty block
+	if forEmpty {
 		sealedBlock.Block = block.EmptyBlock
 	}
-	c.SealedBlock = sealedBlock
+
 	// add block to chain store
-	if err := pool.chainStore.AddBlock(sealedBlock); err != nil {
+	stateRoot, err := pool.chainStore.AddBlock(sealedBlock)
+	if err != nil {
 		return fmt.Errorf("failed to seal block (%d) to chainstore: %s", blkNum, err)
 	}
-	stateRoot, err := pool.chainStore.GetExecMerkleRoot(pool.chainStore.GetChainedBlockNum())
-	if err != nil {
-		log.Errorf("setBlockSealed blk %d failed:%s", blkNum, err)
-		return nil
+
+	for n := range pool.candidateBlocks {
+		if n+pool.HistoryLen < blkNum {
+			delete(pool.candidateBlocks, n)
+		}
 	}
-	if blocksubmitMsg, _ := pool.server.constructBlockSubmitMsg(pool.chainStore.GetChainedBlockNum(), stateRoot); blocksubmitMsg != nil {
+	c.SealedBlock = sealedBlock
+
+	if blocksubmitMsg, _ := pool.server.constructBlockSubmitMsg(blkNum, stateRoot); blocksubmitMsg != nil {
 		pool.server.broadcast(blocksubmitMsg)
 		pool.server.makeBlockSubmit(pool.chainStore.GetChainedBlockNum())
 	}
@@ -726,10 +676,7 @@ func (pool *BlockPool) getSealedBlock(blockNum uint32) (*VbftBlock, common.Uint2
 	c := pool.candidateBlocks[blockNum]
 	if c != nil && c.SealedBlock != nil {
 		h := c.SealedBlock.Block.Hash()
-		if bytes.Compare(h[:], common.UINT256_EMPTY[:]) != 0 {
-			return c.SealedBlock, h
-		}
-		log.Errorf("empty hash founded in block pool sealed cache, blk: %d", blockNum)
+		return c.SealedBlock, h
 	}
 
 	// get from chainstore
@@ -752,63 +699,6 @@ func (pool *BlockPool) getChainedBlock(blockNum uint32) (*VbftBlock, common.Uint
 		return nil, common.Uint256{}
 	}
 	return blk, blk.Block.Hash()
-}
-
-func (pool *BlockPool) findConsensusEmptyProposal(blockNum uint32) (*blockProposalMsg, error) {
-	pool.lock.RLock()
-	defer pool.lock.RUnlock()
-
-	c := pool.candidateBlocks[blockNum]
-	if c == nil {
-		return nil, fmt.Errorf("no candidate msgs for block %d", blockNum)
-	}
-
-	msgHashCnt := make(map[uint32]int)
-	maxCnt := 0
-	var maxEndorsedProposer uint32
-	for _, eSigs := range c.EndorseSigs {
-		for _, esig := range eSigs {
-			if !esig.ForEmpty {
-				continue
-			}
-			n := msgHashCnt[esig.EndorsedProposer] + 1
-			if n > maxCnt {
-				maxCnt = n
-				maxEndorsedProposer = esig.EndorsedProposer
-			}
-			msgHashCnt[esig.EndorsedProposer] = n
-		}
-	}
-
-	if maxCnt > 0 {
-		for _, p := range c.Proposals {
-			if p.Block.getProposer() == maxEndorsedProposer {
-				return p, nil
-			}
-		}
-	}
-
-	return nil, fmt.Errorf("failed to get block %d proposal of proposer %d (endorseCnt: %d)",
-		blockNum, maxEndorsedProposer, maxCnt)
-}
-
-func (pool *BlockPool) onBlockSealed(blockNum uint32) {
-	if blockNum <= pool.HistoryLen {
-		return
-	}
-
-	pool.lock.Lock()
-	defer pool.lock.Unlock()
-
-	toFreeCandidates := make([]uint32, 0)
-	for n := range pool.candidateBlocks {
-		if n < blockNum-pool.HistoryLen {
-			toFreeCandidates = append(toFreeCandidates, n)
-		}
-	}
-	for _, n := range toFreeCandidates {
-		delete(pool.candidateBlocks, n)
-	}
 }
 
 func (pool *BlockPool) getExecMerkleRoot(blkNum uint32) (common.Uint256, error) {

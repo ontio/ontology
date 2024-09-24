@@ -79,15 +79,15 @@ func (self *Server) ClosePeerMsgChan(peerIdx uint32) {
 }
 
 func (self *Server) GetCommittedBlockNo() uint32 {
-	return self.chainStore.GetChainedBlockNum()
+	return self.blockPool.chainStore.GetChainedBlockNum()
 }
 
-func (self *Server) isPeerAlive(peerIdx uint32, blockNum uint32) bool {
+func (self *Server) isPeerAlive(peerIdx uint32) bool {
 	return peerIdx == self.Index || self.peerPool.IsPeerConnected(peerIdx)
 }
 
-func (self *Server) isPeerActive(peerIdx uint32, blockNum uint32) bool {
-	if self.isPeerAlive(peerIdx, blockNum) {
+func (self *Server) isPeerActive(peerIdx uint32) bool {
+	if self.isPeerAlive(peerIdx) {
 		committedBlock := self.peerPool.GetPeerCommittedBlockNo(peerIdx)
 		return committedBlock != 0 && committedBlock+MAX_SYNCING_CHECK_BLK_NUM*4 > self.GetCommittedBlockNo()
 	}
@@ -98,7 +98,7 @@ func (self *Server) isPeerActive(peerIdx uint32, blockNum uint32) bool {
 // the first proposer as leader-proposer,
 // all other proposer as 2nd-proposer
 // before propose-timeout, only proposal from leader-proposer is accepted
-func (self *Server) isProposer(blockNum uint32, peerIdx uint32) bool {
+func (self *Server) isProposer(peerIdx uint32) bool {
 	self.metaLock.RLock()
 	defer self.metaLock.RUnlock()
 
@@ -107,7 +107,7 @@ func (self *Server) isProposer(blockNum uint32, peerIdx uint32) bool {
 	}
 	// the first active proposer
 	for _, id := range self.currentParticipantConfig.Proposers {
-		if self.isPeerAlive(id, blockNum) {
+		if self.isPeerAlive(id) {
 			return peerIdx == id
 		}
 	}
@@ -128,7 +128,7 @@ func (self *Server) getProposerRank(blockNum uint32, peerIdx uint32) int {
 	return self.getProposerRankLocked(blockNum, peerIdx)
 }
 
-func (self *Server) isEndorser(blockNum uint32, peerIdx uint32) bool {
+func (self *Server) isEndorser(peerIdx uint32) bool {
 	self.metaLock.RLock()
 	defer self.metaLock.RUnlock()
 
@@ -138,7 +138,7 @@ func (self *Server) isEndorser(blockNum uint32, peerIdx uint32) bool {
 		if id == peerIdx {
 			return true
 		}
-		if self.isPeerActive(id, blockNum) {
+		if self.isPeerActive(id) {
 			activeN++
 			if activeN > self.config.C*2 {
 				break
@@ -149,7 +149,7 @@ func (self *Server) isEndorser(blockNum uint32, peerIdx uint32) bool {
 	return false
 }
 
-func (self *Server) isCommitter(blockNum uint32, peerIdx uint32) bool {
+func (self *Server) isCommitter(peerIdx uint32) bool {
 	self.metaLock.RLock()
 	defer self.metaLock.RUnlock()
 
@@ -159,7 +159,7 @@ func (self *Server) isCommitter(blockNum uint32, peerIdx uint32) bool {
 		if id == peerIdx {
 			return true
 		}
-		if self.isPeerActive(id, blockNum) {
+		if self.isPeerActive(id) {
 			activeN++
 			if activeN > self.config.C*2 {
 				break
@@ -378,7 +378,7 @@ func getCommitConsensus(commitMsgs []*blockCommitMsg, C int, N int) (uint32, boo
 }
 
 func (self *Server) findBlockProposal(blkNum uint32, proposer uint32) *blockProposalMsg {
-	for _, p := range self.blockPool.getBlockProposals(blkNum) {
+	for _, p := range self.blockPool.GetBlockProposals(blkNum) {
 		if p.Block.getProposer() == proposer {
 			return p
 		}

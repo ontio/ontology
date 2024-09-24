@@ -48,14 +48,10 @@ func constructServer() *Server {
 		PeerHandshakeTimeout: 10000,
 		PosTable:             []uint32{2, 3, 1, 3, 1, 3, 2, 3, 2, 3, 2, 1, 3, 0},
 	}
-	chainstore := &ChainStore{
-		chainedBlockNum: 2,
-	}
 	server := &Server{
 		Index:                    1,
 		stateMgr:                 statemgr,
 		config:                   chainconfig,
-		chainStore:               chainstore,
 		currentParticipantConfig: blockparticipantconfig,
 	}
 	return server
