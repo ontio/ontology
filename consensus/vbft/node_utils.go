@@ -102,7 +102,7 @@ func (self *Server) isProposer(peerIdx uint32) bool {
 	self.metaLock.RLock()
 	defer self.metaLock.RUnlock()
 
-	if peerIdx == self.Index && !isActive(self.getState()) {
+	if peerIdx == self.Index && !self.getState().IsActive() {
 		return false
 	}
 	// the first active proposer

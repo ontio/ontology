@@ -21,6 +21,7 @@ package vbft
 import (
 	"fmt"
 	"math"
+	"sort"
 	"sync/atomic"
 	"time"
 
@@ -28,7 +29,6 @@ import (
 )
 
 const (
-	// TODO: move to config file
 	MAX_PEER_CONNECTIONS      = 10
 	MAX_SYNCING_CHECK_BLK_NUM = 10
 )
@@ -36,33 +36,44 @@ const (
 type ServerState uint32
 
 const (
-	Init ServerState = iota
-	LocalConfigured
-	Configured       // config loaded from chain
-	Syncing          // syncing block from neighbours
-	WaitNetworkReady // sync reached, and keep synced, try connecting with more peers
-	SyncReady        // start processing consensus msg, but not broadcasting proposal/endorse/commit
-	Synced           // start bft
-	SyncingCheck     // potentially lost syncing
+	Initialized      ServerState = iota
+	Syncing                      // syncing block from neighbours
+	WaitNetworkReady             // sync reached, and keep synced, try connecting with more peers
+	SyncReady                    // start processing consensus msg, but not broadcasting proposal/endorse/commit
+	Active                       // start bft
 )
 
-func isReady(state ServerState) bool {
-	return state >= SyncReady
+func (state ServerState) IsReady() bool {
+	return state == SyncReady || state == Active
 }
 
-func isActive(state ServerState) bool {
-	return state >= Synced
+func (state ServerState) IsActive() bool {
+	return state == Active
+}
+
+func (state ServerState) String() string {
+	switch state {
+	case Initialized:
+		return "Initialized"
+	case Syncing:
+		return "Syncing"
+	case WaitNetworkReady:
+		return "WaitNetworkReady"
+	case SyncReady:
+		return "SyncReady"
+	case Active:
+		return "Active"
+	default:
+		return "unknown state"
+	}
 }
 
 type StateEventType int
 
 const (
-	ConfigLoaded     StateEventType = iota
-	UpdatePeerConfig                // todo: remove
-	UpdatePeerState                 // notify statemgmt on peer heartbeat
+	UpdatePeerState StateEventType = iota
 	SyncReadyTimeout
-	ForceCheckSync
-	SyncDone
+	ForceSyncing
 	LiveTick
 )
 
@@ -90,16 +101,16 @@ type StateMgr struct {
 	StateEventC      chan *StateEvent
 	peers            map[uint32]*PeerState
 
-	liveTicker             *time.Timer
-	lastTickChainHeight    uint32
-	lastBlockSyncReqHeight uint32
+	liveTicker            *time.Timer
+	lastTickHeight        uint32
+	lastSyncRequestHeight uint32
 }
 
 func newStateMgr(server *Server) *StateMgr {
 	return &StateMgr{
 		server:           server,
 		syncReadyTimeout: time.Second * 10,
-		currentState:     Init,
+		currentState:     Initialized,
 		StateEventC:      make(chan *StateEvent, 16),
 		peers:            make(map[uint32]*PeerState),
 	}
@@ -133,37 +144,32 @@ func (self *StateMgr) run() {
 		select {
 		case evt := <-self.StateEventC:
 			switch evt.Type {
-			case ConfigLoaded:
-				if self.getState() == Init {
-					self.setState(LocalConfigured)
-				}
 			case SyncReadyTimeout:
 				if self.getState() == SyncReady {
-					self.setState(Synced)
+					self.setState(Active)
 					if evt.blockNum == self.server.GetCurrentBlockNo() {
 						self.server.startNewRound()
 					}
 				}
-			case UpdatePeerConfig:
-				// never happen
 			case UpdatePeerState:
 				if evt.peerState.connected {
 					self.onPeerUpdate(evt.peerState)
 				} else {
 					self.onPeerDisconnected(evt.peerState.peerIdx)
 				}
-
-			case ForceCheckSync:
-				self.checkStartSyncing(evt.blockNum, true)
-
-			case SyncDone:
-				log.Infof("server %d sync done, curr blkNum: %d", self.server.Index, self.server.GetCurrentBlockNo())
-				if err := self.setSyncedReady(); err != nil {
-					log.Warnf("server %d set syncready: %s", self.server.Index, err)
+			case ForceSyncing:
+				if self.server.nonConsensusNode() {
+					// non-consensus node, block-syncer do the syncing
+					return
 				}
 
+				maxCommitted, ok := self.getConsensusedCommittedBlockNum()
+				self.setState(Syncing)
+				if ok {
+					self.requestBlockSync(maxCommitted)
+				}
 			case LiveTick:
-				log.Infof("server %d peer update, current blk: %d, state: %d. received peer states: %v",
+				log.Infof("server %d peer update, current blk: %d, state: %s. received peer states: %v",
 					self.server.Index, self.server.GetCurrentBlockNo(), self.getState(), self.peers)
 				self.onLiveTick(evt)
 			}
@@ -177,116 +183,69 @@ func (self *StateMgr) run() {
 
 func (self *StateMgr) onPeerUpdate(peerState *PeerState) {
 	peerIdx := peerState.peerIdx
-	newPeer := false
-	if _, present := self.peers[peerIdx]; !present {
-		newPeer = true
-	}
+	self.peers[peerIdx] = peerState
 
 	log.Debugf("server %d peer update, current blk %d, state %d, received peer state: %v",
 		self.server.Index, self.server.GetCurrentBlockNo(), self.getState(), peerState)
 
-	// update peer state
-	self.peers[peerIdx] = peerState
-
-	if !newPeer {
-		if isActive(self.getState()) && peerState.committedBlockNum > self.server.GetCurrentBlockNo()+MAX_SYNCING_CHECK_BLK_NUM {
-			log.Warnf("server %d seems lost sync: %d(%d) vs %d", self.server.Index,
-				peerState.committedBlockNum, peerState.peerIdx, self.server.GetCurrentBlockNo())
-			self.checkStartSyncing(self.server.GetCommittedBlockNo()+MAX_SYNCING_CHECK_BLK_NUM, false)
-			return
-		}
-	}
-
 	switch self.getState() {
-	case LocalConfigured:
-		v := self.getSyncedChainConfigView()
-		log.Infof("server %d statemgr update, current state: %d, from peer: %d, peercnt: %d, v1: %d, v2: %d",
+	case Initialized:
+		v := self.getPeersView()
+		log.Infof("server %d statemgr update, current state: %s, from peer: %d, peercnt: %d, v1: %d, v2: %d",
 			self.server.Index, self.getState(), peerIdx, len(self.peers), v, self.server.GetChainConfig().View)
 
 		if v == self.server.GetChainConfig().View {
 			self.setState(Syncing)
 		}
-	case Configured:
 	case Syncing:
 		if peerState.committedBlockNum > self.server.GetCommittedBlockNo() {
-
-			committedBlkNum, ok := self.getConsensusedCommittedBlockNum()
-			if ok && committedBlkNum > self.server.GetCommittedBlockNo() {
-				fastforward := self.canFastForward(committedBlkNum)
-				log.Infof("server %d, syncing %d, target %d, fastforward %t",
-					self.server.Index, self.server.GetCommittedBlockNo(), committedBlkNum, fastforward)
-				if fastforward {
-					self.server.makeFastForward()
-				} else {
-					self.checkStartSyncing(self.server.GetCommittedBlockNo(), false)
-				}
-			}
+			self.requestSyncIfFallBehind()
 		}
-		if self.isSyncedReady() {
-			log.Infof("server %d synced from syncing", self.server.Index)
-			if err := self.setSyncedReady(); err != nil {
-				log.Warnf("server %d, state %d set syncready: %s", self.server.Index, self.getState(), err)
-			}
-		}
+		self.trySetSyncedReady()
 	case WaitNetworkReady:
-		if self.isSyncedReady() {
-			log.Infof("server %d synced from sync-ready", self.server.Index)
-			self.setSyncedReady()
-		}
+		self.trySetSyncedReady()
 	case SyncReady:
-	case Synced:
+	case Active:
 		committedBlkNum, ok := self.getConsensusedCommittedBlockNum()
 		if ok && committedBlkNum > self.server.GetCommittedBlockNo()+1 {
 			log.Infof("server %d synced try fastforward from %d",
 				self.server.Index, self.server.GetCommittedBlockNo())
 			self.server.makeFastForward()
 		}
-	case SyncingCheck:
-		if self.isSyncedReady() {
-			if err := self.setSyncedReady(); err != nil {
-				log.Warnf("server %d, state %d set syncready: %s", self.server.Index, self.getState(), err)
-			}
-		} else {
-			self.checkStartSyncing(self.server.GetCommittedBlockNo()+MAX_SYNCING_CHECK_BLK_NUM, false)
-		}
 	}
 }
 
 func (self *StateMgr) onPeerDisconnected(peerIdx uint32) {
-
 	if _, present := self.peers[peerIdx]; !present {
 		return
 	}
 	delete(self.peers, peerIdx)
-
-	// start another connection if necessary
-	currentState := self.getState()
-	if currentState == Synced || currentState == SyncingCheck {
-		if self.server.peerPool.GetConnectedPeerCount() < self.getMinActivePeerCount() {
+	if self.getState().IsActive() {
+		if len(self.peers) < self.getMinActivePeerCount() {
 			self.setState(WaitNetworkReady)
 		}
 	}
-
 }
 
 func (self *StateMgr) onLiveTick(evt *StateEvent) {
-	if evt.blockNum > self.lastTickChainHeight {
-		self.lastTickChainHeight = evt.blockNum
+	if evt.blockNum > self.lastTickHeight || self.lastTickHeight == 0 {
+		self.lastTickHeight = evt.blockNum
 		return
 	}
 
-	if self.lastTickChainHeight == 0 {
-		self.lastTickChainHeight = evt.blockNum
+	if !self.getState().IsReady() {
 		return
 	}
 
-	if self.getState() != Synced && self.getState() != SyncReady {
-		return
+	log.Warnf("server %d detected consensus halt %d", self.server.Index, self.server.GetCurrentBlockNo())
+	if self.requestSyncIfFallBehind() {
+		self.setState(Syncing)
 	}
 
-	log.Warnf("server %d detected consensus halt %d",
-		self.server.Index, self.server.GetCurrentBlockNo())
+	self.server.reBroadcastCurrentRoundMsgs()
+}
 
+func (self *StateMgr) requestSyncIfFallBehind() (needSync bool) {
 	committedBlkNum, ok := self.getConsensusedCommittedBlockNum()
 	if ok && committedBlkNum > self.server.GetCommittedBlockNo() {
 		fastforward := self.canFastForward(committedBlkNum)
@@ -295,11 +254,11 @@ func (self *StateMgr) onLiveTick(evt *StateEvent) {
 		if fastforward {
 			self.server.makeFastForward()
 		} else {
-			self.checkStartSyncing(self.server.GetCommittedBlockNo(), false)
+			needSync = true
+			self.requestBlockSync(committedBlkNum)
 		}
 	}
-
-	self.server.reBroadcastCurrentRoundMsgs()
+	return
 }
 
 func (self *StateMgr) getMinActivePeerCount() int {
@@ -311,7 +270,7 @@ func (self *StateMgr) getMinActivePeerCount() int {
 	return n
 }
 
-func (self *StateMgr) getSyncedChainConfigView() uint32 {
+func (self *StateMgr) getPeersView() uint32 {
 	if len(self.peers) < self.getMinActivePeerCount() {
 		return 0
 	}
@@ -330,28 +289,14 @@ func (self *StateMgr) getSyncedChainConfigView() uint32 {
 	return 0
 }
 
-func (self *StateMgr) isSyncedReady() bool {
-	// check action peer connections
-	if len(self.peers) < self.getMinActivePeerCount() {
-		return false
-	}
-
-	// check chain consensus
+func (self *StateMgr) trySetSyncedReady() {
 	committedBlkNum, ok := self.getConsensusedCommittedBlockNum()
-	if !ok {
-		return false
-	}
-	if self.server.GetCommittedBlockNo() >= committedBlkNum {
-		return true
+	if !ok || len(self.peers) < self.getMinActivePeerCount() {
+		return
 	}
 
-	return self.canFastForward(committedBlkNum)
-}
-
-func (self *StateMgr) setSyncedReady() error {
-	prevState := self.getState()
-	self.setState(SyncReady)
-	if prevState <= SyncReady {
+	if self.server.GetCommittedBlockNo() >= committedBlkNum || self.canFastForward(committedBlkNum) {
+		self.setState(SyncReady)
 		log.Infof("server %d start sync ready", self.server.Index)
 		blkNum := self.server.GetCurrentBlockNo()
 		time.AfterFunc(self.syncReadyTimeout, func() {
@@ -362,88 +307,50 @@ func (self *StateMgr) setSyncedReady() error {
 		})
 		self.server.makeFastForward()
 	}
-
-	return nil
 }
 
-func (self *StateMgr) checkStartSyncing(startBlkNum uint32, forceSync bool) {
-
+func (self *StateMgr) requestBlockSync(targetHeight uint32) {
 	if self.server.nonConsensusNode() {
 		// non-consensus node, block-syncer do the syncing
 		return
 	}
-
-	var maxCommitted uint32
-	for _, p := range self.peers {
-		n := p.committedBlockNum
-		if n > startBlkNum && n > maxCommitted {
-			peerCount := 0
-			for _, k := range self.peers {
-				if k.committedBlockNum >= n {
-					peerCount++
-				}
-			}
-			if peerCount > int(self.server.GetChainConfig().C) {
-				maxCommitted = n
-			}
-		}
-	}
-
-	var maxCommittedPeers []uint32
-	if maxCommitted > 0 {
+	if targetHeight > self.lastSyncRequestHeight {
+		self.lastSyncRequestHeight = targetHeight
+		var maxCommittedPeers []uint32
 		for _, k := range self.peers {
-			if k.committedBlockNum >= maxCommitted {
+			if k.committedBlockNum >= targetHeight {
 				maxCommittedPeers = append(maxCommittedPeers, k.peerIdx)
 			}
 		}
-	}
-
-	if maxCommitted > startBlkNum || forceSync {
-		self.setState(Syncing)
-		startBlkNum = self.server.GetCommittedBlockNo() + 1
-
-		if maxCommitted > self.server.syncer.getCurrentTargetBlockNum() {
-			// syncer is much slower than peer-update, too much SyncReq can make channel full
-			log.Infof("server %d, start syncing %d - %d, with %v, %v", self.server.Index, startBlkNum, maxCommitted, maxCommittedPeers, self.peers)
-			self.lastBlockSyncReqHeight = maxCommitted
-			self.server.syncer.blockSyncReqC <- &BlockSyncReq{
-				targetPeers:    maxCommittedPeers,
-				startBlockNum:  startBlkNum,
-				targetBlockNum: maxCommitted,
-			}
+		log.Infof("server %d, start syncing to %d, with %v, %v", self.server.Index, targetHeight, maxCommittedPeers, self.peers)
+		self.server.syncer.blockSyncReqC <- &BlockSyncReq{
+			targetPeers:    maxCommittedPeers,
+			targetBlockNum: targetHeight,
 		}
-	} else if self.getState() == Synced {
-		log.Infof("server %d, start syncing check %v, %v %d", self.server.Index, maxCommittedPeers, self.peers, self.server.GetCurrentBlockNo())
-		self.setState(SyncingCheck)
 	}
 }
 
 // return (0, false) if consensus not reached yet, or else (committedNum, true)
 func (self *StateMgr) getConsensusedCommittedBlockNum() (uint32, bool) {
-	C := int(self.server.GetChainConfig().C)
-
-	maxCommitted := int64(-1) // note: can not use 0 to avoid return false when all peers's height is 0(genesis block)
-	myCommitted := self.server.GetCommittedBlockNo()
-
-	for _, p := range self.peers {
-		n := p.committedBlockNum
-		if n >= myCommitted && int64(n) > maxCommitted {
-			peerCount := 0
-			for _, k := range self.peers {
-				if k.committedBlockNum >= n {
-					peerCount++
-				}
-			}
-			if peerCount > C {
-				maxCommitted = int64(n)
-			}
-		}
-	}
-	if maxCommitted != -1 {
-		return uint32(maxCommitted), true
+	list := self.getPeersCommittedBlockNoSorted()
+	c := int(self.server.GetChainConfig().C)
+	if len(list) >= c+1 && list[c] >= self.server.GetCommittedBlockNo() {
+		return list[c], true
 	}
 
 	return 0, false
+}
+
+func (self *StateMgr) getPeersCommittedBlockNoSorted() []uint32 {
+	list := make([]uint32, 0, len(self.peers))
+	for _, p := range self.peers {
+		list = append(list, p.committedBlockNum)
+	}
+
+	sort.Slice(list, func(i, j int) bool {
+		return list[i] > list[j]
+	})
+	return list
 }
 
 func (self *StateMgr) canFastForward(targetBlkNum uint32) bool {

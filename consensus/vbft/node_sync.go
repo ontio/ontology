@@ -122,11 +122,7 @@ func (self *Syncer) run() {
 
 			log.Infof("server %d, got sync req(%d, %d) to %v",
 				self.server.Index, req.startBlockNum, req.targetBlockNum, req.targetPeers)
-			if req.startBlockNum <= self.server.GetCommittedBlockNo() {
-				req.startBlockNum = self.server.GetCommittedBlockNo() + 1
-				log.Infof("server %d, sync req start change to %d",
-					self.server.Index, req.startBlockNum)
-			}
+			req.startBlockNum = self.server.GetCommittedBlockNo() + 1
 			for ; req.startBlockNum <= req.targetBlockNum; req.startBlockNum++ {
 				blk, _ := self.server.blockPool.getSealedBlock(req.startBlockNum)
 				if blk == nil {
@@ -213,11 +209,6 @@ func (self *Syncer) run() {
 				self.nextReqBlkNum++
 			}
 			if self.nextReqBlkNum > self.targetBlkNum {
-				self.server.stateMgr.StateEventC <- &StateEvent{
-					Type:     SyncDone,
-					blockNum: self.targetBlkNum,
-				}
-
 				// stop all sync-peers
 				for _, syncPeer := range self.peers {
 					syncPeer.stop(true)
@@ -254,10 +245,6 @@ func (self *Syncer) blockConsensusDone(blks BlockFromPeers) *VbftBlock {
 		}
 	}
 	return nil
-}
-
-func (self *Syncer) getCurrentTargetBlockNum() uint32 {
-	return self.targetBlkNum
 }
 
 func (self *Syncer) blockCheckMerkleRoot(blks BlockFromPeers) *VbftBlock {
