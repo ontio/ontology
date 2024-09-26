@@ -22,14 +22,12 @@ import (
 	"fmt"
 	"sync/atomic"
 
-	"github.com/ontio/ontology-eventbus/actor"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/core/store"
 	"github.com/ontio/ontology/core/store/overlaydb"
 	"github.com/ontio/ontology/core/types"
-	"github.com/ontio/ontology/events/message"
 )
 
 type PendingBlock struct {
@@ -39,18 +37,18 @@ type PendingBlock struct {
 }
 
 type ChainStore struct {
-	db              *ledger.Ledger
-	chainedBlockNum uint32
-	pendingBlocks   map[uint32]*PendingBlock
-	pid             *actor.PID
+	db                   *ledger.Ledger
+	chainedBlockNum      uint32
+	pendingBlocks        map[uint32]*PendingBlock
+	blockCompleteHandler func(block *types.Block)
 }
 
-func OpenBlockStore(db *ledger.Ledger, serverPid *actor.PID) (*ChainStore, error) {
+func OpenBlockStore(db *ledger.Ledger, blockCompleteHandler func(block *types.Block)) (*ChainStore, error) {
 	chainstore := &ChainStore{
-		db:              db,
-		chainedBlockNum: db.GetCurrentBlockHeight(),
-		pendingBlocks:   make(map[uint32]*PendingBlock),
-		pid:             serverPid,
+		db:                   db,
+		chainedBlockNum:      db.GetCurrentBlockHeight(),
+		pendingBlocks:        make(map[uint32]*PendingBlock),
+		blockCompleteHandler: blockCompleteHandler,
 	}
 	merkleRoot, err := db.GetStateMerkleRoot(chainstore.chainedBlockNum)
 	if err != nil {
@@ -146,8 +144,8 @@ func (self *ChainStore) AddBlock(block *VbftBlock) (stateRoot common.Uint256, er
 
 	self.pendingBlocks[blkNum] = &PendingBlock{block: block, execResult: &execResult, hasSubmitted: false}
 
-	if self.pid != nil {
-		self.pid.Tell(&message.BlockConsensusComplete{Block: block.Block})
+	if self.blockCompleteHandler != nil {
+		self.blockCompleteHandler(block.Block)
 	}
 	self.setChainedBlockNum(blkNum)
 	return execResult.MerkleRoot, nil
