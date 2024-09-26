@@ -83,14 +83,13 @@ type seedData struct {
 }
 
 func getParticipantSelectionSeed(block *VbftBlock) vconfig.VRFValue {
-
 	data, err := json.Marshal(&seedData{
 		BlockNum:          block.getBlockNum() + 1,
 		PrevBlockProposer: block.getProposer(),
 		VrfValue:          block.getVrfValue(),
 	})
 	if err != nil {
-		return vconfig.VRFValue{}
+		panic("marshal seed data shoule never fail")
 	}
 
 	t := sha512.Sum512(data)

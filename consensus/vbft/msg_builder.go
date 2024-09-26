@@ -128,7 +128,6 @@ func SerializeVbftMsg(msg ConsensusMsg) ([]byte, error) {
 }
 
 func (self *Server) constructHeartbeatMsg() (*peerHeartbeatMsg, error) {
-
 	blkNum := self.GetCurrentBlockNo() - 1
 	block, blockhash := self.blockPool.getSealedBlock(blkNum)
 	if block == nil {

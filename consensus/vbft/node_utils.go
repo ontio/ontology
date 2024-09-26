@@ -225,32 +225,18 @@ func (self *Server) updateTimerParams(config *vconfig.ChainConfig) {
 	setTimeout(&zeroTxBlockTimeout, int64(config.BlockMsgDelay*3))
 }
 
-// call this method with metaLock locked
-func (self *Server) buildParticipantConfig(blkNum uint32, block *VbftBlock, chainCfg *vconfig.ChainConfig) (*BlockParticipantConfig, error) {
-
-	if blkNum == 0 {
-		return nil, fmt.Errorf("not participant config for genesis block")
-	}
-
+func buildParticipantConfig(blkNum uint32, block *VbftBlock, chainCfg *vconfig.ChainConfig) *BlockParticipantConfig {
 	vrfValue := getParticipantSelectionSeed(block)
-	if vrfValue.IsNil() {
-		return nil, fmt.Errorf("failed to calculate participant SelectionSeed")
-	}
-
 	cfg := &BlockParticipantConfig{
 		BlockNum:    blkNum,
-		Vrf:         vrfValue,
 		ChainConfig: chainCfg,
 	}
 
-	cfg.Proposers, cfg.Endorsers, cfg.Committers = calcParticipantPeers(cfg, chainCfg)
-	log.Infof("server %d, blkNum: %d, state: %d, participants config: %v, %v, %v", self.Index, blkNum,
-		self.getState(), cfg.Proposers, cfg.Endorsers, cfg.Committers)
-
-	return cfg, nil
+	cfg.Proposers, cfg.Endorsers, cfg.Committers = calcParticipantPeers(vrfValue, chainCfg)
+	return cfg
 }
 
-func calcParticipantPeers(cfg *BlockParticipantConfig, chain *vconfig.ChainConfig) ([]uint32, []uint32, []uint32) {
+func calcParticipantPeers(vrfValue vconfig.VRFValue, chain *vconfig.ChainConfig) ([]uint32, []uint32, []uint32) {
 
 	peers := make([]uint32, 0)
 	peerMap := make(map[uint32]bool)
@@ -258,7 +244,7 @@ func calcParticipantPeers(cfg *BlockParticipantConfig, chain *vconfig.ChainConfi
 	// 1. select peers as many as possible
 	c := int(chain.C)
 	for i := 0; i < len(chain.PosTable); i++ {
-		peerId := calcParticipant(cfg.Vrf, chain.PosTable, uint32(i))
+		peerId := calcParticipant(vrfValue, chain.PosTable, uint32(i))
 		if peerId == math.MaxUint32 {
 			break
 		}
@@ -395,7 +381,7 @@ func (self *Server) findBlockProposal(blkNum uint32, proposer uint32) *blockProp
 	return nil
 }
 
-func (self *Server) heartbeat() {
+func (self *Server) heartbeat(peerIdx uint32) {
 	//	build heartbeat msg
 	msg, err := self.constructHeartbeatMsg()
 	if err != nil {
@@ -405,7 +391,7 @@ func (self *Server) heartbeat() {
 
 	//	send to peer
 	self.msgSendC <- &SendMsgEvent{
-		ToPeer: math.MaxUint32,
+		ToPeer: peerIdx,
 		Msg:    msg,
 	}
 }

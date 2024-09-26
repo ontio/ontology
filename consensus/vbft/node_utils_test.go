@@ -113,13 +113,7 @@ func testCalcParticipantPeers(t *testing.T, n, c int) {
 			ID:    fmt.Sprintf("test-%d", i)})
 	}
 
-	cfg := &BlockParticipantConfig{
-		BlockNum:    100,
-		Vrf:         newTestVrfValue(),
-		ChainConfig: chainCfg,
-	}
-
-	pp, pe, pc := calcParticipantPeers(cfg, chainCfg)
+	pp, pe, pc := calcParticipantPeers(newTestVrfValue(), chainCfg)
 	if len(pp) != c+1 {
 		t.Fatalf("invalid proposal peer(%d, %d): %v, %v, %v", n, c, pp, pe, pc)
 	}
