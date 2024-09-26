@@ -33,19 +33,17 @@ import (
 type MsgType uint8
 
 const (
-	BlockProposalMessage MsgType = iota
-	BlockEndorseMessage
-	BlockCommitMessage
+	BlockProposalMessage MsgType = 0
+	BlockEndorseMessage  MsgType = 1
+	BlockCommitMessage   MsgType = 2
 
-	PeerHandshakeMessage
-	PeerHeartbeatMessage
+	PeerHandshakeMessage MsgType = 3
+	PeerHeartbeatMessage MsgType = 4
 
-	BlockInfoFetchMessage
-	BlockInfoFetchRespMessage
-	ProposalFetchMessage
-	BlockFetchMessage
-	BlockFetchRespMessage
-	BlockSubmitMessage
+	ProposalFetchMessage  MsgType = 7
+	BlockFetchMessage     MsgType = 8
+	BlockFetchRespMessage MsgType = 9
+	BlockSubmitMessage    MsgType = 10
 )
 
 type ConsensusMsg interface {
@@ -280,53 +278,6 @@ func (msg *peerHeartbeatMsg) GetBlockNum() uint32 {
 }
 
 func (msg *peerHeartbeatMsg) Serialize() ([]byte, error) {
-	return json.Marshal(msg)
-}
-
-type BlockInfoFetchMsg struct {
-	StartBlockNum uint32 `json:"start_block_num"`
-}
-
-func (msg *BlockInfoFetchMsg) Type() MsgType {
-	return BlockInfoFetchMessage
-}
-
-func (msg *BlockInfoFetchMsg) Verify(pub keypair.PublicKey, pubs map[uint32]keypair.PublicKey) error {
-	return nil
-}
-
-func (msg *BlockInfoFetchMsg) GetBlockNum() uint32 {
-	return 0
-}
-
-func (msg *BlockInfoFetchMsg) Serialize() ([]byte, error) {
-	return json.Marshal(msg)
-}
-
-type BlockInfo_ struct {
-	BlockNum   uint32            `json:"block_num"`
-	Proposer   uint32            `json:"proposer"`
-	Signatures map[uint32][]byte `json:"signatures"`
-}
-
-// to fetch committed block from neighbours
-type BlockInfoFetchRespMsg struct {
-	Blocks []*BlockInfo_ `json:"blocks"`
-}
-
-func (msg *BlockInfoFetchRespMsg) Type() MsgType {
-	return BlockInfoFetchRespMessage
-}
-
-func (msg *BlockInfoFetchRespMsg) Verify(pub keypair.PublicKey, pubs map[uint32]keypair.PublicKey) error {
-	return nil
-}
-
-func (msg *BlockInfoFetchRespMsg) GetBlockNum() uint32 {
-	return 0
-}
-
-func (msg *BlockInfoFetchRespMsg) Serialize() ([]byte, error) {
 	return json.Marshal(msg)
 }
 

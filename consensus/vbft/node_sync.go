@@ -29,12 +29,6 @@ import (
 	"github.com/ontio/ontology/core/ledger"
 )
 
-type SyncCheckReq struct {
-	msg      ConsensusMsg
-	peerIdx  uint32
-	blockNum uint32
-}
-
 type BlockSyncReq struct {
 	targetPeers    []uint32
 	startBlockNum  uint32
@@ -49,12 +43,12 @@ type PeerSyncer struct {
 	active        bool
 
 	server *Server
-	msgC   chan ConsensusMsg
+	msgC   chan *BlockFetchRespMsg
 }
 
 type SyncMsg struct {
 	fromPeer uint32
-	msg      ConsensusMsg
+	msg      *BlockFetchRespMsg
 }
 
 type BlockMsgFromPeer struct {
@@ -68,11 +62,9 @@ type Syncer struct {
 	lock   sync.Mutex
 	server *Server
 
-	maxRequestPerPeer int
-	nextReqBlkNum     uint32
-	targetBlkNum      uint32
+	nextReqBlkNum uint32
+	targetBlkNum  uint32
 
-	syncCheckReqC  chan *SyncCheckReq
 	blockSyncReqC  chan *BlockSyncReq
 	syncMsgC       chan *SyncMsg // receive syncmsg from server
 	blockFromPeerC chan *BlockMsgFromPeer
@@ -83,15 +75,13 @@ type Syncer struct {
 
 func newSyncer(server *Server) *Syncer {
 	return &Syncer{
-		server:            server,
-		maxRequestPerPeer: 4,
-		nextReqBlkNum:     1,
-		syncCheckReqC:     make(chan *SyncCheckReq, 4),
-		blockSyncReqC:     make(chan *BlockSyncReq, 16),
-		syncMsgC:          make(chan *SyncMsg, 256),
-		blockFromPeerC:    make(chan *BlockMsgFromPeer, 64),
-		peers:             make(map[uint32]*PeerSyncer),
-		pendingBlocks:     make(map[uint32]BlockFromPeers),
+		server:         server,
+		nextReqBlkNum:  1,
+		blockSyncReqC:  make(chan *BlockSyncReq, 16),
+		syncMsgC:       make(chan *SyncMsg, 256),
+		blockFromPeerC: make(chan *BlockMsgFromPeer, 64),
+		peers:          make(map[uint32]*PeerSyncer),
+		pendingBlocks:  make(map[uint32]BlockFromPeers),
 	}
 }
 
@@ -99,7 +89,6 @@ func (self *Syncer) stop() {
 	self.lock.Lock()
 	defer self.lock.Unlock()
 
-	close(self.syncCheckReqC)
 	close(self.blockSyncReqC)
 	close(self.syncMsgC)
 	close(self.blockFromPeerC)
@@ -114,7 +103,6 @@ func (self *Syncer) run() {
 
 	for {
 		select {
-		case <-self.syncCheckReqC:
 		case req := <-self.blockSyncReqC:
 			if req.targetBlockNum == 0 {
 				continue
@@ -149,9 +137,7 @@ func (self *Syncer) run() {
 					// report err
 					p.msgC <- nil
 				}
-			} //  else {
-			// 	// report error
-			// }
+			}
 
 		case blkMsgFromPeer := <-self.blockFromPeerC:
 			blkNum := blkMsgFromPeer.block.getBlockNum()
@@ -272,7 +258,6 @@ func (self *Syncer) isActive() bool {
 }
 
 func (self *Syncer) startPeerSyncer(peerSyncer *PeerSyncer, targetBlkNum uint32) {
-
 	peerSyncer.lock.Lock()
 	defer peerSyncer.lock.Unlock()
 
@@ -315,19 +300,13 @@ func (self *Syncer) onNewBlockSyncReq(req *BlockSyncReq) {
 				targetBlkNum:  self.targetBlkNum,
 				active:        false,
 				server:        self.server,
-				msgC:          make(chan ConsensusMsg, 4),
+				msgC:          make(chan *BlockFetchRespMsg, 4),
 			}
 		}
 		p := self.peers[peerIdx]
 		self.startPeerSyncer(p, self.targetBlkNum)
 	}
 }
-
-/////////////////////////////////////////////////////////////////////
-//
-// peer syncer
-//
-/////////////////////////////////////////////////////////////////////
 
 func (self *PeerSyncer) run() {
 	// send blockinfo fetch req to peer
@@ -349,52 +328,33 @@ func (self *PeerSyncer) run() {
 	}()
 
 	var err error
-	blkProposers := make(map[uint32]uint32)
 	for self.nextReqBlkNum <= self.targetBlkNum {
 		blkNum := self.nextReqBlkNum
-		if _, present := blkProposers[blkNum]; !present {
-			blkInfos, err := self.requestBlockInfo(blkNum)
-			if err != nil {
-				log.Errorf("server %d failed to construct blockinfo fetch msg to peer %d: %s",
-					self.server.Index, self.peerIdx, err)
-				return
-			}
-			for _, p := range blkInfos {
-				blkProposers[p.BlockNum] = p.Proposer
-			}
-		}
-		if _, present := blkProposers[blkNum]; !present {
-			log.Errorf("server %d failed to get block %d proposer from %d", self.server.Index,
-				blkNum, self.peerIdx)
-			return
-		}
-
-		var proposalBlock *VbftBlock
-		proposalBlock, _ = self.server.blockPool.getSealedBlock(blkNum)
+		proposalBlock, _ := self.server.blockPool.getSealedBlock(blkNum)
 		if proposalBlock == nil {
 			if proposalBlock, err = self.requestBlock(blkNum); err != nil {
 				log.Errorf("failed to get block %d from peer %d: %s", blkNum, self.peerIdx, err)
 				return
 			}
 		}
-		if err := self.fetchedBlock(blkNum, proposalBlock); err != nil {
-			log.Errorf("failed to commit block %d from peer syncer %d to syncer: %s",
-				blkNum, self.peerIdx, err)
+		self.server.syncer.blockFromPeerC <- &BlockMsgFromPeer{
+			fromPeer: self.peerIdx,
+			block:    proposalBlock,
 		}
-		delete(blkProposers, blkNum)
+
+		self.lock.Lock()
+		self.nextReqBlkNum++
+		self.lock.Unlock()
 	}
 	errQuit = false
 }
 
-func (self *PeerSyncer) stop(force bool) bool {
+func (self *PeerSyncer) stop(force bool) {
 	self.lock.Lock()
 	defer self.lock.Unlock()
 	if force || self.nextReqBlkNum > self.targetBlkNum {
 		self.active = false
-		return true
 	}
-
-	return false
 }
 
 func (self *PeerSyncer) requestBlock(blkNum uint32) (*VbftBlock, error) {
@@ -412,65 +372,10 @@ func (self *PeerSyncer) requestBlock(blkNum uint32) (*VbftBlock, error) {
 		if msg == nil {
 			return nil, fmt.Errorf("nil block fetch rsp msg received")
 		}
-		switch msg.Type() {
-		case BlockFetchRespMessage:
-			pMsg, ok := msg.(*BlockFetchRespMsg)
-			if !ok {
-				return nil, fmt.Errorf("expect request type: BlockFetchMessage")
-			}
-			return pMsg.BlockData, nil
-		}
+		return msg.BlockData, nil
 	case <-t.C:
 		return nil, fmt.Errorf("timeout fetch block %d from peer %d", blkNum, self.peerIdx)
 	case <-self.server.quitC:
 		return nil, fmt.Errorf("peer syncing %d quit, failed fetching Block %d", self.peerIdx, blkNum)
 	}
-	return nil, fmt.Errorf("failed to get Block %d from peer %d", blkNum, self.peerIdx)
-}
-
-func (self *PeerSyncer) requestBlockInfo(startBlkNum uint32) ([]*BlockInfo_, error) {
-	msg := self.server.constructBlockInfoFetchMsg(startBlkNum)
-	self.server.msgSendC <- &SendMsgEvent{
-		ToPeer: self.peerIdx,
-		Msg:    msg,
-	}
-
-	t := time.NewTimer(time.Duration(atomic.LoadInt64(&makeProposalTimeout) * 2))
-	defer t.Stop()
-
-	select {
-	case msg := <-self.msgC:
-		if msg == nil {
-			return nil, fmt.Errorf("nil blockinfo fetch rsp msg received")
-		}
-		switch msg.Type() {
-		case BlockInfoFetchRespMessage:
-			pMsg, ok := msg.(*BlockInfoFetchRespMsg)
-			if !ok {
-				return nil, fmt.Errorf("expect request type: BlockInfoFetchRespMessage")
-			}
-			return pMsg.Blocks, nil
-		}
-	case <-t.C:
-		return nil, fmt.Errorf("timeout fetch blockInfo %d from peer %d", startBlkNum, self.peerIdx)
-	case <-self.server.quitC:
-		return nil, fmt.Errorf("peer syncer %d - %d quit, failed fetching BlockInfo %d",
-			self.server.Index, self.peerIdx, startBlkNum)
-	}
-	return nil, nil
-}
-
-func (self *PeerSyncer) fetchedBlock(blkNum uint32, block *VbftBlock) error {
-	self.lock.Lock()
-	defer self.lock.Unlock()
-
-	if blkNum == self.nextReqBlkNum {
-		self.server.syncer.blockFromPeerC <- &BlockMsgFromPeer{
-			fromPeer: self.peerIdx,
-			block:    block,
-		}
-		self.nextReqBlkNum++
-	}
-
-	return nil
 }

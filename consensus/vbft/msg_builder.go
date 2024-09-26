@@ -75,18 +75,6 @@ func DeserializeVbftMsg(msgPayload []byte) (ConsensusMsg, error) {
 			return nil, fmt.Errorf("failed to unmarshal msg (type: %d): %s", m.Type, err)
 		}
 		return t, nil
-	case BlockInfoFetchMessage:
-		t := &BlockInfoFetchMsg{}
-		if err := json.Unmarshal(m.Payload, t); err != nil {
-			return nil, fmt.Errorf("failed to unmarshal msg (type: %d): %s", m.Type, err)
-		}
-		return t, nil
-	case BlockInfoFetchRespMessage:
-		t := &BlockInfoFetchRespMsg{}
-		if err := json.Unmarshal(m.Payload, t); err != nil {
-			return nil, fmt.Errorf("failed to unmarshal msg (type: %d): %s", m.Type, err)
-		}
-		return t, nil
 	case BlockFetchMessage:
 		t := &blockFetchMsg{}
 		if err := json.Unmarshal(m.Payload, t); err != nil {
@@ -413,18 +401,6 @@ func (self *Server) constructBlockFetchRespMsg(blkNum uint32, blk *VbftBlock, bl
 		BlockNumber: blkNum,
 		BlockHash:   blkHash,
 		BlockData:   blk,
-	}
-}
-
-func (self *Server) constructBlockInfoFetchMsg(startBlkNum uint32) *BlockInfoFetchMsg {
-	return &BlockInfoFetchMsg{
-		StartBlockNum: startBlkNum,
-	}
-}
-
-func (self *Server) constructBlockInfoFetchRespMsg(blockInfos []*BlockInfo_) *BlockInfoFetchRespMsg {
-	return &BlockInfoFetchRespMsg{
-		Blocks: blockInfos,
 	}
 }
 

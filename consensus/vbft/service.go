@@ -720,11 +720,7 @@ func (self *Server) onConsensusMsg(peerIdx uint32, msg ConsensusMsg, msgHash com
 
 	switch msg.Type() {
 	case BlockProposalMessage:
-		pMsg, ok := msg.(*blockProposalMsg)
-		if !ok {
-			log.Error("invalid msg with proposal msg type")
-			return
-		}
+		pMsg := msg.(*blockProposalMsg)
 
 		msgBlkNum := pMsg.GetBlockNum()
 		if msgBlkNum > self.GetCurrentBlockNo() {
@@ -734,15 +730,6 @@ func (self *Server) onConsensusMsg(peerIdx uint32, msg ConsensusMsg, msgHash com
 					log.Errorf("failed to add proposal msg (%d) to pool: %s", msgBlkNum, err)
 				}
 				return
-			}
-
-			if self.getState().IsReady() {
-				// set the peer as syncing-check trigger from current round
-				// start syncing check from current round
-				self.syncer.syncCheckReqC <- &SyncCheckReq{
-					msg:      msg,
-					blockNum: self.GetCurrentBlockNo(),
-				}
 			}
 		} else if msgBlkNum < self.GetCurrentBlockNo() {
 
@@ -757,15 +744,6 @@ func (self *Server) onConsensusMsg(peerIdx uint32, msg ConsensusMsg, msgHash com
 				}
 				return
 			}
-
-			if self.getState().IsReady() {
-				// start syncing check from proposed block round
-				self.syncer.syncCheckReqC <- &SyncCheckReq{
-					msg:      msg,
-					blockNum: msgBlkNum,
-				}
-			}
-
 		} else {
 			if err := self.msgPool.AddMsg(msg, msgHash); err != nil {
 				log.Errorf("failed to add proposal msg (%d) to pool", msgBlkNum)
@@ -775,11 +753,7 @@ func (self *Server) onConsensusMsg(peerIdx uint32, msg ConsensusMsg, msgHash com
 		}
 
 	case BlockEndorseMessage:
-		pMsg, ok := msg.(*blockEndorseMsg)
-		if !ok {
-			log.Error("invalid msg with endorse msg type")
-			return
-		}
+		pMsg := msg.(*blockEndorseMsg)
 
 		// TODO: verify msg
 
@@ -791,15 +765,6 @@ func (self *Server) onConsensusMsg(peerIdx uint32, msg ConsensusMsg, msgHash com
 					log.Errorf("failed to add endorse msg (%d) to pool: %s", msgBlkNum, err)
 				}
 				return
-			}
-
-			if self.getState().IsReady() {
-				// set the peer as syncing-check trigger from current round
-				// start syncing check from current round
-				self.syncer.syncCheckReqC <- &SyncCheckReq{
-					msg:      msg,
-					blockNum: self.GetCurrentBlockNo(),
-				}
 			}
 		} else if msgBlkNum < self.GetCurrentBlockNo() {
 			if msgBlkNum <= self.GetCommittedBlockNo() {
@@ -813,15 +778,6 @@ func (self *Server) onConsensusMsg(peerIdx uint32, msg ConsensusMsg, msgHash com
 				}
 				return
 			}
-
-			if self.getState().IsReady() {
-				// start syncing check from proposed block round
-				self.syncer.syncCheckReqC <- &SyncCheckReq{
-					msg:      msg,
-					blockNum: msgBlkNum,
-				}
-			}
-
 		} else {
 			// add to msg pool
 			if err := self.msgPool.AddMsg(msg, msgHash); err != nil {
@@ -832,11 +788,7 @@ func (self *Server) onConsensusMsg(peerIdx uint32, msg ConsensusMsg, msgHash com
 		}
 
 	case BlockCommitMessage:
-		pMsg, ok := msg.(*blockCommitMsg)
-		if !ok {
-			log.Error("invalid msg with commit msg type")
-			return
-		}
+		pMsg := msg.(*blockCommitMsg)
 
 		// TODO: verify msg
 
@@ -848,16 +800,6 @@ func (self *Server) onConsensusMsg(peerIdx uint32, msg ConsensusMsg, msgHash com
 				}
 				return
 			}
-
-			if self.getState().IsReady() {
-				// set the peer as syncing-check trigger from current round
-				// start syncing check from current round
-				self.syncer.syncCheckReqC <- &SyncCheckReq{
-					msg:      msg,
-					blockNum: self.GetCurrentBlockNo(),
-				}
-			}
-
 		} else if msgBlkNum < self.GetCurrentBlockNo() {
 			if msgBlkNum <= self.GetCommittedBlockNo() {
 				if msgBlkNum+MAX_SYNCING_CHECK_BLK_NUM < self.GetCommittedBlockNo() {
@@ -869,14 +811,6 @@ func (self *Server) onConsensusMsg(peerIdx uint32, msg ConsensusMsg, msgHash com
 					}
 				}
 				return
-			}
-
-			if self.getState().IsReady() {
-				// start syncing check from proposed block round
-				self.syncer.syncCheckReqC <- &SyncCheckReq{
-					msg:      msg,
-					blockNum: msgBlkNum,
-				}
 			}
 		} else {
 			// add to msg pool
@@ -961,44 +895,7 @@ func (self *Server) onConsensusMsg(peerIdx uint32, msg ConsensusMsg, msgHash com
 	case BlockFetchRespMessage:
 		self.syncer.syncMsgC <- &SyncMsg{
 			fromPeer: peerIdx,
-			msg:      msg,
-		}
-
-	case BlockInfoFetchMessage:
-		// handle block Info fetch msg
-		pMsg, ok := msg.(*BlockInfoFetchMsg)
-		if !ok {
-			log.Errorf("invalid msg with blockinfo fetch msg type")
-			return
-		}
-		maxCnt := 64
-		blkInfos := make([]*BlockInfo_, 0)
-		targetBlkNum := self.GetCommittedBlockNo()
-		for startBlkNum := pMsg.StartBlockNum; startBlkNum <= targetBlkNum; startBlkNum++ {
-			blk, _ := self.blockPool.getSealedBlock(startBlkNum)
-			if blk == nil {
-				break
-			}
-			blkInfos = append(blkInfos, &BlockInfo_{
-				BlockNum: startBlkNum,
-				Proposer: blk.getProposer(),
-			})
-			if len(blkInfos) >= maxCnt {
-				break
-			}
-		}
-		msg := self.constructBlockInfoFetchRespMsg(blkInfos)
-		log.Infof("server %d, response blockinfo fetch to %d, blk %d, len %d",
-			self.Index, peerIdx, pMsg.StartBlockNum, len(blkInfos))
-		self.msgSendC <- &SendMsgEvent{
-			ToPeer: peerIdx,
-			Msg:    msg,
-		}
-
-	case BlockInfoFetchRespMessage:
-		self.syncer.syncMsgC <- &SyncMsg{
-			fromPeer: peerIdx,
-			msg:      msg,
+			msg:      msg.(*BlockFetchRespMsg),
 		}
 	case BlockSubmitMessage:
 		pMsg := msg.(*blockSubmitMsg)

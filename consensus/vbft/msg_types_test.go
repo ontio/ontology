@@ -191,67 +191,6 @@ func TestPeerHeartbeatMsg(t *testing.T) {
 	t.Log("TestPeerHeartbeatMsg succ")
 }
 
-func constructBlockInfoFetchMsg(acc *account.Account) (*BlockInfoFetchMsg, error) {
-	msg := &BlockInfoFetchMsg{
-		StartBlockNum: 1,
-	}
-
-	return msg, nil
-}
-
-func TestBlockInfoFetchMsg(t *testing.T) {
-	acc := account.NewAccount("SHA256withECDSA")
-	if acc == nil {
-		t.Error("GetDefaultAccount error: acc is nil")
-		return
-	}
-	msg, err := constructBlockInfoFetchMsg(acc)
-	if err != nil {
-		t.Errorf("constructBlockInfoFetchMsg failed: %v", err)
-		return
-	}
-	pubs := make(map[uint32]keypair.PublicKey)
-	err = msg.Verify(acc.PublicKey, pubs)
-	if err != nil {
-		t.Errorf("TestBlockInfoFetchMsg Verify failed %v", err)
-		return
-	}
-	t.Log("TestBlockInfoFetchMsg succ")
-}
-
-func constructBlockInfoFetchRespMsg(acc *account.Account) (*BlockInfoFetchRespMsg, error) {
-	blockInfo := &BlockInfo_{
-		BlockNum: 1,
-		Proposer: 1,
-	}
-	var blockInfos []*BlockInfo_
-	blockInfos = append(blockInfos, blockInfo)
-	msg := &BlockInfoFetchRespMsg{
-		Blocks: blockInfos,
-	}
-	return msg, nil
-}
-
-func TestBlockInfoFetchRespMsg(t *testing.T) {
-	acc := account.NewAccount("SHA256withECDSA")
-	if acc == nil {
-		t.Error("GetDefaultAccount error: acc is nil")
-		return
-	}
-	msg, err := constructBlockInfoFetchRespMsg(acc)
-	if err != nil {
-		t.Errorf("constructBlockInfoFetchRespMsg failed: %v", err)
-		return
-	}
-	pubs := make(map[uint32]keypair.PublicKey)
-	err = msg.Verify(acc.PublicKey, pubs)
-	if err != nil {
-		t.Errorf("TestBlockInfoFetchRespMsg Verify failed %v", err)
-		return
-	}
-	t.Log("TestBlockInfoFetchRespMsg succ")
-}
-
 func constructBlockFetchMsg(acc *account.Account) (*blockFetchMsg, error) {
 	msg := &blockFetchMsg{
 		BlockNum: 1,
