@@ -44,6 +44,33 @@ const (
 	EventMax
 )
 
+func (self TimerEventType) String() string {
+	switch self {
+	case EventProposeBlockTimeout:
+		return "ProposeBlockTimeout"
+	case EventProposalBackoff:
+		return "EventProposalBackoff"
+	case EventRandomBackoff:
+		return "EventRandomBackoff"
+	case EventPropose2ndBlockTimeout:
+		return "EventPropose2ndBlockTimeout"
+	case EventEndorseBlockTimeout:
+		return "EventEndorseBlockTimeout"
+	case EventEndorseEmptyBlockTimeout:
+		return "EventEndorseEmptyBlockTimeout"
+	case EventCommitBlockTimeout:
+		return "EventCommitBlockTimeout"
+	case EventPeerHeartbeat:
+		return "EventPeerHeartbeat"
+	case EventTxPool:
+		return "EventTxPool"
+	case EventTxBlockTimeout:
+		return "EventTxBlockTimeout"
+	default:
+		panic("unknown timer type")
+	}
+}
+
 var (
 	makeProposalTimeout    = int64(300 * time.Millisecond)
 	make2ndProposalTimeout = int64(300 * time.Millisecond)
@@ -134,8 +161,11 @@ func (self *EventTimer) getEventTimeout(evtType TimerEventType) time.Duration {
 	}
 }
 
-// internal helper, should call with lock held
-func (self *EventTimer) startEventTimer(evtType TimerEventType, blockNum uint32) {
+func (self *EventTimer) StartEventTimer(evtType TimerEventType, blockNum uint32) {
+	log.Infof("server %d started %s timer for blk %d", self.server.Index, evtType, blockNum)
+	self.lock.Lock()
+	defer self.lock.Unlock()
+
 	timers := self.eventTimers[evtType]
 	if t, present := timers[blockNum]; present {
 		t.Stop()
@@ -162,106 +192,12 @@ func (self *EventTimer) cancelEventTimer(evtType TimerEventType, blockNum uint32
 	}
 }
 
-func (self *EventTimer) StartProposalTimer(blockNum uint32) {
+func (self *EventTimer) CancelEventTimer(evtType TimerEventType, blockNum uint32) {
+	log.Infof("server %d canceled %s timer for blk %d", self.server.Index, evtType, blockNum)
 	self.lock.Lock()
 	defer self.lock.Unlock()
 
-	log.Infof("server %d started proposal timer for blk %d", self.server.Index, blockNum)
-	self.startEventTimer(EventProposeBlockTimeout, blockNum)
-}
-
-func (self *EventTimer) CancelProposalTimer(blockNum uint32) {
-	self.lock.Lock()
-	defer self.lock.Unlock()
-
-	self.cancelEventTimer(EventProposeBlockTimeout, blockNum)
-}
-
-func (self *EventTimer) StartEndorsingTimer(blockNum uint32) {
-	self.lock.Lock()
-	defer self.lock.Unlock()
-
-	log.Infof("server %d started endorsing timer for blk %d", self.server.Index, blockNum)
-	self.startEventTimer(EventEndorseBlockTimeout, blockNum)
-}
-
-func (self *EventTimer) CancelEndorseMsgTimer(blockNum uint32) {
-	self.lock.Lock()
-	defer self.lock.Unlock()
-
-	self.cancelEventTimer(EventEndorseBlockTimeout, blockNum)
-}
-
-func (self *EventTimer) StartEndorseEmptyBlockTimer(blockNum uint32) {
-	self.lock.Lock()
-	defer self.lock.Unlock()
-
-	log.Infof("server %d started empty endorsing timer for blk %d", self.server.Index, blockNum)
-	self.startEventTimer(EventEndorseEmptyBlockTimeout, blockNum)
-}
-
-func (self *EventTimer) CancelEndorseEmptyBlockTimer(blockNum uint32) {
-	self.lock.Lock()
-	defer self.lock.Unlock()
-
-	self.cancelEventTimer(EventEndorseEmptyBlockTimeout, blockNum)
-}
-
-func (self *EventTimer) StartCommitTimer(blockNum uint32) {
-	self.lock.Lock()
-	defer self.lock.Unlock()
-
-	log.Infof("server %d started commit timer for blk %d", self.server.Index, blockNum)
-	self.startEventTimer(EventCommitBlockTimeout, blockNum)
-}
-
-func (self *EventTimer) CancelCommitMsgTimer(blockNum uint32) {
-	self.lock.Lock()
-	defer self.lock.Unlock()
-
-	self.cancelEventTimer(EventCommitBlockTimeout, blockNum)
-}
-
-func (self *EventTimer) StartProposalBackoffTimer(blockNum uint32) {
-	self.lock.Lock()
-	defer self.lock.Unlock()
-
-	self.startEventTimer(EventProposalBackoff, blockNum)
-}
-
-func (self *EventTimer) CancelProposalBackoffTimer(blockNum uint32) {
-	self.lock.Lock()
-	defer self.lock.Unlock()
-
-	self.cancelEventTimer(EventProposalBackoff, blockNum)
-}
-
-func (self *EventTimer) StartBackoffTimer(blockNum uint32) {
-	self.lock.Lock()
-	defer self.lock.Unlock()
-
-	self.startEventTimer(EventRandomBackoff, blockNum)
-}
-
-func (self *EventTimer) CancelBackoffTimer(blockNum uint32) {
-	self.lock.Lock()
-	defer self.lock.Unlock()
-
-	self.cancelEventTimer(EventRandomBackoff, blockNum)
-}
-
-func (self *EventTimer) Start2ndProposalTimer(blockNum uint32) {
-	self.lock.Lock()
-	defer self.lock.Unlock()
-
-	self.startEventTimer(EventPropose2ndBlockTimeout, blockNum)
-}
-
-func (self *EventTimer) Cancel2ndProposalTimer(blockNum uint32) {
-	self.lock.Lock()
-	defer self.lock.Unlock()
-
-	self.cancelEventTimer(EventPropose2ndBlockTimeout, blockNum)
+	self.cancelEventTimer(evtType, blockNum)
 }
 
 func (self *EventTimer) OnBlockSealed(blockNum uint32) {
@@ -271,20 +207,6 @@ func (self *EventTimer) OnBlockSealed(blockNum uint32) {
 	for i := 0; i < int(EventMax); i++ {
 		self.cancelEventTimer(TimerEventType(i), blockNum)
 	}
-}
-
-func (self *EventTimer) StartTxBlockTimeout(blockNum uint32) {
-	self.lock.Lock()
-	defer self.lock.Unlock()
-
-	self.startEventTimer(EventTxBlockTimeout, blockNum)
-}
-
-func (self *EventTimer) CancelTxBlockTimeout(blockNum uint32) {
-	self.lock.Lock()
-	defer self.lock.Unlock()
-
-	self.cancelEventTimer(EventTxBlockTimeout, blockNum)
 }
 
 func (self *EventTimer) startPeerTicker() {
@@ -315,18 +237,4 @@ func (self *EventTimer) stopPeerTicker() {
 		log.Infof("peer ticker got reset")
 	}
 	self.peerTickers = nil
-}
-
-func (self *EventTimer) startTxTicker(blockNum uint32) {
-	self.lock.Lock()
-	defer self.lock.Unlock()
-
-	self.startEventTimer(EventTxPool, blockNum)
-}
-
-func (self *EventTimer) stopTxTicker(blockNum uint32) {
-	self.lock.Lock()
-	defer self.lock.Unlock()
-
-	self.cancelEventTimer(EventTxPool, blockNum)
 }

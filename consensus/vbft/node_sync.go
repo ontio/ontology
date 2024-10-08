@@ -111,24 +111,40 @@ func (self *Syncer) run() {
 			log.Infof("server %d, got sync req(%d, %d) to %v",
 				self.server.Index, req.startBlockNum, req.targetBlockNum, req.targetPeers)
 			req.startBlockNum = self.server.GetCommittedBlockNo() + 1
-			for ; req.startBlockNum <= req.targetBlockNum; req.startBlockNum++ {
-				blk, _ := self.server.blockPool.getSealedBlock(req.startBlockNum)
-				if blk == nil {
-					log.Infof("server %d, on starting syncing %d, nil block from ledger",
-						self.server.Index, req.startBlockNum)
-					break
-				}
-				if err := self.server.fastForwardBlock(blk); err != nil {
-					log.Infof("server %d, on starting syncing %d, %s",
-						self.server.Index, req.startBlockNum, err)
-					break
-				}
-			}
 			if req.startBlockNum > req.targetBlockNum {
 				continue
 			}
-			self.onNewBlockSyncReq(req)
+			if req.targetBlockNum <= self.targetBlkNum {
+				return
+			}
+			self.targetBlkNum = req.targetBlockNum
+			if req.startBlockNum < self.nextReqBlkNum {
+				log.Errorf("server %d new blockSyncReq startblkNum %d vs %d",
+					self.server.Index, req.startBlockNum, self.nextReqBlkNum)
+			} else {
+				self.nextReqBlkNum = req.startBlockNum
+			}
 
+			for _, peerIdx := range req.targetPeers {
+				if p, present := self.peers[peerIdx]; !present || !p.active {
+					nextBlkNum := self.nextReqBlkNum
+					if p != nil && p.nextReqBlkNum > nextBlkNum {
+						log.Infof("server %d, syncer with peer %d start from %d, vs %d",
+							self.server.Index, peerIdx, p.nextReqBlkNum, self.nextReqBlkNum)
+						nextBlkNum = p.nextReqBlkNum
+					}
+					self.peers[peerIdx] = &PeerSyncer{
+						peerIdx:       peerIdx,
+						nextReqBlkNum: nextBlkNum,
+						targetBlkNum:  self.targetBlkNum,
+						active:        false,
+						server:        self.server,
+						msgC:          make(chan *BlockFetchRespMsg, 4),
+					}
+				}
+				p := self.peers[peerIdx]
+				self.startPeerSyncer(p, self.targetBlkNum)
+			}
 		case syncMsg := <-self.syncMsgC:
 			if p, present := self.peers[syncMsg.fromPeer]; present {
 				if p.active {
@@ -273,39 +289,6 @@ func (self *Syncer) startPeerSyncer(peerSyncer *PeerSyncer, targetBlkNum uint32)
 }
 
 func (self *Syncer) onNewBlockSyncReq(req *BlockSyncReq) {
-	if req.startBlockNum < self.nextReqBlkNum {
-		log.Errorf("server %d new blockSyncReq startblkNum %d vs %d",
-			self.server.Index, req.startBlockNum, self.nextReqBlkNum)
-	}
-	if req.targetBlockNum <= self.targetBlkNum {
-		return
-	}
-	if self.nextReqBlkNum == 1 {
-		self.nextReqBlkNum = req.startBlockNum
-	}
-	self.targetBlkNum = req.targetBlockNum
-	// }
-
-	for _, peerIdx := range req.targetPeers {
-		if p, present := self.peers[peerIdx]; !present || !p.active {
-			nextBlkNum := self.nextReqBlkNum
-			if p != nil && p.nextReqBlkNum > nextBlkNum {
-				log.Infof("server %d, syncer with peer %d start from %d, vs %d",
-					self.server.Index, peerIdx, p.nextReqBlkNum, self.nextReqBlkNum)
-				nextBlkNum = p.nextReqBlkNum
-			}
-			self.peers[peerIdx] = &PeerSyncer{
-				peerIdx:       peerIdx,
-				nextReqBlkNum: nextBlkNum,
-				targetBlkNum:  self.targetBlkNum,
-				active:        false,
-				server:        self.server,
-				msgC:          make(chan *BlockFetchRespMsg, 4),
-			}
-		}
-		p := self.peers[peerIdx]
-		self.startPeerSyncer(p, self.targetBlkNum)
-	}
 }
 
 func (self *PeerSyncer) run() {

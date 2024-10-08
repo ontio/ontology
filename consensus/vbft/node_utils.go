@@ -225,8 +225,8 @@ func (self *Server) updateTimerParams(config *vconfig.ChainConfig) {
 	setTimeout(&zeroTxBlockTimeout, int64(config.BlockMsgDelay*3))
 }
 
-func buildParticipantConfig(blkNum uint32, block *VbftBlock, chainCfg *vconfig.ChainConfig) *BlockParticipantConfig {
-	vrfValue := getParticipantSelectionSeed(block)
+func buildParticipantConfig(blkNum, proposer uint32, preVrfValue []byte, chainCfg *vconfig.ChainConfig) *BlockParticipantConfig {
+	vrfValue := getParticipantSelectionSeed(blkNum, proposer, preVrfValue)
 	cfg := &BlockParticipantConfig{
 		BlockNum:    blkNum,
 		ChainConfig: chainCfg,

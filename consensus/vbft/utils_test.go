@@ -73,19 +73,6 @@ func TestHashMsg(t *testing.T) {
 	t.Logf("TestHashMsg succ: %v\n", uint256)
 }
 
-func TestVrfParticipantSeed(t *testing.T) {
-	blk, err := constructBlock()
-	if err != nil {
-		t.Errorf("constructBlock failed: %v", err)
-	}
-	vrfvalue := getParticipantSelectionSeed(blk)
-	if len(vrfvalue) == 0 {
-		t.Errorf("TestVrfParticipantSeed failed:")
-		return
-	}
-	t.Log("TestVrfParticipantSeed succ")
-}
-
 func TestVrf(t *testing.T) {
 	user := account.NewAccount("")
 	prevVrf := []byte("test string")

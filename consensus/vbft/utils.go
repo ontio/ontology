@@ -82,11 +82,11 @@ type seedData struct {
 	VrfValue          []byte `json:"vrf_value"`
 }
 
-func getParticipantSelectionSeed(block *VbftBlock) vconfig.VRFValue {
+func getParticipantSelectionSeed(blockNum, prevProposer uint32, vrfValue []byte) vconfig.VRFValue {
 	data, err := json.Marshal(&seedData{
-		BlockNum:          block.getBlockNum() + 1,
-		PrevBlockProposer: block.getProposer(),
-		VrfValue:          block.getVrfValue(),
+		BlockNum:          blockNum,
+		PrevBlockProposer: prevProposer,
+		VrfValue:          vrfValue,
 	})
 	if err != nil {
 		panic("marshal seed data shoule never fail")
@@ -94,7 +94,7 @@ func getParticipantSelectionSeed(block *VbftBlock) vconfig.VRFValue {
 
 	t := sha512.Sum512(data)
 	f := sha512.Sum512(t[:])
-	return vconfig.VRFValue(f)
+	return f
 }
 
 type vrfData struct {
