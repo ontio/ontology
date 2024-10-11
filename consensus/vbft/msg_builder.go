@@ -39,7 +39,6 @@ type ConsensusMsgPayload struct {
 }
 
 func DeserializeVbftMsg(msgPayload []byte) (ConsensusMsg, error) {
-
 	m := &ConsensusMsgPayload{}
 	if err := json.Unmarshal(msgPayload, m); err != nil {
 		return nil, fmt.Errorf("unmarshal consensus msg payload: %s", err)
@@ -128,15 +127,13 @@ func SerializeVbftMsg(msg ConsensusMsg) ([]byte, error) {
 }
 
 func (self *Server) constructHeartbeatMsg() (*peerHeartbeatMsg, error) {
-	blkNum := self.GetCurrentBlockNo() - 1
-	block, blockhash := self.blockPool.getSealedBlock(blkNum)
-	if block == nil {
-		return nil, fmt.Errorf("failed to get sealed block, current block: %d", self.GetCurrentBlockNo())
-	}
+	vbftCtx := self.GetVbftContext()
+	blkNum := vbftCtx.BlockNum - 1
+	block := vbftCtx.PrevBlock
 
 	bookkeepers := make([][]byte, 0)
-	endorsePks := block.Block.Header.Bookkeepers
-	sigData := block.Block.Header.SigData
+	endorsePks := block.Header.Bookkeepers
+	sigData := block.Header.SigData
 	if len(endorsePks) == len(sigData) {
 		for i := 0; i < len(endorsePks); i++ {
 			bookkeepers = append(bookkeepers, keypair.SerializePublicKey(endorsePks[i]))
@@ -148,8 +145,8 @@ func (self *Server) constructHeartbeatMsg() (*peerHeartbeatMsg, error) {
 
 	msg := &peerHeartbeatMsg{
 		CommittedBlockNumber: blkNum,
-		CommittedBlockHash:   blockhash,
-		CommittedBlockLeader: block.getProposer(),
+		CommittedBlockHash:   block.Hash(),
+		CommittedBlockLeader: vbftCtx.PrevBlockInfo.Proposer,
 		Endorsers:            bookkeepers,
 		EndorsersSig:         sigData,
 		ChainConfigView:      self.GetChainConfig().View,
@@ -158,22 +155,16 @@ func (self *Server) constructHeartbeatMsg() (*peerHeartbeatMsg, error) {
 	return msg, nil
 }
 
-func (self *Server) constructBlock(blkNum uint32, prevBlkHash common.Uint256, txs []*types.Transaction, consensusPayload []byte, blocktimestamp uint32) (*types.Block, error) {
-	txHash := []common.Uint256{}
+func (self *Server) constructBlock(blkNum uint32, prevBlock *types.Block, txs []*types.Transaction, consensusPayload []byte, blocktimestamp uint32) (*types.Block, error) {
+	var txHash []common.Uint256
 	for _, t := range txs {
 		txHash = append(txHash, t.Hash())
 	}
-	lastBlock, _ := self.blockPool.getSealedBlock(blkNum - 1)
-	if lastBlock == nil {
-		log.Errorf("constructBlock getlastblock failed blknum:%d", blkNum-1)
-		return nil, fmt.Errorf("constructBlock getlastblock failed blknum:%d", blkNum-1)
-	}
-
 	txRoot := common.ComputeMerkleRoot(txHash)
-	blockRoot := ledger.DefLedger.GetBlockRootWithNewTxRoots(lastBlock.Block.Header.Height, []common.Uint256{lastBlock.Block.Header.TransactionsRoot, txRoot})
+	blockRoot := ledger.DefLedger.GetBlockRootWithNewTxRoots(prevBlock.Header.Height, []common.Uint256{prevBlock.Header.TransactionsRoot, txRoot})
 
 	blkHeader := &types.Header{
-		PrevBlockHash:    prevBlkHash,
+		PrevBlockHash:    prevBlock.Hash(),
 		TransactionsRoot: txRoot,
 		BlockRoot:        blockRoot,
 		Timestamp:        blocktimestamp,
@@ -219,28 +210,25 @@ func (self *Server) constructCrossChainMsg(blkNum uint32) (*types.CrossChainMsg,
 	return msg, nil
 }
 
-func (self *Server) constructProposalMsg(blkNum uint32, sysTxs, userTxs []*types.Transaction, chainconfig *vconfig.ChainConfig) (*blockProposalMsg, error) {
-
-	prevBlk, prevBlkHash := self.blockPool.getSealedBlock(blkNum - 1)
-	if prevBlk == nil {
-		return nil, fmt.Errorf("failed to get prevBlock (%d)", blkNum-1)
-	}
+func (self *Server) constructProposalMsg(vbftCtx *VbftContext, sysTxs, userTxs []*types.Transaction, chainconfig *vconfig.ChainConfig) (*blockProposalMsg, error) {
+	prevBlk := vbftCtx.PrevBlock
+	blkNum := vbftCtx.BlockNum
 	blocktimestamp := uint32(time.Now().Unix())
-	if prevBlk.Block.Header.Timestamp >= blocktimestamp {
-		blocktimestamp = prevBlk.Block.Header.Timestamp + 1
+	if prevBlk.Header.Timestamp >= blocktimestamp {
+		blocktimestamp = prevBlk.Header.Timestamp + 1
 	}
 
-	vrfValue, vrfProof, err := computeVrf(self.account.PrivateKey, blkNum, prevBlk.getVrfValue())
+	vrfValue, vrfProof, err := computeVrf(self.account.PrivateKey, blkNum, vbftCtx.PrevBlockInfo.VrfValue)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get vrf and proof: %s", err)
 	}
 
-	lastConfigBlkNum := prevBlk.Info.LastConfigBlockNum
-	if prevBlk.Info.NewChainConfig != nil {
-		lastConfigBlkNum = prevBlk.getBlockNum()
+	lastConfigBlkNum := vbftCtx.PrevBlockInfo.LastConfigBlockNum
+	if vbftCtx.PrevBlockInfo.NewChainConfig != nil {
+		lastConfigBlkNum = prevBlk.Header.Height
 	}
 	if chainconfig != nil {
-		lastConfigBlkNum = blkNum
+		lastConfigBlkNum = blkNum // todo: fix
 	}
 	vbftBlkInfo := &vconfig.VbftBlockInfo{
 		Proposer:           self.Index,
@@ -254,11 +242,11 @@ func (self *Server) constructProposalMsg(blkNum uint32, sysTxs, userTxs []*types
 		return nil, err
 	}
 
-	emptyBlk, err := self.constructBlock(blkNum, prevBlkHash, sysTxs, consensusPayload, blocktimestamp)
+	emptyBlk, err := self.constructBlock(blkNum, prevBlk, sysTxs, consensusPayload, blocktimestamp)
 	if err != nil {
 		return nil, fmt.Errorf("failed to construct empty block: %s", err)
 	}
-	blk, err := self.constructBlock(blkNum, prevBlkHash, append(sysTxs, userTxs...), consensusPayload, blocktimestamp)
+	blk, err := self.constructBlock(blkNum, prevBlk, append(sysTxs, userTxs...), consensusPayload, blocktimestamp)
 	if err != nil {
 		return nil, fmt.Errorf("failed to constuct blk: %s", err)
 	}
@@ -268,7 +256,7 @@ func (self *Server) constructProposalMsg(blkNum uint32, sysTxs, userTxs []*types
 	}
 	crossChainMsg, err := self.constructCrossChainMsg(blkNum - 1)
 	if err != nil {
-		return nil, fmt.Errorf("failed to crossChainMsgHash :%s,blkNum:%d", err, (blkNum - 1))
+		return nil, fmt.Errorf("failed to crossChainMsgHash :%s,blkNum:%d", err, blkNum-1)
 	}
 	msg := &blockProposalMsg{
 		Block: &VbftBlock{
@@ -291,7 +279,6 @@ func (self *Server) constructEndorseMsg(proposal *blockProposalMsg, forEmpty boo
 	var err error
 	if !forEmpty {
 		blkHash = proposal.Block.Block.Hash()
-
 	} else {
 		if proposal.Block.EmptyBlock == nil {
 			return nil, fmt.Errorf("blk %d proposal from %d has no empty proposal",

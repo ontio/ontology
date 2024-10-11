@@ -32,13 +32,15 @@ func constructServer() *Server {
 	statemgr := &StateMgr{
 		currentState: Syncing,
 	}
-	blockparticipantconfig := &BlockParticipantConfig{
-		BlockNum:   1,
-		Proposers:  []uint32{1, 2, 3},
-		Endorsers:  []uint32{1, 2, 3},
-		Committers: []uint32{1, 2, 3},
+	server := &Server{
+		Index:    1,
+		stateMgr: statemgr,
 	}
-	chainconfig := &vconfig.ChainConfig{
+	return server
+}
+
+func constructChainConfig() *vconfig.ChainConfig {
+	return &vconfig.ChainConfig{
 		Version:              1,
 		View:                 12,
 		N:                    4,
@@ -48,13 +50,6 @@ func constructServer() *Server {
 		PeerHandshakeTimeout: 10000,
 		PosTable:             []uint32{2, 3, 1, 3, 1, 3, 2, 3, 2, 3, 2, 1, 3, 0},
 	}
-	server := &Server{
-		Index:                    1,
-		stateMgr:                 statemgr,
-		config:                   chainconfig,
-		currentParticipantConfig: blockparticipantconfig,
-	}
-	return server
 }
 
 func TestGetCommitConsensus(t *testing.T) {
@@ -93,8 +88,6 @@ func TestCalcParticipantPeers(t *testing.T) {
 }
 
 func testCalcParticipantPeers(t *testing.T, n, c int) {
-	server := constructServer()
-
 	pos := make([]uint32, 0)
 	for i := 0; i < n; i++ {
 		for j := 0; j < 4; j++ {
@@ -102,7 +95,7 @@ func testCalcParticipantPeers(t *testing.T, n, c int) {
 		}
 	}
 
-	chainCfg := server.config
+	chainCfg := constructChainConfig()
 	chainCfg.N = uint32(n)
 	chainCfg.C = uint32(c)
 	chainCfg.PosTable = pos
@@ -113,7 +106,7 @@ func testCalcParticipantPeers(t *testing.T, n, c int) {
 			ID:    fmt.Sprintf("test-%d", i)})
 	}
 
-	pp, pe, pc := calcParticipantPeers(newTestVrfValue(), chainCfg)
+	pp, pe, pc := calcPeerRoles(newTestVrfValue(), chainCfg)
 	if len(pp) != c+1 {
 		t.Fatalf("invalid proposal peer(%d, %d): %v, %v, %v", n, c, pp, pe, pc)
 	}

@@ -40,19 +40,19 @@ func (self *Server) SetCompletedBlockNum(blknum uint32) {
 }
 
 func (self *Server) GetCurrentBlockNo() uint32 {
-	return atomic.LoadUint32(&self.currentBlockNum)
+	return self.GetVbftContext().BlockNum
 }
 
-func (self *Server) SetCurrentBlockNo(blknum uint32) {
-	atomic.CompareAndSwapUint32(&self.currentBlockNum, self.currentBlockNum, blknum)
-}
-
-func (self *Server) GetChainConfig() vconfig.ChainConfig {
+func (self *Server) GetVbftContext() *VbftContext {
 	self.metaLock.RLock()
 	defer self.metaLock.RUnlock()
-	// shallow copy
-	cfg := *self.config
-	return cfg
+	return self.vbftCtx
+}
+
+func (self *Server) GetChainConfig() *vconfig.ChainConfig {
+	self.metaLock.RLock()
+	defer self.metaLock.RUnlock()
+	return self.vbftCtx.Config
 }
 
 func (self *Server) GetPeerMsgChan(peerIdx uint32) chan *p2pMsgPayload {
@@ -97,13 +97,12 @@ func (self *Server) isProposer(peerIdx uint32) bool {
 		return false
 	}
 	// the first active proposer
-	for _, id := range self.currentParticipantConfig.Proposers {
+	for _, id := range self.GetVbftContext().Proposers {
 		if self.isPeerAlive(id) {
 			return peerIdx == id
 		}
 	}
 
-	// TODO: proposer check for non-current block
 	return false
 }
 
@@ -122,7 +121,7 @@ func (self *Server) getProposerRank(blockNum uint32, peerIdx uint32) int {
 func (self *Server) isEndorser(peerIdx uint32) bool {
 	self.metaLock.RLock()
 	defer self.metaLock.RUnlock()
-	for _, id := range self.currentParticipantConfig.Endorsers {
+	for _, id := range self.GetVbftContext().Endorsers {
 		if id == peerIdx {
 			return true
 		}
@@ -134,7 +133,7 @@ func (self *Server) isEndorser(peerIdx uint32) bool {
 func (self *Server) isCommitter(peerIdx uint32) bool {
 	self.metaLock.RLock()
 	defer self.metaLock.RUnlock()
-	for _, id := range self.currentParticipantConfig.Committers {
+	for _, id := range self.GetVbftContext().Committers {
 		if id == peerIdx {
 			return true
 		}
@@ -144,16 +143,15 @@ func (self *Server) isCommitter(peerIdx uint32) bool {
 }
 
 func (self *Server) getProposerRankLocked(blockNum uint32, peerIdx uint32) int {
-	if blockNum == self.currentParticipantConfig.BlockNum {
-		for rank, id := range self.currentParticipantConfig.Proposers {
+	ctx := self.GetVbftContext()
+	if blockNum == ctx.BlockNum {
+		for rank, id := range ctx.Proposers {
 			if id == peerIdx {
 				return rank
 			}
 		}
-	} else {
-		log.Errorf("todo: get proposer config for non-current blocknum:%d, current.BlockNum%d,peerIdx:%d", blockNum, self.currentParticipantConfig.BlockNum, peerIdx)
 	}
-	return len(self.currentParticipantConfig.Proposers)
+	return len(ctx.Proposers)
 }
 
 func (self *Server) getHighestRankProposal(blockNum uint32, proposals []*blockProposalMsg) *blockProposalMsg {
@@ -198,18 +196,12 @@ func (self *Server) updateTimerParams(config *vconfig.ChainConfig) {
 	setTimeout(&zeroTxBlockTimeout, int64(config.BlockMsgDelay*3))
 }
 
-func buildParticipantConfig(blkNum, proposer uint32, preVrfValue []byte, chainCfg *vconfig.ChainConfig) *BlockParticipantConfig {
+func buildPeerRoles(blkNum, proposer uint32, preVrfValue []byte, chainCfg *vconfig.ChainConfig) ([]uint32, []uint32, []uint32) {
 	vrfValue := getParticipantSelectionSeed(blkNum, proposer, preVrfValue)
-	cfg := &BlockParticipantConfig{
-		BlockNum:    blkNum,
-		ChainConfig: chainCfg,
-	}
-
-	cfg.Proposers, cfg.Endorsers, cfg.Committers = calcParticipantPeers(vrfValue, chainCfg)
-	return cfg
+	return calcPeerRoles(vrfValue, chainCfg)
 }
 
-func calcParticipantPeers(vrfValue vconfig.VRFValue, chain *vconfig.ChainConfig) ([]uint32, []uint32, []uint32) {
+func calcPeerRoles(vrfValue vconfig.VRFValue, chain *vconfig.ChainConfig) ([]uint32, []uint32, []uint32) {
 	peers := make([]uint32, 0)
 	peerMap := make(map[uint32]bool)
 

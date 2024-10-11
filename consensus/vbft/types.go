@@ -157,8 +157,8 @@ func initVbftBlock(block *types.Block, ccMsg *types.CrossChainMsg, prevExecMerkl
 		return nil, fmt.Errorf("nil block in initVbftBlock")
 	}
 
-	blkInfo := &vconfig.VbftBlockInfo{}
-	if err := json.Unmarshal(block.Header.ConsensusPayload, blkInfo); err != nil {
+	blkInfo, err := vconfig.VbftBlock(block.Header)
+	if err != nil {
 		return nil, fmt.Errorf("unmarshal blockInfo: %s", err)
 	}
 

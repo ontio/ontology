@@ -72,12 +72,15 @@ type BftAction struct {
 	forEmpty bool
 }
 
-type BlockParticipantConfig struct {
-	BlockNum    uint32
-	ChainConfig *vconfig.ChainConfig
-	Proposers   []uint32
-	Endorsers   []uint32
-	Committers  []uint32
+type VbftContext struct {
+	BlockNum      uint32
+	Config        *vconfig.ChainConfig
+	ConfigNum     uint32
+	PrevBlock     *types.Block
+	PrevBlockInfo *vconfig.VbftBlockInfo
+	Proposers     []uint32
+	Endorsers     []uint32
+	Committers    []uint32
 }
 
 type p2pMsgPayload struct {
@@ -99,13 +102,10 @@ type Server struct {
 	// 2. should never take exclusive lock on both blockpool and peerpool at the same time.
 	// 3. msgpool.Lock is independent, should have no exclusive overlap with other locks.
 	//
-	metaLock                 sync.RWMutex
-	completedBlockNum        uint32 // ledger SaveBlockCompleted block num
-	currentBlockNum          uint32
-	LastConfigBlockNum       uint32
-	dealfutureBlockNum       uint32
-	config                   *vconfig.ChainConfig
-	currentParticipantConfig *BlockParticipantConfig
+	metaLock           sync.RWMutex
+	completedBlockNum  uint32 // ledger SaveBlockCompleted block num
+	dealfutureBlockNum uint32
+	vbftCtx            *VbftContext
 
 	msgPool   *MsgPool   // consensus msg pool
 	blockPool *BlockPool // received block proposals
@@ -208,17 +208,14 @@ func (self *Server) handleBlockPersistCompleted(block *types.Block) {
 	self.incrValidator.AddBlock(block)
 	if self.nonConsensusNode() {
 		self.blockPool.ReloadFromLedger()
-		if self.GetCommittedBlockNo() >= self.GetCurrentBlockNo() {
-			self.SetCurrentBlockNo(self.GetCommittedBlockNo() + 1)
-		}
 	}
 
-	if self.checkNeedUpdateChainConfig(completedBlock) || self.checkUpdateChainConfig(completedBlock) {
-		err := self.updateChainConfig(completedBlock)
-		if err != nil {
-			log.Errorf("updateChainConfig failed:%s", err)
-		}
+	blkInfo, err := vconfig.VbftBlock(block.Header)
+	if err != nil {
+		log.Errorf("load vbft block info failed:%s", err)
+		return
 	}
+	self.updateVbftContext(block, blkInfo)
 }
 
 func (self *Server) CheckSubmitBlock(blkNum uint32, stateRoot common.Uint256) bool {
@@ -275,9 +272,9 @@ func (self *Server) LoadChainConfig(store *ChainStore) error {
 		return fmt.Errorf("getSealedBlock err height:%d", blkNum)
 	}
 	var cfg vconfig.ChainConfig
+	configBlk := blkNum
 	if block.getNewChainConfig() != nil {
 		cfg = *block.getNewChainConfig()
-		self.LastConfigBlockNum = blkNum
 	} else {
 		lastConfigNum := block.getLastConfigBlockNum()
 		cfgBlock, _ := store.GetBlock(lastConfigNum)
@@ -288,26 +285,33 @@ func (self *Server) LoadChainConfig(store *ChainStore) error {
 			panic("failed to get chain config from config block")
 		}
 		cfg = *cfgBlock.getNewChainConfig()
-		self.LastConfigBlockNum = lastConfigNum
+		configBlk = lastConfigNum
 	}
-	self.config = &cfg
 
-	if self.config.View == 0 || self.config.MaxBlockChangeView == 0 {
+	if cfg.View == 0 || cfg.MaxBlockChangeView == 0 {
 		panic("invalid view or maxblockchangeview ")
 	}
 
 	// update timer params
-	self.updateTimerParams(self.config)
+	self.updateTimerParams(&cfg)
 
 	self.completedBlockNum = blkNum
-	self.currentBlockNum = blkNum + 1
-
 	log.Infof("current committed block no: %d", blkNum)
 
-	pcfg := buildParticipantConfig(self.GetCurrentBlockNo(), block.Info.Proposer, block.Info.VrfValue, self.config)
-	self.currentParticipantConfig = pcfg
-	log.Infof("server %d, blkNum: %d, state: %d, participants config: %v, %v, %v", self.Index, blkNum,
-		self.getState(), pcfg.Proposers, pcfg.Endorsers, pcfg.Committers)
+	proposers, endorsers, committers := buildPeerRoles(blkNum+1, block.Info.Proposer, block.Info.VrfValue, &cfg)
+	log.Infof("server %d, blkNum: %d, state: %d, participants: %v, %v, %v", self.Index, blkNum,
+		self.getState(), proposers, endorsers, committers)
+
+	self.vbftCtx = &VbftContext{
+		BlockNum:      blkNum + 1,
+		Config:        &cfg,
+		ConfigNum:     configBlk,
+		PrevBlock:     block.Block,
+		PrevBlockInfo: block.Info,
+		Proposers:     proposers,
+		Endorsers:     endorsers,
+		Committers:    committers,
+	}
 
 	return nil
 }
@@ -316,39 +320,46 @@ func (self *Server) nonConsensusNode() bool {
 	return self.Index == math.MaxUint32
 }
 
-// updateChainCofig
-func (self *Server) updateChainConfig(completedBlock uint32) error {
-	block, _ := self.blockPool.getSealedBlock(completedBlock)
-	if block == nil {
-		return fmt.Errorf("GetBlockInfo failed,block is nil:%d", completedBlock)
-	}
-	config := block.Info.NewChainConfig
-	if config == nil {
-		return fmt.Errorf("GetNewChainConfig nil,%d", completedBlock)
+func (self *Server) updateVbftContext(block *types.Block, info *vconfig.VbftBlockInfo) {
+	blkNum := block.Header.Height
+	vbftCtx := self.GetVbftContext()
+	if info.NewChainConfig != nil {
+		self.updateTimerAndPeerPool(info.NewChainConfig)
+		vbftCtx.Config = info.NewChainConfig
+		vbftCtx.ConfigNum = blkNum
 	}
 
+	vbftCtx.Proposers, vbftCtx.Endorsers, vbftCtx.Committers = buildPeerRoles(blkNum+1, info.Proposer, info.VrfValue, vbftCtx.Config)
+	log.Infof("server %d, blkNum: %d, state: %d, participants: %v, %v, %v", self.Index, blkNum+1,
+		self.getState(), vbftCtx.Proposers, vbftCtx.Endorsers, vbftCtx.Committers)
+
+	vbftCtx.BlockNum = blkNum + 1
+	vbftCtx.PrevBlock = block
+	vbftCtx.PrevBlockInfo = info
+
+	self.metaLock.Lock()
+	if self.vbftCtx.BlockNum+1 == vbftCtx.BlockNum {
+		self.vbftCtx = vbftCtx
+	}
+	self.metaLock.Unlock()
+	log.Infof("update vbft context, blkNum:%d", blkNum)
+}
+
+func (self *Server) updateTimerAndPeerPool(config *vconfig.ChainConfig) {
 	pubkey := vconfig.PubkeyID(self.account.PublicKey)
 	peermap := make(map[string]uint32)
 	for _, p := range config.Peers {
 		peermap[p.ID] = p.Index
 		if self.Index == math.MaxUint32 && pubkey == p.ID {
 			self.Index = p.Index
-			log.Infof("updateChainConfig add index :%d", self.Index)
+			log.Infof("updateTimerAndPeerPool add index :%d", self.Index)
 		}
 		// check if peer pubkey support VRF
 		publickey, err := vconfig.Pubkey(p.ID)
-		if err != nil {
-			return fmt.Errorf("failed to parse peer %d PeerID: %s", p.Index, err)
-		} else if !vrf.ValidatePublicKey(publickey) {
-			return fmt.Errorf("peer %d: invalid peer pubkey for VRF", p.Index)
+		if err != nil || !vrf.ValidatePublicKey(publickey) {
+			panic(fmt.Errorf("peer pubkey is ensured to be valid for VRF:%s", p.ID))
 		}
 	}
-
-	log.Infof("updateChainConfig blkNum:%d", completedBlock)
-	self.metaLock.Lock()
-	self.config = config
-	self.LastConfigBlockNum = block.getLastConfigBlockNum()
-	self.metaLock.Unlock()
 
 	self.metaLock.RLock()
 	defer self.metaLock.RUnlock()
@@ -369,22 +380,20 @@ func (self *Server) updateChainConfig(completedBlock uint32) error {
 					self.Index, peerIdx, err)
 			}
 		}()
-		log.Infof("updateChainConfig add peer index:%v", peerIdx)
+		log.Infof("updateTimerAndPeerPool add peer index:%v", peerIdx)
 	}
 
 	for _, index := range removed {
 		if index == self.Index {
 			self.Index = math.MaxUint32
-			log.Infof("updateChainConfig remove index :%d", index)
+			log.Infof("updateTimerAndPeerPool remove index :%d", index)
 		} else {
 			if C := self.GetPeerMsgChan(index); C != nil {
-				log.Infof("updateChainConfig remove consensus:index:%d", index)
+				log.Infof("updateTimerAndPeerPool remove consensus:index:%d", index)
 				C <- nil
 			}
 		}
 	}
-
-	return nil
 }
 
 func (self *Server) initialize() error {
@@ -598,37 +607,9 @@ func (self *Server) getState() ServerState {
 	return self.stateMgr.getState()
 }
 
-func (self *Server) updateParticipantConfig() error {
-	blkNum := self.GetCurrentBlockNo()
-	block, _ := self.blockPool.getSealedBlock(blkNum - 1)
-	if block == nil {
-		return fmt.Errorf("failed to get sealed block (%d)", blkNum-1)
-	}
-
-	chainconfig := block.Info.NewChainConfig
-	if chainconfig == nil {
-		chainCfg := self.GetChainConfig()
-		chainconfig = &chainCfg
-	}
-	cfg := buildParticipantConfig(blkNum, block.Info.Proposer, block.Info.VrfValue, chainconfig)
-	log.Infof("server %d, blkNum: %d, state: %d, participants config: %v, %v, %v", self.Index, blkNum,
-		self.getState(), cfg.Proposers, cfg.Endorsers, cfg.Committers)
-
-	self.metaLock.Lock()
-	self.currentParticipantConfig = cfg
-	self.metaLock.Unlock()
-
-	return nil
-}
-
 // TODO: startNewRound called by multiple routines, so processConsensusMsg called in this function may deadlock
-func (self *Server) startNewRound() error {
+func (self *Server) startNewRound() {
 	blkNum := self.GetCurrentBlockNo()
-
-	if err := self.updateParticipantConfig(); err != nil {
-		log.Errorf("startNewRound error:%s", err)
-		return err
-	}
 	// check proposals in msgpool
 	var proposal *blockProposalMsg
 	for _, p := range self.msgPool.GetProposalMsgs(blkNum) {
@@ -667,18 +648,18 @@ func (self *Server) startNewRound() error {
 		// in commit msg processing.
 		self.blockPool.setCommitDone(blkNum)
 		self.processConsensusMsg(commits[0])
-		return nil
+		return
 	} else if _, _, done := self.blockPool.endorseDone(blkNum, chainCfg.C); done && len(endorses) > 0 {
 		// resend endorse msg to msg-processor to restart endorse-done processing
 		self.processConsensusMsg(endorses[0])
-		return nil
+		return
 	} else if proposal != nil {
 		self.processProposalMsg(proposal)
-		return nil
+		return
 	}
 	self.timer.StartEventTimer(EventTxPool, blkNum)
 	self.timer.StartEventTimer(EventTxBlockTimeout, blkNum)
-	return nil
+	return
 }
 
 func (self *Server) startNewProposal(blkNum uint32) {
@@ -736,7 +717,6 @@ func (self *Server) onConsensusMsg(peerIdx uint32, msg ConsensusMsg, msgHash com
 			}
 			self.processProposalMsg(pMsg)
 		}
-
 	case BlockEndorseMessage:
 		pMsg := msg.(*blockEndorseMsg)
 
@@ -942,8 +922,9 @@ func (self *Server) processProposalMsg(msg *blockProposalMsg) {
 		self.msgPool.DropMsg(msg)
 		return
 	}
-	if self.LastConfigBlockNum != math.MaxUint32 && blk.Info.LastConfigBlockNum != self.LastConfigBlockNum {
-		log.Errorf("BlockPrposalMessage  check LastConfigBlockNum blocknum:%d,prvLastConfigBlockNum:%d,self LastConfigBlockNum:%d", msg.GetBlockNum(), blk.Info.LastConfigBlockNum, self.LastConfigBlockNum)
+	configNum := self.GetVbftContext().ConfigNum
+	if configNum != math.MaxUint32 && blk.Info.LastConfigBlockNum != configNum { // TODO: useless since blk load from blockpool
+		log.Errorf("BlockPrposalMessage  check LastConfigBlockNum blocknum:%d,prvLastConfigBlockNum:%d,self LastConfigBlockNum:%d", msg.GetBlockNum(), blk.Info.LastConfigBlockNum, configNum)
 		return
 	}
 	merkleRoot, err := self.blockPool.getExecMerkleRoot(msgBlkNum - 1)
@@ -1054,13 +1035,11 @@ func (self *Server) processConsensusMsg(msg ConsensusMsg) {
 }
 
 func (self *Server) processMsgEvent(msg ConsensusMsg) {
-	log.Debugf("server %d process msg, block %d, type %d, current blk %d",
-		self.Index, msg.GetBlockNum(), msg.Type(), self.GetCurrentBlockNo())
-
 	msgBlkNum := msg.GetBlockNum()
 	if msgBlkNum != self.GetCurrentBlockNo() {
 		return
 	}
+	log.Debugf("server %d process msg, block %d, type %d", self.Index, msg.GetBlockNum(), msg.Type())
 	switch msg.Type() {
 	case BlockProposalMessage:
 		pMsg := msg.(*blockProposalMsg)
@@ -1187,7 +1166,7 @@ func (self *Server) processMsgEvent(msg ConsensusMsg) {
 					log.Errorf("server %d consensused %d, committer broadcast commit msg: %s", self.Index, msgBlkNum, err)
 				}
 			}
-			if !self.blockPool.checkBlockSign(proposal.Block, forEmpty, self.config.N-(self.config.N-1)/3) {
+			if !self.blockPool.checkBlockSign(proposal.Block, forEmpty, chainCfg.N-(chainCfg.N-1)/3) {
 				log.Errorf("server %d received commit checkBlockSign insufficient at blk: %d", self.Index, msgBlkNum)
 				return
 			}
@@ -1257,11 +1236,7 @@ func (self *Server) processBftAction(action *BftAction) {
 		if self.hasBlockConsensused() {
 			self.makeFastForward()
 		} else {
-			err := self.startNewRound()
-			if err != nil {
-				log.Errorf("server %d failed to seal block (%d): %s",
-					self.Index, action.Proposal.GetBlockNum(), err)
-			}
+			self.startNewRound()
 		}
 	case FastForward:
 		// 1. from current block num, check commit msgs in msg pool
@@ -1269,10 +1244,6 @@ func (self *Server) processBftAction(action *BftAction) {
 		for {
 			blkNum := self.GetCurrentBlockNo()
 			chainCfg := self.GetChainConfig()
-
-			if err := self.updateParticipantConfig(); err != nil {
-				log.Errorf("server %d update config failed in forwarding: %s", self.Index, err)
-			}
 
 			// get pending msgs from msgpool
 			pMsgs := self.msgPool.GetProposalMsgs(blkNum)
@@ -1329,7 +1300,7 @@ func (self *Server) processBftAction(action *BftAction) {
 				break
 			}
 			//check block sign num
-			if !self.blockPool.checkBlockSign(proposal.Block, forEmpty, self.config.N-(self.config.N-1)/3) {
+			if !self.blockPool.checkBlockSign(proposal.Block, forEmpty, chainCfg.N-(chainCfg.N-1)/3) {
 				log.Errorf("server %d fastforward checkBlockSign insufficient at blk: %d", self.Index, blkNum)
 				break
 			}
@@ -1356,6 +1327,7 @@ func (self *Server) processBftAction(action *BftAction) {
 			if p.Block.getProposer() == self.Index {
 				log.Infof("server %d rebroadcast proposal, blk %d", self.Index, blkNum)
 				self.broadcast(p)
+				break
 			}
 		}
 		if self.isEndorser(self.Index) {
@@ -1609,8 +1581,7 @@ func (self *Server) processTimerEvent(evt *TimerEvent) error {
 		// 2. check commit quorum
 		// 3. if quorum reached, seal the commit, start new round, return
 		// 4. else: there must have some network issues, force resync, reset all neighbours
-		//
-		if blk, _ := self.blockPool.getSealedBlock(evt.blockNum); blk != nil {
+		if evt.blockNum < self.GetCurrentBlockNo() {
 			return nil
 		}
 		if !self.getState().IsReady() {
@@ -1625,7 +1596,7 @@ func (self *Server) processTimerEvent(evt *TimerEvent) error {
 					self.restartSyncing()
 					return fmt.Errorf("commit timeout, consensused proposal not available. need resync")
 				}
-				if !self.blockPool.checkBlockSign(proposal.Block, forEmpty, self.config.N-(self.config.N-1)/3) {
+				if !self.blockPool.checkBlockSign(proposal.Block, forEmpty, chainCfg.N-(chainCfg.N-1)/3) {
 					self.restartSyncing()
 					log.Errorf("server %d commit timeout checkBlockSign insufficient at blk: %d", self.Index, evt.blockNum)
 					return fmt.Errorf("commit timeout, consensused blockSign not enough. need resync")
@@ -1836,7 +1807,8 @@ func (self *Server) sealBlock(block *VbftBlock, empty bool, sigdata bool) error 
 		return fmt.Errorf("future seal of %d, current blknum: %d", sealedBlkNum, self.GetCurrentBlockNo())
 	}
 
-	if err := self.blockPool.SetBlockSealed(block, empty, sigdata); err != nil {
+	sealedBlock, err := self.blockPool.SetBlockSealed(block, empty, sigdata)
+	if err != nil {
 		return fmt.Errorf("failed to seal proposal: %s", err)
 	}
 
@@ -1846,16 +1818,13 @@ func (self *Server) sealBlock(block *VbftBlock, empty bool, sigdata bool) error 
 	self.timer.OnBlockSealed(sealedBlkNum)
 	self.msgPool.OnBlockSealed(sealedBlkNum)
 
-	_, h := self.blockPool.getSealedBlock(sealedBlkNum)
-	prevBlkHash := block.getPrevBlockHash()
+	h := sealedBlock.Block.Hash()
+	prevBlkHash := sealedBlock.getPrevBlockHash()
 	log.Infof("server %d, sealed block %d, proposer %d, prevhash: %s, hash: %s", self.Index,
 		sealedBlkNum, block.getProposer(), prevBlkHash.ToHexString(), h.ToHexString())
 
-	// broadcast to other modules
 	// TODO: block committed, update tx pool, notify block-listeners
-	if sealedBlkNum >= self.GetCurrentBlockNo() {
-		self.SetCurrentBlockNo(sealedBlkNum + 1)
-	}
+	self.updateVbftContext(sealedBlock.Block, sealedBlock.Info)
 	return nil
 }
 
@@ -1945,9 +1914,10 @@ func (self *Server) nonSystxs(sysTxs []*types.Transaction, blkNum uint32) bool {
 }
 
 func (self *Server) makeProposal(blkNum uint32, forEmpty bool) error {
-	if blkNum < self.GetCurrentBlockNo() {
+	vbftCtx := self.GetVbftContext()
+	if blkNum < vbftCtx.BlockNum {
 		return fmt.Errorf("server %d ignore deprecatd blk proposal %d, current %d",
-			self.Index, blkNum, self.GetCurrentBlockNo())
+			self.Index, blkNum, vbftCtx.BlockNum)
 	}
 
 	validHeight := self.validHeight(blkNum)
@@ -1987,7 +1957,7 @@ func (self *Server) makeProposal(blkNum uint32, forEmpty bool) error {
 		log.Infof("make proposal get %d valid tx from pool", len(userTxs))
 	}
 
-	proposal, err := self.constructProposalMsg(blkNum, sysTxs, userTxs, cfg)
+	proposal, err := self.constructProposalMsg(vbftCtx, sysTxs, userTxs, cfg)
 	if err != nil {
 		return fmt.Errorf("failed to construct proposal: %s", err)
 	}

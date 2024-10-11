@@ -620,7 +620,7 @@ func (pool *BlockPool) checkBlockSign(block *VbftBlock, forEmpty bool, requiredS
 	return uint32(len(sigData)) >= requiredSigs
 }
 
-func (pool *BlockPool) SetBlockSealed(block *VbftBlock, forEmpty bool, sigdata bool) error {
+func (pool *BlockPool) SetBlockSealed(block *VbftBlock, forEmpty bool, sigdata bool) (*VbftBlock, error) {
 	pool.lock.Lock()
 	defer pool.lock.Unlock()
 
@@ -629,13 +629,13 @@ func (pool *BlockPool) SetBlockSealed(block *VbftBlock, forEmpty bool, sigdata b
 
 	if c.SealedBlock != nil {
 		if c.SealedBlock.getProposer() == block.getProposer() {
-			return nil
+			return c.SealedBlock, nil
 		}
-		return fmt.Errorf("double seal for block %d", blkNum)
+		return nil, fmt.Errorf("double seal for block %d", blkNum)
 	}
 	if sigdata {
 		if err := pool.addSignaturesToBlockLocked(block, forEmpty); err != nil {
-			return fmt.Errorf("failed to add sig to block: %s", err)
+			return nil, fmt.Errorf("failed to add sig to block: %s", err)
 		}
 	}
 	sealedBlock := &VbftBlock{
@@ -651,7 +651,7 @@ func (pool *BlockPool) SetBlockSealed(block *VbftBlock, forEmpty bool, sigdata b
 	// add block to chain store
 	stateRoot, err := pool.chainStore.AddBlock(sealedBlock)
 	if err != nil {
-		return fmt.Errorf("failed to seal block (%d) to chainstore: %s", blkNum, err)
+		return nil, fmt.Errorf("failed to seal block (%d) to chainstore: %s", blkNum, err)
 	}
 
 	for n := range pool.candidateBlocks {
@@ -665,7 +665,7 @@ func (pool *BlockPool) SetBlockSealed(block *VbftBlock, forEmpty bool, sigdata b
 		pool.server.broadcast(blocksubmitMsg)
 		pool.server.makeBlockSubmit(pool.chainStore.GetChainedBlockNum())
 	}
-	return nil
+	return sealedBlock, nil
 }
 
 func (pool *BlockPool) getSealedBlock(blockNum uint32) (*VbftBlock, common.Uint256) {
