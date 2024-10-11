@@ -86,15 +86,6 @@ func (self *Server) isPeerAlive(peerIdx uint32) bool {
 	return peerIdx == self.Index || self.peerPool.IsPeerConnected(peerIdx)
 }
 
-func (self *Server) isPeerActive(peerIdx uint32) bool {
-	if self.isPeerAlive(peerIdx) {
-		committedBlock := self.peerPool.GetPeerCommittedBlockNo(peerIdx)
-		return committedBlock != 0 && committedBlock+MAX_SYNCING_CHECK_BLK_NUM*4 > self.GetCommittedBlockNo()
-	}
-
-	return false
-}
-
 // the first proposer as leader-proposer,
 // all other proposer as 2nd-proposer
 // before propose-timeout, only proposal from leader-proposer is accepted
@@ -131,18 +122,9 @@ func (self *Server) getProposerRank(blockNum uint32, peerIdx uint32) int {
 func (self *Server) isEndorser(peerIdx uint32) bool {
 	self.metaLock.RLock()
 	defer self.metaLock.RUnlock()
-
-	// the first 2C+1 active endorsers
-	var activeN uint32
 	for _, id := range self.currentParticipantConfig.Endorsers {
 		if id == peerIdx {
 			return true
-		}
-		if self.isPeerActive(id) {
-			activeN++
-			if activeN > self.config.C*2 {
-				break
-			}
 		}
 	}
 
@@ -152,18 +134,9 @@ func (self *Server) isEndorser(peerIdx uint32) bool {
 func (self *Server) isCommitter(peerIdx uint32) bool {
 	self.metaLock.RLock()
 	defer self.metaLock.RUnlock()
-
-	// the first 2C+1 active committers
-	var activeN uint32
 	for _, id := range self.currentParticipantConfig.Committers {
 		if id == peerIdx {
 			return true
-		}
-		if self.isPeerActive(id) {
-			activeN++
-			if activeN > self.config.C*2 {
-				break
-			}
 		}
 	}
 
@@ -237,7 +210,6 @@ func buildParticipantConfig(blkNum, proposer uint32, preVrfValue []byte, chainCf
 }
 
 func calcParticipantPeers(vrfValue vconfig.VRFValue, chain *vconfig.ChainConfig) ([]uint32, []uint32, []uint32) {
-
 	peers := make([]uint32, 0)
 	peerMap := make(map[uint32]bool)
 
