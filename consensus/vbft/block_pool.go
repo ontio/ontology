@@ -158,6 +158,15 @@ func (pool *BlockPool) AddBlockProposal(msg *blockProposalMsg) error {
 	return nil
 }
 
+func (pool *BlockPool) GetBlockProposal(blkNum, proposer uint32) *blockProposalMsg {
+	for _, p := range pool.GetBlockProposals(blkNum) {
+		if p.Block.getProposer() == proposer {
+			return p
+		}
+	}
+	return nil
+}
+
 func (pool *BlockPool) GetBlockProposals(blkNum uint32) []*blockProposalMsg {
 	pool.lock.RLock()
 	defer pool.lock.RUnlock()
