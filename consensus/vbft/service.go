@@ -50,8 +50,7 @@ import (
 type BftActionType uint8
 
 const (
-	FastForward BftActionType = iota
-	ReBroadcast
+	ReBroadcast BftActionType = iota
 	SubmitBlock
 )
 
@@ -647,14 +646,7 @@ func (self *Server) startNewProposal(blkNum uint32) {
 	if self.isProposer(self.Index) {
 		log.Infof("server %d, proposer for block %d", self.Index, blkNum)
 		if blkNum == self.GetCurrentBlockNo() {
-			var proposal *blockProposalMsg
-			msgs := self.msgPool.GetProposalMsgs(blkNum)
-			for _, m := range msgs {
-				if p, ok := m.(*blockProposalMsg); ok && p.Block.getProposer() == self.Index {
-					proposal = p
-					break
-				}
-			}
+			proposal := self.blockPool.GetBlockProposal(blkNum, self.Index)
 			if proposal == nil {
 				if err := self.makeProposal(blkNum, false); err != nil {
 					log.Errorf("server %d failed to making proposal (%d): %s",
@@ -1122,85 +1114,6 @@ func (self *Server) processMsgEvent(msg ConsensusMsg) {
 
 func (self *Server) processBftAction(action *BftAction) {
 	switch action.Type {
-	case FastForward:
-		// 1. from current block num, check commit msgs in msg pool
-		// 2. if commit consensused, seal the proposal
-		for {
-			vbftCtx := self.GetVbftContext()
-			blkNum := vbftCtx.BlockNum
-			chainCfg := self.GetChainConfig()
-
-			// get pending msgs from msgpool
-			pMsgs := self.msgPool.GetProposalMsgs(blkNum)
-			for _, msg := range pMsgs {
-				p := msg.(*blockProposalMsg)
-				if err := self.blockPool.AddBlockProposal(p); err != nil {
-					log.Errorf("server %d failed add proposal in fastforwarding: %s",
-						self.Index, err)
-				}
-			}
-
-			cMsgs := self.msgPool.GetCommitMsgs(blkNum)
-			commitMsgs := make([]*blockCommitMsg, 0)
-			for _, msg := range cMsgs {
-				c := msg.(*blockCommitMsg)
-				if err := self.blockPool.AddBlockCommitMsg(c); err == nil {
-					commitMsgs = append(commitMsgs, c)
-				} else {
-					log.Errorf("server %d failed to add commit in fastforwarding: %s",
-						self.Index, err)
-				}
-			}
-
-			log.Infof("server %d fastforwarding from %d, (%d, %d)",
-				self.Index, self.GetCurrentBlockNo(), len(cMsgs), len(pMsgs))
-			if len(pMsgs) == 0 && len(cMsgs) == 0 {
-				log.Infof("server %d fastforward done, no msg", self.Index)
-				self.startNewRound()
-				break
-			}
-
-			// check if consensused
-			proposer, forEmpty := getCommitConsensus(commitMsgs, int(chainCfg.C), int(chainCfg.N))
-			if proposer == math.MaxUint32 {
-				if err := self.catchConsensus(vbftCtx); err != nil {
-					log.Infof("server %d fastforward done, catch consensus: %s", self.Index, err)
-				}
-				log.Infof("server %d fastforward done at blk %d, no consensus", self.Index, blkNum)
-				break
-			}
-
-			// get consensused proposal
-			var proposal *blockProposalMsg
-			for _, p := range self.blockPool.GetBlockProposals(blkNum) {
-				if p.Block.getProposer() == proposer {
-					proposal = p
-					break
-				}
-			}
-			if proposal == nil {
-				log.Infof("server %d fastforward stopped at blk %d, no proposal", self.Index, blkNum)
-				self.fetchProposal(blkNum, proposer)
-				self.timer.StartEventTimer(EventCommitBlockTimeout, blkNum)
-				break
-			}
-			//check block sign num
-			if !self.blockPool.checkBlockSign(proposal.Block, forEmpty, chainCfg.N-(chainCfg.N-1)/3) {
-				log.Errorf("server %d fastforward checkBlockSign insufficient at blk: %d", self.Index, blkNum)
-				break
-			}
-
-			log.Infof("server %d fastforwarding block %d, proposer %d",
-				self.Index, blkNum, proposal.Block.getProposer())
-
-			// fastforward the block
-			if err := self.sealBlock(proposal.Block, forEmpty, true); err != nil {
-				log.Errorf("server %d fastforward stopped at blk %d, seal failed: %s",
-					self.Index, blkNum, err)
-				break
-			}
-		}
-
 	case ReBroadcast:
 		blkNum := self.GetCurrentBlockNo()
 		if blkNum > action.BlockNum {
@@ -1693,9 +1606,6 @@ func (self *Server) sealBlock(block *VbftBlock, empty bool, sigdata bool) error 
 		return fmt.Errorf("failed to seal proposal: %s", err)
 	}
 
-	// TODO: also persistent the block endorsers and committer msgs
-
-	// notify other modules that block sealed
 	self.timer.OnBlockSealed(sealedBlkNum)
 	self.msgPool.OnBlockSealed(sealedBlkNum)
 
@@ -1704,7 +1614,6 @@ func (self *Server) sealBlock(block *VbftBlock, empty bool, sigdata bool) error 
 	log.Infof("server %d, sealed block %d, proposer %d, prevhash: %s, hash: %s", self.Index,
 		sealedBlkNum, block.getProposer(), prevBlkHash.ToHexString(), h.ToHexString())
 
-	// TODO: block committed, update tx pool, notify block-listeners
 	if self.updateVbftContext(sealedBlock.Block, sealedBlock.Info) {
 		self.incrValidator.AddBlock(sealedBlock.Block)
 	}
@@ -1850,7 +1759,7 @@ func (self *Server) makeProposal(blkNum uint32, forEmpty bool) error {
 	// add proposal to self
 	h, _ := HashMsg(proposal)
 	self.msgPool.AddMsg(proposal, h)
-	self.processProposalMsg(vbftCtx, proposal)
+	self.processMsgEvent(proposal)
 	self.broadcast(proposal)
 	return nil
 }
@@ -1878,20 +1787,8 @@ func (self *Server) makeSealed(proposal *blockProposalMsg, forEmpty bool) error 
 		return nil
 	}
 
-	if self.hasBlockConsensused() {
-		self.makeFastForward()
-	} else {
-		self.startNewRound()
-	}
+	self.startNewRound()
 	return nil
-}
-
-func (self *Server) makeFastForward() {
-	go func() {
-		self.bftActionC <- &BftAction{
-			Type: FastForward,
-		}
-	}()
 }
 
 func (self *Server) reBroadcastCurrentRoundMsgs() {
@@ -1975,92 +1872,6 @@ func (self *Server) handleProposalTimeout(evt *TimerEvent) error {
 	return nil
 }
 
-// TODO: refactor this
-func (self *Server) catchConsensus(vbftCtx *VbftContext) error {
-	blkNum := vbftCtx.BlockNum
-	if !self.isEndorser(self.Index) && !self.isCommitter(self.Index) {
-		return nil
-	}
-
-	proposals := make(map[uint32]*blockProposalMsg)
-	pMsgs := self.msgPool.GetProposalMsgs(blkNum)
-	for _, msg := range pMsgs {
-		p := msg.(*blockProposalMsg)
-		proposals[p.Block.getProposer()] = p
-	}
-
-	chainCfg := self.GetChainConfig()
-	eMsgs := self.msgPool.GetEndorsementsMsgs(blkNum)
-	var proposal *blockProposalMsg
-	endorseDone := false
-	endorseEmpty := false
-	if len(eMsgs) > int(chainCfg.C) {
-		var maxProposer uint32
-		emptyCnt := 0
-		maxCnt := 0
-		proposers := make(map[uint32]int)
-		for _, msg := range eMsgs {
-			c := msg.(*blockEndorseMsg)
-			if c.EndorseForEmpty {
-				emptyCnt++
-			}
-			proposers[c.EndorsedProposer] += 1
-			if proposers[c.EndorsedProposer] > maxCnt {
-				maxProposer = c.EndorsedProposer
-				maxCnt = proposers[c.EndorsedProposer]
-			}
-		}
-		proposal = proposals[maxProposer]
-		if maxCnt > int(chainCfg.C) {
-			endorseDone = true
-		}
-		if emptyCnt > int(chainCfg.C) {
-			endorseDone = true
-			endorseEmpty = true
-		}
-	}
-	if proposal != nil && self.isProposer(proposal.Block.getProposer()) {
-		self.processProposalMsg(vbftCtx, proposal)
-	}
-
-	if self.isEndorser(self.Index) && !endorseDone && proposal != nil {
-		return self.endorseBlock(proposal, endorseEmpty)
-	}
-
-	if !endorseDone {
-		return fmt.Errorf("server %d catch consensus with endorse failed", self.Index)
-	}
-
-	if !self.isCommitter(self.Index) {
-		return nil
-	}
-
-	var maxProposer uint32
-	maxCnt := 0
-	emptyCnt := 0
-	proposers := make(map[uint32]int)
-	cMsgs := self.msgPool.GetCommitMsgs(blkNum)
-	for _, msg := range cMsgs {
-		c, ok := msg.(*blockCommitMsg)
-		if !ok {
-			continue
-		}
-		if c.CommitForEmpty {
-			emptyCnt++
-		}
-		proposers[c.BlockProposer] += 1
-		if proposers[c.BlockProposer] > maxCnt {
-			maxProposer = c.BlockProposer
-		}
-	}
-
-	if p := proposals[maxProposer]; p != nil {
-		return self.commitBlock(p, emptyCnt > 0)
-	}
-
-	return nil
-}
-
 func (self *Server) verifyPrevBlockHash(blkNum uint32, proposal *blockProposalMsg) error {
 	prevBlk, prevBlkHash := self.blockPool.getSealedBlock(blkNum - 1)
 	if prevBlk == nil {
@@ -2076,27 +1887,6 @@ func (self *Server) verifyPrevBlockHash(blkNum uint32, proposal *blockProposalMs
 	}
 
 	return nil
-}
-
-func (self *Server) hasBlockConsensused() bool {
-	blkNum := self.GetCurrentBlockNo()
-
-	C := int(self.GetChainConfig().C)
-	cMsgs := self.msgPool.GetCommitMsgs(blkNum)
-	emptyCnt := 0
-	proposers := make(map[uint32]int)
-	for _, msg := range cMsgs {
-		c := msg.(*blockCommitMsg)
-		if c.CommitForEmpty {
-			emptyCnt++
-		}
-		proposers[c.BlockProposer] += 1
-		if proposers[c.BlockProposer] > C {
-			return true
-		}
-	}
-
-	return emptyCnt > C
 }
 
 func (self *Server) restartSyncing() {

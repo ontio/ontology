@@ -658,7 +658,7 @@ func (pool *BlockPool) SetBlockSealed(block *VbftBlock, forEmpty bool, sigdata b
 	}
 
 	// add block to chain store
-	stateRoot, err := pool.chainStore.AddBlock(sealedBlock)
+	result, err := pool.chainStore.AddBlock(sealedBlock)
 	if err != nil {
 		return nil, fmt.Errorf("failed to seal block (%d) to chainstore: %s", blkNum, err)
 	}
@@ -670,7 +670,7 @@ func (pool *BlockPool) SetBlockSealed(block *VbftBlock, forEmpty bool, sigdata b
 	}
 	c.SealedBlock = sealedBlock
 
-	if blocksubmitMsg, _ := pool.server.constructBlockSubmitMsg(blkNum, stateRoot); blocksubmitMsg != nil {
+	if blocksubmitMsg, _ := pool.server.constructBlockSubmitMsg(blkNum, result.MerkleRoot); blocksubmitMsg != nil {
 		pool.server.broadcast(blocksubmitMsg)
 		pool.server.makeBlockSubmit(pool.chainStore.GetChainedBlockNum())
 	}

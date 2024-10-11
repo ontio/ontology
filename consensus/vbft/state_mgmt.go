@@ -206,12 +206,6 @@ func (self *StateMgr) onPeerUpdate(peerState *PeerState) {
 		self.trySetSyncedReady()
 	case SyncReady:
 	case Active:
-		committedBlkNum, ok := self.getConsensusedCommittedBlockNum()
-		if ok && committedBlkNum > self.server.GetCommittedBlockNo()+1 {
-			log.Infof("server %d synced try fastforward from %d",
-				self.server.Index, self.server.GetCommittedBlockNo())
-			self.server.makeFastForward()
-		}
 	}
 }
 
@@ -248,15 +242,8 @@ func (self *StateMgr) onLiveTick(evt *StateEvent) {
 func (self *StateMgr) requestSyncIfFallBehind() (needSync bool) {
 	committedBlkNum, ok := self.getConsensusedCommittedBlockNum()
 	if ok && committedBlkNum > self.server.GetCommittedBlockNo() {
-		fastforward := self.canFastForward(committedBlkNum)
-		log.Infof("server %d, syncing %d, target %d, fast-forward %t",
-			self.server.Index, self.server.GetCommittedBlockNo(), committedBlkNum, fastforward)
-		if fastforward {
-			self.server.makeFastForward()
-		} else {
-			needSync = true
-			self.requestBlockSync(committedBlkNum)
-		}
+		needSync = true
+		self.requestBlockSync(committedBlkNum)
 	}
 	return
 }
@@ -305,7 +292,6 @@ func (self *StateMgr) trySetSyncedReady() {
 				blockNum: blkNum,
 			}
 		})
-		self.server.makeFastForward()
 	}
 }
 

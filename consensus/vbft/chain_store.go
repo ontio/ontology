@@ -119,22 +119,22 @@ func (self *ChainStore) ReloadFromLedger() {
 	}
 }
 
-func (self *ChainStore) AddBlock(block *VbftBlock) (stateRoot common.Uint256, err error) {
+func (self *ChainStore) AddBlock(block *VbftBlock) (result *store.ExecuteResult, err error) {
 	blkNum := block.getBlockNum()
 	if blkNum != self.chainedBlockNum+1 {
 		log.Warnf("chain store adding chained block(%d, %d)", blkNum, self.chainedBlockNum)
-		return stateRoot, fmt.Errorf("chain store adding chained block(%d, %d)", blkNum, self.chainedBlockNum)
+		return nil, fmt.Errorf("chain store adding chained block(%d, %d)", blkNum, self.chainedBlockNum)
 	}
 
 	err = self.SubmitBlock(blkNum - 1)
 	if err != nil {
 		log.Errorf("chainstore blkNum:%d, SubmitBlock: %s", blkNum-1, err)
-		return stateRoot, err
+		return nil, err
 	}
 	execResult, err := self.db.ExecuteBlock(block.Block)
 	if err != nil {
 		log.Errorf("chainstore AddBlock GetBlockExecResult: %s", err)
-		return stateRoot, fmt.Errorf("chainstore AddBlock GetBlockExecResult: %s", err)
+		return nil, fmt.Errorf("chainstore AddBlock GetBlockExecResult: %s", err)
 	}
 	h := block.Block.Hash()
 	log.Debugf("execResult:%+v, AddBlock execResult height:%d, hash: %s \n", execResult, block.Block.Header.Height, h.ToHexString())
@@ -143,7 +143,7 @@ func (self *ChainStore) AddBlock(block *VbftBlock) (stateRoot common.Uint256, er
 	self.pendingBlocks[blkNum] = &PendingBlock{block: block, execResult: &execResult, hasSubmitted: false}
 
 	self.setChainedBlockNum(blkNum)
-	return execResult.MerkleRoot, nil
+	return &execResult, nil
 }
 
 func (self *ChainStore) SubmitBlock(blkNum uint32) error {
