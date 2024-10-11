@@ -32,11 +32,7 @@ import (
 )
 
 func (self *Server) GetCompletedBlockNum() uint32 {
-	return atomic.LoadUint32(&self.completedBlockNum)
-}
-
-func (self *Server) SetCompletedBlockNum(blknum uint32) {
-	atomic.StoreUint32(&self.completedBlockNum, blknum)
+	return self.GetCurrentBlockNo() - 1
 }
 
 func (self *Server) GetCurrentBlockNo() uint32 {

@@ -103,7 +103,6 @@ type Server struct {
 	// 3. msgpool.Lock is independent, should have no exclusive overlap with other locks.
 	//
 	metaLock           sync.RWMutex
-	completedBlockNum  uint32 // ledger SaveBlockCompleted block num
 	dealfutureBlockNum uint32
 	vbftCtx            *VbftContext
 
@@ -170,10 +169,6 @@ func (self *Server) Receive(context actor.Context) {
 		log.Infof("vbft actor SaveBlockCompleteMsg receives block complete event. block height=%d, numtx=%d",
 			msg.Block.Header.Height, len(msg.Block.Transactions))
 		self.handleBlockPersistCompleted(msg.Block)
-	case *message.BlockConsensusComplete:
-		log.Infof("vbft actor  BlockConsensusComplete receives block complete event. block height=%d, numtx=%d",
-			msg.Block.Header.Height, len(msg.Block.Transactions))
-		self.handleBlockPersistCompleted(msg.Block)
 	case *p2pmsg.ConsensusPayload:
 		self.NewConsensusPayload(msg)
 
@@ -197,25 +192,16 @@ func (self *Server) Halt() error {
 
 func (self *Server) handleBlockPersistCompleted(block *types.Block) {
 	log.Infof("persist block: %d, %x", block.Header.Height, block.Hash())
-
-	if block.Header.Height <= self.GetCompletedBlockNum() {
-		log.Infof("server %d, persist block %d, vs completed %d",
-			self.Index, block.Header.Height, self.GetCompletedBlockNum())
-		return
-	}
-	completedBlock := block.Header.Height
-	self.SetCompletedBlockNum(completedBlock)
-	self.incrValidator.AddBlock(block)
-	if self.nonConsensusNode() {
-		self.blockPool.ReloadFromLedger()
-	}
-
 	blkInfo, err := vconfig.VbftBlock(block.Header)
 	if err != nil {
 		log.Errorf("load vbft block info failed:%s", err)
 		return
 	}
-	self.updateVbftContext(block, blkInfo)
+	if self.updateVbftContext(block, blkInfo) {
+		self.incrValidator.AddBlock(block)
+		// p2p synced before seal block: 1. not consensus node; 2. consensus node in syncing state
+		self.blockPool.ReloadFromLedger()
+	}
 }
 
 func (self *Server) CheckSubmitBlock(blkNum uint32, stateRoot common.Uint256) bool {
@@ -295,9 +281,7 @@ func (self *Server) LoadChainConfig(store *ChainStore) error {
 	// update timer params
 	self.updateTimerParams(&cfg)
 
-	self.completedBlockNum = blkNum
 	log.Infof("current committed block no: %d", blkNum)
-
 	proposers, endorsers, committers := buildPeerRoles(blkNum+1, block.Info.Proposer, block.Info.VrfValue, &cfg)
 	log.Infof("server %d, blkNum: %d, state: %d, participants: %v, %v, %v", self.Index, blkNum,
 		self.getState(), proposers, endorsers, committers)
@@ -320,11 +304,10 @@ func (self *Server) nonConsensusNode() bool {
 	return self.Index == math.MaxUint32
 }
 
-func (self *Server) updateVbftContext(block *types.Block, info *vconfig.VbftBlockInfo) {
+func (self *Server) updateVbftContext(block *types.Block, info *vconfig.VbftBlockInfo) (updated bool) {
 	blkNum := block.Header.Height
 	vbftCtx := self.GetVbftContext()
 	if info.NewChainConfig != nil {
-		self.updateTimerAndPeerPool(info.NewChainConfig)
 		vbftCtx.Config = info.NewChainConfig
 		vbftCtx.ConfigNum = blkNum
 	}
@@ -339,10 +322,15 @@ func (self *Server) updateVbftContext(block *types.Block, info *vconfig.VbftBloc
 
 	self.metaLock.Lock()
 	if self.vbftCtx.BlockNum+1 == vbftCtx.BlockNum {
+		log.Infof("update vbft context, blkNum:%d", blkNum)
 		self.vbftCtx = vbftCtx
+		updated = true
 	}
 	self.metaLock.Unlock()
-	log.Infof("update vbft context, blkNum:%d", blkNum)
+	if updated && info.NewChainConfig != nil {
+		self.updateTimerAndPeerPool(info.NewChainConfig)
+	}
+	return updated
 }
 
 func (self *Server) updateTimerAndPeerPool(config *vconfig.ChainConfig) {
@@ -401,11 +389,7 @@ func (self *Server) initialize() error {
 	selfNodeId := vconfig.PubkeyID(self.account.PublicKey)
 	log.Infof("server: %s starting", selfNodeId)
 
-	store, err := OpenBlockStore(ledger.DefLedger, func(block *types.Block) {
-		if self.pid != nil {
-			self.pid.Tell(&message.BlockConsensusComplete{Block: block})
-		}
-	})
+	store, err := OpenBlockStore(ledger.DefLedger)
 	if err != nil {
 		log.Errorf("failed to open block store: %s", err)
 		return fmt.Errorf("failed to open block store: %s", err)
@@ -492,7 +476,6 @@ func (self *Server) start() error {
 }
 
 func (self *Server) stop() {
-
 	self.incrValidator.Clean()
 	self.sub.Unsubscribe(message.TOPIC_SAVE_BLOCK_COMPLETE)
 	// stop syncer, statemgr, msgSendLoop, timer, actionLoop, msgProcessingLoop
@@ -1824,7 +1807,9 @@ func (self *Server) sealBlock(block *VbftBlock, empty bool, sigdata bool) error 
 		sealedBlkNum, block.getProposer(), prevBlkHash.ToHexString(), h.ToHexString())
 
 	// TODO: block committed, update tx pool, notify block-listeners
-	self.updateVbftContext(sealedBlock.Block, sealedBlock.Info)
+	if self.updateVbftContext(sealedBlock.Block, sealedBlock.Info) {
+		self.incrValidator.AddBlock(sealedBlock.Block)
+	}
 	return nil
 }
 

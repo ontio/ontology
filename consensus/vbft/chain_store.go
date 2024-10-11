@@ -37,18 +37,16 @@ type PendingBlock struct {
 }
 
 type ChainStore struct {
-	db                   *ledger.Ledger
-	chainedBlockNum      uint32
-	pendingBlocks        map[uint32]*PendingBlock
-	blockCompleteHandler func(block *types.Block)
+	db              *ledger.Ledger
+	chainedBlockNum uint32
+	pendingBlocks   map[uint32]*PendingBlock
 }
 
-func OpenBlockStore(db *ledger.Ledger, blockCompleteHandler func(block *types.Block)) (*ChainStore, error) {
+func OpenBlockStore(db *ledger.Ledger) (*ChainStore, error) {
 	chainstore := &ChainStore{
-		db:                   db,
-		chainedBlockNum:      db.GetCurrentBlockHeight(),
-		pendingBlocks:        make(map[uint32]*PendingBlock),
-		blockCompleteHandler: blockCompleteHandler,
+		db:              db,
+		chainedBlockNum: db.GetCurrentBlockHeight(),
+		pendingBlocks:   make(map[uint32]*PendingBlock),
 	}
 	merkleRoot, err := db.GetStateMerkleRoot(chainstore.chainedBlockNum)
 	if err != nil {
@@ -144,9 +142,6 @@ func (self *ChainStore) AddBlock(block *VbftBlock) (stateRoot common.Uint256, er
 
 	self.pendingBlocks[blkNum] = &PendingBlock{block: block, execResult: &execResult, hasSubmitted: false}
 
-	if self.blockCompleteHandler != nil {
-		self.blockCompleteHandler(block.Block)
-	}
 	self.setChainedBlockNum(blkNum)
 	return execResult.MerkleRoot, nil
 }

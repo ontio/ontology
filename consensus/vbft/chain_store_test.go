@@ -68,7 +68,7 @@ func newTestChainStore(t *testing.T) *ChainStore {
 		t.Fatalf("NewLedger error %s", err)
 	}
 
-	chainstore, err := OpenBlockStore(db, nil)
+	chainstore, err := OpenBlockStore(db)
 	if err != nil {
 		t.Fatalf("openblockstore failed: %v\n", err)
 	}
