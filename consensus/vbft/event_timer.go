@@ -143,7 +143,7 @@ func (self *EventTimer) getEventTimeout(evtType TimerEventType) time.Duration {
 	case EventPeerHeartbeat:
 		return time.Duration(atomic.LoadInt64(&peerHandshakeTimeout))
 	case EventProposalBackoff:
-		rank := self.server.getProposerRank(self.server.GetCurrentBlockNo(), self.server.Index)
+		rank := self.server.GetVbftContext().GetProposerRank(self.server.Index)
 		if rank >= 0 {
 			d := int64(rank+1) * atomic.LoadInt64(&make2ndProposalTimeout) / 3
 			return time.Duration(d)
@@ -220,10 +220,7 @@ func (self *EventTimer) startPeerTicker() {
 
 	timeout := self.getEventTimeout(EventPeerHeartbeat)
 	self.peerTickers = time.AfterFunc(timeout, func() {
-		self.C <- &TimerEvent{
-			evtType:  EventPeerHeartbeat,
-			blockNum: math.MaxUint32,
-		}
+		self.server.heartbeat(math.MaxUint32)
 		self.peerTickers.Reset(timeout)
 	})
 }

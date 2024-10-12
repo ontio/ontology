@@ -46,9 +46,7 @@ func (self *Server) GetVbftContext() *VbftContext {
 }
 
 func (self *Server) GetChainConfig() *vconfig.ChainConfig {
-	self.metaLock.RLock()
-	defer self.metaLock.RUnlock()
-	return self.vbftCtx.Config
+	return self.GetVbftContext().Config
 }
 
 func (self *Server) GetPeerMsgChan(peerIdx uint32) chan *p2pMsgPayload {
@@ -86,9 +84,6 @@ func (self *Server) isPeerAlive(peerIdx uint32) bool {
 // all other proposer as 2nd-proposer
 // before propose-timeout, only proposal from leader-proposer is accepted
 func (self *Server) isProposer(peerIdx uint32) bool {
-	self.metaLock.RLock()
-	defer self.metaLock.RUnlock()
-
 	if peerIdx == self.Index && !self.getState().IsActive() {
 		return false
 	}
@@ -102,22 +97,17 @@ func (self *Server) isProposer(peerIdx uint32) bool {
 	return false
 }
 
-func (self *Server) is2ndProposer(blockNum uint32, peerIdx uint32) bool {
-	rank := self.getProposerRank(blockNum, peerIdx)
-	return rank > 0 && rank <= int(self.GetChainConfig().C)
+func (self *VbftContext) IsEndorser(peerIdx uint32) bool {
+	for _, id := range self.Endorsers {
+		if id == peerIdx {
+			return true
+		}
+	}
+	return false
 }
 
-func (self *Server) getProposerRank(blockNum uint32, peerIdx uint32) int {
-	self.metaLock.RLock()
-	defer self.metaLock.RUnlock()
-
-	return self.getProposerRankLocked(blockNum, peerIdx)
-}
-
-func (self *Server) isEndorser(peerIdx uint32) bool {
-	self.metaLock.RLock()
-	defer self.metaLock.RUnlock()
-	for _, id := range self.GetVbftContext().Endorsers {
+func (self *VbftContext) IsCommitter(peerIdx uint32) bool {
+	for _, id := range self.Committers {
 		if id == peerIdx {
 			return true
 		}
@@ -126,53 +116,28 @@ func (self *Server) isEndorser(peerIdx uint32) bool {
 	return false
 }
 
-func (self *Server) isCommitter(peerIdx uint32) bool {
-	self.metaLock.RLock()
-	defer self.metaLock.RUnlock()
-	for _, id := range self.GetVbftContext().Committers {
+func (self *VbftContext) Is2ndProposer(peerIdx uint32) bool {
+	rank := self.GetProposerRank(peerIdx)
+	return rank > 0 && rank <= int(self.Config.C)
+}
+
+func (self *VbftContext) GetProposerRank(peerIdx uint32) int {
+	for rank, id := range self.Proposers {
 		if id == peerIdx {
-			return true
+			return rank
 		}
 	}
-
-	return false
+	return len(self.Proposers)
 }
 
-func (self *Server) getProposerRankLocked(blockNum uint32, peerIdx uint32) int {
-	ctx := self.GetVbftContext()
-	if blockNum == ctx.BlockNum {
-		for rank, id := range ctx.Proposers {
-			if id == peerIdx {
-				return rank
-			}
-		}
-	}
-	return len(ctx.Proposers)
-}
-
-func (self *Server) getHighestRankProposal(blockNum uint32, proposals []*blockProposalMsg) *blockProposalMsg {
-	self.metaLock.RLock()
-	defer self.metaLock.RUnlock()
-
+func getHighestRankProposal(vbftCtx *VbftContext, proposals []*blockProposalMsg) *blockProposalMsg {
 	proposerRank := 10000
 	var proposal *blockProposalMsg
 	for _, p := range proposals {
-		if p.GetBlockNum() != blockNum {
-			log.Errorf("server %d, diff blockNum found when get highest rank proposal,blockNum:%d", self.Index, blockNum)
-			continue
-		}
-
-		if r := self.getProposerRankLocked(blockNum, p.Block.getProposer()); r < proposerRank {
+		if r := vbftCtx.GetProposerRank(p.Block.getProposer()); r < proposerRank {
 			proposerRank = r
 			proposal = p
 		}
-	}
-
-	if proposal == nil && len(proposals) > 0 {
-		for _, p := range proposals {
-			log.Errorf("blk %d, proposer %d", p.Block.getBlockNum(), p.Block.getProposer())
-		}
-		panic("ERR")
 	}
 
 	return proposal

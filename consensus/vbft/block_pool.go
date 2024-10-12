@@ -481,7 +481,7 @@ func (pool *BlockPool) commitDone(blkNum uint32, C uint32, N uint32) (uint32, bo
 		endorseCnt := make(map[uint32]uint32) // proposer -> endorsed-cnt
 		for endorser, eSigs := range candidate.EndorseSigs {
 			// check if from endorser
-			if !pool.server.isEndorser(endorser) {
+			if !pool.server.GetVbftContext().IsEndorser(endorser) {
 				for _, sig := range eSigs {
 					if sig.ForEmpty {
 						emptyCnt++
