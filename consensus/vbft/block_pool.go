@@ -29,7 +29,6 @@ import (
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/store"
-	"github.com/ontio/ontology/core/store/overlaydb"
 )
 
 var errDupProposal = errors.New("multi proposal from same proposer")
@@ -664,26 +663,6 @@ func (pool *BlockPool) SetBlockSealed(block *VbftBlock, forEmpty bool, sigdata b
 	return sealedBlock, result, nil
 }
 
-func (pool *BlockPool) getSealedBlock(blockNum uint32) (*VbftBlock, common.Uint256) {
-	pool.lock.RLock()
-	defer pool.lock.RUnlock()
-
-	// get from cached candidate blocks
-	c := pool.candidateBlocks[blockNum]
-	if c != nil && c.SealedBlock != nil {
-		h := c.SealedBlock.Block.Hash()
-		return c.SealedBlock, h
-	}
-
-	// get from chainstore
-	blk, err := pool.chainStore.GetBlock(blockNum)
-	if err != nil {
-		log.Errorf("getSealedBlock %d err:%v", blockNum, err)
-		return nil, common.Uint256{}
-	}
-	return blk, blk.Block.Hash()
-}
-
 func (pool *BlockPool) getChainedBlock(blockNum uint32) (*VbftBlock, common.Uint256) {
 	pool.lock.RLock()
 	defer pool.lock.RUnlock()
@@ -701,12 +680,6 @@ func (pool *BlockPool) getExecMerkleRoot(blkNum uint32) (common.Uint256, error) 
 	pool.lock.RLock()
 	defer pool.lock.RUnlock()
 	return pool.chainStore.GetExecMerkleRoot(blkNum)
-}
-
-func (pool *BlockPool) getExecWriteSet(blkNum uint32) *overlaydb.MemDB {
-	pool.lock.RLock()
-	defer pool.lock.RUnlock()
-	return pool.chainStore.getExecWriteSet(blkNum)
 }
 
 func (pool *BlockPool) submitBlock(blkNum uint32) error {

@@ -175,28 +175,14 @@ func (self *Syncer) run() {
 				// FIXME: compete with ledger syncing
 				var blk *VbftBlock
 				if self.nextReqBlkNum <= ledger.DefLedger.GetCurrentBlockHeight() {
-					blk, _ = self.server.blockPool.getSealedBlock(self.nextReqBlkNum)
+					self.nextReqBlkNum = ledger.DefLedger.GetCurrentBlockHeight()
 				}
-				if blk == nil {
-					blk = self.blockConsensusDone(self.pendingBlocks[self.nextReqBlkNum])
-					merkBlk := self.blockCheckMerkleRoot(self.pendingBlocks[self.nextReqBlkNum])
-					if blk == nil || merkBlk == nil {
-						break
-					}
-					if blk.getPrevExecMerkleRoot() != merkBlk.getPrevExecMerkleRoot() {
-						break
-					}
-				} else {
-					merkleRoot, err := self.server.blockPool.getExecMerkleRoot(blkNum - 1)
-					if err != nil {
-						log.Errorf("failed to GetExecMerkleRoot: %s,blkNum:%d", err, blkNum-1)
-						break
-					}
-					if blk.getPrevExecMerkleRoot() != merkleRoot {
-						break
-					}
+				blk = self.blockConsensusDone(self.pendingBlocks[self.nextReqBlkNum])
+				merkBlk := self.blockCheckMerkleRoot(self.pendingBlocks[self.nextReqBlkNum])
+				if blk == nil || merkBlk == nil {
+					break
 				}
-				if blk == nil {
+				if blk.getPrevExecMerkleRoot() != merkBlk.getPrevExecMerkleRoot() {
 					break
 				}
 				prevHash := blk.getPrevBlockHash()
@@ -207,7 +193,11 @@ func (self *Syncer) run() {
 						self.server.Index, self.nextReqBlkNum, err)
 					break
 				}
-				delete(self.pendingBlocks, self.nextReqBlkNum)
+				for h := range self.pendingBlocks {
+					if h <= self.nextReqBlkNum {
+						delete(self.pendingBlocks, h)
+					}
+				}
 				self.nextReqBlkNum++
 			}
 			if self.nextReqBlkNum > self.targetBlkNum {
@@ -288,9 +278,6 @@ func (self *Syncer) startPeerSyncer(peerSyncer *PeerSyncer, targetBlkNum uint32)
 	}
 }
 
-func (self *Syncer) onNewBlockSyncReq(req *BlockSyncReq) {
-}
-
 func (self *PeerSyncer) run() {
 	// send blockinfo fetch req to peer
 	// wait blockinfo fetch rep
@@ -310,23 +297,24 @@ func (self *PeerSyncer) run() {
 		self.stop(errQuit)
 	}()
 
-	var err error
 	for self.nextReqBlkNum <= self.targetBlkNum {
 		blkNum := self.nextReqBlkNum
-		proposalBlock, _ := self.server.blockPool.getSealedBlock(blkNum)
-		if proposalBlock == nil {
-			if proposalBlock, err = self.requestBlock(blkNum); err != nil {
-				log.Errorf("failed to get block %d from peer %d: %s", blkNum, self.peerIdx, err)
-				return
-			}
+		proposalBlock, err := self.requestBlock(blkNum)
+		if err != nil {
+			log.Errorf("failed to get block %d from peer %d: %s", blkNum, self.peerIdx, err)
+			return
 		}
 		self.server.syncer.blockFromPeerC <- &BlockMsgFromPeer{
 			fromPeer: self.peerIdx,
 			block:    proposalBlock,
 		}
 
+		currBlkNum := self.server.GetCurrentBlockNo()
 		self.lock.Lock()
 		self.nextReqBlkNum++
+		if self.nextReqBlkNum < currBlkNum {
+			self.nextReqBlkNum = currBlkNum
+		}
 		self.lock.Unlock()
 	}
 	errQuit = false
