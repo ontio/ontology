@@ -188,7 +188,7 @@ func (self *Server) constructBlock(blkNum uint32, prevBlock *types.Block, txs []
 }
 
 func (self *Server) constructCrossChainMsg(blkNum uint32, root common.Uint256) (*types.CrossChainMsg, error) {
-	log.Debugf("submitBlock height:%d statesroot:%+v", blkNum, root)
+	log.Debugf("SubmitBlock height:%d statesroot:%+v", blkNum, root)
 	if root == common.UINT256_EMPTY {
 		return nil, nil
 	}

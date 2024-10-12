@@ -658,7 +658,6 @@ func (pool *BlockPool) SetBlockSealed(block *VbftBlock, forEmpty bool, sigdata b
 
 	if blocksubmitMsg, _ := pool.server.constructBlockSubmitMsg(blkNum, result.MerkleRoot); blocksubmitMsg != nil {
 		pool.server.broadcast(blocksubmitMsg)
-		pool.server.makeBlockSubmit(pool.chainStore.GetChainedBlockNum())
 	}
 	return sealedBlock, result, nil
 }
@@ -682,7 +681,7 @@ func (pool *BlockPool) getExecMerkleRoot(blkNum uint32) (common.Uint256, error) 
 	return pool.chainStore.GetExecMerkleRoot(blkNum)
 }
 
-func (pool *BlockPool) submitBlock(blkNum uint32) error {
+func (pool *BlockPool) SubmitBlock(blkNum uint32) error {
 	pool.lock.Lock()
 	defer pool.lock.Unlock()
 	return pool.chainStore.SubmitBlock(blkNum)
