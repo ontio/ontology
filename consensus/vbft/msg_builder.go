@@ -129,7 +129,7 @@ func SerializeVbftMsg(msg ConsensusMsg) ([]byte, error) {
 func (self *Server) constructHeartbeatMsg() (*peerHeartbeatMsg, error) {
 	vbftCtx := self.GetVbftContext()
 	blkNum := vbftCtx.BlockNum - 1
-	block := vbftCtx.PrevBlock
+	block := vbftCtx.PrevBlockInfo.Block
 
 	bookkeepers := make([][]byte, 0)
 	endorsePks := block.Header.Bookkeepers
@@ -146,7 +146,7 @@ func (self *Server) constructHeartbeatMsg() (*peerHeartbeatMsg, error) {
 	msg := &peerHeartbeatMsg{
 		CommittedBlockNumber: blkNum,
 		CommittedBlockHash:   block.Hash(),
-		CommittedBlockLeader: vbftCtx.PrevBlockInfo.Proposer,
+		CommittedBlockLeader: vbftCtx.PrevBlockInfo.Info.Proposer,
 		Endorsers:            bookkeepers,
 		EndorsersSig:         sigData,
 		ChainConfigView:      self.GetChainConfig().View,
@@ -187,11 +187,7 @@ func (self *Server) constructBlock(blkNum uint32, prevBlock *types.Block, txs []
 	return blk, nil
 }
 
-func (self *Server) constructCrossChainMsg(blkNum uint32) (*types.CrossChainMsg, error) {
-	root, err := self.blockPool.getCrossStatesRoot(blkNum)
-	if err != nil {
-		return nil, err
-	}
+func (self *Server) constructCrossChainMsg(blkNum uint32, root common.Uint256) (*types.CrossChainMsg, error) {
 	log.Debugf("submitBlock height:%d statesroot:%+v", blkNum, root)
 	if root == common.UINT256_EMPTY {
 		return nil, nil
@@ -211,20 +207,20 @@ func (self *Server) constructCrossChainMsg(blkNum uint32) (*types.CrossChainMsg,
 }
 
 func (self *Server) constructProposalMsg(vbftCtx *VbftContext, sysTxs, userTxs []*types.Transaction, chainconfig *vconfig.ChainConfig) (*blockProposalMsg, error) {
-	prevBlk := vbftCtx.PrevBlock
+	prevBlk := vbftCtx.PrevBlockInfo.Block
 	blkNum := vbftCtx.BlockNum
 	blocktimestamp := uint32(time.Now().Unix())
 	if prevBlk.Header.Timestamp >= blocktimestamp {
 		blocktimestamp = prevBlk.Header.Timestamp + 1
 	}
 
-	vrfValue, vrfProof, err := computeVrf(self.account.PrivateKey, blkNum, vbftCtx.PrevBlockInfo.VrfValue)
+	vrfValue, vrfProof, err := computeVrf(self.account.PrivateKey, blkNum, vbftCtx.PrevBlockInfo.Info.VrfValue)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get vrf and proof: %s", err)
 	}
 
-	lastConfigBlkNum := vbftCtx.PrevBlockInfo.LastConfigBlockNum
-	if vbftCtx.PrevBlockInfo.NewChainConfig != nil {
+	lastConfigBlkNum := vbftCtx.PrevBlockInfo.Info.LastConfigBlockNum
+	if vbftCtx.PrevBlockInfo.Info.NewChainConfig != nil {
 		lastConfigBlkNum = prevBlk.Header.Height
 	}
 	if chainconfig != nil {
@@ -239,7 +235,7 @@ func (self *Server) constructProposalMsg(vbftCtx *VbftContext, sysTxs, userTxs [
 	}
 	consensusPayload, err := json.Marshal(vbftBlkInfo)
 	if err != nil {
-		return nil, err
+		panic(err)
 	}
 
 	emptyBlk, err := self.constructBlock(blkNum, prevBlk, sysTxs, consensusPayload, blocktimestamp)
@@ -250,11 +246,7 @@ func (self *Server) constructProposalMsg(vbftCtx *VbftContext, sysTxs, userTxs [
 	if err != nil {
 		return nil, fmt.Errorf("failed to constuct blk: %s", err)
 	}
-	merkleRoot, err := self.blockPool.getExecMerkleRoot(blkNum - 1)
-	if err != nil {
-		return nil, fmt.Errorf("failed to GetExecMerkleRoot: %s,blkNum:%d", err, blkNum-1)
-	}
-	crossChainMsg, err := self.constructCrossChainMsg(blkNum - 1)
+	crossChainMsg, err := self.constructCrossChainMsg(blkNum-1, vbftCtx.PrevBlockInfo.CrossStatesRoot)
 	if err != nil {
 		return nil, fmt.Errorf("failed to crossChainMsgHash :%s,blkNum:%d", err, blkNum-1)
 	}
@@ -263,7 +255,7 @@ func (self *Server) constructProposalMsg(vbftCtx *VbftContext, sysTxs, userTxs [
 			Block:              blk,
 			EmptyBlock:         emptyBlk,
 			Info:               vbftBlkInfo,
-			PrevExecMerkleRoot: merkleRoot,
+			PrevExecMerkleRoot: vbftCtx.PrevBlockInfo.MerkleRoot,
 			CrossChainMsg:      crossChainMsg,
 		},
 	}

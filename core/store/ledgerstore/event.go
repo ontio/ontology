@@ -15,27 +15,21 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
-
-package event
+package ledgerstore
 
 import (
-	common2 "github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core"
-	types3 "github.com/ethereum/go-ethereum/core/types"
-	"github.com/ontio/ontology/common"
+	types2 "github.com/ethereum/go-ethereum/core/types"
+	common2 "github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/events"
 	"github.com/ontio/ontology/events/message"
-	utils2 "github.com/ontio/ontology/http/ethrpc/utils"
+	"github.com/ontio/ontology/http/ethrpc/utils"
+	"github.com/ontio/ontology/smartcontract/event"
 )
 
-const (
-	EVENT_LOG    = "Log"
-	EVENT_NOTIFY = "Notify"
-)
-
-// PushSmartCodeEvent push event content to socket.io
-func PushSmartCodeEvent(txHash common.Uint256, errcode int64, action string, result interface{}) {
+func PushSmartCodeEvent(txHash common2.Uint256, errcode int64, action string, result interface{}) {
 	if events.DefActorPublisher == nil {
 		return
 	}
@@ -48,8 +42,7 @@ func PushSmartCodeEvent(txHash common.Uint256, errcode int64, action string, res
 	events.DefActorPublisher.Publish(message.TOPIC_SMART_CODE_EVENT, &message.SmartCodeEventMsg{Event: smartCodeEvt})
 }
 
-// PushSmartCodeEvent push event content to socket.io
-func PushEthSmartCodeEvent(rawNotify *ExecuteNotify, blk *types.Block) {
+func PushEthSmartCodeEvent(rawNotify *event.ExecuteNotify, blk *types.Block) {
 	if events.DefActorPublisher == nil {
 		return
 	}
@@ -57,54 +50,51 @@ func PushEthSmartCodeEvent(rawNotify *ExecuteNotify, blk *types.Block) {
 	events.DefActorPublisher.Publish(message.TOPIC_ETH_SC_EVENT, &message.EthSmartCodeEventMsg{Event: msg})
 }
 
-// PushSmartCodeEvent push event content to socket.io
-func PushChainEvent(rawNotify []*ExecuteNotify, blk *types.Block, bloom types3.Bloom) {
+func PushChainEvent(rawNotify []*event.ExecuteNotify, blk *types.Block, bloom types2.Bloom) {
 	if events.DefActorPublisher == nil {
 		return
 	}
-	events.DefActorPublisher.Publish(
-		message.TOPIC_CHAIN_EVENT,
-		&message.ChainEventMsg{
-			ChainEvent: &core.ChainEvent{
-				Block: utils2.RawEthBlockFromOntology(blk, bloom),
-				Hash:  common2.Hash(blk.Hash()),
-				Logs:  extractEthLog(rawNotify, blk),
-			},
-		})
+	events.DefActorPublisher.Publish(message.TOPIC_CHAIN_EVENT, &message.ChainEventMsg{
+		ChainEvent: &core.ChainEvent{
+			Block: utils.RawEthBlockFromOntology(blk, bloom),
+			Hash:  common.Hash(blk.Hash()),
+			Logs:  extractEthLog(rawNotify, blk),
+		},
+	})
 }
 
-func extractSingleEthLog(rawNotify *ExecuteNotify, blk *types.Block) []*types3.Log {
-	var res []*types3.Log
+func extractSingleEthLog(rawNotify *event.ExecuteNotify, blk *types.Block) []*types2.Log {
+	var res []*types2.Log
 	if isEIP155Tx(blk, rawNotify.TxHash) {
 		res = genEthLog(rawNotify, blk)
 	}
 	return res
 }
 
-func extractEthLog(rawNotify []*ExecuteNotify, blk *types.Block) []*types3.Log {
-	var res []*types3.Log
+func extractEthLog(rawNotify []*event.ExecuteNotify, blk *types.Block) []*types2.Log {
+	var res []*types2.Log
 	for _, rn := range rawNotify {
 		res = append(res, extractSingleEthLog(rn, blk)...)
 	}
 	return res
 }
 
-func genEthLog(rawNotify *ExecuteNotify, blk *types.Block) []*types3.Log {
-	var res []*types3.Log
+func genEthLog(rawNotify *event.ExecuteNotify, blk *types.Block) []*types2.Log {
+	var res []*types2.Log
 	txHash := rawNotify.TxHash
-	ethHash := utils2.OntToEthHash(txHash)
+	ethHash := utils.OntToEthHash(txHash)
 	for idx, n := range rawNotify.Notify {
-		storageLog, err := NotifyEventInfoToEvmLog(n)
+		storageLog, err := event.NotifyEventInfoToEvmLog(n)
 		if err != nil {
 			return nil
 		}
 		res = append(res,
-			&types3.Log{
+			&types2.Log{
 				Address:     storageLog.Address,
 				Topics:      storageLog.Topics,
 				Data:        storageLog.Data,
 				BlockNumber: uint64(blk.Header.Height),
-				TxHash:      utils2.OntToEthHash(txHash),
+				TxHash:      utils.OntToEthHash(txHash),
 				TxIndex:     uint(rawNotify.TxIndex),
 				BlockHash:   ethHash,
 				Index:       uint(idx),
@@ -114,7 +104,7 @@ func genEthLog(rawNotify *ExecuteNotify, blk *types.Block) []*types3.Log {
 	return res
 }
 
-func isEIP155Tx(block *types.Block, txHash common.Uint256) bool {
+func isEIP155Tx(block *types.Block, txHash common2.Uint256) bool {
 	for _, tx := range block.Transactions {
 		if tx.Hash() == txHash {
 			return tx.IsEipTx()

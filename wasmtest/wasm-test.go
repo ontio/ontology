@@ -48,13 +48,13 @@ import (
 	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/signature"
+	"github.com/ontio/ontology/core/store"
 	"github.com/ontio/ontology/core/store/ledgerstore"
 	"github.com/ontio/ontology/core/types"
 	utils2 "github.com/ontio/ontology/core/utils"
 	"github.com/ontio/ontology/events"
 	common2 "github.com/ontio/ontology/http/base/common"
 	"github.com/ontio/ontology/smartcontract/service/wasmvm"
-	"github.com/ontio/ontology/smartcontract/states"
 	vmtypes "github.com/ontio/ontology/vm/neovm/types"
 	common3 "github.com/ontio/ontology/wasmtest/common"
 	"github.com/ontio/wagon/exec"
@@ -390,7 +390,7 @@ type ExecEnv struct {
 	BlockHash common.Uint256
 }
 
-func checkExecResult(testCase common3.TestCase, result *states.PreExecResult, execEnv ExecEnv) {
+func checkExecResult(testCase common3.TestCase, result *store.PreExecResult, execEnv ExecEnv) {
 	assertEq(result.State, byte(1))
 	if execEnv.Tx.IsEipTx() {
 		res := parseEthResult(testCase.Method, result.Result, testCase.JsonAbi)

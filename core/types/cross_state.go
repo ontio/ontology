@@ -93,7 +93,3 @@ func (this *CrossChainMsg) Hash() common.Uint256 {
 	this.hash = &hash
 	return hash
 }
-
-func (this *CrossChainMsg) SetHash(hash common.Uint256) {
-	this.hash = &hash
-}

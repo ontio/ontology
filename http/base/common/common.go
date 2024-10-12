@@ -35,6 +35,7 @@ import (
 	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/states"
+	"github.com/ontio/ontology/core/store"
 	"github.com/ontio/ontology/core/types"
 	cutils "github.com/ontio/ontology/core/utils"
 	ontErrors "github.com/ontio/ontology/errors"
@@ -43,7 +44,6 @@ import (
 	"github.com/ontio/ontology/smartcontract/event"
 	"github.com/ontio/ontology/smartcontract/service/native/ont"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
-	cstate "github.com/ontio/ontology/smartcontract/states"
 	"github.com/ontio/ontology/vm/neovm"
 )
 
@@ -220,7 +220,7 @@ func GetExecuteNotify(obj *event.ExecuteNotify) (map[string]bool, ExecuteNotify)
 		obj.GasStepUsed, obj.TxIndex, obj.CreatedContract.ToHexString()}
 }
 
-func ConvertPreExecuteResult(obj *cstate.PreExecResult) PreExecuteResult {
+func ConvertPreExecuteResult(obj *store.PreExecResult) PreExecuteResult {
 	var evts []NotifyEventInfo
 	for _, v := range obj.Notify {
 		evts = append(evts, NotifyEventInfo{v.ContractAddress.ToHexString(), v.States, v.IsEvm})

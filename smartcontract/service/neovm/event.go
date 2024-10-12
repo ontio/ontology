@@ -16,18 +16,24 @@
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package types
+package neovm
 
-import "github.com/ontio/ontology/common"
-
-const (
-	ACTION_EVENT_LOG    = "Log"
-	ACTION_EVENT_NOTIFY = "Notify"
+import (
+	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/core/types"
+	"github.com/ontio/ontology/events"
+	"github.com/ontio/ontology/events/message"
 )
 
-type SmartCodeEvent struct {
-	TxHash common.Uint256
-	Action string
-	Result interface{}
-	Error  int64
+func PushSmartCodeEvent(txHash common.Uint256, errcode int64, action string, result interface{}) {
+	if events.DefActorPublisher == nil {
+		return
+	}
+	smartCodeEvt := &types.SmartCodeEvent{
+		TxHash: txHash,
+		Action: action,
+		Result: result,
+		Error:  errcode,
+	}
+	events.DefActorPublisher.Publish(message.TOPIC_SMART_CODE_EVENT, &message.SmartCodeEventMsg{Event: smartCodeEvt})
 }

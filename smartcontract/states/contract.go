@@ -22,7 +22,6 @@ import (
 	"io"
 
 	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/smartcontract/event"
 )
 
 // Invoke smart contract struct
@@ -73,11 +72,4 @@ func (this *ContractInvokeParam) Deserialization(source *common.ZeroCopySource) 
 		return io.ErrUnexpectedEOF
 	}
 	return nil
-}
-
-type PreExecResult struct {
-	State  byte
-	Gas    uint64
-	Result interface{}
-	Notify []*event.NotifyEventInfo
 }

@@ -28,6 +28,7 @@ import (
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
+	"github.com/ontio/ontology/core/store"
 	"github.com/ontio/ontology/core/store/overlaydb"
 )
 
@@ -55,7 +56,8 @@ type CandidateInfo struct {
 	commitDone bool
 
 	// server sealed block for this round
-	SealedBlock *VbftBlock
+	SealedBlock           *VbftBlock
+	SealedBlockExecResult *store.ExecuteResult
 
 	// candidate msgs for this round
 	Proposals  []*blockProposalMsg
@@ -82,22 +84,6 @@ func newBlockPool(server *Server, historyLen uint32, store *ChainStore) (*BlockP
 		HistoryLen:      historyLen,
 		chainStore:      store,
 		candidateBlocks: make(map[uint32]*CandidateInfo),
-	}
-
-	var blkNum uint32
-	if store.GetChainedBlockNum() > historyLen {
-		blkNum = store.GetChainedBlockNum() - historyLen
-	}
-
-	// load history blocks from chainstore
-	for ; blkNum <= store.GetChainedBlockNum(); blkNum++ {
-		blk, err := store.GetBlock(blkNum)
-		if err != nil {
-			return nil, fmt.Errorf("failed to load block %d: %s", blkNum, err)
-		}
-		pool.candidateBlocks[blkNum] = &CandidateInfo{
-			SealedBlock: blk,
-		}
 	}
 
 	return pool, nil
@@ -629,7 +615,7 @@ func (pool *BlockPool) checkBlockSign(block *VbftBlock, forEmpty bool, requiredS
 	return uint32(len(sigData)) >= requiredSigs
 }
 
-func (pool *BlockPool) SetBlockSealed(block *VbftBlock, forEmpty bool, sigdata bool) (*VbftBlock, error) {
+func (pool *BlockPool) SetBlockSealed(block *VbftBlock, forEmpty bool, sigdata bool) (*VbftBlock, *store.ExecuteResult, error) {
 	pool.lock.Lock()
 	defer pool.lock.Unlock()
 
@@ -638,13 +624,13 @@ func (pool *BlockPool) SetBlockSealed(block *VbftBlock, forEmpty bool, sigdata b
 
 	if c.SealedBlock != nil {
 		if c.SealedBlock.getProposer() == block.getProposer() {
-			return c.SealedBlock, nil
+			return c.SealedBlock, c.SealedBlockExecResult, nil
 		}
-		return nil, fmt.Errorf("double seal for block %d", blkNum)
+		return nil, nil, fmt.Errorf("double seal for block %d", blkNum)
 	}
 	if sigdata {
 		if err := pool.addSignaturesToBlockLocked(block, forEmpty); err != nil {
-			return nil, fmt.Errorf("failed to add sig to block: %s", err)
+			return nil, nil, fmt.Errorf("failed to add sig to block: %s", err)
 		}
 	}
 	sealedBlock := &VbftBlock{
@@ -660,7 +646,7 @@ func (pool *BlockPool) SetBlockSealed(block *VbftBlock, forEmpty bool, sigdata b
 	// add block to chain store
 	result, err := pool.chainStore.AddBlock(sealedBlock)
 	if err != nil {
-		return nil, fmt.Errorf("failed to seal block (%d) to chainstore: %s", blkNum, err)
+		return nil, nil, fmt.Errorf("failed to seal block (%d) to chainstore: %s", blkNum, err)
 	}
 
 	for n := range pool.candidateBlocks {
@@ -669,12 +655,13 @@ func (pool *BlockPool) SetBlockSealed(block *VbftBlock, forEmpty bool, sigdata b
 		}
 	}
 	c.SealedBlock = sealedBlock
+	c.SealedBlockExecResult = result
 
 	if blocksubmitMsg, _ := pool.server.constructBlockSubmitMsg(blkNum, result.MerkleRoot); blocksubmitMsg != nil {
 		pool.server.broadcast(blocksubmitMsg)
 		pool.server.makeBlockSubmit(pool.chainStore.GetChainedBlockNum())
 	}
-	return sealedBlock, nil
+	return sealedBlock, result, nil
 }
 
 func (pool *BlockPool) getSealedBlock(blockNum uint32) (*VbftBlock, common.Uint256) {
@@ -714,12 +701,6 @@ func (pool *BlockPool) getExecMerkleRoot(blkNum uint32) (common.Uint256, error) 
 	pool.lock.RLock()
 	defer pool.lock.RUnlock()
 	return pool.chainStore.GetExecMerkleRoot(blkNum)
-}
-
-func (pool *BlockPool) getCrossStatesRoot(blkNum uint32) (common.Uint256, error) {
-	pool.lock.RLock()
-	defer pool.lock.RUnlock()
-	return pool.chainStore.GetCrossStatesRoot(blkNum)
 }
 
 func (pool *BlockPool) getExecWriteSet(blkNum uint32) *overlaydb.MemDB {

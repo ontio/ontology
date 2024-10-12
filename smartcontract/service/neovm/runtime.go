@@ -75,7 +75,7 @@ func RuntimeSerialize(service *NeoVmService, engine *vm.Executor) error {
 	return engine.EvalStack.PushBytes(sink.Bytes())
 }
 
-//TODO check consistency with original implementation
+// TODO check consistency with original implementation
 func RuntimeDeserialize(service *NeoVmService, engine *vm.Executor) error {
 	data, err := engine.EvalStack.PopAsBytes()
 	if err != nil {
@@ -164,7 +164,7 @@ func RuntimeLog(service *NeoVmService, engine *vm.Executor) error {
 	}
 	context := service.ContextRef.CurrentContext()
 	txHash := service.Tx.Hash()
-	event.PushSmartCodeEvent(txHash, 0, event.EVENT_LOG, &event.LogEventArgs{TxHash: txHash, ContractAddress: context.ContractAddress, Message: string(item)})
+	PushSmartCodeEvent(txHash, 0, types.ACTION_EVENT_LOG, &event.LogEventArgs{TxHash: txHash, ContractAddress: context.ContractAddress, Message: string(item)})
 
 	scv := sitem.Dump()
 	log.Debugf("[NeoContract]Debug:%s\n", scv)

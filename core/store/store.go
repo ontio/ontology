@@ -30,7 +30,6 @@ import (
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract/event"
 	types3 "github.com/ontio/ontology/smartcontract/service/evm/types"
-	cstates "github.com/ontio/ontology/smartcontract/states"
 	"github.com/ontio/ontology/smartcontract/storage"
 	"github.com/ontio/ontology/vm/evm"
 )
@@ -43,6 +42,13 @@ type ExecuteResult struct {
 	CrossStatesRoot common.Uint256
 	Notify          []*event.ExecuteNotify
 	Bloom           types2.Bloom
+}
+
+type PreExecResult struct {
+	State  byte
+	Gas    uint64
+	Result interface{}
+	Notify []*event.NotifyEventInfo
 }
 
 // LedgerStore provides func with store package.
@@ -76,8 +82,8 @@ type LedgerStore interface {
 	GetContractState(contractHash common.Address) (*payload.DeployCode, error)
 	GetBookkeeperState() (*states.BookkeeperState, error)
 	GetStorageItem(codeHash common.Address, key []byte) ([]byte, error)
-	PreExecuteContract(tx *types.Transaction) (*cstates.PreExecResult, error)
-	PreExecuteContractBatch(txes []*types.Transaction, atomic bool) ([]*cstates.PreExecResult, uint32, error)
+	PreExecuteContract(tx *types.Transaction) (*PreExecResult, error)
+	PreExecuteContractBatch(txes []*types.Transaction, atomic bool) ([]*PreExecResult, uint32, error)
 	PreExecuteEip155Tx(msg types2.Message) (*types3.ExecutionResult, error)
 	TraceEip155Tx(msg types2.Message, tracer evm.Tracer) (*types3.ExecutionResult, error)
 	GetEventNotifyByTx(tx common.Uint256) (*event.ExecuteNotify, error)

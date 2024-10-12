@@ -20,7 +20,6 @@ package vbft
 
 import (
 	"fmt"
-	"math"
 	"sort"
 	"sync/atomic"
 	"time"
@@ -282,7 +281,7 @@ func (self *StateMgr) trySetSyncedReady() {
 		return
 	}
 
-	if self.server.GetCommittedBlockNo() >= committedBlkNum || self.canFastForward(committedBlkNum) {
+	if self.server.GetCommittedBlockNo() >= committedBlkNum {
 		self.setState(SyncReady)
 		log.Infof("server %d start sync ready", self.server.Index)
 		blkNum := self.server.GetCurrentBlockNo()
@@ -337,49 +336,4 @@ func (self *StateMgr) getPeersCommittedBlockNoSorted() []uint32 {
 		return list[i] > list[j]
 	})
 	return list
-}
-
-func (self *StateMgr) canFastForward(targetBlkNum uint32) bool {
-	if targetBlkNum > self.server.GetCommittedBlockNo()+MAX_SYNCING_CHECK_BLK_NUM*4 {
-		return false
-	}
-
-	chainCfg := self.server.GetChainConfig()
-	C := int(chainCfg.C)
-	N := int(chainCfg.N)
-	// one block less than targetBlkNum is also acceptable for fastforward
-	for blkNum := self.server.GetCurrentBlockNo(); blkNum <= targetBlkNum; blkNum++ {
-		// check if pending messages for targetBlkNum reached consensus
-		commitMsgs := make([]*blockCommitMsg, 0)
-		for _, msg := range self.server.msgPool.GetCommitMsgs(blkNum) {
-			if c := msg.(*blockCommitMsg); c != nil {
-				commitMsgs = append(commitMsgs, c)
-			}
-		}
-		proposer, _ := getCommitConsensus(commitMsgs, C, N)
-		if proposer == math.MaxUint32 {
-			log.Infof("server %d check fastforward false, no consensus in %d commit msg for block %d",
-				self.server.Index, len(commitMsgs), blkNum)
-			return false
-		}
-		// check if the proposal message is available
-		foundProposal := false
-		for _, msg := range self.server.msgPool.GetProposalMsgs(blkNum) {
-			if p := msg.(*blockProposalMsg); p != nil && p.Block.getProposer() == proposer {
-				foundProposal = true
-				break
-			}
-		}
-		if !foundProposal {
-			log.Infof("server %d check fastforward false, no proposal for block %d",
-				self.server.Index, blkNum)
-			return false
-		}
-	}
-
-	if self.server.syncer.isActive() {
-		return false
-	}
-
-	return true
 }

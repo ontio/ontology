@@ -21,6 +21,7 @@ package message
 import (
 	"github.com/ethereum/go-ethereum/core"
 	types2 "github.com/ethereum/go-ethereum/core/types"
+	"github.com/ontio/ontology/core/store"
 	"github.com/ontio/ontology/core/types"
 )
 
@@ -33,7 +34,8 @@ const (
 )
 
 type SaveBlockCompleteMsg struct {
-	Block *types.Block
+	Block      *types.Block
+	ExecResult *store.ExecuteResult
 }
 
 type SmartCodeEventMsg struct {
@@ -43,6 +45,7 @@ type SmartCodeEventMsg struct {
 type EthSmartCodeEventMsg struct {
 	Event EthSmartCodeEvent
 }
+
 type PendingTxs []*types2.Transaction
 
 type PendingTxMsg struct {

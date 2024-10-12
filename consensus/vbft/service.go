@@ -35,6 +35,8 @@ import (
 	vconfig "github.com/ontio/ontology/consensus/vbft/config"
 	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/core/payload"
+	"github.com/ontio/ontology/core/store"
+	"github.com/ontio/ontology/core/store/overlaydb"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/core/utils"
 	"github.com/ontio/ontology/events"
@@ -63,16 +65,21 @@ const (
 type BftAction struct {
 	Type     BftActionType
 	BlockNum uint32
-	Proposal *blockProposalMsg
-	forEmpty bool
+}
+
+type BlockAndExecteInfo struct {
+	Block           *types.Block
+	Info            *vconfig.VbftBlockInfo
+	WriteSet        *overlaydb.MemDB
+	MerkleRoot      common.Uint256
+	CrossStatesRoot common.Uint256
 }
 
 type VbftContext struct {
 	BlockNum      uint32
 	Config        *vconfig.ChainConfig
 	ConfigNum     uint32
-	PrevBlock     *types.Block
-	PrevBlockInfo *vconfig.VbftBlockInfo
+	PrevBlockInfo *BlockAndExecteInfo
 	Proposers     []uint32
 	Endorsers     []uint32
 	Committers    []uint32
@@ -163,7 +170,7 @@ func (self *Server) Receive(context actor.Context) {
 	case *message.SaveBlockCompleteMsg:
 		log.Infof("vbft actor SaveBlockCompleteMsg receives block complete event. block height=%d, numtx=%d",
 			msg.Block.Header.Height, len(msg.Block.Transactions))
-		self.handleBlockPersistCompleted(msg.Block)
+		self.handleBlockPersistCompleted(msg.Block, msg.ExecResult)
 	case *p2pmsg.ConsensusPayload:
 		self.NewConsensusPayload(msg)
 
@@ -185,14 +192,14 @@ func (self *Server) Halt() error {
 	return nil
 }
 
-func (self *Server) handleBlockPersistCompleted(block *types.Block) {
+func (self *Server) handleBlockPersistCompleted(block *types.Block, exec *store.ExecuteResult) {
 	log.Infof("persist block: %d, %x", block.Header.Height, block.Hash())
 	blkInfo, err := vconfig.VbftBlock(block.Header)
 	if err != nil {
 		log.Errorf("load vbft block info failed:%s", err)
 		return
 	}
-	if self.updateVbftContext(block, blkInfo) {
+	if self.updateVbftContext(block, blkInfo, exec) {
 		self.incrValidator.AddBlock(block)
 		// p2p synced before seal block: 1. not consensus node; 2. consensus node in syncing state
 		self.blockPool.ReloadFromLedger()
@@ -252,6 +259,15 @@ func (self *Server) LoadChainConfig(store *ChainStore) error {
 	if block == nil {
 		return fmt.Errorf("getSealedBlock err height:%d", blkNum)
 	}
+	crossStateRoot, err := store.GetCrossStatesRoot(blkNum)
+	if err != nil {
+		return fmt.Errorf("get cross state root  err height:%d", blkNum)
+	}
+	stateRoot, err := store.GetExecMerkleRoot(blkNum)
+	if err != nil {
+		return fmt.Errorf("get state root  err height:%d", blkNum)
+	}
+
 	var cfg vconfig.ChainConfig
 	configBlk := blkNum
 	if block.getNewChainConfig() != nil {
@@ -282,14 +298,19 @@ func (self *Server) LoadChainConfig(store *ChainStore) error {
 		self.getState(), proposers, endorsers, committers)
 
 	self.vbftCtx = &VbftContext{
-		BlockNum:      blkNum + 1,
-		Config:        &cfg,
-		ConfigNum:     configBlk,
-		PrevBlock:     block.Block,
-		PrevBlockInfo: block.Info,
-		Proposers:     proposers,
-		Endorsers:     endorsers,
-		Committers:    committers,
+		BlockNum:  blkNum + 1,
+		Config:    &cfg,
+		ConfigNum: configBlk,
+		PrevBlockInfo: &BlockAndExecteInfo{
+			Block:           block.Block,
+			Info:            block.Info,
+			WriteSet:        nil,
+			MerkleRoot:      stateRoot,
+			CrossStatesRoot: crossStateRoot,
+		},
+		Proposers:  proposers,
+		Endorsers:  endorsers,
+		Committers: committers,
 	}
 
 	return nil
@@ -299,7 +320,7 @@ func (self *Server) nonConsensusNode() bool {
 	return self.Index == math.MaxUint32
 }
 
-func (self *Server) updateVbftContext(block *types.Block, info *vconfig.VbftBlockInfo) (updated bool) {
+func (self *Server) updateVbftContext(block *types.Block, info *vconfig.VbftBlockInfo, result *store.ExecuteResult) (updated bool) {
 	blkNum := block.Header.Height
 	vbftCtx := self.GetVbftContext()
 	if info.NewChainConfig != nil {
@@ -312,8 +333,13 @@ func (self *Server) updateVbftContext(block *types.Block, info *vconfig.VbftBloc
 		self.getState(), vbftCtx.Proposers, vbftCtx.Endorsers, vbftCtx.Committers)
 
 	vbftCtx.BlockNum = blkNum + 1
-	vbftCtx.PrevBlock = block
-	vbftCtx.PrevBlockInfo = info
+	vbftCtx.PrevBlockInfo = &BlockAndExecteInfo{
+		Block:           block,
+		Info:            info,
+		WriteSet:        result.WriteSet,
+		MerkleRoot:      result.MerkleRoot,
+		CrossStatesRoot: result.CrossStatesRoot,
+	}
 
 	self.metaLock.Lock()
 	if self.vbftCtx.BlockNum+1 == vbftCtx.BlockNum {
@@ -726,29 +752,7 @@ func (self *Server) onConsensusMsg(peerIdx uint32, msg ConsensusMsg, msgHash com
 
 	case ProposalFetchMessage:
 		pMsg := msg.(*proposalFetchMsg)
-		var pmsg *blockProposalMsg
-		if self.Index == pMsg.ProposerID || pMsg.BlockNum == self.GetCurrentBlockNo() {
-			pMsgs := self.msgPool.GetProposalMsgs(pMsg.BlockNum)
-			for _, msg := range pMsgs {
-				p := msg.(*blockProposalMsg)
-				if p != nil && p.Block.getProposer() == pMsg.ProposerID {
-					log.Infof("server %d rebroadcast proposal to %d, blk %d",
-						self.Index, peerIdx, p.Block.getBlockNum())
-					pmsg = p
-				}
-			}
-		}
-		if self.Index == pMsg.ProposerID {
-			if pmsg == nil {
-				blk, _ := self.blockPool.getSealedBlock(pMsg.BlockNum)
-				if blk != nil {
-					pmsg = &blockProposalMsg{
-						Block: blk,
-					}
-				}
-			}
-		}
-
+		pmsg := self.blockPool.GetBlockProposal(pMsg.BlockNum, pMsg.ProposerID)
 		if pmsg != nil {
 			log.Infof("server %d, handle proposal fetch %d from %d",
 				self.Index, pMsg.BlockNum, peerIdx)
@@ -757,7 +761,6 @@ func (self *Server) onConsensusMsg(peerIdx uint32, msg ConsensusMsg, msgHash com
 				Msg:    pmsg,
 			}
 		}
-
 	case BlockFetchMessage:
 		// handle block fetch msg
 		pMsg := msg.(*blockFetchMsg)
@@ -796,12 +799,7 @@ func (self *Server) onConsensusMsg(peerIdx uint32, msg ConsensusMsg, msgHash com
 	}
 }
 
-func (self *Server) verifyCrossChainMsg(msg *blockProposalMsg) bool {
-	root, err := self.blockPool.getCrossStatesRoot(msg.Block.Block.Header.Height - 1)
-	if err != nil {
-		log.Errorf("verifyCrossChainMsg:%s", err)
-		return false
-	}
+func (self *Server) verifyCrossChainMsg(msg *blockProposalMsg, root common.Uint256) bool {
 	//malicious consensus node may create a nil cross chain msg proposal, but it is actual not nil.
 	if root != common.UINT256_EMPTY && msg.Block.CrossChainMsg == nil {
 		return false
@@ -844,11 +842,11 @@ func (self *Server) processMsg(blockNum uint32) {
 
 func (self *Server) processProposalMsg(vbftCtx *VbftContext, msg *blockProposalMsg) {
 	msgBlkNum := msg.GetBlockNum()
-	blkInfo := vbftCtx.PrevBlockInfo
+	blkInfo := vbftCtx.PrevBlockInfo.Info
 
 	msgPrevBlkHash := msg.Block.getPrevBlockHash()
-	if vbftCtx.PrevBlock.Hash() != msgPrevBlkHash {
-		log.Errorf("BlockPrposalMessage check blocknum:%d,prevhash:%s,msg prevhash:%s", msg.GetBlockNum(), vbftCtx.PrevBlock.Hash().ToHexString(), msgPrevBlkHash.ToHexString())
+	if vbftCtx.PrevBlockInfo.Block.Hash() != msgPrevBlkHash {
+		log.Errorf("BlockPrposalMessage check blocknum:%d,prevhash:%s,msg prevhash:%s", msg.GetBlockNum(), vbftCtx.PrevBlockInfo.Block.Hash().ToHexString(), msgPrevBlkHash.ToHexString())
 		self.msgPool.DropMsg(msg)
 		return
 	}
@@ -857,11 +855,7 @@ func (self *Server) processProposalMsg(vbftCtx *VbftContext, msg *blockProposalM
 		log.Errorf("BlockPrposalMessage  check LastConfigBlockNum blocknum:%d,prvLastConfigBlockNum:%d,self LastConfigBlockNum:%d", msg.GetBlockNum(), msg.Block.Info.LastConfigBlockNum, configNum)
 		return
 	}
-	merkleRoot, err := self.blockPool.getExecMerkleRoot(msgBlkNum - 1)
-	if err != nil {
-		log.Errorf("failed to GetExecMerkleRoot: %s,blkNum:%d", err, msgBlkNum-1)
-		return
-	}
+	merkleRoot := vbftCtx.PrevBlockInfo.MerkleRoot
 	if msg.Block.getPrevExecMerkleRoot() != merkleRoot {
 		self.msgPool.DropMsg(msg)
 		msgMerkleRoot := msg.Block.getPrevExecMerkleRoot()
@@ -887,7 +881,7 @@ func (self *Server) processProposalMsg(vbftCtx *VbftContext, msg *blockProposalM
 		}
 	}
 
-	prevBlockTimestamp := vbftCtx.PrevBlock.Header.Timestamp
+	prevBlockTimestamp := vbftCtx.PrevBlockInfo.Block.Header.Timestamp
 	currentBlockTimestamp := msg.Block.Block.Header.Timestamp
 	if currentBlockTimestamp <= prevBlockTimestamp || currentBlockTimestamp > uint32(time.Now().Add(time.Minute*10).Unix()) {
 		log.Errorf("BlockPrposalMessage check  blocknum:%d,prevBlockTimestamp:%d,currentBlockTimestamp:%d", msg.GetBlockNum(), prevBlockTimestamp, currentBlockTimestamp)
@@ -909,7 +903,7 @@ func (self *Server) processProposalMsg(vbftCtx *VbftContext, msg *blockProposalM
 		self.msgPool.DropMsg(msg)
 		return
 	}
-	if !self.verifyCrossChainMsg(msg) {
+	if !self.verifyCrossChainMsg(msg, vbftCtx.PrevBlockInfo.CrossStatesRoot) {
 		log.Errorf("verify cross chain message error:%+v\n", msg.Block.CrossChainMsg)
 		self.msgPool.DropMsg(msg)
 		return
@@ -1601,7 +1595,7 @@ func (self *Server) sealBlock(block *VbftBlock, empty bool, sigdata bool) error 
 		return fmt.Errorf("future seal of %d, current blknum: %d", sealedBlkNum, self.GetCurrentBlockNo())
 	}
 
-	sealedBlock, err := self.blockPool.SetBlockSealed(block, empty, sigdata)
+	sealedBlock, result, err := self.blockPool.SetBlockSealed(block, empty, sigdata)
 	if err != nil {
 		return fmt.Errorf("failed to seal proposal: %s", err)
 	}
@@ -1614,7 +1608,7 @@ func (self *Server) sealBlock(block *VbftBlock, empty bool, sigdata bool) error 
 	log.Infof("server %d, sealed block %d, proposer %d, prevhash: %s, hash: %s", self.Index,
 		sealedBlkNum, block.getProposer(), prevBlkHash.ToHexString(), h.ToHexString())
 
-	if self.updateVbftContext(sealedBlock.Block, sealedBlock.Info) {
+	if self.updateVbftContext(sealedBlock.Block, sealedBlock.Info, result) {
 		self.incrValidator.AddBlock(sealedBlock.Block)
 	}
 	return nil
@@ -1668,9 +1662,8 @@ func (self *Server) checkNeedUpdateChainConfig(blockNum uint32) bool {
 	return false
 }
 
-// checkUpdateChainConfig query leveldb check is force update
-func (self *Server) checkUpdateChainConfig(blkNum uint32) bool {
-	force, err := isUpdate(self.blockPool.getExecWriteSet(blkNum-1), self.GetChainConfig().View)
+func (self *Server) checkUpdateChainConfig(view uint32, writeSet *overlaydb.MemDB) bool {
+	force, err := isUpdate(writeSet, view)
 	if err != nil {
 		log.Errorf("checkUpdateChainConfig err:%s", err)
 		return false
@@ -1707,7 +1700,7 @@ func (self *Server) nonSystxs(sysTxs []*types.Transaction, blkNum uint32) bool {
 
 func (self *Server) makeProposal(blkNum uint32, forEmpty bool) error {
 	vbftCtx := self.GetVbftContext()
-	if blkNum < vbftCtx.BlockNum {
+	if blkNum != vbftCtx.BlockNum {
 		return fmt.Errorf("server %d ignore deprecatd blk proposal %d, current %d",
 			self.Index, blkNum, vbftCtx.BlockNum)
 	}
@@ -1718,8 +1711,9 @@ func (self *Server) makeProposal(blkNum uint32, forEmpty bool) error {
 
 	//check need upate chainconfig
 	var cfg *vconfig.ChainConfig
-	if self.checkNeedUpdateChainConfig(blkNum) || self.checkUpdateChainConfig(blkNum) {
-		chainconfig, err := getChainConfig(self.blockPool.getExecWriteSet(blkNum-1), blkNum)
+	writeSet := vbftCtx.PrevBlockInfo.WriteSet
+	if self.checkNeedUpdateChainConfig(blkNum) || self.checkUpdateChainConfig(vbftCtx.Config.View, writeSet) {
+		chainconfig, err := getChainConfig(writeSet, blkNum)
 		if err != nil {
 			return fmt.Errorf("getChainConfig failed:%s", err)
 		}

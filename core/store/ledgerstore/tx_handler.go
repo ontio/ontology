@@ -72,7 +72,7 @@ func tuneGasFeeByHeight(height uint32, gas uint64, gasRound uint64, curBalance u
 	return gas
 }
 
-//HandleDeployTransaction deal with smart contract deploy transaction
+// HandleDeployTransaction deal with smart contract deploy transaction
 func (self *StateStore) HandleDeployTransaction(store store.LedgerStore, overlay *overlaydb.OverlayDB, gasTable map[string]uint64, cache *storage.CacheDB,
 	tx *types.Transaction, block *types.Block, notify *event.ExecuteNotify) error {
 	deploy := tx.Payload.(*payload.DeployCode)
@@ -153,7 +153,7 @@ func (self *StateStore) HandleDeployTransaction(store store.LedgerStore, overlay
 	return nil
 }
 
-//HandleInvokeTransaction deal with smart contract invoke transaction
+// HandleInvokeTransaction deal with smart contract invoke transaction
 func (self *StateStore) HandleInvokeTransaction(store store.LedgerStore, overlay *overlaydb.OverlayDB, gasTable map[string]uint64, cache *storage.CacheDB,
 	tx *types.Transaction, block *types.Block, notify *event.ExecuteNotify) ([]common.Uint256, error) {
 	invoke := tx.Payload.(*payload.InvokeCode)
@@ -299,8 +299,8 @@ func SaveNotify(eventStore scommon.EventStore, txHash common.Uint256, notify *ev
 	if err := eventStore.SaveEventNotifyByTx(txHash, notify); err != nil {
 		return fmt.Errorf("SaveEventNotifyByTx error %s", err)
 	}
-	event.PushSmartCodeEvent(txHash, 0, event.EVENT_NOTIFY, notify)
-	event.PushEthSmartCodeEvent(notify, blk)
+	PushSmartCodeEvent(txHash, 0, types.ACTION_EVENT_NOTIFY, notify)
+	PushEthSmartCodeEvent(notify, blk)
 	return nil
 }
 

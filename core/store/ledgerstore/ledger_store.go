@@ -60,7 +60,6 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 	"github.com/ontio/ontology/smartcontract/service/neovm"
 	"github.com/ontio/ontology/smartcontract/service/wasmvm"
-	sstate "github.com/ontio/ontology/smartcontract/states"
 	"github.com/ontio/ontology/smartcontract/storage"
 	evm2 "github.com/ontio/ontology/vm/evm"
 	"github.com/ontio/ontology/vm/evm/params"
@@ -86,7 +85,7 @@ type PrexecuteParam struct {
 	MinGas     bool
 }
 
-//LedgerStoreImp is main store struct fo ledger
+// LedgerStoreImp is main store struct fo ledger
 type LedgerStoreImp struct {
 	blockStore           *BlockStore                      //BlockStore for saving block & transaction data
 	stateStore           *StateStore                      //StateStore for saving state data, like balance, smart contract execution result, and so on.
@@ -105,7 +104,7 @@ type LedgerStoreImp struct {
 	preserveBlockHistoryLength uint32 // block could be pruned if blockHeight + preserveBlockHistoryLength < currHeight , disable prune if equals 0
 }
 
-//NewLedgerStore return LedgerStoreImp instance
+// NewLedgerStore return LedgerStoreImp instance
 func NewLedgerStore(dataDir string, stateHashHeight uint32) (*LedgerStoreImp, error) {
 	ledgerStore := &LedgerStoreImp{
 		headerCache:          make(map[common.Uint256]*types.Header, 0),
@@ -144,7 +143,7 @@ func NewLedgerStore(dataDir string, stateHashHeight uint32) (*LedgerStoreImp, er
 	return ledgerStore, nil
 }
 
-//InitLedgerStoreWithGenesisBlock init the ledger store with genesis block. It's the first operation after NewLedgerStore.
+// InitLedgerStoreWithGenesisBlock init the ledger store with genesis block. It's the first operation after NewLedgerStore.
 func (this *LedgerStoreImp) InitLedgerStoreWithGenesisBlock(genesisBlock *types.Block, defaultBookkeeper []keypair.PublicKey) error {
 	hasInit, err := this.hasAlreadyInitGenesisBlock()
 	if err != nil {
@@ -370,8 +369,8 @@ func (this *LedgerStoreImp) getHeaderIndex(height uint32) common.Uint256 {
 	return blockHash
 }
 
-//GetCurrentHeaderHeight return the current header height.
-//In block sync states, Header height is usually higher than block height that is has already committed to storage
+// GetCurrentHeaderHeight return the current header height.
+// In block sync states, Header height is usually higher than block height that is has already committed to storage
 func (this *LedgerStoreImp) GetCurrentHeaderHeight() uint32 {
 	this.lock.RLock()
 	defer this.lock.RUnlock()
@@ -382,7 +381,7 @@ func (this *LedgerStoreImp) GetCurrentHeaderHeight() uint32 {
 	return idx
 }
 
-//GetCurrentHeaderHash return the current header hash. The current header means the latest header.
+// GetCurrentHeaderHash return the current header hash. The current header means the latest header.
 func (this *LedgerStoreImp) GetCurrentHeaderHash() common.Uint256 {
 	this.lock.RLock()
 	defer this.lock.RUnlock()
@@ -400,15 +399,15 @@ func (this *LedgerStoreImp) setCurrentBlock(height uint32, blockHash common.Uint
 	this.currBlockHeight = height
 }
 
-//GetCurrentBlock return the current block height, and block hash.
-//Current block means the latest block in store.
+// GetCurrentBlock return the current block height, and block hash.
+// Current block means the latest block in store.
 func (this *LedgerStoreImp) GetCurrentBlock() (uint32, common.Uint256) {
 	this.lock.RLock()
 	defer this.lock.RUnlock()
 	return this.currBlockHeight, this.currBlockHash
 }
 
-//GetCurrentBlockHash return the current block hash
+// GetCurrentBlockHash return the current block hash
 func (this *LedgerStoreImp) GetCurrentBlockHash() common.Uint256 {
 	this.lock.RLock()
 	defer this.lock.RUnlock()
@@ -423,7 +422,7 @@ func (this *LedgerStoreImp) GetIndexStore() *leveldbstore.LevelDBStore {
 	return this.blockStore.GetDb()
 }
 
-//GetCurrentBlockHeight return the current block height
+// GetCurrentBlockHeight return the current block height
 func (this *LedgerStoreImp) GetCurrentBlockHeight() uint32 {
 	this.lock.RLock()
 	defer this.lock.RUnlock()
@@ -590,7 +589,7 @@ func (this *LedgerStoreImp) verifyCrossChainMsg(crossChainMsg *types.CrossChainM
 	return nil
 }
 
-//AddHeader add header to cache, and add the mapping of block height to block hash. Using in block sync
+// AddHeader add header to cache, and add the mapping of block height to block hash. Using in block sync
 func (this *LedgerStoreImp) AddHeader(header *types.Header) error {
 	nextHeaderHeight := this.GetCurrentHeaderHeight() + 1
 	if header.Height != nextHeaderHeight {
@@ -606,7 +605,7 @@ func (this *LedgerStoreImp) AddHeader(header *types.Header) error {
 	return nil
 }
 
-//AddHeaders bath add header.
+// AddHeaders bath add header.
 func (this *LedgerStoreImp) AddHeaders(headers []*types.Header) error {
 	sort.Slice(headers, func(i, j int) bool {
 		return headers[i].Height < headers[j].Height
@@ -691,8 +690,8 @@ func (this *LedgerStoreImp) SubmitBlock(block *types.Block, ccMsg *types.CrossCh
 	return nil
 }
 
-//AddBlock add the block to store.
-//When the block is not the next block, it will be cache. until the missing block arrived
+// AddBlock add the block to store.
+// When the block is not the next block, it will be cache. until the missing block arrived
 func (this *LedgerStoreImp) AddBlock(block *types.Block, ccMsg *types.CrossChainMsg, stateMerkleRoot common.Uint256) error {
 	currBlockHeight := this.GetCurrentBlockHeight()
 	blockHeight := block.Header.Height
@@ -976,7 +975,7 @@ func (this *LedgerStoreImp) BloomStatus() (uint32, uint32) {
 	return BloomBitsBlocks, this.currBlockHeight / BloomBitsBlocks
 }
 
-//saveBlock do the job of execution samrt contract and commit block to store.
+// saveBlock do the job of execution samrt contract and commit block to store.
 func (this *LedgerStoreImp) submitBlock(block *types.Block, crossChainMsg *types.CrossChainMsg, result store.ExecuteResult) error {
 	blockHash := block.Hash()
 	blockHeight := block.Header.Height
@@ -1023,14 +1022,15 @@ func (this *LedgerStoreImp) submitBlock(block *types.Block, crossChainMsg *types
 		events.DefActorPublisher.Publish(
 			message.TOPIC_SAVE_BLOCK_COMPLETE,
 			&message.SaveBlockCompleteMsg{
-				Block: block,
+				Block:      block,
+				ExecResult: &result,
 			})
-		event.PushChainEvent(result.Notify, block, result.Bloom)
+		PushChainEvent(result.Notify, block, result.Bloom)
 	}
 	return nil
 }
 
-//saveBlock do the job of execution samrt contract and commit block to store.
+// saveBlock do the job of execution samrt contract and commit block to store.
 func (this *LedgerStoreImp) saveBlock(block *types.Block, ccMsg *types.CrossChainMsg, stateMerkleRoot common.Uint256) error {
 	blockHeight := block.Header.Height
 	if blockHeight > 0 && blockHeight <= this.GetCurrentBlockHeight() {
@@ -1118,17 +1118,17 @@ func (this *LedgerStoreImp) handleTransaction(overlay *overlaydb.OverlayDB, cach
 	return notify, crossStateHashes, receipt, nil
 }
 
-//IsContainBlock return whether the block is in store
+// IsContainBlock return whether the block is in store
 func (this *LedgerStoreImp) IsContainBlock(blockHash common.Uint256) (bool, error) {
 	return this.blockStore.ContainBlock(blockHash)
 }
 
-//IsContainTransaction return whether the transaction is in store. Wrap function of BlockStore.ContainTransaction
+// IsContainTransaction return whether the transaction is in store. Wrap function of BlockStore.ContainTransaction
 func (this *LedgerStoreImp) IsContainTransaction(txHash common.Uint256) (bool, error) {
 	return this.blockStore.ContainTransaction(txHash)
 }
 
-//GetBlockRootWithNewTxRoots return the block root(merkle root of blocks) after add a new tx root of block
+// GetBlockRootWithNewTxRoots return the block root(merkle root of blocks) after add a new tx root of block
 func (this *LedgerStoreImp) GetBlockRootWithNewTxRoots(startHeight uint32, txRoots []common.Uint256) common.Uint256 {
 	this.lock.RLock()
 	defer this.lock.RUnlock()
@@ -1176,12 +1176,12 @@ func (this *LedgerStoreImp) GetCrossStatesProof(height uint32, key []byte) ([]by
 	return path, nil
 }
 
-//GetBlockHash return the block hash by block height
+// GetBlockHash return the block hash by block height
 func (this *LedgerStoreImp) GetBlockHash(height uint32) common.Uint256 {
 	return this.getHeaderIndex(height)
 }
 
-//GetHeaderByHash return the block header by block hash
+// GetHeaderByHash return the block header by block hash
 func (this *LedgerStoreImp) GetHeaderByHash(blockHash common.Uint256) (*types.Header, error) {
 	header := this.getHeaderCache(blockHash)
 	if header != nil {
@@ -1198,28 +1198,28 @@ func (this *LedgerStoreImp) GetRawHeaderByHash(blockHash common.Uint256) (*types
 	return this.blockStore.GetRawHeader(blockHash)
 }
 
-//GetHeaderByHash return the block header by block height
+// GetHeaderByHash return the block header by block height
 func (this *LedgerStoreImp) GetHeaderByHeight(height uint32) (*types.Header, error) {
 	blockHash := this.GetBlockHash(height)
 	return this.GetHeaderByHash(blockHash)
 }
 
-//GetSysFeeAmount return the sys fee for block by block hash. Wrap function of BlockStore.GetSysFeeAmount
+// GetSysFeeAmount return the sys fee for block by block hash. Wrap function of BlockStore.GetSysFeeAmount
 func (this *LedgerStoreImp) GetSysFeeAmount(blockHash common.Uint256) (common.Fixed64, error) {
 	return this.blockStore.GetSysFeeAmount(blockHash)
 }
 
-//GetTransaction return transaction by transaction hash. Wrap function of BlockStore.GetTransaction
+// GetTransaction return transaction by transaction hash. Wrap function of BlockStore.GetTransaction
 func (this *LedgerStoreImp) GetTransaction(txHash common.Uint256) (*types.Transaction, uint32, error) {
 	return this.blockStore.GetTransaction(txHash)
 }
 
-//GetBlockByHash return block by block hash. Wrap function of BlockStore.GetBlockByHash
+// GetBlockByHash return block by block hash. Wrap function of BlockStore.GetBlockByHash
 func (this *LedgerStoreImp) GetBlockByHash(blockHash common.Uint256) (*types.Block, error) {
 	return this.blockStore.GetBlock(blockHash)
 }
 
-//GetBlockByHeight return block by height.
+// GetBlockByHeight return block by height.
 func (this *LedgerStoreImp) GetBlockByHeight(height uint32) (*types.Block, error) {
 	blockHash := this.GetBlockHash(height)
 	var empty common.Uint256
@@ -1229,22 +1229,22 @@ func (this *LedgerStoreImp) GetBlockByHeight(height uint32) (*types.Block, error
 	return this.GetBlockByHash(blockHash)
 }
 
-//GetBookkeeperState return the bookkeeper state. Wrap function of StateStore.GetBookkeeperState
+// GetBookkeeperState return the bookkeeper state. Wrap function of StateStore.GetBookkeeperState
 func (this *LedgerStoreImp) GetBookkeeperState() (*states.BookkeeperState, error) {
 	return this.stateStore.GetBookkeeperState()
 }
 
-//GetMerkleProof return the block merkle proof. Wrap function of StateStore.GetMerkleProof
+// GetMerkleProof return the block merkle proof. Wrap function of StateStore.GetMerkleProof
 func (this *LedgerStoreImp) GetMerkleProof(proofHeight, rootHeight uint32) ([]common.Uint256, error) {
 	return this.stateStore.GetMerkleProof(proofHeight, rootHeight)
 }
 
-//GetContractState return contract by contract address. Wrap function of StateStore.GetContractState
+// GetContractState return contract by contract address. Wrap function of StateStore.GetContractState
 func (this *LedgerStoreImp) GetContractState(contractHash common.Address) (*payload.DeployCode, error) {
 	return this.stateStore.GetContractState(contractHash)
 }
 
-//GetStorageItem return the storage value of the key in smart contract. Wrap function of StateStore.GetStorageState
+// GetStorageItem return the storage value of the key in smart contract. Wrap function of StateStore.GetStorageState
 func (this *LedgerStoreImp) GetStorageItem(contract common.Address, key []byte) ([]byte, error) {
 	storageKey := &states.StorageKey{
 		ContractAddress: contract,
@@ -1260,24 +1260,24 @@ func (this *LedgerStoreImp) GetStorageItem(contract common.Address, key []byte) 
 	return storageItem.Value, nil
 }
 
-//GetEventNotifyByTx return the events notify gen by executing of smart contract.  Wrap function of EventStore.GetEventNotifyByTx
+// GetEventNotifyByTx return the events notify gen by executing of smart contract.  Wrap function of EventStore.GetEventNotifyByTx
 func (this *LedgerStoreImp) GetEventNotifyByTx(tx common.Uint256) (*event.ExecuteNotify, error) {
 	return this.eventStore.GetEventNotifyByTx(tx)
 }
 
-//GetEventNotifyByBlock return the transaction hash which have event notice after execution of smart contract. Wrap function of EventStore.GetEventNotifyByBlock
+// GetEventNotifyByBlock return the transaction hash which have event notice after execution of smart contract. Wrap function of EventStore.GetEventNotifyByBlock
 func (this *LedgerStoreImp) GetEventNotifyByBlock(height uint32) ([]*event.ExecuteNotify, error) {
 	return this.eventStore.GetEventNotifyByBlock(height)
 }
 
-//PreExecuteContract return the result of smart contract execution without commit to store
-func (this *LedgerStoreImp) PreExecuteContractBatch(txes []*types.Transaction, atomic bool) ([]*sstate.PreExecResult, uint32, error) {
+// PreExecuteContract return the result of smart contract execution without commit to store
+func (this *LedgerStoreImp) PreExecuteContractBatch(txes []*types.Transaction, atomic bool) ([]*store.PreExecResult, uint32, error) {
 	if atomic {
 		this.getSavingBlockLock()
 		defer this.releaseSavingBlockLock()
 	}
 	height := this.GetCurrentBlockHeight()
-	results := make([]*sstate.PreExecResult, 0, len(txes))
+	results := make([]*store.PreExecResult, 0, len(txes))
 	for _, tx := range txes {
 		res, err := this.PreExecuteContract(tx)
 		if err != nil {
@@ -1315,8 +1315,8 @@ func (this *LedgerStoreImp) GetBloomData(height uint32) (types3.Bloom, error) {
 	return this.blockStore.GetBloomData(height)
 }
 
-//PreExecuteContract return the result of smart contract execution without commit to store
-func (this *LedgerStoreImp) PreExecuteContractWithParam(tx *types.Transaction, preParam PrexecuteParam) (*sstate.PreExecResult, error) {
+// PreExecuteContract return the result of smart contract execution without commit to store
+func (this *LedgerStoreImp) PreExecuteContractWithParam(tx *types.Transaction, preParam PrexecuteParam) (*store.PreExecResult, error) {
 	height := this.GetCurrentBlockHeight()
 	// use previous block time to make it predictable for easy test
 	blockTime := uint32(time.Now().Unix())
@@ -1324,7 +1324,7 @@ func (this *LedgerStoreImp) PreExecuteContractWithParam(tx *types.Transaction, p
 		blockTime = header.Timestamp + 1
 	}
 	blockHash := this.GetBlockHash(height)
-	stf := &sstate.PreExecResult{State: event.CONTRACT_STATE_FAIL, Gas: neovm.MIN_TRANSACTION_GAS, Result: nil}
+	stf := &store.PreExecResult{State: event.CONTRACT_STATE_FAIL, Gas: neovm.MIN_TRANSACTION_GAS, Result: nil}
 
 	if tx.IsEipTx() {
 		invoke := tx.Payload.(*payload.EIP155Code)
@@ -1411,7 +1411,7 @@ func (this *LedgerStoreImp) PreExecuteContractWithParam(tx *types.Transaction, p
 			cv = common.ToHexString(result.([]byte))
 		}
 
-		return &sstate.PreExecResult{State: event.CONTRACT_STATE_SUCCESS, Gas: gasCost, Result: cv, Notify: sc.Notifications}, nil
+		return &store.PreExecResult{State: event.CONTRACT_STATE_SUCCESS, Gas: gasCost, Result: cv, Notify: sc.Notifications}, nil
 	} else if tx.TxType == types.Deploy {
 		deploy := tx.Payload.(*payload.DeployCode)
 
@@ -1431,14 +1431,14 @@ func (this *LedgerStoreImp) PreExecuteContractWithParam(tx *types.Transaction, p
 			}
 		}
 
-		return &sstate.PreExecResult{State: event.CONTRACT_STATE_SUCCESS, Gas: gasTable[neovm.CONTRACT_CREATE_NAME] + calcGasByCodeLen(len(deploy.GetRawCode()), gasTable[neovm.UINT_DEPLOY_CODE_LEN_NAME]), Result: nil}, nil
+		return &store.PreExecResult{State: event.CONTRACT_STATE_SUCCESS, Gas: gasTable[neovm.CONTRACT_CREATE_NAME] + calcGasByCodeLen(len(deploy.GetRawCode()), gasTable[neovm.UINT_DEPLOY_CODE_LEN_NAME]), Result: nil}, nil
 	} else {
 		return stf, errors.NewErr("transaction type error")
 	}
 }
 
-//PreExecuteContract return the result of smart contract execution without commit to store
-func (this *LedgerStoreImp) PreExecuteContract(tx *types.Transaction) (*sstate.PreExecResult, error) {
+// PreExecuteContract return the result of smart contract execution without commit to store
+func (this *LedgerStoreImp) PreExecuteContract(tx *types.Transaction) (*store.PreExecResult, error) {
 	param := PrexecuteParam{
 		JitMode:    false,
 		WasmFactor: 0,
@@ -1480,7 +1480,7 @@ func (this *LedgerStoreImp) executeEip155Tx(msg types3.Message, conf evm2.Config
 	return res, err
 }
 
-//Close ledger store.
+// Close ledger store.
 func (this *LedgerStoreImp) Close() error {
 	// wait block saving complete, and get the lock to avoid subsequent block saving
 	this.getSavingBlockLock()
