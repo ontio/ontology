@@ -761,7 +761,7 @@ func (self *Server) verifyCrossChainMsg(msg *blockProposalMsg, root common.Uint2
 }
 
 func (self *Server) processProposalMsg(vbftCtx *VbftContext, msg *blockProposalMsg) {
-	msgBlkNum := msg.GetBlockNum()
+	blkNum := vbftCtx.BlockNum
 	blkInfo := vbftCtx.PrevBlockInfo.Info
 
 	msgPrevBlkHash := msg.Block.getPrevBlockHash()
@@ -813,13 +813,13 @@ func (self *Server) processProposalMsg(vbftCtx *VbftContext, msg *blockProposalM
 	proposerPk := self.peerPool.GetPeerPubKey(msg.Block.getProposer())
 	if proposerPk == nil {
 		log.Errorf("server %d failed to get proposer %d pk of block %d",
-			self.Index, msg.Block.getProposer(), msgBlkNum)
+			self.Index, msg.Block.getProposer(), blkNum)
 		self.msgPool.DropMsg(msg)
 		return
 	}
-	if err := verifyVrf(proposerPk, msgBlkNum, blkInfo.VrfValue, msg.Block.getVrfValue(), msg.Block.getVrfProof()); err != nil {
+	if err := verifyVrf(proposerPk, blkNum, blkInfo.VrfValue, msg.Block.getVrfValue(), msg.Block.getVrfProof()); err != nil {
 		log.Errorf("server %d failed to verify vrf of block %d proposal from %d",
-			self.Index, msgBlkNum, msg.Block.getProposer())
+			self.Index, blkNum, msg.Block.getProposer())
 		self.msgPool.DropMsg(msg)
 		return
 	}
@@ -829,8 +829,8 @@ func (self *Server) processProposalMsg(vbftCtx *VbftContext, msg *blockProposalM
 		return
 	}
 	txs := msg.Block.Block.Transactions
-	if len(txs) > 0 && self.nonSystxs(txs, msgBlkNum) {
-		height := msgBlkNum - 1
+	if len(txs) > 0 && self.nonSystxs(txs, vbftCtx) {
+		height := blkNum - 1
 		start, end := self.incrValidator.BlockRange()
 		if msg.GetBlockNum() <= self.GetCompletedBlockNum() {
 			log.Infof("processProposalMsg failed: MsgBlockNum:%d,CompletedBlockNum:%d", msg.GetBlockNum(), self.GetCompletedBlockNum())
@@ -848,18 +848,18 @@ func (self *Server) processProposalMsg(vbftCtx *VbftContext, msg *blockProposalM
 		go func() {
 			if err := self.poolActor.VerifyBlock(txs, validHeight); err != nil && err != actor.ErrTimeout {
 				log.Errorf("server %d verify proposal blk from %d failed, blk %d, txs %d, err: %s",
-					self.Index, msg.Block.getProposer(), msgBlkNum, len(txs), err)
+					self.Index, msg.Block.getProposer(), blkNum, len(txs), err)
 				self.msgPool.DropMsg(msg)
 				return
 			} else if err == actor.ErrTimeout {
 				log.Errorf("server %d verify proposal blk from %d timedout, blk %d, txs %d, err: %s",
-					self.Index, msg.Block.getProposer(), msgBlkNum, len(txs), err)
+					self.Index, msg.Block.getProposer(), blkNum, len(txs), err)
 			}
 			nonceCtx := make(map[common.Address]uint64)
 			for _, tx := range txs {
 				if err := self.incrValidator.Verify(tx, validHeight, nonceCtx); err != nil {
 					log.Errorf("server %d verify proposal tx from %d failed, blk %d, txs %d, err: %s",
-						self.Index, msg.Block.getProposer(), msgBlkNum, len(txs), err)
+						self.Index, msg.Block.getProposer(), blkNum, len(txs), err)
 					self.msgPool.DropMsg(msg)
 					return
 				}
@@ -1542,7 +1542,6 @@ func (self *Server) msgSendLoop() {
 	}
 }
 
-// creategovernaceTransaction invoke governance native contract commit_pos
 func (self *Server) creategovernaceTransaction(blkNum uint32) (*types.Transaction, error) {
 	mutable := utils.BuildNativeTransaction(nutils.GovernanceContractAddress, gover.COMMIT_DPOS, []byte{})
 	mutable.Nonce = blkNum
@@ -1550,18 +1549,12 @@ func (self *Server) creategovernaceTransaction(blkNum uint32) (*types.Transactio
 	return tx, err
 }
 
-// checkNeedUpdateChainConfig use blockcount
-func (self *Server) checkNeedUpdateChainConfig(blockNum uint32) bool {
-	prevBlk, _ := self.blockPool.getSealedBlock(blockNum - 1)
-	if prevBlk == nil {
-		log.Errorf("failed to get prevBlock (%d)", blockNum-1)
-		return false
+func (self *VbftContext) NeedUpdateChainConfigTx() bool {
+	lastConfigNum := self.PrevBlockInfo.Info.LastConfigBlockNum
+	if self.PrevBlockInfo.Info.NewChainConfig != nil {
+		lastConfigNum = self.BlockNum - 1
 	}
-	lastConfigBlkNum := prevBlk.getLastConfigBlockNum()
-	if (blockNum - lastConfigBlkNum) >= self.GetChainConfig().MaxBlockChangeView {
-		return true
-	}
-	return false
+	return (self.BlockNum - lastConfigNum) >= self.Config.MaxBlockChangeView
 }
 
 func (self *Server) checkUpdateChainConfig(view uint32, writeSet *overlaydb.MemDB) bool {
@@ -1586,11 +1579,11 @@ func (self *Server) validHeight(blkNum uint32) uint32 {
 	return validHeight
 }
 
-func (self *Server) nonSystxs(sysTxs []*types.Transaction, blkNum uint32) bool {
-	if self.checkNeedUpdateChainConfig(blkNum) && len(sysTxs) == 1 {
+func (self *Server) nonSystxs(sysTxs []*types.Transaction, vbftCtx *VbftContext) bool {
+	if vbftCtx.NeedUpdateChainConfigTx() && len(sysTxs) == 1 {
 		invoke := sysTxs[0].Payload.(*payload.InvokeCode)
 		if invoke == nil {
-			log.Errorf("nonSystxs invoke is nil,blocknum:%d", blkNum)
+			log.Errorf("nonSystxs invoke is nil,blocknum:%d", vbftCtx.BlockNum)
 			return true
 		}
 		if bytes.Compare(invoke.Code, ninit.COMMIT_DPOS_BYTES) == 0 {
@@ -1614,13 +1607,13 @@ func (self *Server) makeProposal(blkNum uint32, forEmpty bool) error {
 	//check need upate chainconfig
 	var cfg *vconfig.ChainConfig
 	writeSet := vbftCtx.PrevBlockInfo.WriteSet
-	if self.checkNeedUpdateChainConfig(blkNum) || self.checkUpdateChainConfig(vbftCtx.Config.View, writeSet) {
+	if vbftCtx.NeedUpdateChainConfigTx() || self.checkUpdateChainConfig(vbftCtx.Config.View, writeSet) {
 		chainconfig, err := getChainConfig(writeSet, blkNum)
 		if err != nil {
 			return fmt.Errorf("getChainConfig failed:%s", err)
 		}
 		//add transaction invoke governance native commit_pos contract
-		if self.checkNeedUpdateChainConfig(blkNum) {
+		if vbftCtx.NeedUpdateChainConfigTx() {
 			tx, err := self.creategovernaceTransaction(blkNum)
 			if err != nil {
 				return fmt.Errorf("construct governace transaction error: %v", err)

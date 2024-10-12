@@ -223,9 +223,6 @@ func (self *Server) constructProposalMsg(vbftCtx *VbftContext, sysTxs, userTxs [
 	if vbftCtx.PrevBlockInfo.Info.NewChainConfig != nil {
 		lastConfigBlkNum = prevBlk.Header.Height
 	}
-	if chainconfig != nil {
-		lastConfigBlkNum = blkNum // todo: fix
-	}
 	vbftBlkInfo := &vconfig.VbftBlockInfo{
 		Proposer:           self.Index,
 		VrfValue:           vrfValue,
