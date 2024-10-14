@@ -187,7 +187,6 @@ func (self *Server) handleBlockPersistCompleted(block *types.Block, exec *store.
 		return
 	}
 	if self.updateVbftContext(block, blkInfo, exec) {
-		self.incrValidator.AddBlock(block)
 		// p2p synced before seal block: 1. not consensus node; 2. consensus node in syncing state
 		self.blockPool.ReloadFromLedger()
 	}
@@ -298,6 +297,7 @@ func (self *Server) LoadChainConfig(store *ChainStore) error {
 		Endorsers:  endorsers,
 		Committers: committers,
 	}
+	self.incrValidator.AddBlock(block.Block)
 
 	return nil
 }
@@ -308,7 +308,7 @@ func (self *Server) nonConsensusNode() bool {
 
 func (self *Server) updateVbftContext(block *types.Block, info *vconfig.VbftBlockInfo, result *store.ExecuteResult) (updated bool) {
 	blkNum := block.Header.Height
-	vbftCtx := self.GetVbftContext()
+	vbftCtx := *self.GetVbftContext()
 	if info.NewChainConfig != nil {
 		vbftCtx.Config = info.NewChainConfig
 		vbftCtx.ConfigNum = blkNum
@@ -329,8 +329,10 @@ func (self *Server) updateVbftContext(block *types.Block, info *vconfig.VbftBloc
 
 	self.metaLock.Lock()
 	if self.vbftCtx.BlockNum+1 == vbftCtx.BlockNum {
-		log.Infof("update vbft context, blkNum:%d", blkNum)
-		self.vbftCtx = vbftCtx
+		self.vbftCtx = &vbftCtx
+		self.incrValidator.AddBlock(block)
+		start, end := self.incrValidator.BlockRange()
+		log.Infof("update vbft context, blkNum:%d, incr validator range: [%d, %d)", blkNum, start, end)
 		updated = true
 	}
 	self.metaLock.Unlock()
@@ -820,12 +822,8 @@ func (self *Server) processProposalMsg(vbftCtx *VbftContext, msg *blockProposalM
 	if len(txs) > 0 && self.nonSystxs(txs, vbftCtx) {
 		height := blkNum - 1
 		start, end := self.incrValidator.BlockRange()
-		if msg.GetBlockNum() <= self.GetCompletedBlockNum() {
-			log.Infof("processProposalMsg failed: MsgBlockNum:%d,CompletedBlockNum:%d", msg.GetBlockNum(), self.GetCompletedBlockNum())
-			return
-		}
 		validHeight := height
-		if height+1 == end {
+		if blkNum <= end {
 			validHeight = start
 		} else {
 			self.incrValidator.Clean()
@@ -1478,9 +1476,7 @@ func (self *Server) sealBlock(block *VbftBlock, empty bool, sigdata bool) error 
 	log.Infof("server %d, sealed block %d, proposer %d, prevhash: %s, hash: %s", self.Index,
 		sealedBlkNum, block.getProposer(), prevBlkHash.ToHexString(), h.ToHexString())
 
-	if self.updateVbftContext(sealedBlock.Block, sealedBlock.Info, result) {
-		self.incrValidator.AddBlock(sealedBlock.Block)
-	}
+	self.updateVbftContext(sealedBlock.Block, sealedBlock.Info, result)
 	self.CheckAndSubmitBlock(sealedBlkNum, self.GetVbftContext().PrevBlockInfo.MerkleRoot)
 	return nil
 }
