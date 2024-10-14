@@ -170,7 +170,7 @@ func (self *EventTimer) StartEventTimer(evtType TimerEventType, blockNum uint32)
 	if t, present := timers[blockNum]; present {
 		t.Stop()
 		delete(timers, blockNum)
-		log.Infof("timer (type: %d) for %d got reset", evtType, blockNum)
+		log.Infof("timer (type: %s) for %d got reset", evtType, blockNum)
 	}
 
 	timeout := self.getEventTimeout(evtType)

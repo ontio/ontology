@@ -34,7 +34,6 @@ import (
 	actorTypes "github.com/ontio/ontology/consensus/actor"
 	vconfig "github.com/ontio/ontology/consensus/vbft/config"
 	"github.com/ontio/ontology/core/ledger"
-	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/store"
 	"github.com/ontio/ontology/core/store/overlaydb"
 	"github.com/ontio/ontology/core/types"
@@ -44,7 +43,6 @@ import (
 	p2pmsg "github.com/ontio/ontology/p2pserver/message/types"
 	p2p "github.com/ontio/ontology/p2pserver/net/protocol"
 	gover "github.com/ontio/ontology/smartcontract/service/native/governance"
-	ninit "github.com/ontio/ontology/smartcontract/service/native/init"
 	nutils "github.com/ontio/ontology/smartcontract/service/native/utils"
 	"github.com/ontio/ontology/validator/increment"
 )
@@ -315,8 +313,6 @@ func (self *Server) updateVbftContext(block *types.Block, info *vconfig.VbftBloc
 	}
 
 	vbftCtx.Proposers, vbftCtx.Endorsers, vbftCtx.Committers = buildPeerRoles(blkNum+1, info.Proposer, info.VrfValue, vbftCtx.Config)
-	log.Infof("server %d, blkNum: %d, state: %d, participants: %v, %v, %v", self.Index, blkNum+1,
-		self.getState(), vbftCtx.Proposers, vbftCtx.Endorsers, vbftCtx.Committers)
 
 	vbftCtx.BlockNum = blkNum + 1
 	vbftCtx.PrevBlockInfo = &BlockAndExecteInfo{
@@ -332,12 +328,16 @@ func (self *Server) updateVbftContext(block *types.Block, info *vconfig.VbftBloc
 		self.vbftCtx = &vbftCtx
 		self.incrValidator.AddBlock(block)
 		start, end := self.incrValidator.BlockRange()
-		log.Infof("update vbft context, blkNum:%d, incr validator range: [%d, %d)", blkNum, start, end)
+		log.Infof("update vbft context, blkNum:%d, incr validator range: [%d, %d)", blkNum+1, start, end)
 		updated = true
 	}
 	self.metaLock.Unlock()
-	if updated && info.NewChainConfig != nil {
-		self.updateTimerAndPeerPool(info.NewChainConfig)
+	if updated {
+		log.Infof("server %d, blkNum: %d, state: %d, participants: %v, %v, %v", self.Index, blkNum+1,
+			self.getState(), vbftCtx.Proposers, vbftCtx.Endorsers, vbftCtx.Committers)
+		if info.NewChainConfig != nil {
+			self.updateTimerAndPeerPool(info.NewChainConfig)
+		}
 	}
 	return updated
 }
@@ -819,7 +819,14 @@ func (self *Server) processProposalMsg(vbftCtx *VbftContext, msg *blockProposalM
 		return
 	}
 	txs := msg.Block.Block.Transactions
-	if len(txs) > 0 && self.nonSystxs(txs, vbftCtx) {
+	if vbftCtx.NeedUpdateChainConfigTx() {
+		if len(txs) != 1 || self.CreateGovernaceTransaction(vbftCtx.BlockNum).Hash() != txs[0].Hash() {
+			log.Errorf("update chain config block must has 1 commit dpos transaction, blk: %s", blkNum)
+			self.msgPool.DropMsg(msg)
+			return
+		}
+	}
+	if len(txs) > 0 && !vbftCtx.NeedUpdateChainConfigTx() {
 		height := blkNum - 1
 		start, end := self.incrValidator.BlockRange()
 		validHeight := height
@@ -1507,11 +1514,14 @@ func (self *Server) msgSendLoop() {
 	}
 }
 
-func (self *Server) creategovernaceTransaction(blkNum uint32) (*types.Transaction, error) {
+func (self *Server) CreateGovernaceTransaction(blkNum uint32) *types.Transaction {
 	mutable := utils.BuildNativeTransaction(nutils.GovernanceContractAddress, gover.COMMIT_DPOS, []byte{})
 	mutable.Nonce = blkNum
 	tx, err := mutable.IntoImmutable()
-	return tx, err
+	if err != nil {
+		panic(err)
+	}
+	return tx
 }
 
 func (self *VbftContext) NeedUpdateChainConfigTx() bool {
@@ -1536,24 +1546,15 @@ func (self *Server) validHeight(blkNum uint32) uint32 {
 	height := blkNum - 1
 	validHeight := height
 	start, end := self.incrValidator.BlockRange()
-	if height+1 == end {
+	if blkNum <= end {
 		validHeight = start
-	} else {
-		self.incrValidator.Clean()
 	}
 	return validHeight
 }
 
 func (self *Server) nonSystxs(sysTxs []*types.Transaction, vbftCtx *VbftContext) bool {
-	if vbftCtx.NeedUpdateChainConfigTx() && len(sysTxs) == 1 {
-		invoke := sysTxs[0].Payload.(*payload.InvokeCode)
-		if invoke == nil {
-			log.Errorf("nonSystxs invoke is nil,blocknum:%d", vbftCtx.BlockNum)
-			return true
-		}
-		if bytes.Compare(invoke.Code, ninit.COMMIT_DPOS_BYTES) == 0 {
-			return false
-		}
+	if vbftCtx.NeedUpdateChainConfigTx() {
+		return len(sysTxs) == 1 && self.CreateGovernaceTransaction(vbftCtx.BlockNum).Hash() == sysTxs[0].Hash()
 	}
 	return true
 }
@@ -1579,10 +1580,7 @@ func (self *Server) makeProposal(blkNum uint32, forEmpty bool) error {
 		}
 		//add transaction invoke governance native commit_pos contract
 		if vbftCtx.NeedUpdateChainConfigTx() {
-			tx, err := self.creategovernaceTransaction(blkNum)
-			if err != nil {
-				return fmt.Errorf("construct governace transaction error: %v", err)
-			}
+			tx := self.CreateGovernaceTransaction(blkNum)
 			sysTxs = append(sysTxs, tx)
 			chainconfig.View++
 		}
