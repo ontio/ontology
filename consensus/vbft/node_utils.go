@@ -84,17 +84,22 @@ func (self *Server) isPeerAlive(peerIdx uint32) bool {
 // all other proposer as 2nd-proposer
 // before propose-timeout, only proposal from leader-proposer is accepted
 func (self *Server) isProposer(peerIdx uint32) bool {
-	if peerIdx == self.Index && !self.getState().IsActive() {
-		return false
-	}
+	return self.GetActiveProposer() == peerIdx
+}
+
+func (self *Server) GetActiveProposer() uint32 {
 	// the first active proposer
 	for _, id := range self.GetVbftContext().Proposers {
 		if self.isPeerAlive(id) {
-			return peerIdx == id
+			if id == self.Index && !self.getState().IsActive() {
+				continue
+			}
+			return id
 		}
 	}
 
-	return false
+	// all not active
+	return math.MaxUint32
 }
 
 func (self *VbftContext) IsEndorser(peerIdx uint32) bool {
