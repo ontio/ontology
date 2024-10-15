@@ -143,8 +143,6 @@ func (self *Server) Receive(context actor.Context) {
 	case *actorTypes.StopConsensus:
 		self.stop()
 	case *message.SaveBlockCompleteMsg:
-		log.Infof("vbft actor SaveBlockCompleteMsg receives block complete event. block height=%d, numtx=%d",
-			msg.Block.Header.Height, len(msg.Block.Transactions))
 		self.handleBlockPersistCompleted(msg.Block, msg.ExecResult)
 	case *p2pmsg.ConsensusPayload:
 		self.NewConsensusPayload(msg)
@@ -168,7 +166,8 @@ func (self *Server) Halt() error {
 }
 
 func (self *Server) handleBlockPersistCompleted(block *types.Block, exec *store.ExecuteResult) {
-	log.Infof("persist block: %d, %x", block.Header.Height, block.Hash())
+	log.Infof("persist block complete: height=%d, hash=%x, numtx=%d", block.Header.Height, block.Hash(),
+		len(block.Transactions))
 	blkInfo, err := vconfig.VbftBlock(block.Header)
 	if err != nil {
 		log.Errorf("load vbft block info failed:%s", err)
@@ -194,6 +193,7 @@ func (self *Server) CheckAndSubmitBlock(blkNum uint32, stateRoot common.Uint256)
 	m := cfg.N - (cfg.N-1)/3
 
 	if stateRootCnt >= m {
+		log.Infof("receive enough submit msg for block %d, start submit block", blkNum)
 		if err := self.blockPool.SubmitBlock(blkNum); err != nil {
 			log.Errorf("SubmitBlock err:%s", err)
 		}
@@ -862,6 +862,9 @@ func (self *Server) processConsensusMsg(msg ConsensusMsg) {
 }
 
 func (self *Server) makeProgress(vbftCtx *VbftContext) {
+	defer func() {
+		log.Infof("bft progress status: %s", self.blockPool.Info(vbftCtx.BlockNum))
+	}()
 	blkNum := vbftCtx.BlockNum
 	proposal := self.blockPool.GetBlockProposal(vbftCtx.BlockNum, self.GetActiveProposer())
 	if proposal != nil {
@@ -875,20 +878,22 @@ func (self *Server) makeProgress(vbftCtx *VbftContext) {
 	}
 
 	// TODO: should only count endorsements from endorsers
-	if proposer, forEmpty, done := self.blockPool.endorseDone(blkNum, self.GetChainConfig().C); done {
-		// stop endorse timer
-		self.timer.CancelEventTimer(EventEndorseBlockTimeout, blkNum)
-		// stop empty endorse timer
-		self.timer.CancelEventTimer(EventEndorseEmptyBlockTimeout, blkNum)
-		proposal := self.blockPool.GetBlockProposal(blkNum, proposer)
-		if proposal == nil {
-			self.fetchProposal(blkNum, proposer)
-			log.Infof("server %d endorse %d done, waiting proposal from %d", self.Index, blkNum, proposer)
-		} else if vbftCtx.IsCommitter(self.Index) {
-			// make endorsement
-			if err := self.commitBlock(proposal, forEmpty); err != nil {
-				log.Errorf("failed to endorse for block %d: %s", blkNum, err)
-				return
+	if !self.blockPool.committedForBlock(blkNum) {
+		if proposer, forEmpty, done := self.blockPool.endorseDone(blkNum, self.GetChainConfig().C); done {
+			// stop endorse timer
+			self.timer.CancelEventTimer(EventEndorseBlockTimeout, blkNum)
+			// stop empty endorse timer
+			self.timer.CancelEventTimer(EventEndorseEmptyBlockTimeout, blkNum)
+			proposal := self.blockPool.GetBlockProposal(blkNum, proposer)
+			if proposal == nil {
+				self.fetchProposal(blkNum, proposer)
+				log.Infof("server %d endorse %d done, waiting proposal from %d", self.Index, blkNum, proposer)
+			} else if vbftCtx.IsCommitter(self.Index) {
+				// make endorsement
+				if err := self.commitBlock(proposal, forEmpty); err != nil {
+					log.Errorf("failed to endorse for block %d: %s", blkNum, err)
+					return
+				}
 			}
 		}
 	}
@@ -959,13 +964,6 @@ func (self *Server) processMsgEvent(msg ConsensusMsg) {
 		self.blockPool.AddBlockEndorseMsg(pMsg)
 		log.Infof("server %d received endorse from %d, for proposer %d, block %d, empty: %t",
 			self.Index, pMsg.Endorser, pMsg.EndorsedProposer, msgBlkNum, pMsg.EndorseForEmpty)
-
-		// if had committed for current round, skip the following steps
-		if self.blockPool.committedForBlock(msgBlkNum) {
-			// get more endorse msg after committed, trigger seal-block-timeout
-			self.timer.StartEventTimer(EventCommitBlockTimeout, msgBlkNum)
-			return
-		}
 	case BlockCommitMessage:
 		pMsg := msg.(*blockCommitMsg)
 		if err := self.blockPool.AddBlockCommitMsg(pMsg); err != nil {

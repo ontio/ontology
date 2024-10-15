@@ -20,6 +20,7 @@ package vbft
 
 import (
 	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"math"
@@ -64,6 +65,20 @@ type CandidateInfo struct {
 
 	// indexed by endorserIndex
 	EndorseSigs map[uint32][]*CandidateEndorseSigInfo
+}
+
+func (self *CandidateInfo) String() string {
+	proposals := make(map[uint32][]uint32)
+	for _, p := range self.Proposals {
+		proposals[p.Block.Info.Proposer] = nil
+	}
+	for e, sigs := range self.EndorseSigs {
+		for _, s := range sigs {
+			proposals[s.EndorsedProposer] = append(proposals[s.EndorsedProposer], e)
+		}
+	}
+	v, _ := json.Marshal(proposals)
+	return string(v)
 }
 
 type BlockPool struct {
@@ -137,6 +152,10 @@ func (pool *BlockPool) AddBlockProposal(msg *blockProposalMsg) error {
 	}
 	pool.addBlockEndorsementLocked(msg.GetBlockNum(), proposer, eSig, false)
 	return nil
+}
+
+func (self *BlockPool) Info(blkNum uint32) string {
+	return self.getCandidateInfoLocked(blkNum).String()
 }
 
 func (pool *BlockPool) GetBlockProposal(blkNum, proposer uint32) *blockProposalMsg {
