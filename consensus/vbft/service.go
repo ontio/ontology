@@ -904,7 +904,6 @@ func (self *Server) makeProgress(vbftCtx *VbftContext) {
 
 	chainCfg := vbftCtx.Config
 	if proposer, forEmpty, done := self.blockPool.commitDone(vbftCtx, blkNum); done {
-		self.blockPool.setCommitDone(blkNum)
 		proposal := self.blockPool.GetBlockProposal(blkNum, proposer)
 		if proposal == nil {
 			log.Infof("server %d commit %d done, waiting proposal", self.Index, blkNum)
@@ -1226,29 +1225,26 @@ func (self *Server) processTimerEvent(evt *TimerEvent) error {
 		if !self.getState().IsReady() {
 			return nil
 		}
-		if !self.blockPool.isCommitHadDone(evt.blockNum) {
-			chainCfg := self.GetChainConfig()
-			if proposer, forEmpty, done := self.blockPool.commitDone(vbftCtx, evt.blockNum); done {
-				self.blockPool.setCommitDone(evt.blockNum)
-				proposal := self.blockPool.GetBlockProposal(evt.blockNum, proposer)
-				if proposal == nil {
-					self.restartSyncing()
-					return fmt.Errorf("commit timeout, consensused proposal not available. need resync")
-				}
-				if !self.blockPool.checkBlockSign(vbftCtx, proposal.Block, forEmpty, chainCfg.N-(chainCfg.N-1)/3) {
-					self.restartSyncing()
-					log.Errorf("server %d commit timeout checkBlockSign insufficient at blk: %d", self.Index, evt.blockNum)
-					return fmt.Errorf("commit timeout, consensused blockSign not enough. need resync")
-				}
-
-				if err := self.makeSealed(proposal, forEmpty); err != nil {
-					return fmt.Errorf("commit timeout, failed to seal block %d: %s", evt.blockNum, err)
-				}
-				return nil
-			} else {
-				log.Errorf("server %d commit blk %d timeout without consensus", self.Index, evt.blockNum)
+		chainCfg := vbftCtx.Config
+		if proposer, forEmpty, done := self.blockPool.commitDone(vbftCtx, evt.blockNum); done {
+			proposal := self.blockPool.GetBlockProposal(evt.blockNum, proposer)
+			if proposal == nil {
 				self.restartSyncing()
+				return fmt.Errorf("commit timeout, consensused proposal not available. need resync")
 			}
+			if !self.blockPool.checkBlockSign(vbftCtx, proposal.Block, forEmpty, chainCfg.N-(chainCfg.N-1)/3) {
+				self.restartSyncing()
+				log.Errorf("server %d commit timeout checkBlockSign insufficient at blk: %d", self.Index, evt.blockNum)
+				return fmt.Errorf("commit timeout, consensused blockSign not enough. need resync")
+			}
+
+			if err := self.makeSealed(proposal, forEmpty); err != nil {
+				return fmt.Errorf("commit timeout, failed to seal block %d: %s", evt.blockNum, err)
+			}
+			return nil
+		} else {
+			log.Errorf("server %d commit blk %d timeout without consensus", self.Index, evt.blockNum)
+			self.restartSyncing()
 		}
 	case EventTxPool:
 		self.timer.CancelEventTimer(EventTxPool, evt.blockNum)

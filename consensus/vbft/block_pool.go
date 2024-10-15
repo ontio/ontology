@@ -53,8 +53,6 @@ type CandidateInfo struct {
 	CommittedProposal      *blockProposalMsg
 	CommittedEmptyProposal *blockProposalMsg
 
-	commitDone bool
-
 	// server sealed block for this round
 	SealedBlock           *VbftBlock
 	SealedBlockExecResult *store.ExecuteResult
@@ -483,7 +481,7 @@ func (pool *BlockPool) commitDone(vbftCtx *VbftContext, blkNum uint32) (uint32, 
 	if proposer == math.MaxUint32 {
 		// check consensus with endorse sigs
 		// enforce signature quorum if checking commit-consensus base on signature count
-		C = N - (N-1)/3 - 1
+		C = N - (N-1)/3
 		var emptyCnt uint32
 		endorseCnt := make(map[uint32]uint32) // proposer -> endorsed-cnt
 		for endorser, eSigs := range candidate.EndorseSigs {
@@ -501,10 +499,10 @@ func (pool *BlockPool) commitDone(vbftCtx *VbftContext, blkNum uint32) (uint32, 
 					emptyCnt++
 				} else {
 					endorseCnt[sig.EndorsedProposer] += 1
-					if endorseCnt[sig.EndorsedProposer] > C {
+					if endorseCnt[sig.EndorsedProposer] >= C {
 						proposer = sig.EndorsedProposer
 						if !forEmpty {
-							forEmpty = emptyCnt > C
+							forEmpty = emptyCnt >= C
 						}
 						break
 					}
@@ -522,31 +520,6 @@ func (pool *BlockPool) commitDone(vbftCtx *VbftContext, blkNum uint32) (uint32, 
 	}
 
 	return math.MaxUint32, false, false
-}
-
-// @ set BlockPool as committed for given BlockNum
-//
-// Note: setCommitDone supposed to be called after commitDone.
-// Because setCommitDone requires exclusive lock, this function is provided separately.
-func (pool *BlockPool) setCommitDone(blkNum uint32) {
-	pool.lock.Lock()
-	defer pool.lock.Unlock()
-
-	candidate := pool.candidateBlocks[blkNum]
-	if candidate != nil {
-		candidate.commitDone = true
-	}
-}
-
-func (pool *BlockPool) isCommitHadDone(blkNum uint32) bool {
-	pool.lock.RLock()
-	defer pool.lock.RUnlock()
-	candidate := pool.candidateBlocks[blkNum]
-	if candidate == nil {
-		return false
-	}
-
-	return candidate.commitDone
 }
 
 func (pool *BlockPool) addSignaturesToBlockLocked(vbftCtx *VbftContext, block *VbftBlock, forEmpty bool) error {

@@ -220,7 +220,6 @@ func getCommitConsensus(commitMsgs []*blockCommitMsg, C int, N int) (uint32, boo
 		if c.CommitForEmpty {
 			emptyCommitCount++
 			if emptyCommitCount > C && !emptyCommit {
-				C += 1
 				emptyCommit = true
 			}
 		}
@@ -231,7 +230,7 @@ func getCommitConsensus(commitMsgs []*blockCommitMsg, C int, N int) (uint32, boo
 		for endorser := range c.EndorsersSig {
 			signCount[c.BlockProposer][endorser] += 1
 		}
-		if len(signCount[c.BlockProposer])+1 >= N-(N-1)/3 {
+		if len(signCount[c.BlockProposer]) >= N-(N-1)/3 {
 			return c.BlockProposer, emptyCommit
 		}
 	}
