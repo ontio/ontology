@@ -121,9 +121,10 @@ func (pool *BlockPool) AddBlockProposal(msg *blockProposalMsg) error {
 	pool.lock.Lock()
 	defer pool.lock.Unlock()
 
-	blkNum := msg.GetBlockNum()
-	candidate := pool.getCandidateInfoLocked(blkNum)
+	return pool.getCandidateInfoLocked(msg.GetBlockNum()).AddBlockProposal(msg)
+}
 
+func (candidate *CandidateInfo) AddBlockProposal(msg *blockProposalMsg) error {
 	// check dup-proposal from same proposer
 	proposer := msg.Block.getProposer()
 	for _, p := range candidate.Proposals {
@@ -148,7 +149,7 @@ func (pool *BlockPool) AddBlockProposal(msg *blockProposalMsg) error {
 	if msg.Block.Block.Header.Height > 1 && msg.Block.CrossChainMsg != nil {
 		eSig.CrossChainMsgSig = msg.Block.CrossChainMsg.SigData[0]
 	}
-	pool.addBlockEndorsementLocked(msg.GetBlockNum(), proposer, eSig, false)
+	candidate.addBlockEndorsementLocked(proposer, eSig, false)
 	return nil
 }
 
@@ -240,10 +241,10 @@ func (pool *BlockPool) setProposalEndorsed(proposal *blockProposalMsg, forEmpty 
 	c.EndorsedEmptyProposal = proposal
 	return nil
 }
-
 func (pool *BlockPool) addBlockEndorsementLocked(blkNum uint32, endorser uint32, eSig *CandidateEndorseSigInfo, commitment bool) {
-	candidate := pool.getCandidateInfoLocked(blkNum)
+}
 
+func (candidate *CandidateInfo) addBlockEndorsementLocked(endorser uint32, eSig *CandidateEndorseSigInfo, commitment bool) {
 	if commitment {
 		candidate.EndorseSigs[endorser] = []*CandidateEndorseSigInfo{eSig}
 		return
@@ -277,7 +278,8 @@ func (pool *BlockPool) AddBlockEndorseMsg(msg *blockEndorseMsg) {
 		ForEmpty:         msg.EndorseForEmpty,
 		CrossChainMsgSig: msg.CrossChainMsgEndorserSig,
 	}
-	pool.addBlockEndorsementLocked(msg.GetBlockNum(), msg.Endorser, eSig, false)
+	candidate := pool.getCandidateInfoLocked(msg.GetBlockNum())
+	candidate.addBlockEndorsementLocked(msg.Endorser, eSig, false)
 }
 
 // check if has reached consensus for endorse-msg
@@ -290,14 +292,12 @@ func (pool *BlockPool) AddBlockEndorseMsg(msg *blockEndorseMsg) {
 func (pool *BlockPool) endorseDone(blkNum uint32, C uint32) (uint32, bool, bool) {
 	pool.lock.RLock()
 	defer pool.lock.RUnlock()
+	return pool.getCandidateInfoLocked(blkNum).EndorseDone(C)
+}
 
+func (candidate *CandidateInfo) EndorseDone(C uint32) (uint32, bool, bool) {
 	endorseCount := make(map[uint32]uint32)
 	emptyEndorseCount := 0
-
-	candidate := pool.candidateBlocks[blkNum]
-	if candidate == nil {
-		return math.MaxUint32, false, false
-	}
 
 	if uint32(len(candidate.EndorseSigs)) < C+1 {
 		return math.MaxUint32, false, false
@@ -327,13 +327,11 @@ func (pool *BlockPool) endorseDone(blkNum uint32, C uint32) (uint32, bool, bool)
 func (pool *BlockPool) endorseFailed(blkNum uint32, C uint32) bool {
 	pool.lock.RLock()
 	defer pool.lock.RUnlock()
+	return pool.getCandidateInfoLocked(blkNum).EndorseFailed(C)
+}
 
+func (candidate *CandidateInfo) EndorseFailed(C uint32) bool {
 	proposerCount := make(map[uint32]uint32)
-	candidate := pool.candidateBlocks[blkNum]
-	if candidate == nil {
-		return false
-	}
-
 	if uint32(len(candidate.EndorseSigs)) < C+1 {
 		return false
 	}
@@ -411,8 +409,10 @@ func (pool *BlockPool) AddBlockCommitMsg(msg *blockCommitMsg) error {
 	defer pool.lock.Unlock()
 
 	blkNum := msg.GetBlockNum()
-	candidate := pool.getCandidateInfoLocked(blkNum)
+	return pool.getCandidateInfoLocked(blkNum).AddBlockCommitMsg(msg)
+}
 
+func (candidate *CandidateInfo) AddBlockCommitMsg(msg *blockCommitMsg) error {
 	// check dup-commit
 	for _, c := range candidate.CommitMsgs {
 		if c.Committer == msg.Committer {
@@ -439,11 +439,11 @@ func (pool *BlockPool) AddBlockCommitMsg(msg *blockCommitMsg) error {
 			}
 		}
 
-		pool.addBlockEndorsementLocked(blkNum, endorser, eSig, false)
+		candidate.addBlockEndorsementLocked(endorser, eSig, false)
 	}
 
 	// add committer sig
-	pool.addBlockEndorsementLocked(blkNum, msg.Committer, &CandidateEndorseSigInfo{
+	candidate.addBlockEndorsementLocked(msg.Committer, &CandidateEndorseSigInfo{
 		BlockHash:        msg.CommitBlockHash,
 		EndorsedProposer: msg.BlockProposer,
 		Signature:        msg.CommitterSig,
@@ -466,15 +466,14 @@ func (pool *BlockPool) AddBlockCommitMsg(msg *blockCommitMsg) error {
 // Note: Attentions on lock contention.
 // Only shared-lock for this function, because this function will also acquires shared-lock on peer-pool.
 func (pool *BlockPool) commitDone(vbftCtx *VbftContext, blkNum uint32) (uint32, bool, bool) {
-	C := vbftCtx.Config.C
-	N := vbftCtx.Config.N
 	pool.lock.RLock()
 	defer pool.lock.RUnlock()
-	candidate := pool.candidateBlocks[blkNum]
-	if candidate == nil {
-		return math.MaxUint32, false, false
-	}
+	return pool.getCandidateInfoLocked(blkNum).CommitDone(vbftCtx)
+}
 
+func (candidate *CandidateInfo) CommitDone(vbftCtx *VbftContext) (uint32, bool, bool) {
+	C := vbftCtx.Config.C
+	N := vbftCtx.Config.N
 	// check consensus with commit msgs
 	proposer, forEmpty := getCommitConsensus(candidate.CommitMsgs, int(C), int(N))
 
@@ -522,10 +521,7 @@ func (pool *BlockPool) commitDone(vbftCtx *VbftContext, blkNum uint32) (uint32, 
 	return math.MaxUint32, false, false
 }
 
-func (pool *BlockPool) addSignaturesToBlockLocked(vbftCtx *VbftContext, block *VbftBlock, forEmpty bool) error {
-	blkNum := block.getBlockNum()
-	c := pool.getCandidateInfoLocked(blkNum)
-
+func (c *CandidateInfo) addSignaturesToBlockLocked(vbftCtx *VbftContext, block *VbftBlock, forEmpty bool) error {
 	bookkeepers := make([]keypair.PublicKey, 0)
 	sigData := make([][]byte, 0)
 
@@ -609,7 +605,7 @@ func (pool *BlockPool) SetBlockSealed(vbftCtx *VbftContext, block *VbftBlock, fo
 		return nil, nil, fmt.Errorf("double seal for block %d", blkNum)
 	}
 	if sigdata {
-		if err := pool.addSignaturesToBlockLocked(vbftCtx, block, forEmpty); err != nil {
+		if err := c.addSignaturesToBlockLocked(vbftCtx, block, forEmpty); err != nil {
 			return nil, nil, fmt.Errorf("failed to add sig to block: %s", err)
 		}
 	}

@@ -26,6 +26,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology-crypto/vrf"
 	"github.com/ontio/ontology-eventbus/actor"
 	"github.com/ontio/ontology/account"
@@ -270,10 +271,20 @@ func (self *Server) LoadChainConfig(store *ChainStore) error {
 	log.Infof("server %d, blkNum: %d, state: %d, participants: %v, %v, %v", self.Index, blkNum,
 		self.getState(), proposers, endorsers, committers)
 
+	peermap := make(map[uint32]keypair.PublicKey)
+	for _, p := range cfg.Peers {
+		// check if peer pubkey support VRF
+		publickey, err := vconfig.Pubkey(p.ID)
+		if err != nil || !vrf.ValidatePublicKey(publickey) {
+			panic(fmt.Errorf("peer pubkey is ensured to be valid for VRF:%s", p.ID))
+		}
+		peermap[p.Index] = publickey
+	}
 	self.vbftCtx = &VbftContext{
 		BlockNum:  blkNum + 1,
 		Config:    &cfg,
 		ConfigNum: configBlk,
+		PeerKeys:  peermap,
 		PrevBlockInfo: &BlockAndExecteInfo{
 			Block:           block.Block,
 			Info:            block.Info,
@@ -300,6 +311,16 @@ func (self *Server) updateVbftContext(block *types.Block, info *vconfig.VbftBloc
 	if info.NewChainConfig != nil {
 		vbftCtx.Config = info.NewChainConfig
 		vbftCtx.ConfigNum = blkNum
+		peermap := make(map[uint32]keypair.PublicKey)
+		for _, p := range info.NewChainConfig.Peers {
+			// check if peer pubkey support VRF
+			publickey, err := vconfig.Pubkey(p.ID)
+			if err != nil || !vrf.ValidatePublicKey(publickey) {
+				panic(fmt.Errorf("peer pubkey is ensured to be valid for VRF:%s", p.ID))
+			}
+			peermap[p.Index] = publickey
+		}
+		vbftCtx.PeerKeys = peermap
 	}
 
 	vbftCtx.Proposers, vbftCtx.Endorsers, vbftCtx.Committers = buildPeerRoles(blkNum+1, info.Proposer, info.VrfValue, vbftCtx.Config)
@@ -410,15 +431,8 @@ func (self *Server) initialize() error {
 
 	// add all consensus peers to peer_pool
 	peermap := make(map[string]uint32)
-	for _, p := range self.GetChainConfig().Peers {
-		peermap[p.ID] = p.Index
-		// check if peer pubkey support VRF
-		if pk, err := vconfig.Pubkey(p.ID); err != nil {
-			return fmt.Errorf("failed to parse peer %d PeerID: %s", p.Index, err)
-		} else if !vrf.ValidatePublicKey(pk) {
-			return fmt.Errorf("peer %d: invalid peer pubkey for VRF", p.Index)
-		}
-		log.Infof("added peer: %s", p.ID)
+	for index, p := range self.GetVbftContext().PeerKeys {
+		peermap[vconfig.PubkeyID(p)] = index
 	}
 	self.peerPool = NewPeerPool(peermap)
 
@@ -790,7 +804,7 @@ func (self *Server) processProposalMsg(vbftCtx *VbftContext, msg *blockProposalM
 	}
 
 	// verify VRF
-	proposerPk := self.peerPool.GetPeerPubKey(msg.Block.getProposer())
+	proposerPk := vbftCtx.GetPeerPubKey(msg.Block.getProposer())
 	if proposerPk == nil {
 		log.Errorf("server %d failed to get proposer %d pk of block %d",
 			self.Index, msg.Block.getProposer(), blkNum)
