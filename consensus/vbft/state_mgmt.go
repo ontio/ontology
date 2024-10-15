@@ -129,7 +129,7 @@ func (self *StateMgr) run() {
 	self.liveTicker = time.AfterFunc(liveTimeout, func() {
 		self.StateEventC <- &StateEvent{
 			Type:     LiveTick,
-			blockNum: self.server.GetCommittedBlockNo(),
+			blockNum: self.server.GetCurrentBlockNo() - 1,
 		}
 		liveTimeout = time.Duration(atomic.LoadInt64(&peerHandshakeTimeout) * 3)
 		self.liveTicker.Reset(liveTimeout)
@@ -197,7 +197,7 @@ func (self *StateMgr) onPeerUpdate(peerState *PeerState) {
 			self.setState(Syncing)
 		}
 	case Syncing:
-		if peerState.committedBlockNum > self.server.GetCommittedBlockNo() {
+		if peerState.committedBlockNum > self.server.GetCurrentBlockNo()-1 {
 			self.requestSyncIfFallBehind()
 		}
 		self.trySetSyncedReady()
@@ -240,7 +240,7 @@ func (self *StateMgr) onLiveTick(evt *StateEvent) {
 
 func (self *StateMgr) requestSyncIfFallBehind() (needSync bool) {
 	committedBlkNum, ok := self.getConsensusedCommittedBlockNum()
-	if ok && committedBlkNum > self.server.GetCommittedBlockNo() {
+	if ok && committedBlkNum > self.server.GetCurrentBlockNo()-1 {
 		needSync = true
 		self.requestBlockSync(committedBlkNum)
 	}
@@ -281,7 +281,7 @@ func (self *StateMgr) trySetSyncedReady() {
 		return
 	}
 
-	if self.server.GetCommittedBlockNo() >= committedBlkNum {
+	if self.server.GetCurrentBlockNo() > committedBlkNum {
 		self.setState(SyncReady)
 		log.Infof("server %d start sync ready", self.server.Index)
 		blkNum := self.server.GetCurrentBlockNo()
@@ -319,7 +319,7 @@ func (self *StateMgr) requestBlockSync(targetHeight uint32) {
 func (self *StateMgr) getConsensusedCommittedBlockNum() (uint32, bool) {
 	list := self.getPeersCommittedBlockNoSorted()
 	c := int(self.server.GetChainConfig().C)
-	if len(list) >= c+1 && list[c] >= self.server.GetCommittedBlockNo() {
+	if len(list) >= c+1 && list[c] >= self.server.GetCurrentBlockNo()-1 {
 		return list[c], true
 	}
 

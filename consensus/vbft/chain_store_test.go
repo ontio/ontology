@@ -88,6 +88,6 @@ func TestGetChainedBlockNum(t *testing.T) {
 	}
 	defer cleanTestChainStore()
 
-	blocknum := chainstore.GetChainedBlockNum()
+	blocknum := chainstore.ChainedBlockNum
 	t.Logf("TestGetChainedBlockNum :%d", blocknum)
 }

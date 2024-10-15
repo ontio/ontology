@@ -31,10 +31,6 @@ import (
 	p2pmsg "github.com/ontio/ontology/p2pserver/message/types"
 )
 
-func (self *Server) GetCompletedBlockNum() uint32 {
-	return self.GetCurrentBlockNo() - 1
-}
-
 func (self *Server) GetCurrentBlockNo() uint32 {
 	return self.GetVbftContext().BlockNum
 }
@@ -72,10 +68,6 @@ func (self *Server) ClosePeerMsgChan(peerIdx uint32) {
 	self.msgRecvC.Delete(peerIdx)
 }
 
-func (self *Server) GetCommittedBlockNo() uint32 {
-	return self.blockPool.chainStore.GetChainedBlockNum()
-}
-
 func (self *Server) isPeerAlive(peerIdx uint32) bool {
 	return peerIdx == self.Index || self.peerPool.IsPeerConnected(peerIdx)
 }
@@ -100,52 +92,6 @@ func (self *Server) GetActiveProposer() uint32 {
 
 	// all not active
 	return math.MaxUint32
-}
-
-func (self *VbftContext) IsEndorser(peerIdx uint32) bool {
-	for _, id := range self.Endorsers {
-		if id == peerIdx {
-			return true
-		}
-	}
-	return false
-}
-
-func (self *VbftContext) IsCommitter(peerIdx uint32) bool {
-	for _, id := range self.Committers {
-		if id == peerIdx {
-			return true
-		}
-	}
-
-	return false
-}
-
-func (self *VbftContext) Is2ndProposer(peerIdx uint32) bool {
-	rank := self.GetProposerRank(peerIdx)
-	return rank > 0 && rank <= int(self.Config.C)
-}
-
-func (self *VbftContext) GetProposerRank(peerIdx uint32) int {
-	for rank, id := range self.Proposers {
-		if id == peerIdx {
-			return rank
-		}
-	}
-	return len(self.Proposers)
-}
-
-func getHighestRankProposal(vbftCtx *VbftContext, proposals []*blockProposalMsg) *blockProposalMsg {
-	proposerRank := 10000
-	var proposal *blockProposalMsg
-	for _, p := range proposals {
-		if r := vbftCtx.GetProposerRank(p.Block.getProposer()); r < proposerRank {
-			proposerRank = r
-			proposal = p
-		}
-	}
-
-	return proposal
 }
 
 func (self *Server) updateTimerParams(config *vconfig.ChainConfig) {

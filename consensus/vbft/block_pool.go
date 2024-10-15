@@ -70,16 +70,12 @@ type BlockPool struct {
 	lock       sync.RWMutex
 	HistoryLen uint32
 
-	server          *Server
-	peerPool        *PeerPool // consensus peers
 	chainStore      *ChainStore
 	candidateBlocks map[uint32]*CandidateInfo // indexed by blockNum
 }
 
-func newBlockPool(server *Server, historyLen uint32, store *ChainStore) (*BlockPool, error) {
+func newBlockPool(historyLen uint32, store *ChainStore) (*BlockPool, error) {
 	pool := &BlockPool{
-		server:          server,
-		peerPool:        server.peerPool,
 		HistoryLen:      historyLen,
 		chainStore:      store,
 		candidateBlocks: make(map[uint32]*CandidateInfo),
@@ -168,11 +164,6 @@ func (pool *BlockPool) GetBlockProposals(blkNum uint32) []*blockProposalMsg {
 func (pool *BlockPool) HasEndorsedForBlock(blkNum uint32) bool {
 	pool.lock.RLock()
 	defer pool.lock.RUnlock()
-
-	// check if has committed for the block
-	if pool.chainStore.GetChainedBlockNum() >= blkNum {
-		return true
-	}
 
 	c := pool.candidateBlocks[blkNum]
 	return c != nil && (c.EndorsedProposal != nil || c.EndorsedEmptyProposal != nil)
@@ -365,10 +356,6 @@ func (pool *BlockPool) committedForBlock(blockNum uint32) bool {
 	pool.lock.RLock()
 	defer pool.lock.RUnlock()
 
-	if pool.chainStore.GetChainedBlockNum() >= blockNum {
-		return true
-	}
-
 	c := pool.candidateBlocks[blockNum]
 	if c == nil {
 		return false
@@ -461,7 +448,9 @@ func (pool *BlockPool) AddBlockCommitMsg(msg *blockCommitMsg) error {
 //
 // Note: Attentions on lock contention.
 // Only shared-lock for this function, because this function will also acquires shared-lock on peer-pool.
-func (pool *BlockPool) commitDone(blkNum uint32, C uint32, N uint32) (uint32, bool, bool) {
+func (pool *BlockPool) commitDone(vbftCtx *VbftContext, blkNum uint32) (uint32, bool, bool) {
+	C := vbftCtx.Config.C
+	N := vbftCtx.Config.N
 	pool.lock.RLock()
 	defer pool.lock.RUnlock()
 	candidate := pool.candidateBlocks[blkNum]
@@ -480,7 +469,7 @@ func (pool *BlockPool) commitDone(blkNum uint32, C uint32, N uint32) (uint32, bo
 		endorseCnt := make(map[uint32]uint32) // proposer -> endorsed-cnt
 		for endorser, eSigs := range candidate.EndorseSigs {
 			// check if from endorser
-			if !pool.server.GetVbftContext().IsEndorser(endorser) {
+			if !vbftCtx.IsEndorser(endorser) {
 				for _, sig := range eSigs {
 					if sig.ForEmpty {
 						emptyCnt++
@@ -541,7 +530,7 @@ func (pool *BlockPool) isCommitHadDone(blkNum uint32) bool {
 	return candidate.commitDone
 }
 
-func (pool *BlockPool) addSignaturesToBlockLocked(block *VbftBlock, forEmpty bool) error {
+func (pool *BlockPool) addSignaturesToBlockLocked(vbftCtx *VbftContext, block *VbftBlock, forEmpty bool) error {
 	blkNum := block.getBlockNum()
 	c := pool.getCandidateInfoLocked(blkNum)
 
@@ -550,7 +539,7 @@ func (pool *BlockPool) addSignaturesToBlockLocked(block *VbftBlock, forEmpty boo
 
 	// add proposer sig
 	proposer := block.getProposer()
-	proposerPk := pool.peerPool.GetPeerPubKey(proposer)
+	proposerPk := vbftCtx.GetPeerPubKey(proposer)
 	blockToAdd := block.Block
 	if forEmpty {
 		blockToAdd = block.EmptyBlock
@@ -565,7 +554,7 @@ func (pool *BlockPool) addSignaturesToBlockLocked(block *VbftBlock, forEmpty boo
 	for endorser, eSigs := range c.EndorseSigs {
 		for _, sig := range eSigs {
 			if sig.EndorsedProposer == proposer && sig.ForEmpty == forEmpty && endorser != proposer {
-				endoresrPk := pool.peerPool.GetPeerPubKey(endorser)
+				endoresrPk := vbftCtx.GetPeerPubKey(endorser)
 				if endoresrPk != nil {
 					bookkeepers = append(bookkeepers, endoresrPk)
 					sigData = append(sigData, sig.Signature)
@@ -584,7 +573,7 @@ func (pool *BlockPool) addSignaturesToBlockLocked(block *VbftBlock, forEmpty boo
 	return nil
 }
 
-func (pool *BlockPool) checkBlockSign(block *VbftBlock, forEmpty bool, requiredSigs uint32) bool {
+func (pool *BlockPool) checkBlockSign(vbftCtx *VbftContext, block *VbftBlock, forEmpty bool, requiredSigs uint32) bool {
 	blkNum := block.getBlockNum()
 	c := pool.getCandidateInfoLocked(blkNum)
 	proposer := block.getProposer()
@@ -603,7 +592,7 @@ func (pool *BlockPool) checkBlockSign(block *VbftBlock, forEmpty bool, requiredS
 	for endorser, eSigs := range c.EndorseSigs {
 		for _, sig := range eSigs {
 			if sig.EndorsedProposer == proposer && sig.BlockHash == blkHash && sig.ForEmpty == forEmpty && endorser != proposer {
-				if pool.peerPool.GetPeerPubKey(endorser) != nil {
+				if vbftCtx.GetPeerPubKey(endorser) != nil {
 					sigData = append(sigData, sig.Signature)
 				}
 				break
@@ -614,7 +603,7 @@ func (pool *BlockPool) checkBlockSign(block *VbftBlock, forEmpty bool, requiredS
 	return uint32(len(sigData)) >= requiredSigs
 }
 
-func (pool *BlockPool) SetBlockSealed(block *VbftBlock, forEmpty bool, sigdata bool) (*VbftBlock, *store.ExecuteResult, error) {
+func (pool *BlockPool) SetBlockSealed(vbftCtx *VbftContext, block *VbftBlock, forEmpty bool, sigdata bool) (*VbftBlock, *store.ExecuteResult, error) {
 	pool.lock.Lock()
 	defer pool.lock.Unlock()
 
@@ -628,7 +617,7 @@ func (pool *BlockPool) SetBlockSealed(block *VbftBlock, forEmpty bool, sigdata b
 		return nil, nil, fmt.Errorf("double seal for block %d", blkNum)
 	}
 	if sigdata {
-		if err := pool.addSignaturesToBlockLocked(block, forEmpty); err != nil {
+		if err := pool.addSignaturesToBlockLocked(vbftCtx, block, forEmpty); err != nil {
 			return nil, nil, fmt.Errorf("failed to add sig to block: %s", err)
 		}
 	}
@@ -655,10 +644,6 @@ func (pool *BlockPool) SetBlockSealed(block *VbftBlock, forEmpty bool, sigdata b
 	}
 	c.SealedBlock = sealedBlock
 	c.SealedBlockExecResult = result
-
-	if blocksubmitMsg, _ := pool.server.constructBlockSubmitMsg(blkNum, result.MerkleRoot); blocksubmitMsg != nil {
-		pool.server.broadcast(blocksubmitMsg)
-	}
 	return sealedBlock, result, nil
 }
 
@@ -673,12 +658,6 @@ func (pool *BlockPool) getChainedBlock(blockNum uint32) (*VbftBlock, common.Uint
 		return nil, common.Uint256{}
 	}
 	return blk, blk.Block.Hash()
-}
-
-func (pool *BlockPool) getExecMerkleRoot(blkNum uint32) (common.Uint256, error) {
-	pool.lock.RLock()
-	defer pool.lock.RUnlock()
-	return pool.chainStore.GetExecMerkleRoot(blkNum)
 }
 
 func (pool *BlockPool) SubmitBlock(blkNum uint32) error {
