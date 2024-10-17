@@ -41,7 +41,6 @@ import (
 )
 
 func SignMsg(account *account.Account, msg ConsensusMsg) ([]byte, error) {
-
 	data, err := msg.Serialize()
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal msg when signing: %s", err)
@@ -53,27 +52,16 @@ func SignMsg(account *account.Account, msg ConsensusMsg) ([]byte, error) {
 func hashData(data []byte) common.Uint256 {
 	t := sha256.Sum256(data)
 	f := sha256.Sum256(t[:])
-	return common.Uint256(f)
+	return f
 }
 
-func MustHashMsg(msg ConsensusMsg) common.Uint256 {
-	hs, err := HashMsg(msg)
+func HashMsg(msg ConsensusMsg) common.Uint256 {
+	data, err := SerializeVbftMsg(msg)
 	if err != nil {
 		panic(err)
 	}
 
-	return hs
-}
-
-func HashMsg(msg ConsensusMsg) (common.Uint256, error) {
-	// FIXME: has to do marshal on each call
-
-	data, err := SerializeVbftMsg(msg)
-	if err != nil {
-		return common.Uint256{}, fmt.Errorf("failed to marshal block: %s", err)
-	}
-
-	return hashData(data), nil
+	return hashData(data)
 }
 
 type seedData struct {

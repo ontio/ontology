@@ -41,10 +41,6 @@ func (self *Server) GetVbftContext() *VbftContext {
 	return self.vbftCtx
 }
 
-func (self *Server) GetChainConfig() *vconfig.ChainConfig {
-	return self.GetVbftContext().Config
-}
-
 func (self *Server) GetPeerMsgChan(peerIdx uint32) chan *p2pMsgPayload {
 	if C, ok := self.msgRecvC.Load(peerIdx); ok {
 		return C.(chan *p2pMsgPayload)
@@ -271,7 +267,7 @@ func (self *Server) heartbeat(peerIdx uint32) {
 	}
 }
 
-func (self *Server) receiveFromPeer(peerIdx uint32) (uint32, []byte, error) {
+func (self *Server) receiveFromPeer(peerIdx uint32) (uint32, ConsensusMsg, error) {
 	if C := self.GetPeerMsgChan(peerIdx); C != nil {
 		select {
 		case payload := <-C:
@@ -306,8 +302,9 @@ func (self *Server) broadcast(msg ConsensusMsg) {
 func (self *Server) packAndSignP2PMsg(msg ConsensusMsg) *p2pmsg.ConsensusPayload {
 	data := MustSerializeVbftMsg(msg)
 	payload := &p2pmsg.ConsensusPayload{
-		Data:  data,
-		Owner: self.account.PublicKey,
+		Data:            data,
+		BookkeeperIndex: uint16(self.Index), // TODO: define as uint32, currently uint16 is enough
+		Owner:           self.account.PublicKey,
 	}
 
 	sink := common.NewZeroCopySink(nil)

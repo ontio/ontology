@@ -184,16 +184,17 @@ func (self *StateMgr) onPeerUpdate(peerState *PeerState) {
 	peerIdx := peerState.peerIdx
 	self.peers[peerIdx] = peerState
 
+	vbftCtx := self.server.GetVbftContext()
 	log.Debugf("server %d peer update, current blk %d, state %d, received peer state: %v",
-		self.server.Index, self.server.GetCurrentBlockNo(), self.getState(), peerState)
+		self.server.Index, vbftCtx.BlockNum, self.getState(), peerState)
 
 	switch self.getState() {
 	case Initialized:
 		v := self.getPeersView()
 		log.Infof("server %d statemgr update, current state: %s, from peer: %d, peercnt: %d, v1: %d, v2: %d",
-			self.server.Index, self.getState(), peerIdx, len(self.peers), v, self.server.GetChainConfig().View)
+			self.server.Index, self.getState(), peerIdx, len(self.peers), v, vbftCtx.Config.View)
 
-		if v == self.server.GetChainConfig().View {
+		if v == vbftCtx.Config.View {
 			self.setState(Syncing)
 		}
 	case Syncing:
@@ -248,7 +249,7 @@ func (self *StateMgr) requestSyncIfFallBehind() (needSync bool) {
 }
 
 func (self *StateMgr) getMinActivePeerCount() int {
-	n := int(self.server.GetChainConfig().C) * 2 // plus self
+	n := int(self.server.GetVbftContext().Config.C) * 2 // plus self
 	if n > MAX_PEER_CONNECTIONS {
 		// FIXME: C vs. maxConnections
 		return MAX_PEER_CONNECTIONS
@@ -318,8 +319,9 @@ func (self *StateMgr) requestBlockSync(targetHeight uint32) {
 // return (0, false) if consensus not reached yet, or else (committedNum, true)
 func (self *StateMgr) getConsensusedCommittedBlockNum() (uint32, bool) {
 	list := self.getPeersCommittedBlockNoSorted()
-	c := int(self.server.GetChainConfig().C)
-	if len(list) >= c+1 && list[c] >= self.server.GetCurrentBlockNo()-1 {
+	vbftCtx := self.server.GetVbftContext()
+	c := int(vbftCtx.Config.C)
+	if len(list) >= c+1 && list[c] >= vbftCtx.BlockNum-1 {
 		return list[c], true
 	}
 

@@ -225,7 +225,7 @@ func (self *Syncer) blockConsensusDone(blks BlockFromPeers) *VbftBlock {
 		proposers[blk.getProposer()] += 1
 	}
 
-	chainCfg := self.server.GetChainConfig()
+	chainCfg := self.server.GetVbftContext().Config
 	for proposerId, cnt := range proposers {
 		if cnt > int(chainCfg.C) {
 			// find the block
@@ -245,7 +245,7 @@ func (self *Syncer) blockCheckMerkleRoot(blks BlockFromPeers) *VbftBlock {
 		merkleRoot[blk.getPrevExecMerkleRoot()] += 1
 	}
 
-	chainCfg := self.server.GetChainConfig()
+	chainCfg := self.server.GetVbftContext().Config
 	for merklerootvalue, cnt := range merkleRoot {
 		if cnt > int(chainCfg.C) {
 			// find the block

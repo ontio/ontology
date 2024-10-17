@@ -37,7 +37,6 @@ const (
 	BlockEndorseMessage  MsgType = 1
 	BlockCommitMessage   MsgType = 2
 
-	PeerHandshakeMessage MsgType = 3
 	PeerHeartbeatMessage MsgType = 4
 
 	ProposalFetchMessage  MsgType = 7
@@ -46,11 +45,38 @@ const (
 	BlockSubmitMessage    MsgType = 10
 )
 
+func (self MsgType) String() string {
+	switch self {
+	case BlockProposalMessage:
+		return "Proposal"
+	case BlockEndorseMessage:
+		return "Endorse"
+	case BlockCommitMessage:
+		return "Commit"
+	case PeerHeartbeatMessage:
+		return "Heartbeat"
+	case ProposalFetchMessage:
+		return "ProposalFetch"
+	case BlockFetchMessage:
+		return "BlockFetch"
+	case BlockFetchRespMessage:
+		return "BlockFetchResp"
+	case BlockSubmitMessage:
+		return "Submit"
+	default:
+		panic(fmt.Errorf("unknown msg type: %d", self))
+	}
+}
+
 type ConsensusMsg interface {
 	Type() MsgType
-	Verify(pub keypair.PublicKey, pubs map[uint32]keypair.PublicKey) error
 	GetBlockNum() uint32
 	Serialize() ([]byte, error)
+}
+
+type BftConsensusMsg interface {
+	ConsensusMsg
+	Verify(pubs map[uint32]keypair.PublicKey) error
 }
 
 type blockProposalMsg struct {
@@ -63,7 +89,12 @@ func (msg *blockProposalMsg) Type() MsgType {
 	return BlockProposalMessage
 }
 
-func (msg *blockProposalMsg) Verify(pub keypair.PublicKey, pubs map[uint32]keypair.PublicKey) error {
+func (msg *blockProposalMsg) Verify(pubs map[uint32]keypair.PublicKey) error {
+	proposer := msg.Block.Info.Proposer
+	pub := pubs[proposer]
+	if pub == nil {
+		return fmt.Errorf("unknown consensus node, index: %d", proposer)
+	}
 	// verify block
 	if len(msg.Block.Block.Header.SigData) == 0 {
 		return errors.New("no sigdata in block")
@@ -154,7 +185,11 @@ func (msg *blockEndorseMsg) Type() MsgType {
 	return BlockEndorseMessage
 }
 
-func (msg *blockEndorseMsg) Verify(pub keypair.PublicKey, pubs map[uint32]keypair.PublicKey) error {
+func (msg *blockEndorseMsg) Verify(pubs map[uint32]keypair.PublicKey) error {
+	pub := pubs[msg.Endorser]
+	if pub == nil {
+		return fmt.Errorf("unknown consensus node, index: %d", msg.Endorser)
+	}
 	hash := msg.EndorsedBlockHash
 	sig, err := signature.Deserialize(msg.EndorserSig)
 	if err != nil {
@@ -201,7 +236,11 @@ func (msg *blockCommitMsg) Type() MsgType {
 	return BlockCommitMessage
 }
 
-func (msg *blockCommitMsg) Verify(pub keypair.PublicKey, pubs map[uint32]keypair.PublicKey) error {
+func (msg *blockCommitMsg) Verify(pubs map[uint32]keypair.PublicKey) error {
+	pub := pubs[msg.Committer]
+	if pub == nil {
+		return fmt.Errorf("unknown consensus node, index: %d", msg.Committer)
+	}
 	hash := msg.CommitBlockHash
 	sig, err := signature.Deserialize(msg.CommitterSig)
 	if err != nil {
@@ -211,28 +250,33 @@ func (msg *blockCommitMsg) Verify(pub keypair.PublicKey, pubs map[uint32]keypair
 		return fmt.Errorf("failed to verify block sig")
 	}
 	for peerIdx, endorserSig := range msg.EndorsersSig {
-		if p, present := pubs[peerIdx]; present && p != nil {
-			sig, err := signature.Deserialize(endorserSig)
-			if err != nil {
-				return fmt.Errorf("deserialize endorserSig sig:%s", err)
-			}
-			if !signature.Verify(p, hash[:], sig) {
-				return fmt.Errorf("failed to verify endorserSig block sig")
-			}
+		p := pubs[peerIdx]
+		if p == nil {
+			return fmt.Errorf("unknown consensus node, index: %d", msg.Committer)
+		}
+		sig, err := signature.Deserialize(endorserSig)
+		if err != nil {
+			return fmt.Errorf("deserialize endorserSig sig:%s", err)
+		}
+		if !signature.Verify(p, hash[:], sig) {
+			return fmt.Errorf("failed to verify endorserSig block sig")
 		}
 	}
+
 	for peerIdx, crossChainEndorserSig := range msg.CrossChainMsgEndorserSig {
 		if crossChainEndorserSig == nil {
 			continue
 		}
-		if p, present := pubs[peerIdx]; present && p != nil {
-			sig, err := signature.Deserialize(crossChainEndorserSig)
-			if err != nil {
-				return fmt.Errorf("deserialize crossChainEndorserSig block sig: %s", err)
-			}
-			if !signature.Verify(p, msg.CommitCCMHash[:], sig) {
-				return fmt.Errorf("failed to verify crossChainEndorserSig block sig")
-			}
+		p := pubs[peerIdx]
+		if p == nil {
+			return fmt.Errorf("unknown consensus node, index: %d", msg.Committer)
+		}
+		sig, err := signature.Deserialize(crossChainEndorserSig)
+		if err != nil {
+			return fmt.Errorf("deserialize crossChainEndorserSig block sig: %s", err)
+		}
+		if !signature.Verify(p, msg.CommitCCMHash[:], sig) {
+			return fmt.Errorf("failed to verify crossChainEndorserSig block sig")
 		}
 	}
 	if msg.CrossChainMsgCommitterSig != nil {
@@ -269,10 +313,6 @@ func (msg *peerHeartbeatMsg) Type() MsgType {
 	return PeerHeartbeatMessage
 }
 
-func (msg *peerHeartbeatMsg) Verify(pub keypair.PublicKey, pubs map[uint32]keypair.PublicKey) error {
-	return nil
-}
-
 func (msg *peerHeartbeatMsg) GetBlockNum() uint32 {
 	return 0
 }
@@ -288,10 +328,6 @@ type blockFetchMsg struct {
 
 func (msg *blockFetchMsg) Type() MsgType {
 	return BlockFetchMessage
-}
-
-func (msg *blockFetchMsg) Verify(pub keypair.PublicKey, pubs map[uint32]keypair.PublicKey) error {
-	return nil
 }
 
 func (msg *blockFetchMsg) GetBlockNum() uint32 {
@@ -310,10 +346,6 @@ type BlockFetchRespMsg struct {
 
 func (msg *BlockFetchRespMsg) Type() MsgType {
 	return BlockFetchRespMessage
-}
-
-func (msg *BlockFetchRespMsg) Verify(pub keypair.PublicKey, pubs map[uint32]keypair.PublicKey) error {
-	return nil
 }
 
 func (msg *BlockFetchRespMsg) GetBlockNum() uint32 {
@@ -358,10 +390,6 @@ func (msg *proposalFetchMsg) Type() MsgType {
 	return ProposalFetchMessage
 }
 
-func (msg *proposalFetchMsg) Verify(pub keypair.PublicKey, pubs map[uint32]keypair.PublicKey) error {
-	return nil
-}
-
 func (msg *proposalFetchMsg) GetBlockNum() uint32 {
 	return 0
 }
@@ -371,6 +399,7 @@ func (msg *proposalFetchMsg) Serialize() ([]byte, error) {
 }
 
 type blockSubmitMsg struct {
+	Submitter      uint32
 	BlockStateRoot common.Uint256 `json:"block_state_root"`
 	BlockNum       uint32         `json:"block_num"`
 	SubmitMsgSig   []byte         `json:"submit_msg_sig"`
@@ -380,7 +409,12 @@ func (msg *blockSubmitMsg) Type() MsgType {
 	return BlockSubmitMessage
 }
 
-func (msg *blockSubmitMsg) Verify(pub keypair.PublicKey, pubs map[uint32]keypair.PublicKey) error {
+func (msg *blockSubmitMsg) Verify(pubs map[uint32]keypair.PublicKey) error {
+	pub := pubs[msg.Submitter]
+	if pub == nil {
+		return fmt.Errorf("unknown consensus node, index: %d", msg.Submitter)
+	}
+
 	hash := msg.BlockStateRoot
 	sig, err := signature.Deserialize(msg.SubmitMsgSig)
 	if err != nil {

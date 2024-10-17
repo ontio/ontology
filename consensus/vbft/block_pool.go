@@ -65,6 +65,25 @@ type CandidateInfo struct {
 	EndorseSigs map[uint32][]*CandidateEndorseSigInfo
 }
 
+func (self *CandidateInfo) GetEndorseSigInfos(blockHash common.Uint256) map[uint32]*CandidateEndorseSigInfo {
+	result := make(map[uint32]*CandidateEndorseSigInfo)
+	for index, v := range self.EndorseSigs {
+		for _, info := range v {
+			if info.BlockHash == blockHash {
+				result[index] = info
+				break
+			}
+		}
+	}
+	return result
+}
+
+func (pool *BlockPool) GetEndorseSigInfos(blkNum uint32, blockHash common.Uint256) map[uint32]*CandidateEndorseSigInfo {
+	pool.lock.RLock()
+	defer pool.lock.RUnlock()
+	return pool.getCandidateInfoLocked(blkNum).GetEndorseSigInfos(blockHash)
+}
+
 func (self *CandidateInfo) String() string {
 	proposals := make(map[uint32][]uint32)
 	for _, p := range self.Proposals {
@@ -158,25 +177,25 @@ func (self *BlockPool) Info(blkNum uint32) string {
 }
 
 func (pool *BlockPool) GetBlockProposal(blkNum, proposer uint32) *blockProposalMsg {
-	for _, p := range pool.GetBlockProposals(blkNum) {
-		if p.Block.getProposer() == proposer {
-			return p
-		}
-	}
-	return nil
+	pool.lock.RLock()
+	defer pool.lock.RUnlock()
+	return pool.getCandidateInfoLocked(blkNum).GetBlockProposal(proposer)
 }
 
 func (pool *BlockPool) GetBlockProposals(blkNum uint32) []*blockProposalMsg {
 	pool.lock.RLock()
 	defer pool.lock.RUnlock()
 
-	// check if had endorsed for some proposal
-	c := pool.candidateBlocks[blkNum]
-	if c == nil {
-		return []*blockProposalMsg{}
-	}
+	return pool.getCandidateInfoLocked(blkNum).Proposals
+}
 
-	return c.Proposals
+func (self *CandidateInfo) GetBlockProposal(proposer uint32) *blockProposalMsg {
+	for _, p := range self.Proposals {
+		if p.Block.getProposer() == proposer {
+			return p
+		}
+	}
+	return nil
 }
 
 func (pool *BlockPool) HasEndorsedForBlock(blkNum uint32) bool {
@@ -241,9 +260,6 @@ func (pool *BlockPool) setProposalEndorsed(proposal *blockProposalMsg, forEmpty 
 	c.EndorsedEmptyProposal = proposal
 	return nil
 }
-func (pool *BlockPool) addBlockEndorsementLocked(blkNum uint32, endorser uint32, eSig *CandidateEndorseSigInfo, commitment bool) {
-}
-
 func (candidate *CandidateInfo) addBlockEndorsementLocked(endorser uint32, eSig *CandidateEndorseSigInfo, commitment bool) {
 	if commitment {
 		candidate.EndorseSigs[endorser] = []*CandidateEndorseSigInfo{eSig}
@@ -267,7 +283,7 @@ func (candidate *CandidateInfo) addBlockEndorsementLocked(endorser uint32, eSig 
 	candidate.EndorseSigs[endorser] = append(eSigs, eSig)
 }
 
-func (pool *BlockPool) AddBlockEndorseMsg(msg *blockEndorseMsg) {
+func (pool *BlockPool) AddBlockEndorseMsg(msg *blockEndorseMsg) error {
 	pool.lock.Lock()
 	defer pool.lock.Unlock()
 
@@ -279,7 +295,26 @@ func (pool *BlockPool) AddBlockEndorseMsg(msg *blockEndorseMsg) {
 		CrossChainMsgSig: msg.CrossChainMsgEndorserSig,
 	}
 	candidate := pool.getCandidateInfoLocked(msg.GetBlockNum())
+	err := candidate.CheckBlockHashWithProposal(msg.EndorsedProposer, msg.EndorseForEmpty, msg.EndorsedBlockHash)
+	if err != nil {
+		return err
+	}
 	candidate.addBlockEndorsementLocked(msg.Endorser, eSig, false)
+	return nil
+}
+
+func (self *CandidateInfo) CheckBlockHashWithProposal(proposer uint32, forEmpty bool, hash common.Uint256) error {
+	p := self.GetBlockProposal(proposer)
+	if p != nil {
+		block := p.Block.Block
+		if forEmpty {
+			block = p.Block.EmptyBlock
+		}
+		if block == nil || hash != block.Hash() {
+			return fmt.Errorf("failed to compare block hash with proposal")
+		}
+	}
+	return nil
 }
 
 // check if has reached consensus for endorse-msg
@@ -409,7 +444,12 @@ func (pool *BlockPool) AddBlockCommitMsg(msg *blockCommitMsg) error {
 	defer pool.lock.Unlock()
 
 	blkNum := msg.GetBlockNum()
-	return pool.getCandidateInfoLocked(blkNum).AddBlockCommitMsg(msg)
+	candidate := pool.getCandidateInfoLocked(blkNum)
+	err := candidate.CheckBlockHashWithProposal(msg.BlockProposer, msg.CommitForEmpty, msg.CommitBlockHash)
+	if err != nil {
+		return err
+	}
+	return candidate.AddBlockCommitMsg(msg)
 }
 
 func (candidate *CandidateInfo) AddBlockCommitMsg(msg *blockCommitMsg) error {

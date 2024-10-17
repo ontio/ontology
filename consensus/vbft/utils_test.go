@@ -65,11 +65,7 @@ func TestHashMsg(t *testing.T) {
 	blockproposalmsg := &blockProposalMsg{
 		Block: blk,
 	}
-	uint256, err := HashMsg(blockproposalmsg)
-	if err != nil {
-		t.Errorf("TestHashMsg failed: %v", err)
-		return
-	}
+	uint256 := HashMsg(blockproposalmsg)
 	t.Logf("TestHashMsg succ: %v\n", uint256)
 }
 

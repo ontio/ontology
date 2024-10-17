@@ -43,18 +43,3 @@ func TestSerializeVbftMsg(t *testing.T) {
 	}
 	t.Logf("TestSerializeVbftMsg succ")
 }
-
-func TestDeserializeVbftMsg(t *testing.T) {
-	msg := constructMsg()
-	data, err := SerializeVbftMsg(msg)
-	if err != nil {
-		t.Errorf("TestSerializeVbftMsg failed :%v", err)
-		return
-	}
-	_, err = DeserializeVbftMsg(data)
-	if err != nil {
-		t.Errorf("DeserializeVbftMsg failed :%v", err)
-		return
-	}
-	t.Logf("TestDeserializeVbftMsg succ")
-}

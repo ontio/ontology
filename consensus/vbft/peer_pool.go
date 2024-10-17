@@ -21,30 +21,22 @@ package vbft
 import (
 	"sync"
 
-	"github.com/ontio/ontology-crypto/keypair"
-	vconfig "github.com/ontio/ontology/consensus/vbft/config"
 	"github.com/ontio/ontology/p2pserver/common"
 )
-
-type Peer struct {
-	PubKey           keypair.PublicKey
-	CommittedBlockNo uint32
-	connected        bool
-}
 
 type PeerPool struct {
 	lock sync.RWMutex
 
-	IDMap  map[string]uint32
-	P2pMap map[uint32]common.PeerId //value: p2p random id
-	peers  map[uint32]*Peer
+	IDMap     map[string]uint32
+	P2pMap    map[uint32]common.PeerId //value: p2p random id
+	Connected map[uint32]bool
 }
 
 func NewPeerPool(peers map[string]uint32) *PeerPool {
 	pool := &PeerPool{
-		IDMap:  make(map[string]uint32),
-		P2pMap: make(map[uint32]common.PeerId),
-		peers:  make(map[uint32]*Peer),
+		IDMap:     make(map[string]uint32),
+		P2pMap:    make(map[uint32]common.PeerId),
+		Connected: make(map[uint32]bool),
 	}
 	pool.ResetNewConsuensusPeers(peers)
 	return pool
@@ -56,15 +48,14 @@ func (pool *PeerPool) clean() {
 
 	pool.IDMap = make(map[string]uint32)
 	pool.P2pMap = make(map[uint32]common.PeerId)
-	pool.peers = make(map[uint32]*Peer)
+	pool.Connected = make(map[uint32]bool)
 }
 
 func (pool *PeerPool) IsPeerConnected(peerIdx uint32) bool {
 	pool.lock.RLock()
 	defer pool.lock.RUnlock()
 
-	p := pool.peers[peerIdx]
-	return p != nil && p.connected
+	return pool.Connected[peerIdx]
 }
 
 func (pool *PeerPool) ResetNewConsuensusPeers(peers map[string]uint32) (added []uint32, removed []uint32) {
@@ -74,11 +65,7 @@ func (pool *PeerPool) ResetNewConsuensusPeers(peers map[string]uint32) (added []
 	for id, index := range peers {
 		if _, has := pool.IDMap[id]; !has {
 			added = append(added, index)
-			peerPK := vconfig.MustPubkey(id)
-			pool.peers[index] = &Peer{
-				PubKey:    peerPK,
-				connected: false,
-			}
+			pool.Connected[index] = false
 		}
 	}
 
@@ -92,39 +79,18 @@ func (pool *PeerPool) ResetNewConsuensusPeers(peers map[string]uint32) (added []
 	return
 }
 
-func (pool *PeerPool) GetConnectedPeerCount() int {
-	pool.lock.RLock()
-	defer pool.lock.RUnlock()
-
-	n := 0
-	for _, p := range pool.peers {
-		if p.connected {
-			n++
-		}
-	}
-	return n
-}
-
 func (pool *PeerPool) OnPeerConnected(peerIdx uint32) {
 	pool.lock.Lock()
 	defer pool.lock.Unlock()
 
-	pool.peers[peerIdx].connected = true
+	pool.Connected[peerIdx] = true
 }
 
 func (pool *PeerPool) OnPeerDisconnected(peerIdx uint32) {
 	pool.lock.Lock()
 	defer pool.lock.Unlock()
 
-	pool.peers[peerIdx].connected = false
-}
-
-func (pool *PeerPool) UpdatePeerCommitBlockNo(peerIdx uint32, commitedBlockNo uint32) {
-	pool.lock.Lock()
-	defer pool.lock.Unlock()
-
-	pool.peers[peerIdx].CommittedBlockNo = commitedBlockNo
-	pool.peers[peerIdx].connected = true
+	pool.Connected[peerIdx] = false
 }
 
 func (pool *PeerPool) GetPeerIndex(nodeId string) (uint32, bool) {
@@ -133,39 +99,6 @@ func (pool *PeerPool) GetPeerIndex(nodeId string) (uint32, bool) {
 
 	idx, present := pool.IDMap[nodeId]
 	return idx, present
-}
-
-func (pool *PeerPool) GetPeerPubKey(peerIdx uint32) keypair.PublicKey {
-	pool.lock.RLock()
-	defer pool.lock.RUnlock()
-
-	if p, present := pool.peers[peerIdx]; present && p != nil {
-		return p.PubKey
-	}
-
-	return nil
-}
-
-func (pool *PeerPool) GetAllPubKeys() map[uint32]keypair.PublicKey {
-	pool.lock.RLock()
-	defer pool.lock.RUnlock()
-
-	keys := make(map[uint32]keypair.PublicKey)
-	for idx, peer := range pool.peers {
-		keys[idx] = peer.PubKey
-	}
-	return keys
-}
-
-func (pool *PeerPool) GetPeerCommittedBlockNo(idx uint32) uint32 {
-	pool.lock.RLock()
-	defer pool.lock.RUnlock()
-	peer := pool.peers[idx]
-	if peer == nil {
-		return 0
-	}
-
-	return peer.CommittedBlockNo
 }
 
 func (pool *PeerPool) AddP2pId(peerIdx uint32, p2pId common.PeerId) {

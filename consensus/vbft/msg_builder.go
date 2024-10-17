@@ -30,6 +30,7 @@ import (
 	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/core/signature"
 	"github.com/ontio/ontology/core/types"
+	p2pmsg "github.com/ontio/ontology/p2pserver/message/types"
 )
 
 type ConsensusMsgPayload struct {
@@ -38,7 +39,8 @@ type ConsensusMsgPayload struct {
 	Payload []byte  `json:"payload"`
 }
 
-func DeserializeVbftMsg(msgPayload []byte) (ConsensusMsg, error) {
+func DeserializeVbftMsg(msg *p2pmsg.ConsensusPayload) (ConsensusMsg, error) {
+	msgPayload := msg.Data
 	m := &ConsensusMsgPayload{}
 	if err := json.Unmarshal(msgPayload, m); err != nil {
 		return nil, fmt.Errorf("unmarshal consensus msg payload: %s", err)
@@ -66,8 +68,6 @@ func DeserializeVbftMsg(msgPayload []byte) (ConsensusMsg, error) {
 			return nil, fmt.Errorf("failed to unmarshal msg (type: %d): %s", m.Type, err)
 		}
 		return t, nil
-	case PeerHandshakeMessage:
-		return nil, fmt.Errorf("node will not send handshake msg")
 	case PeerHeartbeatMessage:
 		t := &peerHeartbeatMsg{}
 		if err := json.Unmarshal(m.Payload, t); err != nil {
@@ -97,6 +97,7 @@ func DeserializeVbftMsg(msgPayload []byte) (ConsensusMsg, error) {
 		if err := json.Unmarshal(m.Payload, t); err != nil {
 			return nil, fmt.Errorf("failed to unmarshal msg (type: %d): %s", m.Type, err)
 		}
+		t.Submitter = uint32(msg.BookkeeperIndex)
 		return t, nil
 	}
 
@@ -149,7 +150,7 @@ func (self *Server) constructHeartbeatMsg() (*peerHeartbeatMsg, error) {
 		CommittedBlockLeader: vbftCtx.PrevBlockInfo.Info.Proposer,
 		Endorsers:            bookkeepers,
 		EndorsersSig:         sigData,
-		ChainConfigView:      self.GetChainConfig().View,
+		ChainConfigView:      vbftCtx.Config.View,
 	}
 
 	return msg, nil
@@ -301,7 +302,7 @@ func (self *Server) constructEndorseMsg(proposal *blockProposalMsg, forEmpty boo
 	return msg, nil
 }
 
-func (self *Server) constructCommitMsg(proposal *blockProposalMsg, endorses []*blockEndorseMsg, forEmpty bool) (*blockCommitMsg, error) {
+func (self *Server) constructCommitMsg(proposal *blockProposalMsg, endorses map[uint32]*CandidateEndorseSigInfo, forEmpty bool) (*blockCommitMsg, error) {
 
 	// TODO, support faultyMsg reporting
 
@@ -328,12 +329,12 @@ func (self *Server) constructCommitMsg(proposal *blockProposalMsg, endorses []*b
 	endorsersSig := make(map[uint32][]byte)
 	crossChainEndorserSig := make(map[uint32][]byte)
 	var ccmCommitSig []byte
-	for _, e := range endorses {
-		endorsersSig[e.Endorser] = e.EndorserSig
-		crossChainEndorserSig[e.Endorser] = e.CrossChainMsgEndorserSig
-		if e.Endorser == self.Index {
+	for endorser, e := range endorses {
+		endorsersSig[endorser] = e.Signature
+		crossChainEndorserSig[endorser] = e.CrossChainMsgSig
+		if endorser == self.Index {
 			commitCrossChain = false
-			ccmCommitSig = e.CrossChainMsgEndorserSig
+			ccmCommitSig = e.CrossChainMsgSig
 		}
 	}
 

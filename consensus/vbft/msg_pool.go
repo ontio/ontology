@@ -39,7 +39,8 @@ func newConsensusRound() *ConsensusRound {
 	}
 }
 
-func (self *ConsensusRound) addMsg(msg ConsensusMsg, msgHash common.Uint256) {
+func (self *ConsensusRound) addMsg(msg ConsensusMsg) {
+	msgHash := HashMsg(msg)
 	if _, present := self.msgHashs[msgHash]; present {
 		return
 	}
@@ -58,7 +59,7 @@ func (self *ConsensusRound) dropMsg(msg ConsensusMsg) {
 		}
 	}
 
-	delete(self.msgHashs, MustHashMsg(msg))
+	delete(self.msgHashs, HashMsg(msg))
 }
 
 type MsgPool struct {
@@ -83,7 +84,7 @@ func (pool *MsgPool) clean() {
 	pool.rounds = make(map[uint32]*ConsensusRound)
 }
 
-func (pool *MsgPool) AddMsg(msg ConsensusMsg, msgHash common.Uint256) error {
+func (pool *MsgPool) AddMsg(msg ConsensusMsg) error {
 	pool.lock.Lock()
 	defer pool.lock.Unlock()
 
@@ -96,7 +97,7 @@ func (pool *MsgPool) AddMsg(msg ConsensusMsg, msgHash common.Uint256) error {
 		pool.rounds[blkNum] = newConsensusRound()
 	}
 
-	pool.rounds[blkNum].addMsg(msg, msgHash)
+	pool.rounds[blkNum].addMsg(msg)
 	return nil
 }
 
@@ -109,12 +110,12 @@ func (pool *MsgPool) DropMsg(msg ConsensusMsg) {
 	}
 }
 
-func (pool *MsgPool) HasMsg(msg ConsensusMsg, msgHash common.Uint256) bool {
+func (pool *MsgPool) HasMsg(msg ConsensusMsg) bool {
 	pool.lock.RLock()
 	defer pool.lock.RUnlock()
 
 	roundMsgs, present := pool.rounds[msg.GetBlockNum()]
-	return present && roundMsgs.msgHashs[msgHash] != nil
+	return present && roundMsgs.msgHashs[HashMsg(msg)] != nil
 }
 
 func (pool *MsgPool) GetProposalMsgs(blocknum uint32) []ConsensusMsg {
@@ -184,7 +185,7 @@ func (pool *MsgPool) DropBftMsgs(block uint32) (result []ConsensusMsg) {
 	result = append(result, roundMsgs.msgs[BlockCommitMessage]...)
 	roundMsgs.msgHashs = make(map[common.Uint256]ConsensusMsg)
 	for _, msg := range roundMsgs.msgs[BlockSubmitMessage] {
-		roundMsgs.msgHashs[MustHashMsg(msg)] = msg
+		roundMsgs.msgHashs[HashMsg(msg)] = msg
 	}
 	return
 }
