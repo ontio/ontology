@@ -46,12 +46,9 @@ type CandidateEndorseSigInfo struct {
 
 type CandidateInfo struct {
 	// server endorsed proposals
-	EndorsedProposal      *blockProposalMsg
-	EndorsedEmptyProposal *blockProposalMsg
-
-	// server committed proposals (one of them must be nil)
-	CommittedProposal      *blockProposalMsg
-	CommittedEmptyProposal *blockProposalMsg
+	EndorseMsg      *blockEndorseMsg
+	EndorseEmptyMsg *blockEndorseMsg
+	SelfCommitMsg   *blockCommitMsg
 
 	// server sealed block for this round
 	SealedBlock           *VbftBlock
@@ -176,6 +173,12 @@ func (self *BlockPool) Info(blkNum uint32) string {
 	return self.getCandidateInfoLocked(blkNum).String()
 }
 
+func (pool *BlockPool) GetSelfCommitMsg(blkNum uint32) *blockCommitMsg {
+	pool.lock.RLock()
+	defer pool.lock.RUnlock()
+	return pool.getCandidateInfoLocked(blkNum).SelfCommitMsg
+}
+
 func (pool *BlockPool) GetBlockProposal(blkNum, proposer uint32) *blockProposalMsg {
 	pool.lock.RLock()
 	defer pool.lock.RUnlock()
@@ -203,63 +206,40 @@ func (pool *BlockPool) HasEndorsedForBlock(blkNum uint32) bool {
 	defer pool.lock.RUnlock()
 
 	c := pool.candidateBlocks[blkNum]
-	return c != nil && (c.EndorsedProposal != nil || c.EndorsedEmptyProposal != nil)
+	return c != nil && (c.EndorseMsg != nil || c.EndorseEmptyMsg != nil)
 }
 
-func (pool *BlockPool) GetEndorsedProposal(blkNum uint32) (*blockProposalMsg, bool) {
+func (pool *BlockPool) GetSelfEndorseMsg(blkNum uint32) *blockEndorseMsg {
 	pool.lock.RLock()
 	defer pool.lock.RUnlock()
 
-	c := pool.candidateBlocks[blkNum]
-	if c == nil {
-		return nil, false
-	}
+	c := pool.getCandidateInfoLocked(blkNum)
 
-	if c.EndorsedEmptyProposal != nil {
-		return c.EndorsedEmptyProposal, true
-	} else if c.EndorsedProposal != nil {
-		return c.EndorsedProposal, false
+	if c.EndorseEmptyMsg != nil {
+		return c.EndorseEmptyMsg
 	}
-
-	return nil, false
+	return c.EndorseMsg
 }
 
 func (pool *BlockPool) HasEndorsedForEmptyBlock(blkNum uint32) bool {
 	pool.lock.RLock()
 	defer pool.lock.RUnlock()
 
-	c := pool.candidateBlocks[blkNum]
-	return c != nil && c.EndorsedEmptyProposal != nil
+	return pool.getCandidateInfoLocked(blkNum).EndorseEmptyMsg != nil
 }
 
-func (pool *BlockPool) setProposalEndorsed(proposal *blockProposalMsg, forEmpty bool) error {
+func (pool *BlockPool) setProposalEndorsed(endorse *blockEndorseMsg) {
 	pool.lock.Lock()
 	defer pool.lock.Unlock()
 
-	// check candidate Info for blkNum
-	blkNum := proposal.GetBlockNum()
-	c := pool.getCandidateInfoLocked(blkNum)
-
-	// check if had endorsed for some proposal
-	if !forEmpty {
-		if c.EndorsedProposal == nil {
-			c.EndorsedProposal = proposal
-			return nil
-		}
-		if c.EndorsedProposal.Block.getProposer() == proposal.Block.getProposer() {
-			return nil
-		}
-		return fmt.Errorf("blk %d had endorsed for %d, skip %d", blkNum,
-			c.EndorsedProposal.Block.getProposer(), proposal.Block.getProposer())
+	c := pool.getCandidateInfoLocked(endorse.GetBlockNum())
+	if endorse.EndorseForEmpty {
+		c.EndorseEmptyMsg = endorse
+		return
 	}
-
-	// endorse for empty
-	if c.EndorsedEmptyProposal != nil {
-		return fmt.Errorf("block %d has endorsed for empty", blkNum)
-	}
-	c.EndorsedEmptyProposal = proposal
-	return nil
+	c.EndorseMsg = endorse
 }
+
 func (candidate *CandidateInfo) addBlockEndorsementLocked(endorser uint32, eSig *CandidateEndorseSigInfo, commitment bool) {
 	if commitment {
 		candidate.EndorseSigs[endorser] = []*CandidateEndorseSigInfo{eSig}
@@ -402,41 +382,12 @@ func (candidate *CandidateInfo) EndorseFailed(C uint32) bool {
 	return true
 }
 
-func (pool *BlockPool) committedForBlock(blockNum uint32) bool {
-	pool.lock.RLock()
-	defer pool.lock.RUnlock()
-
-	c := pool.candidateBlocks[blockNum]
-	if c == nil {
-		return false
-	}
-
-	return c.CommittedProposal != nil || c.CommittedEmptyProposal != nil
-}
-
-func (pool *BlockPool) SetProposalCommitted(proposal *blockProposalMsg, forEmpty bool) error {
+func (pool *BlockPool) SetProposalCommitted(commit *blockCommitMsg) {
 	pool.lock.Lock()
 	defer pool.lock.Unlock()
 
-	// check candidate Info
-	blkNum := proposal.GetBlockNum()
-	c := pool.candidateBlocks[blkNum]
-	if c == nil {
-		return fmt.Errorf("non-candidates for block %d yet when set commit", blkNum)
-	}
-
-	// check if has committed
-	if c.CommittedProposal != nil || c.CommittedEmptyProposal != nil {
-		return fmt.Errorf("had committed for block %d", blkNum)
-	}
-
-	if forEmpty {
-		c.CommittedEmptyProposal = proposal
-	} else {
-		c.CommittedProposal = proposal
-	}
-
-	return nil
+	c := pool.getCandidateInfoLocked(commit.BlockNum)
+	c.SelfCommitMsg = commit
 }
 
 func (pool *BlockPool) AddBlockCommitMsg(msg *blockCommitMsg) error {

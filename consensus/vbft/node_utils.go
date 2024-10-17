@@ -234,24 +234,6 @@ func getCommitConsensus(commitMsgs []*blockCommitMsg, C int, N int) (uint32, boo
 	return math.MaxUint32, false
 }
 
-func (self *Server) findBlockProposal(blkNum uint32, proposer uint32) *blockProposalMsg {
-	for _, p := range self.blockPool.GetBlockProposals(blkNum) {
-		if p.Block.getProposer() == proposer {
-			return p
-		}
-	}
-
-	for _, p := range self.msgPool.GetProposalMsgs(blkNum) {
-		if pMsg := p.(*blockProposalMsg); pMsg != nil {
-			if pMsg.Block.getProposer() == proposer {
-				return pMsg
-			}
-		}
-	}
-
-	return nil
-}
-
 func (self *Server) heartbeat(peerIdx uint32) {
 	//	build heartbeat msg
 	msg, err := self.constructHeartbeatMsg()

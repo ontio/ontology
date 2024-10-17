@@ -118,29 +118,6 @@ func (pool *MsgPool) HasMsg(msg ConsensusMsg) bool {
 	return present && roundMsgs.msgHashs[HashMsg(msg)] != nil
 }
 
-func (pool *MsgPool) GetProposalMsgs(blocknum uint32) []ConsensusMsg {
-	pool.lock.RLock()
-	defer pool.lock.RUnlock()
-
-	roundMsgs, ok := pool.rounds[blocknum]
-	if !ok {
-		return nil
-	}
-	msgs, ok := roundMsgs.msgs[BlockProposalMessage]
-	if !ok {
-		return nil
-	}
-	return msgs
-}
-
-func (pool *MsgPool) GetEndorsementsMsgs(blocknum uint32) []ConsensusMsg {
-	return pool.getRoundMsg(blocknum, BlockEndorseMessage)
-}
-
-func (pool *MsgPool) GetCommitMsgs(blocknum uint32) []ConsensusMsg {
-	return pool.getRoundMsg(blocknum, BlockCommitMessage)
-}
-
 func (pool *MsgPool) GetBlockSubmitMsgs(blocknum uint32) []ConsensusMsg {
 	return pool.getRoundMsg(blocknum, BlockSubmitMessage)
 }
