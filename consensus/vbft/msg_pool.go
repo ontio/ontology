@@ -122,6 +122,16 @@ func (pool *MsgPool) GetBlockSubmitMsgs(blocknum uint32) []ConsensusMsg {
 	return pool.getRoundMsg(blocknum, BlockSubmitMessage)
 }
 
+func (pool *MsgPool) GetProposalMsg(blocknum, proposer uint32) *blockProposalMsg {
+	for _, msg := range pool.getRoundMsg(blocknum, BlockProposalMessage) {
+		p := msg.(*blockProposalMsg)
+		if p.Block.getProposer() == proposer {
+			return p
+		}
+	}
+	return nil
+}
+
 func (pool *MsgPool) getRoundMsg(blocknum uint32, msgType MsgType) (result []ConsensusMsg) {
 	pool.lock.RLock()
 	defer pool.lock.RUnlock()

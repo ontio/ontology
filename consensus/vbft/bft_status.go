@@ -24,7 +24,6 @@ import (
 	"errors"
 	"fmt"
 	"math"
-	"sync"
 
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
@@ -33,10 +32,9 @@ import (
 )
 
 var errDupProposal = errors.New("multi proposal from same proposer")
-var errDupEndorse = errors.New("multi endorsement from same endorser")
 var errDupCommit = errors.New("multi commit from same committer")
 
-type CandidateEndorseSigInfo struct {
+type EndorseSigInfo struct {
 	BlockHash        common.Uint256
 	EndorsedProposer uint32
 	Signature        []byte
@@ -44,26 +42,19 @@ type CandidateEndorseSigInfo struct {
 	CrossChainMsgSig []byte
 }
 
-type CandidateInfo struct {
-	// server endorsed proposals
+type BftStatus struct {
+	// server signed message
 	EndorseMsg      *blockEndorseMsg
 	EndorseEmptyMsg *blockEndorseMsg
 	SelfCommitMsg   *blockCommitMsg
 
-	// server sealed block for this round
-	SealedBlock           *VbftBlock
-	SealedBlockExecResult *store.ExecuteResult
-
-	// candidate msgs for this round
-	Proposals  []*blockProposalMsg
-	CommitMsgs []*blockCommitMsg
-
-	// indexed by endorserIndex
-	EndorseSigs map[uint32][]*CandidateEndorseSigInfo
+	Proposals   []*blockProposalMsg
+	CommitMsgs  []*blockCommitMsg
+	EndorseSigs map[uint32][]*EndorseSigInfo // indexed by endorser index
 }
 
-func (self *CandidateInfo) GetEndorseSigInfos(blockHash common.Uint256) map[uint32]*CandidateEndorseSigInfo {
-	result := make(map[uint32]*CandidateEndorseSigInfo)
+func (self *BftStatus) GetEndorseSigInfos(blockHash common.Uint256) map[uint32]*EndorseSigInfo {
+	result := make(map[uint32]*EndorseSigInfo)
 	for index, v := range self.EndorseSigs {
 		for _, info := range v {
 			if info.BlockHash == blockHash {
@@ -75,13 +66,7 @@ func (self *CandidateInfo) GetEndorseSigInfos(blockHash common.Uint256) map[uint
 	return result
 }
 
-func (pool *BlockPool) GetEndorseSigInfos(blkNum uint32, blockHash common.Uint256) map[uint32]*CandidateEndorseSigInfo {
-	pool.lock.RLock()
-	defer pool.lock.RUnlock()
-	return pool.getCandidateInfoLocked(blkNum).GetEndorseSigInfos(blockHash)
-}
-
-func (self *CandidateInfo) String() string {
+func (self *BftStatus) String() string {
 	proposals := make(map[uint32][]uint32)
 	for _, p := range self.Proposals {
 		proposals[p.Block.Info.Proposer] = nil
@@ -95,52 +80,13 @@ func (self *CandidateInfo) String() string {
 	return string(v)
 }
 
-type BlockPool struct {
-	lock       sync.RWMutex
-	HistoryLen uint32
-
-	chainStore      *ChainStore
-	candidateBlocks map[uint32]*CandidateInfo // indexed by blockNum
-}
-
-func newBlockPool(historyLen uint32, store *ChainStore) (*BlockPool, error) {
-	pool := &BlockPool{
-		HistoryLen:      historyLen,
-		chainStore:      store,
-		candidateBlocks: make(map[uint32]*CandidateInfo),
+func NewCandidateInfo() *BftStatus {
+	return &BftStatus{
+		EndorseSigs: make(map[uint32][]*EndorseSigInfo),
 	}
-
-	return pool, nil
 }
 
-func (pool *BlockPool) clean() {
-	pool.lock.Lock()
-	defer pool.lock.Unlock()
-
-	pool.candidateBlocks = make(map[uint32]*CandidateInfo)
-}
-
-func (pool *BlockPool) getCandidateInfoLocked(blkNum uint32) *CandidateInfo {
-	// NOTE: call this function only when pool.lock locked
-	if _, present := pool.candidateBlocks[blkNum]; !present {
-		// new candiateInfo for blockNum
-		candidate := &CandidateInfo{
-			EndorseSigs: make(map[uint32][]*CandidateEndorseSigInfo),
-		}
-		pool.candidateBlocks[blkNum] = candidate
-	}
-
-	return pool.candidateBlocks[blkNum]
-}
-
-func (pool *BlockPool) AddBlockProposal(msg *blockProposalMsg) error {
-	pool.lock.Lock()
-	defer pool.lock.Unlock()
-
-	return pool.getCandidateInfoLocked(msg.GetBlockNum()).AddBlockProposal(msg)
-}
-
-func (candidate *CandidateInfo) AddBlockProposal(msg *blockProposalMsg) error {
+func (candidate *BftStatus) AddBlockProposal(msg *blockProposalMsg) error {
 	// check dup-proposal from same proposer
 	proposer := msg.Block.getProposer()
 	for _, p := range candidate.Proposals {
@@ -156,7 +102,7 @@ func (candidate *CandidateInfo) AddBlockProposal(msg *blockProposalMsg) error {
 	candidate.Proposals = append(candidate.Proposals, msg)
 
 	// add endorse-sig
-	eSig := &CandidateEndorseSigInfo{
+	eSig := &EndorseSigInfo{
 		BlockHash:        msg.Block.Block.Hash(),
 		EndorsedProposer: proposer,
 		Signature:        msg.BlockProposerSig,
@@ -169,30 +115,7 @@ func (candidate *CandidateInfo) AddBlockProposal(msg *blockProposalMsg) error {
 	return nil
 }
 
-func (self *BlockPool) Info(blkNum uint32) string {
-	return self.getCandidateInfoLocked(blkNum).String()
-}
-
-func (pool *BlockPool) GetSelfCommitMsg(blkNum uint32) *blockCommitMsg {
-	pool.lock.RLock()
-	defer pool.lock.RUnlock()
-	return pool.getCandidateInfoLocked(blkNum).SelfCommitMsg
-}
-
-func (pool *BlockPool) GetBlockProposal(blkNum, proposer uint32) *blockProposalMsg {
-	pool.lock.RLock()
-	defer pool.lock.RUnlock()
-	return pool.getCandidateInfoLocked(blkNum).GetBlockProposal(proposer)
-}
-
-func (pool *BlockPool) GetBlockProposals(blkNum uint32) []*blockProposalMsg {
-	pool.lock.RLock()
-	defer pool.lock.RUnlock()
-
-	return pool.getCandidateInfoLocked(blkNum).Proposals
-}
-
-func (self *CandidateInfo) GetBlockProposal(proposer uint32) *blockProposalMsg {
+func (self *BftStatus) GetBlockProposal(proposer uint32) *blockProposalMsg {
 	for _, p := range self.Proposals {
 		if p.Block.getProposer() == proposer {
 			return p
@@ -201,38 +124,22 @@ func (self *CandidateInfo) GetBlockProposal(proposer uint32) *blockProposalMsg {
 	return nil
 }
 
-func (pool *BlockPool) HasEndorsedForBlock(blkNum uint32) bool {
-	pool.lock.RLock()
-	defer pool.lock.RUnlock()
-
-	c := pool.candidateBlocks[blkNum]
-	return c != nil && (c.EndorseMsg != nil || c.EndorseEmptyMsg != nil)
+func (c *BftStatus) HasEndorsedForBlock() bool {
+	return c.EndorseMsg != nil || c.EndorseEmptyMsg != nil
 }
 
-func (pool *BlockPool) GetSelfEndorseMsg(blkNum uint32) *blockEndorseMsg {
-	pool.lock.RLock()
-	defer pool.lock.RUnlock()
-
-	c := pool.getCandidateInfoLocked(blkNum)
-
+func (c *BftStatus) GetSelfEndorseMsg() *blockEndorseMsg {
 	if c.EndorseEmptyMsg != nil {
 		return c.EndorseEmptyMsg
 	}
 	return c.EndorseMsg
 }
 
-func (pool *BlockPool) HasEndorsedForEmptyBlock(blkNum uint32) bool {
-	pool.lock.RLock()
-	defer pool.lock.RUnlock()
-
-	return pool.getCandidateInfoLocked(blkNum).EndorseEmptyMsg != nil
+func (c *BftStatus) HasEndorsedForEmptyBlock() bool {
+	return c.EndorseEmptyMsg != nil
 }
 
-func (pool *BlockPool) setProposalEndorsed(endorse *blockEndorseMsg) {
-	pool.lock.Lock()
-	defer pool.lock.Unlock()
-
-	c := pool.getCandidateInfoLocked(endorse.GetBlockNum())
+func (c *BftStatus) setProposalEndorsed(endorse *blockEndorseMsg) {
 	if endorse.EndorseForEmpty {
 		c.EndorseEmptyMsg = endorse
 		return
@@ -240,9 +147,9 @@ func (pool *BlockPool) setProposalEndorsed(endorse *blockEndorseMsg) {
 	c.EndorseMsg = endorse
 }
 
-func (candidate *CandidateInfo) addBlockEndorsementLocked(endorser uint32, eSig *CandidateEndorseSigInfo, commitment bool) {
+func (candidate *BftStatus) addBlockEndorsementLocked(endorser uint32, eSig *EndorseSigInfo, commitment bool) {
 	if commitment {
-		candidate.EndorseSigs[endorser] = []*CandidateEndorseSigInfo{eSig}
+		candidate.EndorseSigs[endorser] = []*EndorseSigInfo{eSig}
 		return
 	}
 	eSigs := candidate.EndorseSigs[endorser]
@@ -263,18 +170,14 @@ func (candidate *CandidateInfo) addBlockEndorsementLocked(endorser uint32, eSig 
 	candidate.EndorseSigs[endorser] = append(eSigs, eSig)
 }
 
-func (pool *BlockPool) AddBlockEndorseMsg(msg *blockEndorseMsg) error {
-	pool.lock.Lock()
-	defer pool.lock.Unlock()
-
-	eSig := &CandidateEndorseSigInfo{
+func (candidate *BftStatus) AddBlockEndorseMsg(msg *blockEndorseMsg) error {
+	eSig := &EndorseSigInfo{
 		BlockHash:        msg.EndorsedBlockHash,
 		EndorsedProposer: msg.EndorsedProposer,
 		Signature:        msg.EndorserSig,
 		ForEmpty:         msg.EndorseForEmpty,
 		CrossChainMsgSig: msg.CrossChainMsgEndorserSig,
 	}
-	candidate := pool.getCandidateInfoLocked(msg.GetBlockNum())
 	err := candidate.CheckBlockHashWithProposal(msg.EndorsedProposer, msg.EndorseForEmpty, msg.EndorsedBlockHash)
 	if err != nil {
 		return err
@@ -283,7 +186,7 @@ func (pool *BlockPool) AddBlockEndorseMsg(msg *blockEndorseMsg) error {
 	return nil
 }
 
-func (self *CandidateInfo) CheckBlockHashWithProposal(proposer uint32, forEmpty bool, hash common.Uint256) error {
+func (self *BftStatus) CheckBlockHashWithProposal(proposer uint32, forEmpty bool, hash common.Uint256) error {
 	p := self.GetBlockProposal(proposer)
 	if p != nil {
 		block := p.Block.Block
@@ -297,20 +200,7 @@ func (self *CandidateInfo) CheckBlockHashWithProposal(proposer uint32, forEmpty 
 	return nil
 }
 
-// check if has reached consensus for endorse-msg
-//
-// return
-//
-//	@ endorsable proposer
-//	@ for empty commit
-//	@ endorsable
-func (pool *BlockPool) endorseDone(blkNum uint32, C uint32) (uint32, bool, bool) {
-	pool.lock.RLock()
-	defer pool.lock.RUnlock()
-	return pool.getCandidateInfoLocked(blkNum).EndorseDone(C)
-}
-
-func (candidate *CandidateInfo) EndorseDone(C uint32) (uint32, bool, bool) {
+func (candidate *BftStatus) EndorseDone(C uint32) (uint32, bool, bool) {
 	endorseCount := make(map[uint32]uint32)
 	emptyEndorseCount := 0
 
@@ -339,13 +229,7 @@ func (candidate *CandidateInfo) EndorseDone(C uint32) (uint32, bool, bool) {
 	return math.MaxUint32, false, false
 }
 
-func (pool *BlockPool) endorseFailed(blkNum uint32, C uint32) bool {
-	pool.lock.RLock()
-	defer pool.lock.RUnlock()
-	return pool.getCandidateInfoLocked(blkNum).EndorseFailed(C)
-}
-
-func (candidate *CandidateInfo) EndorseFailed(C uint32) bool {
+func (candidate *BftStatus) EndorseFailed(C uint32) bool {
 	proposerCount := make(map[uint32]uint32)
 	if uint32(len(candidate.EndorseSigs)) < C+1 {
 		return false
@@ -382,28 +266,11 @@ func (candidate *CandidateInfo) EndorseFailed(C uint32) bool {
 	return true
 }
 
-func (pool *BlockPool) SetProposalCommitted(commit *blockCommitMsg) {
-	pool.lock.Lock()
-	defer pool.lock.Unlock()
-
-	c := pool.getCandidateInfoLocked(commit.BlockNum)
-	c.SelfCommitMsg = commit
-}
-
-func (pool *BlockPool) AddBlockCommitMsg(msg *blockCommitMsg) error {
-	pool.lock.Lock()
-	defer pool.lock.Unlock()
-
-	blkNum := msg.GetBlockNum()
-	candidate := pool.getCandidateInfoLocked(blkNum)
+func (candidate *BftStatus) AddBlockCommitMsg(msg *blockCommitMsg) error {
 	err := candidate.CheckBlockHashWithProposal(msg.BlockProposer, msg.CommitForEmpty, msg.CommitBlockHash)
 	if err != nil {
 		return err
 	}
-	return candidate.AddBlockCommitMsg(msg)
-}
-
-func (candidate *CandidateInfo) AddBlockCommitMsg(msg *blockCommitMsg) error {
 	// check dup-commit
 	for _, c := range candidate.CommitMsgs {
 		if c.Committer == msg.Committer {
@@ -417,7 +284,7 @@ func (candidate *CandidateInfo) AddBlockCommitMsg(msg *blockCommitMsg) error {
 
 	// add all endorse sigs
 	for endorser, sig := range msg.EndorsersSig {
-		eSig := &CandidateEndorseSigInfo{
+		eSig := &EndorseSigInfo{
 			BlockHash:        msg.CommitBlockHash,
 			EndorsedProposer: msg.BlockProposer,
 			Signature:        sig,
@@ -434,7 +301,7 @@ func (candidate *CandidateInfo) AddBlockCommitMsg(msg *blockCommitMsg) error {
 	}
 
 	// add committer sig
-	candidate.addBlockEndorsementLocked(msg.Committer, &CandidateEndorseSigInfo{
+	candidate.addBlockEndorsementLocked(msg.Committer, &EndorseSigInfo{
 		BlockHash:        msg.CommitBlockHash,
 		EndorsedProposer: msg.BlockProposer,
 		Signature:        msg.CommitterSig,
@@ -447,22 +314,7 @@ func (candidate *CandidateInfo) AddBlockCommitMsg(msg *blockCommitMsg) error {
 	return nil
 }
 
-// check if has reached consensus on block-commit
-// return
-//
-//	@ consensused proposer
-//	@ for empty commit
-//	@ consensused
-//
-// Note: Attentions on lock contention.
-// Only shared-lock for this function, because this function will also acquires shared-lock on peer-pool.
-func (pool *BlockPool) commitDone(vbftCtx *VbftContext, blkNum uint32) (uint32, bool, bool) {
-	pool.lock.RLock()
-	defer pool.lock.RUnlock()
-	return pool.getCandidateInfoLocked(blkNum).CommitDone(vbftCtx)
-}
-
-func (candidate *CandidateInfo) CommitDone(vbftCtx *VbftContext) (uint32, bool, bool) {
+func (candidate *BftStatus) CommitDone(vbftCtx *VbftContext) (uint32, bool, bool) {
 	C := vbftCtx.Config.C
 	N := vbftCtx.Config.N
 	// check consensus with commit msgs
@@ -512,7 +364,7 @@ func (candidate *CandidateInfo) CommitDone(vbftCtx *VbftContext) (uint32, bool, 
 	return math.MaxUint32, false, false
 }
 
-func (c *CandidateInfo) addSignaturesToBlockLocked(vbftCtx *VbftContext, block *VbftBlock, forEmpty bool) error {
+func (c *BftStatus) AddSignaturesToBlock(vbftCtx *VbftContext, block *VbftBlock, forEmpty bool) error {
 	bookkeepers := make([]keypair.PublicKey, 0)
 	sigData := make([][]byte, 0)
 
@@ -552,9 +404,7 @@ func (c *CandidateInfo) addSignaturesToBlockLocked(vbftCtx *VbftContext, block *
 	return nil
 }
 
-func (pool *BlockPool) checkBlockSign(vbftCtx *VbftContext, block *VbftBlock, forEmpty bool, requiredSigs uint32) bool {
-	blkNum := block.getBlockNum()
-	c := pool.getCandidateInfoLocked(blkNum)
+func (c *BftStatus) checkBlockSign(vbftCtx *VbftContext, block *VbftBlock, forEmpty bool, requiredSigs uint32) bool {
 	proposer := block.getProposer()
 	sigData := make([][]byte, 0)
 	var blkHash common.Uint256
@@ -582,21 +432,9 @@ func (pool *BlockPool) checkBlockSign(vbftCtx *VbftContext, block *VbftBlock, fo
 	return uint32(len(sigData)) >= requiredSigs
 }
 
-func (pool *BlockPool) SetBlockSealed(vbftCtx *VbftContext, block *VbftBlock, forEmpty bool, sigdata bool) (*VbftBlock, *store.ExecuteResult, error) {
-	pool.lock.Lock()
-	defer pool.lock.Unlock()
-
-	blkNum := block.getBlockNum()
-	c := pool.getCandidateInfoLocked(blkNum)
-
-	if c.SealedBlock != nil {
-		if c.SealedBlock.getProposer() == block.getProposer() {
-			return c.SealedBlock, c.SealedBlockExecResult, nil
-		}
-		return nil, nil, fmt.Errorf("double seal for block %d", blkNum)
-	}
+func (pool *Server) SetBlockSealed(vbftCtx *VbftContext, block *VbftBlock, forEmpty bool, sigdata bool) (*VbftBlock, *store.ExecuteResult, error) {
 	if sigdata {
-		if err := c.addSignaturesToBlockLocked(vbftCtx, block, forEmpty); err != nil {
+		if err := vbftCtx.BftStatus.AddSignaturesToBlock(vbftCtx, block, forEmpty); err != nil {
 			return nil, nil, fmt.Errorf("failed to add sig to block: %s", err)
 		}
 	}
@@ -610,27 +448,20 @@ func (pool *BlockPool) SetBlockSealed(vbftCtx *VbftContext, block *VbftBlock, fo
 		sealedBlock.Block = block.EmptyBlock
 	}
 
-	// add block to chain store
+	pool.lock.Lock()
+	defer pool.lock.Unlock()
 	result, err := pool.chainStore.AddBlock(sealedBlock)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to seal block (%d) to chainstore: %s", blkNum, err)
+		return nil, nil, fmt.Errorf("failed to seal block (%d) to chainstore: %s", vbftCtx.BlockNum, err)
 	}
 
-	for n := range pool.candidateBlocks {
-		if n+pool.HistoryLen < blkNum {
-			delete(pool.candidateBlocks, n)
-		}
-	}
-	c.SealedBlock = sealedBlock
-	c.SealedBlockExecResult = result
 	return sealedBlock, result, nil
 }
 
-func (pool *BlockPool) getChainedBlock(blockNum uint32) (*VbftBlock, common.Uint256) {
+func (pool *Server) getChainedBlock(blockNum uint32) (*VbftBlock, common.Uint256) {
 	pool.lock.RLock()
 	defer pool.lock.RUnlock()
 
-	// get from chainstore
 	blk, err := pool.chainStore.GetBlock(blockNum)
 	if err != nil {
 		log.Errorf("getChainedBlock %d err:%v", blockNum, err)
@@ -639,14 +470,8 @@ func (pool *BlockPool) getChainedBlock(blockNum uint32) (*VbftBlock, common.Uint
 	return blk, blk.Block.Hash()
 }
 
-func (pool *BlockPool) SubmitBlock(blkNum uint32) error {
-	pool.lock.Lock()
-	defer pool.lock.Unlock()
-	return pool.chainStore.SubmitBlock(blkNum)
-}
-
-func (pool *BlockPool) ReloadFromLedger() {
-	pool.lock.Lock()
-	defer pool.lock.Unlock()
-	pool.chainStore.ReloadFromLedger()
+func (self *Server) SubmitBlock(blkNum uint32) error {
+	self.lock.Lock()
+	defer self.lock.Unlock()
+	return self.chainStore.SubmitBlock(blkNum)
 }

@@ -41,6 +41,7 @@ const (
 	EventPeerHeartbeat
 	EventTxPool
 	EventTxBlockTimeout
+	EventRebroadcast
 	EventMax
 )
 
@@ -66,6 +67,8 @@ func (self TimerEventType) String() string {
 		return "EventTxPool"
 	case EventTxBlockTimeout:
 		return "EventTxBlockTimeout"
+	case EventRebroadcast:
+		return "EventRebroadcast"
 	default:
 		panic("unknown timer type")
 	}

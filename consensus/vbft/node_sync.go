@@ -188,11 +188,7 @@ func (self *Syncer) run() {
 				prevHash := blk.getPrevBlockHash()
 				log.Debugf("server %d syncer, sealed block %d, proposer %d, prevhash: %s",
 					self.server.Index, self.nextReqBlkNum, blk.getProposer(), prevHash.ToHexString())
-				if err := self.server.fastForwardBlock(blk); err != nil {
-					log.Errorf("server %d syncer, fastforward block %d failed %s",
-						self.server.Index, self.nextReqBlkNum, err)
-					break
-				}
+				self.server.fastForwardBlock(blk)
 				for h := range self.pendingBlocks {
 					if h <= self.nextReqBlkNum {
 						delete(self.pendingBlocks, h)

@@ -316,7 +316,7 @@ func (self *Server) constructEndorseMsg(proposal *blockProposalMsg, forEmpty boo
 	return msg, nil
 }
 
-func (self *Server) constructCommitMsg(proposal *blockProposalMsg, endorses map[uint32]*CandidateEndorseSigInfo, forEmpty bool) (*blockCommitMsg, error) {
+func (self *Server) constructCommitMsg(proposal *blockProposalMsg, endorses map[uint32]*EndorseSigInfo, forEmpty bool) (*blockCommitMsg, error) {
 
 	// TODO, support faultyMsg reporting
 

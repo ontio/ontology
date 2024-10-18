@@ -29,6 +29,7 @@ type VbftContext struct {
 	ConfigNum     uint32
 	PeerKeys      map[uint32]keypair.PublicKey
 	PrevBlockInfo *BlockAndExecteInfo
+	BftStatus     *BftStatus
 	Proposers     []uint32
 	Endorsers     []uint32
 	Committers    []uint32

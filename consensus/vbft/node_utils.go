@@ -36,8 +36,8 @@ func (self *Server) GetCurrentBlockNo() uint32 {
 }
 
 func (self *Server) GetVbftContext() *VbftContext {
-	self.metaLock.RLock()
-	defer self.metaLock.RUnlock()
+	self.lock.RLock()
+	defer self.lock.RUnlock()
 	return self.vbftCtx
 }
 
