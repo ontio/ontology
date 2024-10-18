@@ -28,17 +28,6 @@ import (
 	vconfig "github.com/ontio/ontology/consensus/vbft/config"
 )
 
-func constructServer() *Server {
-	statemgr := &StateMgr{
-		currentState: Syncing,
-	}
-	server := &Server{
-		Index:    1,
-		stateMgr: statemgr,
-	}
-	return server
-}
-
 func constructChainConfig() *vconfig.ChainConfig {
 	return &vconfig.ChainConfig{
 		Version:              1,

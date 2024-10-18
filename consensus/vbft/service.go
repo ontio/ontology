@@ -704,65 +704,45 @@ func (self *Server) verifyCrossChainMsg(msg *blockProposalMsg, root common.Uint2
 
 func (self *Server) verifyProposalMsg(vbftCtx *VbftContext, msg *blockProposalMsg) error {
 	blkNum := vbftCtx.BlockNum
-	blkInfo := vbftCtx.PrevBlockInfo.Info
-
-	msgPrevBlkHash := msg.Block.getPrevBlockHash()
-	if vbftCtx.PrevBlockInfo.Block.Hash() != msgPrevBlkHash {
-		return fmt.Errorf("BlockPrposalMessage check blocknum:%d,prevhash:%s,msg prevhash:%s", msg.GetBlockNum(), vbftCtx.PrevBlockInfo.Block.Hash().ToHexString(), msgPrevBlkHash.ToHexString())
-	}
-	configNum := vbftCtx.ConfigNum
-	if configNum != math.MaxUint32 && msg.Block.Info.LastConfigBlockNum != configNum {
-		return fmt.Errorf("BlockPrposalMessage  check LastConfigBlockNum blocknum:%d,prvLastConfigBlockNum:%d,self LastConfigBlockNum:%d", msg.GetBlockNum(), msg.Block.Info.LastConfigBlockNum, configNum)
-	}
-	merkleRoot := vbftCtx.PrevBlockInfo.MerkleRoot
-	if msg.Block.getPrevExecMerkleRoot() != merkleRoot {
-		self.msgPool.DropMsg(msg)
-		msgMerkleRoot := msg.Block.getPrevExecMerkleRoot()
-		return fmt.Errorf("BlockPrposalMessage check MerkleRoot blocknum:%d,msg MerkleRoot:%s,self MerkleRoot:%s", msg.GetBlockNum(), msgMerkleRoot.ToHexString(), merkleRoot.ToHexString())
-	}
-	cfg := vconfig.ChainConfig{}
-	if blkInfo.NewChainConfig != nil {
-		cfg = *blkInfo.NewChainConfig
-		chainCfg := vbftCtx.Config
-		if cfg.Hash() != chainCfg.Hash() {
-			return fmt.Errorf("verifyProposalMsg chainconfig unqeual to blockinfo cfg,view:(%d,%d),N:(%d,%d),C:(%d,%d),BlockMsgDelay:(%d,%d),HashMsgDelay:(%d,%d),PeerHandshakeTimeout:(%d,%d),posTable:(%v,%v),MaxBlockChangeView:(%d,%d)",
-				cfg.View, chainCfg.View,
-				cfg.N, chainCfg.N,
-				cfg.C, chainCfg.C,
-				cfg.BlockMsgDelay, chainCfg.BlockMsgDelay,
-				cfg.HashMsgDelay, chainCfg.HashMsgDelay,
-				cfg.PeerHandshakeTimeout, chainCfg.PeerHandshakeTimeout,
-				cfg.PosTable, chainCfg.PosTable,
-				cfg.MaxBlockChangeView, chainCfg.MaxBlockChangeView)
-		}
+	blockTime := msg.Block.Block.Header.Timestamp
+	if blockTime <= vbftCtx.PrevBlockInfo.Block.Header.Timestamp || blockTime > uint32(time.Now().Add(time.Minute*10).Unix()) {
+		return fmt.Errorf("proposal block timestamp failed, blocknum:%d, timestamp:%d", blkNum, blockTime)
 	}
 
-	prevBlockTimestamp := vbftCtx.PrevBlockInfo.Block.Header.Timestamp
-	currentBlockTimestamp := msg.Block.Block.Header.Timestamp
-	if currentBlockTimestamp <= prevBlockTimestamp || currentBlockTimestamp > uint32(time.Now().Add(time.Minute*10).Unix()) {
-		return fmt.Errorf("BlockPrposalMessage check  blocknum:%d,prevBlockTimestamp:%d,currentBlockTimestamp:%d", msg.GetBlockNum(), prevBlockTimestamp, currentBlockTimestamp)
-	}
-
-	// verify VRF
-	proposerPk := vbftCtx.GetPeerPubKey(msg.Block.getProposer())
+	proposer := msg.Block.getProposer()
+	proposerPk := vbftCtx.GetPeerPubKey(proposer)
 	if proposerPk == nil {
 		return fmt.Errorf("server %d failed to get proposer %d pk of block %d",
-			self.Index, msg.Block.getProposer(), blkNum)
+			self.Index, proposer, blkNum)
 	}
-	if err := verifyVrf(proposerPk, blkNum, blkInfo.VrfValue, msg.Block.getVrfValue(), msg.Block.getVrfProof()); err != nil {
+	vrfValue, vrfProof := msg.Block.getVrfValue(), msg.Block.getVrfProof()
+	if err := verifyVrf(proposerPk, blkNum, vbftCtx.PrevBlockInfo.Info.VrfValue, vrfValue, vrfProof); err != nil {
 		return fmt.Errorf("server %d failed to verify vrf of block %d proposal from %d",
-			self.Index, blkNum, msg.Block.getProposer())
+			self.Index, blkNum, proposer)
 	}
 	if !self.verifyCrossChainMsg(msg, vbftCtx.PrevBlockInfo.CrossStatesRoot) {
 		return fmt.Errorf("verify cross chain message error:%+v\n", msg.Block.CrossChainMsg)
 	}
+
 	txs := msg.Block.Block.Transactions
+	cfg, err := self.GetNewBlockConfig(vbftCtx)
+	if err != nil {
+		return fmt.Errorf("get new block config failed:%s", err)
+	}
 	if vbftCtx.NeedUpdateChainConfigTx() {
-		if len(txs) != 1 || self.CreateGovernaceTransaction(vbftCtx.BlockNum).Hash() != txs[0].Hash() {
+		if len(txs) != 1 || CreateGovernaceTransaction(vbftCtx.BlockNum).Hash() != txs[0].Hash() {
 			return fmt.Errorf("update chain config block must has 1 commit dpos transaction, blk: %d", blkNum)
 		}
+		txs = txs[1:]
 	}
-	if len(txs) > 0 && !vbftCtx.NeedUpdateChainConfigTx() {
+
+	proposal := BuildProposalMsg(vbftCtx, txs, cfg, msg.Block.Block.Header.ConsensusData,
+		msg.Block.EmptyBlock.Header.ConsensusData, blockTime, proposer, vrfValue, vrfProof)
+	if proposal.Block.Block.Hash() != msg.Block.Block.Hash() || proposal.Block.EmptyBlock.Hash() != msg.Block.EmptyBlock.Hash() {
+		return fmt.Errorf("generated proposal block hash mismatch, blk: %d", blkNum)
+	}
+
+	if len(txs) > 0 {
 		height := blkNum - 1
 		start, end := self.incrValidator.BlockRange()
 		validHeight := height
@@ -776,16 +756,16 @@ func (self *Server) verifyProposalMsg(vbftCtx *VbftContext, msg *blockProposalMs
 		// start new routine to verify txs in proposal block
 		if err := self.poolActor.VerifyBlock(txs, validHeight); err != nil && err != actor.ErrTimeout {
 			return fmt.Errorf("server %d verify proposal blk from %d failed, blk %d, txs %d, err: %s",
-				self.Index, msg.Block.getProposer(), blkNum, len(txs), err)
+				self.Index, proposer, blkNum, len(txs), err)
 		} else if err == actor.ErrTimeout {
 			return fmt.Errorf("server %d verify proposal blk from %d timedout, blk %d, txs %d, err: %s",
-				self.Index, msg.Block.getProposer(), blkNum, len(txs), err)
+				self.Index, proposer, blkNum, len(txs), err)
 		}
 		nonceCtx := make(map[common.Address]uint64)
 		for _, tx := range txs {
 			if err := self.incrValidator.Verify(tx, validHeight, nonceCtx); err != nil {
 				return fmt.Errorf("server %d verify proposal tx from %d failed, blk %d, txs %d, err: %s",
-					self.Index, msg.Block.getProposer(), blkNum, len(txs), err)
+					self.Index, proposer, blkNum, len(txs), err)
 			}
 		}
 	}
@@ -1375,7 +1355,7 @@ func (self *Server) msgSendLoop() {
 	}
 }
 
-func (self *Server) CreateGovernaceTransaction(blkNum uint32) *types.Transaction {
+func CreateGovernaceTransaction(blkNum uint32) *types.Transaction {
 	mutable := utils.BuildNativeTransaction(nutils.GovernanceContractAddress, gover.COMMIT_DPOS, []byte{})
 	mutable.Nonce = blkNum
 	tx, err := mutable.IntoImmutable()
@@ -1393,14 +1373,13 @@ func (self *VbftContext) NeedUpdateChainConfigTx() bool {
 	return (self.BlockNum - lastConfigNum) >= self.Config.MaxBlockChangeView
 }
 
-func (self *Server) checkUpdateChainConfig(view uint32, writeSet *overlaydb.MemDB) bool {
-	force, err := isUpdate(writeSet, view)
+func (self *Server) IsViewIncreased(view uint32, writeSet *overlaydb.MemDB) bool {
+	goveranceview, err := GetGovernanceView(writeSet)
 	if err != nil {
-		log.Errorf("checkUpdateChainConfig err:%s", err)
+		log.Errorf("IsViewIncreased err:%s", err)
 		return false
 	}
-	log.Debugf("checkUpdateChainConfig force: %v", force)
-	return force
+	return goveranceview.View > view
 }
 
 func (self *Server) validHeight(blkNum uint32) uint32 {
@@ -1413,11 +1392,18 @@ func (self *Server) validHeight(blkNum uint32) uint32 {
 	return validHeight
 }
 
-func (self *Server) nonSystxs(sysTxs []*types.Transaction, vbftCtx *VbftContext) bool {
-	if vbftCtx.NeedUpdateChainConfigTx() {
-		return len(sysTxs) == 1 && self.CreateGovernaceTransaction(vbftCtx.BlockNum).Hash() == sysTxs[0].Hash()
+func (self *Server) GetNewBlockConfig(vbftCtx *VbftContext) (*vconfig.ChainConfig, error) {
+	writeSet := vbftCtx.PrevBlockInfo.WriteSet
+	blkNum := vbftCtx.BlockNum
+	needUpdateTx := vbftCtx.NeedUpdateChainConfigTx()
+	if needUpdateTx || self.IsViewIncreased(vbftCtx.Config.View, writeSet) {
+		chainconfig, err := getChainConfig(writeSet, blkNum, needUpdateTx)
+		if err != nil {
+			return nil, fmt.Errorf("getChainConfig failed:%s", err)
+		}
+		return chainconfig, nil
 	}
-	return true
+	return nil, nil
 }
 
 func (self *Server) makeProposal(blkNum uint32, forEmpty bool) error {
@@ -1427,31 +1413,20 @@ func (self *Server) makeProposal(blkNum uint32, forEmpty bool) error {
 			self.Index, blkNum, vbftCtx.BlockNum)
 	}
 
-	validHeight := self.validHeight(blkNum)
-	sysTxs := make([]*types.Transaction, 0)
-	userTxs := make([]*types.Transaction, 0)
-
-	//check need upate chainconfig
-	var cfg *vconfig.ChainConfig
-	writeSet := vbftCtx.PrevBlockInfo.WriteSet
-	if vbftCtx.NeedUpdateChainConfigTx() || self.checkUpdateChainConfig(vbftCtx.Config.View, writeSet) {
-		chainconfig, err := getChainConfig(writeSet, blkNum)
-		if err != nil {
-			return fmt.Errorf("getChainConfig failed:%s", err)
-		}
-		//add transaction invoke governance native commit_pos contract
-		if vbftCtx.NeedUpdateChainConfigTx() {
-			tx := self.CreateGovernaceTransaction(blkNum)
-			sysTxs = append(sysTxs, tx)
-			chainconfig.View++
-		}
-		forEmpty = true
-		cfg = chainconfig
-	}
 	if self.nonConsensusNode() {
 		return fmt.Errorf("%d quit consensus node", self.Index)
 	}
 
+	cfg, err := self.GetNewBlockConfig(vbftCtx)
+	if err != nil {
+		return fmt.Errorf("getChainConfig failed:%s", err)
+	}
+
+	validHeight := self.validHeight(blkNum)
+	userTxs := make([]*types.Transaction, 0)
+	if cfg != nil {
+		forEmpty = true
+	}
 	if !forEmpty {
 		nonceCtx := make(map[common.Address]uint64)
 		for _, e := range self.poolActor.GetTxnPool(true, validHeight) {
@@ -1462,7 +1437,7 @@ func (self *Server) makeProposal(blkNum uint32, forEmpty bool) error {
 		log.Infof("make proposal get %d valid tx from pool", len(userTxs))
 	}
 
-	proposal, err := self.constructProposalMsg(vbftCtx, sysTxs, userTxs, cfg)
+	proposal, err := self.constructProposalMsg(vbftCtx, userTxs, cfg)
 	if err != nil {
 		return fmt.Errorf("failed to construct proposal: %s", err)
 	}

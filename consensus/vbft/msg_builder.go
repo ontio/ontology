@@ -156,7 +156,7 @@ func (self *Server) constructHeartbeatMsg() (*peerHeartbeatMsg, error) {
 	return msg, nil
 }
 
-func (self *Server) constructBlock(blkNum uint32, prevBlock *types.Block, txs []*types.Transaction, consensusPayload []byte, blocktimestamp uint32) (*types.Block, error) {
+func constructBlock(blkNum uint32, prevBlock *types.Block, txs []*types.Transaction, consensusPayload []byte, blockTime uint32, nonce uint64) *types.Block {
 	var txHash []common.Uint256
 	for _, t := range txs {
 		txHash = append(txHash, t.Hash())
@@ -168,51 +168,45 @@ func (self *Server) constructBlock(blkNum uint32, prevBlock *types.Block, txs []
 		PrevBlockHash:    prevBlock.Hash(),
 		TransactionsRoot: txRoot,
 		BlockRoot:        blockRoot,
-		Timestamp:        blocktimestamp,
+		Timestamp:        blockTime,
 		Height:           blkNum,
-		ConsensusData:    common.GetNonce(),
+		ConsensusData:    nonce,
 		ConsensusPayload: consensusPayload,
 	}
 	blk := &types.Block{
 		Header:       blkHeader,
 		Transactions: txs,
 	}
+	return blk
+}
+
+func (self *Server) SignBlock(blk *types.Block) error {
 	blkHash := blk.Hash()
 	sig, err := signature.Sign(self.account, blkHash[:])
 	if err != nil {
-		return nil, fmt.Errorf("sign block failed, block hash:%s, error: %s", blkHash.ToHexString(), err)
+		return fmt.Errorf("sign block failed, block hash:%s, error: %s", blkHash.ToHexString(), err)
 	}
-	blkHeader.Bookkeepers = []keypair.PublicKey{self.account.PublicKey}
-	blkHeader.SigData = [][]byte{sig}
-
-	return blk, nil
+	blk.Header.Bookkeepers = []keypair.PublicKey{self.account.PublicKey}
+	blk.Header.SigData = [][]byte{sig}
+	return nil
 }
 
-func (self *Server) constructCrossChainMsg(blkNum uint32, root common.Uint256) (*types.CrossChainMsg, error) {
-	log.Debugf("SubmitBlock height:%d statesroot:%+v", blkNum, root)
+func constructCrossChainMsg(blkNum uint32, root common.Uint256) *types.CrossChainMsg {
 	if root == common.UINT256_EMPTY {
-		return nil, nil
+		return nil
 	}
-	msg := &types.CrossChainMsg{
+	return &types.CrossChainMsg{
 		Version:    types.CURR_CROSS_STATES_VERSION,
 		Height:     blkNum,
 		StatesRoot: root,
 	}
-	hash := msg.Hash()
-	sig, err := signature.Sign(self.account, hash[:])
-	if err != nil {
-		return nil, fmt.Errorf("sign cross chain msg root failed,msg hash:%s,err:%s", hash.ToHexString(), err)
-	}
-	msg.SigData = append(msg.SigData, sig)
-	return msg, nil
 }
-
-func (self *Server) constructProposalMsg(vbftCtx *VbftContext, sysTxs, userTxs []*types.Transaction, chainconfig *vconfig.ChainConfig) (*blockProposalMsg, error) {
+func (self *Server) constructProposalMsg(vbftCtx *VbftContext, userTxs []*types.Transaction, chainconfig *vconfig.ChainConfig) (*blockProposalMsg, error) {
 	prevBlk := vbftCtx.PrevBlockInfo.Block
 	blkNum := vbftCtx.BlockNum
-	blocktimestamp := uint32(time.Now().Unix())
-	if prevBlk.Header.Timestamp >= blocktimestamp {
-		blocktimestamp = prevBlk.Header.Timestamp + 1
+	blockTime := uint32(time.Now().Unix())
+	if prevBlk.Header.Timestamp >= blockTime {
+		blockTime = prevBlk.Header.Timestamp + 1
 	}
 
 	vrfValue, vrfProof, err := computeVrf(self.account.PrivateKey, blkNum, vbftCtx.PrevBlockInfo.Info.VrfValue)
@@ -220,12 +214,37 @@ func (self *Server) constructProposalMsg(vbftCtx *VbftContext, sysTxs, userTxs [
 		return nil, fmt.Errorf("failed to get vrf and proof: %s", err)
 	}
 
+	nonce := common.GetNonce()
+	proposal := BuildProposalMsg(vbftCtx, userTxs, chainconfig, nonce, nonce, blockTime, self.Index, vrfValue, vrfProof)
+	err = self.SignBlock(proposal.Block.EmptyBlock)
+	if err != nil {
+		return nil, fmt.Errorf("failed to construct empty block: %s", err)
+	}
+	err = self.SignBlock(proposal.Block.Block)
+	if err != nil {
+		return nil, fmt.Errorf("failed to constuct blk: %s", err)
+	}
+	if proposal.Block.CrossChainMsg != nil {
+		hash := proposal.Block.CrossChainMsg.Hash()
+		sig, err := signature.Sign(self.account, hash[:])
+		if err != nil {
+			return nil, fmt.Errorf("sign cross chain msg root failed,msg hash:%s,err:%s", hash.ToHexString(), err)
+		}
+		proposal.Block.CrossChainMsg.SigData = [][]byte{sig}
+	}
+	return proposal, nil
+}
+
+func BuildProposalMsg(vbftCtx *VbftContext, userTxs []*types.Transaction, chainconfig *vconfig.ChainConfig, nonce, emptyNonce uint64, blockTime, proposer uint32, vrfValue, vrfProof []byte) *blockProposalMsg {
+	prevBlk := vbftCtx.PrevBlockInfo.Block
+	blkNum := vbftCtx.BlockNum
+
 	lastConfigBlkNum := vbftCtx.PrevBlockInfo.Info.LastConfigBlockNum
 	if vbftCtx.PrevBlockInfo.Info.NewChainConfig != nil {
 		lastConfigBlkNum = prevBlk.Header.Height
 	}
 	vbftBlkInfo := &vconfig.VbftBlockInfo{
-		Proposer:           self.Index,
+		Proposer:           proposer,
 		VrfValue:           vrfValue,
 		VrfProof:           vrfProof,
 		LastConfigBlockNum: lastConfigBlkNum,
@@ -235,19 +254,14 @@ func (self *Server) constructProposalMsg(vbftCtx *VbftContext, sysTxs, userTxs [
 	if err != nil {
 		panic(err)
 	}
+	var sysTxs []*types.Transaction
+	if vbftCtx.NeedUpdateChainConfigTx() {
+		sysTxs = append(sysTxs, CreateGovernaceTransaction(blkNum))
+	}
 
-	emptyBlk, err := self.constructBlock(blkNum, prevBlk, sysTxs, consensusPayload, blocktimestamp)
-	if err != nil {
-		return nil, fmt.Errorf("failed to construct empty block: %s", err)
-	}
-	blk, err := self.constructBlock(blkNum, prevBlk, append(sysTxs, userTxs...), consensusPayload, blocktimestamp)
-	if err != nil {
-		return nil, fmt.Errorf("failed to constuct blk: %s", err)
-	}
-	crossChainMsg, err := self.constructCrossChainMsg(blkNum-1, vbftCtx.PrevBlockInfo.CrossStatesRoot)
-	if err != nil {
-		return nil, fmt.Errorf("failed to crossChainMsgHash :%s,blkNum:%d", err, blkNum-1)
-	}
+	emptyBlk := constructBlock(blkNum, prevBlk, sysTxs, consensusPayload, blockTime, emptyNonce)
+	blk := constructBlock(blkNum, prevBlk, append(sysTxs, userTxs...), consensusPayload, blockTime, nonce)
+	crossChainMsg := constructCrossChainMsg(blkNum-1, vbftCtx.PrevBlockInfo.CrossStatesRoot)
 	msg := &blockProposalMsg{
 		Block: &VbftBlock{
 			Block:              blk,
@@ -257,7 +271,7 @@ func (self *Server) constructProposalMsg(vbftCtx *VbftContext, sysTxs, userTxs [
 			CrossChainMsg:      crossChainMsg,
 		},
 	}
-	return msg, nil
+	return msg
 }
 
 func (self *Server) constructEndorseMsg(proposal *blockProposalMsg, forEmpty bool) (*blockEndorseMsg, error) {

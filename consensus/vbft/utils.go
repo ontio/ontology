@@ -177,7 +177,7 @@ func GetVbftConfigInfo(memdb *overlaydb.MemDB) (*config.VBFTConfig, error) {
 	return chainconfig, nil
 }
 
-func GetPeersConfig(memdb *overlaydb.MemDB) ([]*config.VBFTPeerStakeInfo, error) {
+func GetPeersConfig(memdb *overlaydb.MemDB, nextView bool) ([]*config.VBFTPeerStakeInfo, error) {
 	goveranceview, err := GetGovernanceView(memdb)
 	if err != nil {
 		return nil, err
@@ -197,7 +197,11 @@ func GetPeersConfig(memdb *overlaydb.MemDB) ([]*config.VBFTPeerStakeInfo, error)
 	}
 	var peerstakes []*config.VBFTPeerStakeInfo
 	for _, id := range peerMap.PeerPoolMap {
-		if id.Status == gov.CandidateStatus || id.Status == gov.ConsensusStatus {
+		consNode := id.Status == gov.QuitConsensusStatus || id.Status == gov.ConsensusStatus
+		if nextView {
+			consNode = id.Status == gov.CandidateStatus || id.Status == gov.ConsensusStatus
+		}
+		if consNode {
 			config := &config.VBFTPeerStakeInfo{
 				Index:      uint32(id.Index),
 				PeerPubkey: id.PeerPubkey,
@@ -207,17 +211,6 @@ func GetPeersConfig(memdb *overlaydb.MemDB) ([]*config.VBFTPeerStakeInfo, error)
 		}
 	}
 	return peerstakes, nil
-}
-
-func isUpdate(memdb *overlaydb.MemDB, view uint32) (bool, error) {
-	goveranceview, err := GetGovernanceView(memdb)
-	if err != nil {
-		return false, err
-	}
-	if goveranceview.View > view {
-		return true, nil
-	}
-	return false, nil
 }
 
 func getRawStorageItemFromMemDb(memdb *overlaydb.MemDB, addr common.Address, key []byte) (value []byte, unkown bool) {
@@ -257,13 +250,13 @@ func GetGovernanceView(memdb *overlaydb.MemDB) (*gov.GovernanceView, error) {
 	return governanceView, nil
 }
 
-func getChainConfig(memdb *overlaydb.MemDB, blkNum uint32) (*vconfig.ChainConfig, error) {
+func getChainConfig(memdb *overlaydb.MemDB, blkNum uint32, nextView bool) (*vconfig.ChainConfig, error) {
 	config, err := GetVbftConfigInfo(memdb)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get chainconfig from leveldb: %s", err)
 	}
 
-	peersinfo, err := GetPeersConfig(memdb)
+	peersinfo, err := GetPeersConfig(memdb, nextView)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get peersinfo from leveldb: %s", err)
 	}
@@ -277,5 +270,8 @@ func getChainConfig(memdb *overlaydb.MemDB, blkNum uint32) (*vconfig.ChainConfig
 		return nil, fmt.Errorf("GenesisChainConfig failed: %s", err)
 	}
 	cfg.View = goverview.View
+	if nextView {
+		cfg.View += 1
+	}
 	return cfg, err
 }
