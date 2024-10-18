@@ -562,7 +562,6 @@ func (self *Server) startNewProposal(vbftCtx *VbftContext) {
 		self.timer.StartEventTimer(EventProposalBackoff, blkNum)
 	}
 
-	// TODO: if new round block proposal has received, go endorsing/committing directly
 	self.timer.StartEventTimer(EventProposeBlockTimeout, blkNum)
 }
 
@@ -580,6 +579,7 @@ func (self *Server) processBftMsgFromPeer(vbftCtx *VbftContext, msg ConsensusMsg
 		err := self.verifyProposalMsg(vbftCtx, pMsg)
 		if err != nil {
 			log.Errorf("verify proposal error: %v", err)
+			return
 		}
 	case BlockEndorseMessage, BlockCommitMessage:
 	default:
@@ -916,6 +916,7 @@ func (self *Server) RebroadcastMsgs(vbftCtx *VbftContext, blkNum uint32) {
 	} else if endorseMsg := bftStatus.GetSelfEndorseMsg(); endorseMsg != nil {
 		self.broadcast(endorseMsg)
 	}
+
 	if vbftCtx.IsCommitter(self.Index) {
 		commitMsg := bftStatus.SelfCommitMsg
 		if commitMsg != nil {
@@ -1064,7 +1065,6 @@ func (self *Server) processTimerEvent(evt *TimerEvent) error {
 			}
 		}
 		return nil
-
 	case EventEndorseEmptyBlockTimeout:
 		// 1. if committed, return
 		// 2. check endorse quorum
@@ -1212,11 +1212,8 @@ func (self *Server) endorseBlock(vbftCtx *VbftContext, proposal *blockProposalMs
 			self.Index, blkNum, proposal.Block.getProposer())
 		// broadcast my endorsement
 		self.broadcast(endorseMsg)
-		return nil
 	}
 
-	// start endorsing timer
-	// TODO: endorsing may have reached consensus before received proposal, handle this
 	if !forEmpty {
 		self.timer.StartEventTimer(EventEndorseBlockTimeout, blkNum)
 	} else {
@@ -1259,13 +1256,9 @@ func (self *Server) commitBlock(vbftCtx *VbftContext, proposal *blockProposalMsg
 	if forEmpty || self.GetVbftContext().IsCommitter(self.Index) {
 		log.Infof("committer %d, set block %d committed, from server %d",
 			self.Index, blkNum, proposal.Block.getProposer())
-		// broadcast my commitment
 		self.broadcast(commitMsg)
-		return nil
 	}
 
-	// start commit timer
-	// TODO: committing may have reached consensus before received endorsement, handle this
 	self.timer.StartEventTimer(EventCommitBlockTimeout, blkNum)
 	return nil
 }
@@ -1495,9 +1488,9 @@ func (self *Server) handleProposalTimeout(vbftCtx *VbftContext, evt *TimerEvent)
 				if err := self.makeProposal(evt.blockNum, true); err != nil {
 					return fmt.Errorf("failed to propose empty block: %s", err)
 				}
-				self.timer.StartEventTimer(EventPropose2ndBlockTimeout, evt.blockNum)
 				log.Infof("server %d proposed empty block for blk %d", self.Index, evt.blockNum)
 			}
+			self.timer.StartEventTimer(EventPropose2ndBlockTimeout, evt.blockNum)
 			return nil
 		case EventPropose2ndBlockTimeout:
 			// 2nd proposal without any proposal, force resync
