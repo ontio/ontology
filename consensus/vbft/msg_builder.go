@@ -191,16 +191,6 @@ func (self *Server) SignBlock(blk *types.Block) error {
 	return nil
 }
 
-func constructCrossChainMsg(blkNum uint32, root common.Uint256) *types.CrossChainMsg {
-	if root == common.UINT256_EMPTY {
-		return nil
-	}
-	return &types.CrossChainMsg{
-		Version:    types.CURR_CROSS_STATES_VERSION,
-		Height:     blkNum,
-		StatesRoot: root,
-	}
-}
 func (self *Server) constructProposalMsg(vbftCtx *VbftContext, userTxs []*types.Transaction, chainconfig *vconfig.ChainConfig) (*blockProposalMsg, error) {
 	prevBlk := vbftCtx.PrevBlockInfo.Block
 	blkNum := vbftCtx.BlockNum
@@ -223,14 +213,6 @@ func (self *Server) constructProposalMsg(vbftCtx *VbftContext, userTxs []*types.
 	err = self.SignBlock(proposal.Block.Block)
 	if err != nil {
 		return nil, fmt.Errorf("failed to constuct blk: %s", err)
-	}
-	if proposal.Block.CrossChainMsg != nil {
-		hash := proposal.Block.CrossChainMsg.Hash()
-		sig, err := signature.Sign(self.account, hash[:])
-		if err != nil {
-			return nil, fmt.Errorf("sign cross chain msg root failed,msg hash:%s,err:%s", hash.ToHexString(), err)
-		}
-		proposal.Block.CrossChainMsg.SigData = [][]byte{sig}
 	}
 	return proposal, nil
 }
@@ -261,14 +243,12 @@ func BuildProposalMsg(vbftCtx *VbftContext, userTxs []*types.Transaction, chainc
 
 	emptyBlk := constructBlock(blkNum, prevBlk, sysTxs, consensusPayload, blockTime, emptyNonce)
 	blk := constructBlock(blkNum, prevBlk, append(sysTxs, userTxs...), consensusPayload, blockTime, nonce)
-	crossChainMsg := constructCrossChainMsg(blkNum-1, vbftCtx.PrevBlockInfo.CrossStatesRoot)
 	msg := &blockProposalMsg{
 		Block: &VbftBlock{
 			Block:              blk,
 			EmptyBlock:         emptyBlk,
 			Info:               vbftBlkInfo,
 			PrevExecMerkleRoot: vbftCtx.PrevBlockInfo.MerkleRoot,
-			CrossChainMsg:      crossChainMsg,
 		},
 	}
 	return msg
@@ -304,15 +284,6 @@ func (self *Server) constructEndorseMsg(proposal *blockProposalMsg, forEmpty boo
 		EndorseForEmpty:   forEmpty,
 		EndorserSig:       endorserSig,
 	}
-	if proposal.Block.CrossChainMsg != nil {
-		hash := proposal.Block.CrossChainMsg.Hash()
-		sig, err := signature.Sign(self.account, hash[:])
-		if err != nil {
-			return nil, fmt.Errorf("sign cross chain msg root failed,msg hash:%s,err:%s", hash.ToHexString(), err)
-		}
-		msg.CrossChainMsgEndorserSig = sig
-		msg.CrossChainMsgHash = hash
-	}
 	return msg, nil
 }
 
@@ -339,43 +310,19 @@ func (self *Server) constructCommitMsg(proposal *blockProposalMsg, endorses map[
 		return nil, fmt.Errorf("endorser failed to sign block. hash:%x, caused by: %s", blkHash, err)
 	}
 
-	commitCrossChain := true
 	endorsersSig := make(map[uint32][]byte)
-	crossChainEndorserSig := make(map[uint32][]byte)
-	var ccmCommitSig []byte
 	for endorser, e := range endorses {
 		endorsersSig[endorser] = e.Signature
-		crossChainEndorserSig[endorser] = e.CrossChainMsgSig
-		if endorser == self.Index {
-			commitCrossChain = false
-			ccmCommitSig = e.CrossChainMsgSig
-		}
-	}
-
-	var hash common.Uint256
-	if proposal.Block.CrossChainMsg != nil {
-		hash = proposal.Block.CrossChainMsg.Hash()
 	}
 
 	msg := &blockCommitMsg{
-		Committer:                 self.Index,
-		BlockProposer:             proposal.Block.getProposer(),
-		BlockNum:                  proposal.Block.getBlockNum(),
-		CommitBlockHash:           blkHash,
-		CommitForEmpty:            forEmpty,
-		EndorsersSig:              endorsersSig,
-		CommitterSig:              committerSig,
-		CommitCCMHash:             hash,
-		CrossChainMsgEndorserSig:  crossChainEndorserSig,
-		CrossChainMsgCommitterSig: ccmCommitSig,
-	}
-
-	if proposal.Block.CrossChainMsg != nil && commitCrossChain {
-		sig, err := signature.Sign(self.account, hash[:])
-		if err != nil {
-			return nil, fmt.Errorf("sign cross chain msg root failed,msg hash:%s,err:%s", hash.ToHexString(), err)
-		}
-		msg.CrossChainMsgCommitterSig = sig
+		Committer:       self.Index,
+		BlockProposer:   proposal.Block.getProposer(),
+		BlockNum:        proposal.Block.getBlockNum(),
+		CommitBlockHash: blkHash,
+		CommitForEmpty:  forEmpty,
+		EndorsersSig:    endorsersSig,
+		CommitterSig:    committerSig,
 	}
 	return msg, nil
 }

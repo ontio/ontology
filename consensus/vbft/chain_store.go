@@ -25,8 +25,6 @@ import (
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/core/store"
-	"github.com/ontio/ontology/core/store/overlaydb"
-	"github.com/ontio/ontology/core/types"
 )
 
 type PendingBlock struct {
@@ -41,57 +39,23 @@ type ChainStore struct {
 	pendingBlocks   map[uint32]*PendingBlock
 }
 
-func OpenBlockStore(db *ledger.Ledger) (*ChainStore, error) {
-	chainstore := &ChainStore{
+func OpenBlockStore(db *ledger.Ledger) (chainstore *ChainStore, block *VbftBlock, root common.Uint256, err error) {
+	chainstore = &ChainStore{
 		db:              db,
 		ChainedBlockNum: db.GetCurrentBlockHeight(),
 		pendingBlocks:   make(map[uint32]*PendingBlock),
 	}
-	merkleRoot, err := db.GetStateMerkleRoot(chainstore.ChainedBlockNum)
+	root, err = db.GetStateMerkleRoot(chainstore.ChainedBlockNum)
 	if err != nil {
 		log.Errorf("GetStateMerkleRoot blockNum:%d, error :%s", chainstore.ChainedBlockNum, err)
-		return nil, fmt.Errorf("GetStateMerkleRoot blockNum:%d, error :%s", chainstore.ChainedBlockNum, err)
+		return
 	}
-	crossStatesRoot, err := db.GetCrossStatesRoot(chainstore.ChainedBlockNum)
+	block, err = chainstore.GetBlock(chainstore.ChainedBlockNum)
 	if err != nil {
-		log.Errorf("GetCrossStatesRoot blockNum:%d, error :%s", chainstore.ChainedBlockNum, err)
-		return nil, fmt.Errorf("GetCrossStatesRoot blockNum:%d, error :%s", chainstore.ChainedBlockNum, err)
-	}
-	writeSet := overlaydb.NewMemDB(1, 1)
-	block, err := chainstore.GetBlock(chainstore.ChainedBlockNum)
-	if err != nil {
-		return nil, err
+		return
 	}
 	log.Debugf("chainstore openblockstore pendingBlocks height:%d,", chainstore.ChainedBlockNum)
-
-	chainstore.pendingBlocks[chainstore.ChainedBlockNum] = &PendingBlock{block: block, execResult: &store.ExecuteResult{WriteSet: writeSet, MerkleRoot: merkleRoot, CrossStatesRoot: crossStatesRoot}, hasSubmitted: true}
-	return chainstore, nil
-}
-
-func (self *ChainStore) GetExecMerkleRoot(blkNum uint32) (common.Uint256, error) {
-	if blk, present := self.pendingBlocks[blkNum]; blk != nil && present {
-		return blk.execResult.MerkleRoot, nil
-	}
-	merkleRoot, err := self.db.GetStateMerkleRoot(blkNum)
-	if err != nil {
-		log.Infof("GetStateMerkleRoot blockNum:%d, error :%s", blkNum, err)
-		return common.Uint256{}, fmt.Errorf("GetStateMerkleRoot blockNum:%d, error :%s", blkNum, err)
-	} else {
-		return merkleRoot, nil
-	}
-}
-
-func (self *ChainStore) GetCrossStatesRoot(blkNum uint32) (common.Uint256, error) {
-	if blk, present := self.pendingBlocks[blkNum]; blk != nil && present {
-		return blk.execResult.CrossStatesRoot, nil
-	}
-	statesRoot, err := self.db.GetCrossStatesRoot(blkNum)
-	if err != nil {
-		log.Infof("GetCrossStatesRoot blockNum:%d, error :%s", blkNum, err)
-		return common.UINT256_EMPTY, fmt.Errorf("GetCrossStatesRoot blockNum:%d, error :%s", blkNum, err)
-	} else {
-		return statesRoot, nil
-	}
+	return
 }
 
 func (self *ChainStore) ReloadFromLedger() {
@@ -132,7 +96,7 @@ func (self *ChainStore) AddBlock(block *VbftBlock) (result *store.ExecuteResult,
 
 func (self *ChainStore) SubmitBlock(blkNum uint32) error {
 	if submitBlk := self.pendingBlocks[blkNum]; submitBlk != nil && !submitBlk.hasSubmitted {
-		err := self.db.SubmitBlock(submitBlk.block.Block, submitBlk.block.CrossChainMsg, *submitBlk.execResult)
+		err := self.db.SubmitBlock(submitBlk.block.Block, nil, *submitBlk.execResult)
 		if err != nil {
 			return fmt.Errorf("ledger add submitBlk (%d, %d, %d) failed: %s", blkNum, self.ChainedBlockNum, self.db.GetCurrentBlockHeight(), err)
 		}
@@ -151,18 +115,12 @@ func (self *ChainStore) GetBlock(blockNum uint32) (*VbftBlock, error) {
 		return nil, err
 	}
 	prevMerkleRoot := common.Uint256{}
-	var crossChainMsg *types.CrossChainMsg
 	if blockNum > 1 {
 		prevMerkleRoot, err = self.db.GetStateMerkleRoot(blockNum - 1)
 		if err != nil {
 			log.Errorf("GetStateMerkleRoot blockNum:%d, error :%s", blockNum, err)
 			return nil, fmt.Errorf("GetStateMerkleRoot blockNum:%d, error :%s", blockNum, err)
 		}
-		crossChainMsg, err = self.db.GetCrossChainMsg(blockNum - 1)
-		if err != nil {
-			log.Errorf("GetCrossChainMsg blockNum:%d, error :%s", blockNum, err)
-			return nil, fmt.Errorf("v blockNum:%d, error :%s", blockNum, err)
-		}
 	}
-	return initVbftBlock(block, crossChainMsg, prevMerkleRoot)
+	return initVbftBlock(block, prevMerkleRoot)
 }

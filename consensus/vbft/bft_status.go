@@ -39,7 +39,6 @@ type EndorseSigInfo struct {
 	EndorsedProposer uint32
 	Signature        []byte
 	ForEmpty         bool
-	CrossChainMsgSig []byte
 }
 
 type BftStatus struct {
@@ -108,9 +107,6 @@ func (candidate *BftStatus) AddBlockProposal(msg *blockProposalMsg) error {
 		Signature:        msg.BlockProposerSig,
 		ForEmpty:         false,
 	}
-	if msg.Block.Block.Header.Height > 1 && msg.Block.CrossChainMsg != nil {
-		eSig.CrossChainMsgSig = msg.Block.CrossChainMsg.SigData[0]
-	}
 	candidate.addBlockEndorsementLocked(proposer, eSig, false)
 	return nil
 }
@@ -176,7 +172,6 @@ func (candidate *BftStatus) AddBlockEndorseMsg(msg *blockEndorseMsg) error {
 		EndorsedProposer: msg.EndorsedProposer,
 		Signature:        msg.EndorserSig,
 		ForEmpty:         msg.EndorseForEmpty,
-		CrossChainMsgSig: msg.CrossChainMsgEndorserSig,
 	}
 	err := candidate.CheckBlockHashWithProposal(msg.EndorsedProposer, msg.EndorseForEmpty, msg.EndorsedBlockHash)
 	if err != nil {
@@ -290,13 +285,6 @@ func (candidate *BftStatus) AddBlockCommitMsg(msg *blockCommitMsg) error {
 			Signature:        sig,
 			ForEmpty:         msg.CommitForEmpty,
 		}
-		// old version of committer msg is nil, compatible old version
-		if msg.CrossChainMsgCommitterSig != nil {
-			if crossChainMsgSig, present := msg.CrossChainMsgEndorserSig[endorser]; present {
-				eSig.CrossChainMsgSig = crossChainMsgSig
-			}
-		}
-
 		candidate.addBlockEndorsementLocked(endorser, eSig, false)
 	}
 
@@ -306,7 +294,6 @@ func (candidate *BftStatus) AddBlockCommitMsg(msg *blockCommitMsg) error {
 		EndorsedProposer: msg.BlockProposer,
 		Signature:        msg.CommitterSig,
 		ForEmpty:         msg.CommitForEmpty,
-		CrossChainMsgSig: msg.CrossChainMsgCommitterSig,
 	}, true)
 
 	// add msg to commit-msgs
@@ -389,9 +376,6 @@ func (c *BftStatus) AddSignaturesToBlock(vbftCtx *VbftContext, block *VbftBlock,
 				if endoresrPk != nil {
 					bookkeepers = append(bookkeepers, endoresrPk)
 					sigData = append(sigData, sig.Signature)
-					if block.CrossChainMsg != nil {
-						block.CrossChainMsg.SigData = append(block.CrossChainMsg.SigData, sig.CrossChainMsgSig)
-					}
 				}
 				break
 			}
@@ -441,7 +425,6 @@ func (pool *Server) SetBlockSealed(vbftCtx *VbftContext, block *VbftBlock, forEm
 	sealedBlock := &VbftBlock{
 		Info:               block.Info,
 		PrevExecMerkleRoot: block.PrevExecMerkleRoot,
-		CrossChainMsg:      block.CrossChainMsg,
 		Block:              block.Block,
 	}
 	if forEmpty {

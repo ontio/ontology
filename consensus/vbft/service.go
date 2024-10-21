@@ -54,11 +54,10 @@ const (
 )
 
 type BlockAndExecteInfo struct {
-	Block           *types.Block
-	Info            *vconfig.VbftBlockInfo
-	WriteSet        *overlaydb.MemDB
-	MerkleRoot      common.Uint256
-	CrossStatesRoot common.Uint256
+	Block      *types.Block
+	Info       *vconfig.VbftBlockInfo
+	WriteSet   *overlaydb.MemDB
+	MerkleRoot common.Uint256
 }
 
 type p2pMsgPayload struct {
@@ -231,21 +230,8 @@ func (self *Server) NewConsensusPayload(payload *p2pmsg.ConsensusPayload) {
 	}
 }
 
-func (self *Server) LoadChainConfig(store *ChainStore) error {
+func (self *Server) LoadChainConfig(store *ChainStore, block *VbftBlock, stateRoot common.Uint256) error {
 	blkNum := store.ChainedBlockNum
-	block, _ := store.GetBlock(blkNum)
-	if block == nil {
-		return fmt.Errorf("getSealedBlock err height:%d", blkNum)
-	}
-	crossStateRoot, err := store.GetCrossStatesRoot(blkNum)
-	if err != nil {
-		return fmt.Errorf("get cross state root  err height:%d", blkNum)
-	}
-	stateRoot, err := store.GetExecMerkleRoot(blkNum)
-	if err != nil {
-		return fmt.Errorf("get state root  err height:%d", blkNum)
-	}
-
 	var cfg vconfig.ChainConfig
 	configBlk := blkNum
 	if block.getNewChainConfig() != nil {
@@ -290,11 +276,10 @@ func (self *Server) LoadChainConfig(store *ChainStore) error {
 		ConfigNum: configBlk,
 		PeerKeys:  peermap,
 		PrevBlockInfo: &BlockAndExecteInfo{
-			Block:           block.Block,
-			Info:            block.Info,
-			WriteSet:        nil,
-			MerkleRoot:      stateRoot,
-			CrossStatesRoot: crossStateRoot,
+			Block:      block.Block,
+			Info:       block.Info,
+			WriteSet:   nil,
+			MerkleRoot: stateRoot,
 		},
 		BftStatus:  NewCandidateInfo(),
 		Proposers:  proposers,
@@ -333,11 +318,10 @@ func (self *Server) updateVbftContext(block *types.Block, info *vconfig.VbftBloc
 	vbftCtx.BlockNum = blkNum + 1
 	vbftCtx.BftStatus = NewCandidateInfo()
 	vbftCtx.PrevBlockInfo = &BlockAndExecteInfo{
-		Block:           block,
-		Info:            info,
-		WriteSet:        result.WriteSet,
-		MerkleRoot:      result.MerkleRoot,
-		CrossStatesRoot: result.CrossStatesRoot,
+		Block:      block,
+		Info:       info,
+		WriteSet:   result.WriteSet,
+		MerkleRoot: result.MerkleRoot,
 	}
 
 	self.lock.Lock()
@@ -411,7 +395,7 @@ func (self *Server) initialize() error {
 	selfNodeId := vconfig.PubkeyID(self.account.PublicKey)
 	log.Infof("server: %s starting", selfNodeId)
 
-	store, err := OpenBlockStore(ledger.DefLedger)
+	store, block, root, err := OpenBlockStore(ledger.DefLedger)
 	if err != nil {
 		log.Errorf("failed to open block store: %s", err)
 		return fmt.Errorf("failed to open block store: %s", err)
@@ -429,7 +413,7 @@ func (self *Server) initialize() error {
 	self.blockSynced = make(chan *VbftBlock, CAP_ACTION_CHANNEL)
 	self.msgSendC = make(chan *SendMsgEvent, CAP_MSG_SEND_CHANNEL)
 	self.quitC = make(chan struct{})
-	if err := self.LoadChainConfig(store); err != nil {
+	if err := self.LoadChainConfig(store, block, root); err != nil {
 		log.Errorf("failed to load config: %s", err)
 		return fmt.Errorf("failed to load config: %s", err)
 	}
@@ -679,21 +663,6 @@ func (self *Server) onConsensusMsg(peerIdx uint32, msg ConsensusMsg) {
 	}
 }
 
-func (self *Server) verifyCrossChainMsg(msg *blockProposalMsg, root common.Uint256) bool {
-	//malicious consensus node may create a nil cross chain msg proposal, but it is actual not nil.
-	if root != common.UINT256_EMPTY && msg.Block.CrossChainMsg == nil {
-		return false
-	}
-	if msg.Block.CrossChainMsg == nil {
-		return true
-	}
-	if msg.Block.CrossChainMsg.StatesRoot != root ||
-		msg.Block.CrossChainMsg.Version != types.CURR_CROSS_STATES_VERSION {
-		return false
-	}
-	return true
-}
-
 func (self *Server) verifyProposalMsg(vbftCtx *VbftContext, msg *blockProposalMsg) error {
 	blkNum := vbftCtx.BlockNum
 	blockTime := msg.Block.Block.Header.Timestamp
@@ -712,10 +681,6 @@ func (self *Server) verifyProposalMsg(vbftCtx *VbftContext, msg *blockProposalMs
 		return fmt.Errorf("server %d failed to verify vrf of block %d proposal from %d",
 			self.Index, blkNum, proposer)
 	}
-	if !self.verifyCrossChainMsg(msg, vbftCtx.PrevBlockInfo.CrossStatesRoot) {
-		return fmt.Errorf("verify cross chain message error:%+v\n", msg.Block.CrossChainMsg)
-	}
-
 	txs := msg.Block.Block.Transactions
 	cfg, err := self.GetNewBlockConfig(vbftCtx)
 	if err != nil {

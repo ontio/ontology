@@ -33,7 +33,6 @@ type VbftBlock struct {
 	EmptyBlock         *types.Block
 	Info               *vconfig.VbftBlockInfo
 	PrevExecMerkleRoot common.Uint256
-	CrossChainMsg      *types.CrossChainMsg
 }
 
 func (blk *VbftBlock) getProposer() uint32 {
@@ -78,10 +77,7 @@ func (blk *VbftBlock) Serialize() []byte {
 		payload.WriteVarBytes(common.SerializeToBytes(blk.EmptyBlock))
 	}
 	payload.WriteHash(blk.PrevExecMerkleRoot)
-	payload.WriteBool(blk.CrossChainMsg != nil)
-	if blk.CrossChainMsg != nil {
-		blk.CrossChainMsg.Serialization(payload)
-	}
+	payload.WriteBool(false)
 	return payload.Bytes()
 }
 
@@ -132,27 +128,19 @@ func (blk *VbftBlock) Deserialize(data []byte) error {
 		return fmt.Errorf("block deserialize merkleRoot: %s", io.ErrUnexpectedEOF)
 	}
 
-	var crossChainMsg *types.CrossChainMsg
 	// ignore eof for backward compatibility
-	hasEmptyCCM, irr, _ := source.NextBool()
+	_, irr, _ = source.NextBool()
 	if irr {
 		return fmt.Errorf("read empty-crosschainmsg-bool.")
-	}
-	if hasEmptyCCM {
-		crossChainMsg = new(types.CrossChainMsg)
-		if err := crossChainMsg.Deserialization(source); err != nil {
-			return err
-		}
 	}
 	blk.Block = block
 	blk.EmptyBlock = emptyBlock
 	blk.Info = info
 	blk.PrevExecMerkleRoot = merkleRoot
-	blk.CrossChainMsg = crossChainMsg
 	return nil
 }
 
-func initVbftBlock(block *types.Block, ccMsg *types.CrossChainMsg, prevExecMerkleRoot common.Uint256) (*VbftBlock, error) {
+func initVbftBlock(block *types.Block, prevExecMerkleRoot common.Uint256) (*VbftBlock, error) {
 	if block == nil {
 		return nil, fmt.Errorf("nil block in initVbftBlock")
 	}
@@ -166,6 +154,5 @@ func initVbftBlock(block *types.Block, ccMsg *types.CrossChainMsg, prevExecMerkl
 		Block:              block,
 		Info:               blkInfo,
 		PrevExecMerkleRoot: prevExecMerkleRoot,
-		CrossChainMsg:      ccMsg,
 	}, nil
 }
