@@ -25,7 +25,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology-crypto/vrf"
 	"github.com/ontio/ontology-eventbus/actor"
 	"github.com/ontio/ontology/account"
@@ -83,21 +82,23 @@ type Server struct {
 	stateMgr   *StateMgr
 	timer      *EventTimer
 
-	msgRecvC    *sync.Map // map[uint32]chan *p2pMsgPayload
-	msgC        chan ConsensusMsg
-	blockSynced chan *VbftBlock
-	msgSendC    chan *SendMsgEvent
-	sub         *events.ActorSubscriber
-	quitC       chan struct{}
-	quitWg      sync.WaitGroup
+	totalPeerWorkers uint32
+	peerWorkerChan   []chan *p2pMsgPayload
+	msgC             chan ConsensusMsg
+	blockSynced      chan *VbftBlock
+	msgSendC         chan *SendMsgEvent
+	sub              *events.ActorSubscriber
+	quitC            chan struct{}
+	quitWg           sync.WaitGroup
 }
 
 func NewVbftServer(account *account.Account, txpool *actor.PID, p2p p2p.P2P) (*Server, error) {
 	server := &Server{
-		account:       account,
-		poolActor:     &actorTypes.TxPoolActor{Pool: txpool},
-		p2p:           p2p,
-		incrValidator: increment.NewIncrementValidator(20),
+		account:          account,
+		poolActor:        &actorTypes.TxPoolActor{Pool: txpool},
+		p2p:              p2p,
+		incrValidator:    increment.NewIncrementValidator(20),
+		totalPeerWorkers: 4,
 	}
 
 	if err := server.initialize(); err != nil {
@@ -159,7 +160,7 @@ func (self *Server) Halt() error {
 }
 
 func (self *Server) handleBlockPersistCompleted(block *types.Block, exec *store.ExecuteResult) {
-	log.Infof("persist block complete: height=%d, hash=%x, numtx=%d", block.Header.Height, block.Hash(),
+	log.Infof("persist block complete: height=%d, hash=%s, numtx=%d", block.Header.Height, block.Hash().ToHexString(),
 		len(block.Transactions))
 	blkInfo, err := vconfig.VbftBlock(block.Header)
 	if err != nil {
@@ -219,8 +220,8 @@ func (self *Server) NewConsensusPayload(payload *p2pmsg.ConsensusPayload) {
 		peerIdx = msg.(*blockProposalMsg).Block.getProposer()
 	}
 
-	if C := self.GetPeerMsgChan(peerIdx); C != nil {
-		C <- &p2pMsgPayload{
+	if info := self.GetVbftContext().PeerKeys[peerIdx]; info != nil {
+		self.peerWorkerChan[info.Id] <- &p2pMsgPayload{
 			fromPeer: peerIdx,
 			Data:     msg,
 		}
@@ -261,14 +262,14 @@ func (self *Server) LoadChainConfig(store *ChainStore, block *VbftBlock, stateRo
 	log.Infof("server %d, blkNum: %d, state: %d, participants: %v, %v, %v", self.Index, blkNum,
 		self.getState(), proposers, endorsers, committers)
 
-	peermap := make(map[uint32]keypair.PublicKey)
-	for _, p := range cfg.Peers {
+	peermap := make(map[uint32]*KeyAndTaskId)
+	for i, p := range cfg.Peers {
 		// check if peer pubkey support VRF
 		publickey, err := vconfig.Pubkey(p.ID)
 		if err != nil || !vrf.ValidatePublicKey(publickey) {
 			panic(fmt.Errorf("peer pubkey is ensured to be valid for VRF:%s", p.ID))
 		}
-		peermap[p.Index] = publickey
+		peermap[p.Index] = &KeyAndTaskId{Key: publickey, Id: uint32(i) % self.totalPeerWorkers}
 	}
 	self.vbftCtx = &VbftContext{
 		BlockNum:  blkNum + 1,
@@ -301,14 +302,14 @@ func (self *Server) updateVbftContext(block *types.Block, info *vconfig.VbftBloc
 	if info.NewChainConfig != nil {
 		vbftCtx.Config = info.NewChainConfig
 		vbftCtx.ConfigNum = blkNum
-		peermap := make(map[uint32]keypair.PublicKey)
-		for _, p := range info.NewChainConfig.Peers {
+		peermap := make(map[uint32]*KeyAndTaskId)
+		for i, p := range info.NewChainConfig.Peers {
 			// check if peer pubkey support VRF
 			publickey, err := vconfig.Pubkey(p.ID)
 			if err != nil || !vrf.ValidatePublicKey(publickey) {
 				panic(fmt.Errorf("peer pubkey is ensured to be valid for VRF:%s", p.ID))
 			}
-			peermap[p.Index] = publickey
+			peermap[p.Index] = &KeyAndTaskId{Key: publickey, Id: uint32(i) % self.totalPeerWorkers}
 		}
 		vbftCtx.PeerKeys = peermap
 	}
@@ -366,26 +367,19 @@ func (self *Server) updateTimerAndPeerPool(config *vconfig.ChainConfig) {
 	// . reset remove peer connections, create new connections with new peers
 	self.updateTimerParams(config)
 
-	added, removed := self.peerPool.ResetNewConsuensusPeers(peermap)
-	for _, peerIdx := range added {
-		self.CreatePeerMsgChan(peerIdx)
-		go func() {
-			if err := self.run(peerIdx); err != nil {
-				log.Errorf("server %d, processor on peer %d failed: %s",
-					self.Index, peerIdx, err)
-			}
-		}()
-		log.Infof("updateTimerAndPeerPool add peer index:%v", peerIdx)
-	}
-
+	_, removed := self.peerPool.ResetNewConsuensusPeers(peermap)
 	for _, index := range removed {
 		if index == self.Index {
 			self.Index = math.MaxUint32
 			log.Infof("updateTimerAndPeerPool remove index :%d", index)
 		} else {
-			if C := self.GetPeerMsgChan(index); C != nil {
-				log.Infof("updateTimerAndPeerPool remove consensus:index:%d", index)
-				C <- nil
+			self.peerPool.OnPeerDisconnected(index)
+			self.stateMgr.StateEventC <- &StateEvent{
+				Type: UpdatePeerState,
+				peerState: &PeerState{
+					peerIdx:   index,
+					connected: false,
+				},
 			}
 		}
 	}
@@ -408,10 +402,14 @@ func (self *Server) initialize() error {
 	self.syncer = newSyncer(self)
 	self.stateMgr = newStateMgr(self)
 
-	self.msgRecvC = new(sync.Map)
 	self.msgC = make(chan ConsensusMsg, CAP_MESSAGE_CHANNEL)
 	self.blockSynced = make(chan *VbftBlock, CAP_ACTION_CHANNEL)
 	self.msgSendC = make(chan *SendMsgEvent, CAP_MSG_SEND_CHANNEL)
+	self.peerWorkerChan = make([]chan *p2pMsgPayload, self.totalPeerWorkers)
+	for i := uint32(0); i < self.totalPeerWorkers; i += 1 {
+		self.peerWorkerChan[i] = make(chan *p2pMsgPayload, 1024)
+	}
+
 	self.quitC = make(chan struct{})
 	if err := self.LoadChainConfig(store, block, root); err != nil {
 		log.Errorf("failed to load config: %s", err)
@@ -422,7 +420,7 @@ func (self *Server) initialize() error {
 	// add all consensus peers to peer_pool
 	peermap := make(map[string]uint32)
 	for index, p := range self.GetVbftContext().PeerKeys {
-		peermap[vconfig.PubkeyID(p)] = index
+		peermap[vconfig.PubkeyID(p.Key)] = index
 	}
 	self.peerPool = NewPeerPool(peermap)
 	self.chainStore = store
@@ -455,15 +453,8 @@ func (self *Server) start() error {
 	self.timer.startPeerTicker()
 
 	// start peers msg handlers
-	for _, p := range self.GetVbftContext().Config.Peers {
-		peerIdx := p.Index
-		self.CreatePeerMsgChan(peerIdx)
-
-		go func() {
-			if err := self.run(peerIdx); err != nil {
-				log.Errorf("server %d, processor on peer %d failed: %s", self.Index, peerIdx, err)
-			}
-		}()
+	for i := uint32(0); i < self.totalPeerWorkers; i += 1 {
+		go self.peerWorkerLoop(self.peerWorkerChan[i])
 	}
 
 	return nil
@@ -483,31 +474,16 @@ func (self *Server) stop() {
 }
 
 // go routine per net connection
-func (self *Server) run(peerIdx uint32) error {
-	// broadcast heartbeat
-	self.heartbeat(math.MaxUint32)
-
-	defer func() {
-		// TODO: handle peer disconnection here
-		log.Warnf("server %d: disconnected with peer %d", self.Index, peerIdx)
-		self.ClosePeerMsgChan(peerIdx)
-
-		self.peerPool.OnPeerDisconnected(peerIdx)
-		self.stateMgr.StateEventC <- &StateEvent{
-			Type: UpdatePeerState,
-			peerState: &PeerState{
-				peerIdx:   peerIdx,
-				connected: false,
-			},
-		}
-	}()
-
+func (self *Server) peerWorkerLoop(msgChan chan *p2pMsgPayload) {
 	for {
-		peerIdx, msg, err := self.receiveFromPeer(peerIdx)
-		if err != nil {
-			return err
+		select {
+		case payload := <-msgChan:
+			if payload != nil {
+				self.onConsensusMsg(payload.fromPeer, payload.Data)
+			}
+		case <-self.quitC:
+			return
 		}
-		self.onConsensusMsg(peerIdx, msg)
 	}
 }
 
@@ -553,7 +529,7 @@ func (self *Server) processBftMsgFromPeer(vbftCtx *VbftContext, msg ConsensusMsg
 	if !self.getState().IsReady() {
 		return
 	}
-	if err := msg.(BftConsensusMsg).Verify(vbftCtx.PeerKeys); err != nil {
+	if err := msg.(BftConsensusMsg).Verify(vbftCtx); err != nil {
 		log.Errorf("server %d failed to verify msg, type %s, err: %s", self.Index, msg.Type(), err)
 		return
 	}
@@ -647,7 +623,7 @@ func (self *Server) onConsensusMsg(peerIdx uint32, msg ConsensusMsg) {
 		if vbftCtx.BlockNum > msgBlkNum+1 {
 			return
 		}
-		if err := pMsg.Verify(vbftCtx.PeerKeys); err != nil {
+		if err := pMsg.Verify(vbftCtx); err != nil {
 			log.Errorf("server %d failed to verify msg, type %s, err: %s", self.Index, msg.Type(), err)
 			return
 		}
@@ -731,7 +707,8 @@ func (self *Server) verifyProposalMsg(vbftCtx *VbftContext, msg *blockProposalMs
 
 func (self *Server) makeProgress(vbftCtx *VbftContext) {
 	defer func() {
-		log.Infof("bft progress status: %s", vbftCtx.BftStatus.String())
+		// when sealed, the vbft context will be updated, so get the new one
+		log.Infof("bft progress status: %s", self.GetVbftContext().BftStatus.String())
 	}()
 	blkNum := vbftCtx.BlockNum
 	bftStatus := vbftCtx.BftStatus
@@ -811,6 +788,8 @@ func (self *Server) processMsgEvent(msg ConsensusMsg) {
 	switch msg.Type() {
 	case BlockProposalMessage:
 		pMsg := msg.(*blockProposalMsg)
+		log.Infof("server %d received proposal from %d, block %d, txnum %d",
+			self.Index, pMsg.Block.getProposer(), msgBlkNum, len(pMsg.Block.Block.Transactions))
 		if err := bftStatus.AddBlockProposal(pMsg); err != nil {
 			// TODO: faulty proposer detected
 			log.Errorf("failed to add block proposal (%d): %s", msgBlkNum, err)
@@ -825,7 +804,6 @@ func (self *Server) processMsgEvent(msg ConsensusMsg) {
 		}
 	case BlockEndorseMessage:
 		pMsg := msg.(*blockEndorseMsg)
-
 		if pMsg.EndorsedProposer != self.Index && bftStatus.GetBlockProposal(pMsg.EndorsedProposer) == nil {
 			self.fetchProposal(msgBlkNum, pMsg.EndorsedProposer)
 		}

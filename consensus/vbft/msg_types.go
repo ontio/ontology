@@ -74,9 +74,13 @@ type ConsensusMsg interface {
 	Serialize() ([]byte, error)
 }
 
+type KeyProvider interface {
+	GetPeerPubKey(peerIdx uint32) keypair.PublicKey
+}
+
 type BftConsensusMsg interface {
 	ConsensusMsg
-	Verify(pubs map[uint32]keypair.PublicKey) error
+	Verify(pubs KeyProvider) error
 }
 
 type blockProposalMsg struct {
@@ -89,9 +93,9 @@ func (msg *blockProposalMsg) Type() MsgType {
 	return BlockProposalMessage
 }
 
-func (msg *blockProposalMsg) Verify(pubs map[uint32]keypair.PublicKey) error {
+func (msg *blockProposalMsg) Verify(pubs KeyProvider) error {
 	proposer := msg.Block.Info.Proposer
-	pub := pubs[proposer]
+	pub := pubs.GetPeerPubKey(proposer)
 	if pub == nil {
 		return fmt.Errorf("unknown consensus node, index: %d", proposer)
 	}
@@ -170,8 +174,8 @@ func (msg *blockEndorseMsg) Type() MsgType {
 	return BlockEndorseMessage
 }
 
-func (msg *blockEndorseMsg) Verify(pubs map[uint32]keypair.PublicKey) error {
-	pub := pubs[msg.Endorser]
+func (msg *blockEndorseMsg) Verify(pubs KeyProvider) error {
+	pub := pubs.GetPeerPubKey(msg.Endorser)
 	if pub == nil {
 		return fmt.Errorf("unknown consensus node, index: %d", msg.Endorser)
 	}
@@ -208,8 +212,8 @@ func (msg *blockCommitMsg) Type() MsgType {
 	return BlockCommitMessage
 }
 
-func (msg *blockCommitMsg) Verify(pubs map[uint32]keypair.PublicKey) error {
-	pub := pubs[msg.Committer]
+func (msg *blockCommitMsg) Verify(pubs KeyProvider) error {
+	pub := pubs.GetPeerPubKey(msg.Committer)
 	if pub == nil {
 		return fmt.Errorf("unknown consensus node, index: %d", msg.Committer)
 	}
@@ -222,7 +226,7 @@ func (msg *blockCommitMsg) Verify(pubs map[uint32]keypair.PublicKey) error {
 		return fmt.Errorf("failed to verify block sig")
 	}
 	for peerIdx, endorserSig := range msg.EndorsersSig {
-		p := pubs[peerIdx]
+		p := pubs.GetPeerPubKey(peerIdx)
 		if p == nil {
 			return fmt.Errorf("unknown consensus node, index: %d", msg.Committer)
 		}
@@ -355,8 +359,8 @@ func (msg *blockSubmitMsg) Type() MsgType {
 	return BlockSubmitMessage
 }
 
-func (msg *blockSubmitMsg) Verify(pubs map[uint32]keypair.PublicKey) error {
-	pub := pubs[msg.Submitter]
+func (msg *blockSubmitMsg) Verify(pubs KeyProvider) error {
+	pub := pubs.GetPeerPubKey(msg.Submitter)
 	if pub == nil {
 		return fmt.Errorf("unknown consensus node, index: %d", msg.Submitter)
 	}

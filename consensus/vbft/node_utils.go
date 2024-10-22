@@ -41,29 +41,6 @@ func (self *Server) GetVbftContext() *VbftContext {
 	return self.vbftCtx
 }
 
-func (self *Server) GetPeerMsgChan(peerIdx uint32) chan *p2pMsgPayload {
-	if C, ok := self.msgRecvC.Load(peerIdx); ok {
-		return C.(chan *p2pMsgPayload)
-	}
-	return nil
-}
-
-func (self *Server) CreatePeerMsgChan(peerIdx uint32) {
-	newC := make(chan *p2pMsgPayload, 1024)
-	_, loaded := self.msgRecvC.LoadOrStore(peerIdx, newC)
-	if loaded {
-		close(newC)
-	}
-}
-
-func (self *Server) ClosePeerMsgChan(peerIdx uint32) {
-	C, loaded := self.msgRecvC.LoadOrStore(peerIdx, nil)
-	if loaded {
-		close(C.(chan *p2pMsgPayload))
-	}
-	self.msgRecvC.Delete(peerIdx)
-}
-
 func (self *Server) isPeerAlive(peerIdx uint32) bool {
 	return peerIdx == self.Index || self.peerPool.IsPeerConnected(peerIdx)
 }
@@ -247,22 +224,6 @@ func (self *Server) heartbeat(peerIdx uint32) {
 		ToPeer: peerIdx,
 		Msg:    msg,
 	}
-}
-
-func (self *Server) receiveFromPeer(peerIdx uint32) (uint32, ConsensusMsg, error) {
-	if C := self.GetPeerMsgChan(peerIdx); C != nil {
-		select {
-		case payload := <-C:
-			if payload != nil {
-				return payload.fromPeer, payload.Data, nil
-			}
-
-		case <-self.quitC:
-			return 0, nil, fmt.Errorf("server %d quit", self.Index)
-		}
-	}
-
-	return 0, nil, fmt.Errorf("nil consensus payload")
 }
 
 func (self *Server) sendToPeer(peerIdx uint32, msg ConsensusMsg) error {

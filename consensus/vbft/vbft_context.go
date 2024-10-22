@@ -23,11 +23,16 @@ import (
 	vconfig "github.com/ontio/ontology/consensus/vbft/config"
 )
 
+type KeyAndTaskId struct {
+	Key keypair.PublicKey
+	Id  uint32
+}
+
 type VbftContext struct {
 	BlockNum      uint32
 	Config        *vconfig.ChainConfig
 	ConfigNum     uint32
-	PeerKeys      map[uint32]keypair.PublicKey
+	PeerKeys      map[uint32]*KeyAndTaskId
 	PrevBlockInfo *BlockAndExecteInfo
 	BftStatus     *BftStatus
 	Proposers     []uint32
@@ -82,5 +87,9 @@ func (self *VbftContext) GetHighestRankProposal(proposals []*blockProposalMsg) *
 }
 
 func (self *VbftContext) GetPeerPubKey(peerIdx uint32) keypair.PublicKey {
-	return self.PeerKeys[peerIdx]
+	info := self.PeerKeys[peerIdx]
+	if info == nil {
+		return nil
+	}
+	return info.Key
 }
