@@ -24,6 +24,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"sync"
 
 	common2 "github.com/ethereum/go-ethereum/common"
 	"github.com/ontio/ontology/common"
@@ -44,8 +45,9 @@ var (
 	BOOKKEEPER = []byte("Bookkeeper") //Bookkeeper store key
 )
 
-//StateStore saving the data of ledger states. Like balance of account, and the execution result of smart contract
+// StateStore saving the data of ledger states. Like balance of account, and the execution result of smart contract
 type StateStore struct {
+	lock                 sync.RWMutex
 	dbDir                string                    //Store file path
 	store                scom.PersistStore         //Store handler
 	merklePath           string                    //Merkle tree store path
@@ -55,7 +57,7 @@ type StateStore struct {
 	stateHashCheckHeight uint32
 }
 
-//NewStateStore return state store instance
+// NewStateStore return state store instance
 func NewStateStore(dbDir, merklePath string, stateHashCheckHeight uint32) (*StateStore, error) {
 	var err error
 	store, err := leveldbstore.NewLevelDBStore(dbDir)
@@ -92,7 +94,7 @@ func NewMemStateStore(stateHashHeight uint32) *StateStore {
 	return stateStore
 }
 
-//NewBatch start new commit batch
+// NewBatch start new commit batch
 func (self *StateStore) NewBatch() {
 	self.store.NewBatch()
 }
@@ -132,13 +134,13 @@ func (self *StateStore) init(currBlockHeight uint32) error {
 	return nil
 }
 
-//GetStateMerkleTree return merkle tree size an tree node
+// GetStateMerkleTree return merkle tree size an tree node
 func (self *StateStore) GetStateMerkleTree() (uint32, []common.Uint256, error) {
 	key := self.genStateMerkleTreeKey()
 	return self.getMerkleTree(key)
 }
 
-//GetBlockMerkleTree return merkle tree size an tree node
+// GetBlockMerkleTree return merkle tree size an tree node
 func (self *StateStore) GetBlockMerkleTree() (uint32, []common.Uint256, error) {
 	key := self.genBlockMerkleTreeKey()
 	return self.getMerkleTree(key)
@@ -189,7 +191,9 @@ func (self *StateStore) GetStateMerkleRoot(height uint32) (result common.Uint256
 }
 
 func (self *StateStore) AddStateMerkleTreeRoot(blockHeight uint32, writeSetHash common.Uint256) error {
+	self.lock.Lock()
 	if blockHeight < self.stateHashCheckHeight {
+		self.lock.Unlock()
 		return nil
 	} else if blockHeight == self.stateHashCheckHeight {
 		self.deltaMerkleTree = merkle.NewTree(0, nil, nil)
@@ -199,6 +203,7 @@ func (self *StateStore) AddStateMerkleTreeRoot(blockHeight uint32, writeSetHash 
 	self.deltaMerkleTree.AppendHash(writeSetHash)
 	treeSize := self.deltaMerkleTree.TreeSize()
 	hashes := self.deltaMerkleTree.Hashes()
+	self.lock.Unlock()
 	value := common.NewZeroCopySink(make([]byte, 0, 4+len(hashes)*common.UINT256_SIZE))
 	value.WriteUint32(treeSize)
 	for _, hash := range hashes {
@@ -215,24 +220,25 @@ func (self *StateStore) AddStateMerkleTreeRoot(blockHeight uint32, writeSetHash 
 	return nil
 }
 
-//AddBlockMerkleTreeRoot add a new tree root
-func (self *StateStore) AddBlockMerkleTreeRoot(txRoot common.Uint256) error {
+func (self *StateStore) AddBlockMerkleTreeRoot(txRoot common.Uint256) {
 	key := self.genBlockMerkleTreeKey()
-
+	self.lock.Lock()
 	self.merkleTree.AppendHash(txRoot)
 	treeSize := self.merkleTree.TreeSize()
 	hashes := self.merkleTree.Hashes()
+	self.lock.Unlock()
 	value := common.NewZeroCopySink(make([]byte, 0, 4+len(hashes)*common.UINT256_SIZE))
 	value.WriteUint32(treeSize)
 	for _, hash := range hashes {
 		value.WriteHash(hash)
 	}
 	self.store.BatchPut(key, value.Bytes())
-	return nil
 }
 
-//GetMerkleProof return merkle proof of block
+// GetMerkleProof return merkle proof of block
 func (self *StateStore) GetMerkleProof(proofHeight, rootHeight uint32) ([]common.Uint256, error) {
+	self.lock.RLock()
+	defer self.lock.RUnlock()
 	return self.merkleTree.InclusionProof(proofHeight, rootHeight+1)
 }
 
@@ -240,12 +246,12 @@ func (self *StateStore) NewOverlayDB() *overlaydb.OverlayDB {
 	return overlaydb.NewOverlayDB(self.store)
 }
 
-//CommitTo commit state batch to state store
+// CommitTo commit state batch to state store
 func (self *StateStore) CommitTo() error {
 	return self.store.BatchCommit()
 }
 
-//GetContractState return contract by contract address
+// GetContractState return contract by contract address
 func (self *StateStore) GetContractState(contractHash common.Address) (*payload.DeployCode, error) {
 	key, err := self.getContractStateKey(contractHash)
 	if err != nil {
@@ -265,7 +271,7 @@ func (self *StateStore) GetContractState(contractHash common.Address) (*payload.
 	return contractState, nil
 }
 
-//GetBookkeeperState return current book keeper states
+// GetBookkeeperState return current book keeper states
 func (self *StateStore) GetBookkeeperState() (*states.BookkeeperState, error) {
 	key, err := self.getBookkeeperKey()
 	if err != nil {
@@ -285,7 +291,7 @@ func (self *StateStore) GetBookkeeperState() (*states.BookkeeperState, error) {
 	return bookkeeperState, nil
 }
 
-//SaveBookkeeperState persist book keeper state to store
+// SaveBookkeeperState persist book keeper state to store
 func (self *StateStore) SaveBookkeeperState(bookkeeperState *states.BookkeeperState) error {
 	key, err := self.getBookkeeperKey()
 	if err != nil {
@@ -365,7 +371,7 @@ func genEthAccountKey(addr common2.Address) []byte {
 	return key
 }
 
-//GetStorageItem return the storage value of the key in smart contract.
+// GetStorageItem return the storage value of the key in smart contract.
 func (self *StateStore) GetStorageState(key *states.StorageKey) (*states.StorageItem, error) {
 	storeKey := self.genStorageKey(key)
 	data, err := self.store.Get(storeKey)
@@ -381,7 +387,7 @@ func (self *StateStore) GetStorageState(key *states.StorageKey) (*states.Storage
 	return storageState, nil
 }
 
-//GetCurrentBlock return current block height and current hash in state store
+// GetCurrentBlock return current block height and current hash in state store
 func (self *StateStore) GetCurrentBlock() (common.Uint256, uint32, error) {
 	key := self.getCurrentBlockKey()
 	data, err := self.store.Get(key)
@@ -401,7 +407,7 @@ func (self *StateStore) GetCurrentBlock() (common.Uint256, uint32, error) {
 	return blockHash, height, nil
 }
 
-//SaveCurrentBlock persist current block to state store
+// SaveCurrentBlock persist current block to state store
 func (self *StateStore) SaveCurrentBlock(height uint32, blockHash common.Uint256) error {
 	key := self.getCurrentBlockKey()
 	value := bytes.NewBuffer(nil)
@@ -490,11 +496,27 @@ func (self *StateStore) genStorageKey(key *states.StorageKey) []byte {
 }
 
 func (self *StateStore) GetStateMerkleRootWithNewHash(writeSetHash common.Uint256) common.Uint256 {
+	self.lock.RLock()
+	defer self.lock.RUnlock()
 	return self.deltaMerkleTree.GetRootWithNewLeaf(writeSetHash)
 }
 
-func (self *StateStore) GetBlockRootWithNewTxRoots(txRoots []common.Uint256) common.Uint256 {
-	return self.merkleTree.GetRootWithNewLeaves(txRoots)
+func (self *StateStore) GetBlockRootWithNewTxRoots(startHeight uint32, txRoots []common.Uint256) common.Uint256 {
+	self.lock.RLock()
+	defer self.lock.RUnlock()
+	currBlockHeight := self.merkleTree.TreeSize() - 1
+	if currBlockHeight > startHeight+uint32(len(txRoots))-1 {
+		// or return error?
+		return common.UINT256_EMPTY
+	} else if currBlockHeight+1 < startHeight {
+		// this should never happen in normal case
+		log.Fatalf("GetBlockRootWithNewTxRoots: invalid param: curr height: %d, start height: %d",
+			currBlockHeight, startHeight)
+		return common.UINT256_EMPTY
+	}
+
+	needs := txRoots[currBlockHeight+1-startHeight:]
+	return self.merkleTree.GetRootWithNewLeaves(needs)
 }
 
 func (self *StateStore) genBlockMerkleTreeKey() []byte {
@@ -512,7 +534,7 @@ func (self *StateStore) genStateMerkleRootKey(height uint32) []byte {
 	return key
 }
 
-//ClearAll clear all data in state store
+// ClearAll clear all data in state store
 func (self *StateStore) ClearAll() error {
 	self.store.NewBatch()
 	iter := self.store.NewIterator(nil)
@@ -527,7 +549,7 @@ func (self *StateStore) ClearAll() error {
 	return self.store.BatchCommit()
 }
 
-//Close state store
+// Close state store
 func (self *StateStore) Close() error {
 	self.merkleHashStore.Close()
 	return self.store.Close()

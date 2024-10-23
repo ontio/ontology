@@ -879,10 +879,7 @@ func (this *LedgerStoreImp) saveBlockToStateStore(block *types.Block, result sto
 		return fmt.Errorf("AddBlockMerkleTreeRoot error %s", err)
 	}
 
-	err = this.stateStore.AddBlockMerkleTreeRoot(block.Header.TransactionsRoot)
-	if err != nil {
-		return fmt.Errorf("AddBlockMerkleTreeRoot error %s", err)
-	}
+	this.stateStore.AddBlockMerkleTreeRoot(block.Header.TransactionsRoot)
 
 	err = this.stateStore.SaveCurrentBlock(blockHeight, blockHash)
 	if err != nil {
@@ -1130,22 +1127,7 @@ func (this *LedgerStoreImp) IsContainTransaction(txHash common.Uint256) (bool, e
 
 // GetBlockRootWithNewTxRoots return the block root(merkle root of blocks) after add a new tx root of block
 func (this *LedgerStoreImp) GetBlockRootWithNewTxRoots(startHeight uint32, txRoots []common.Uint256) common.Uint256 {
-	this.lock.RLock()
-	defer this.lock.RUnlock()
-	// the block height in consensus is far behind ledger, this case should be rare
-	if this.currBlockHeight > startHeight+uint32(len(txRoots))-1 {
-		// or return error?
-		return common.UINT256_EMPTY
-	} else if this.currBlockHeight+1 < startHeight {
-		// this should never happen in normal case
-		log.Fatalf("GetBlockRootWithNewTxRoots: invalid param: curr height: %d, start height: %d",
-			this.currBlockHeight, startHeight)
-
-		return common.UINT256_EMPTY
-	}
-
-	needs := txRoots[this.currBlockHeight+1-startHeight:]
-	return this.stateStore.GetBlockRootWithNewTxRoots(needs)
+	return this.stateStore.GetBlockRootWithNewTxRoots(startHeight, txRoots)
 }
 
 func (this *LedgerStoreImp) GetCrossStates(height uint32) ([]common.Uint256, error) {
