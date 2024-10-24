@@ -264,7 +264,7 @@ func (msg *peerHeartbeatMsg) Type() MsgType {
 }
 
 func (msg *peerHeartbeatMsg) GetBlockNum() uint32 {
-	return 0
+	return msg.CommittedBlockNumber
 }
 
 func (msg *peerHeartbeatMsg) Serialize() ([]byte, error) {

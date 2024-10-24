@@ -796,9 +796,8 @@ func (self *Server) processMsgEvent(msg ConsensusMsg) {
 		return
 	}
 	log.Debugf("server %d start process bft msg, block %d, type %d", self.Index, msg.GetBlockNum(), msg.Type())
-	switch msg.Type() {
-	case BlockProposalMessage:
-		pMsg := msg.(*blockProposalMsg)
+	switch pMsg := msg.(type) {
+	case *blockProposalMsg:
 		log.Infof("server %d received proposal from %d, block %d, txnum %d",
 			self.Index, pMsg.Block.getProposer(), msgBlkNum, len(pMsg.Block.Block.Transactions))
 		if err := bftStatus.AddBlockProposal(pMsg); err != nil {
@@ -813,8 +812,7 @@ func (self *Server) processMsgEvent(msg ConsensusMsg) {
 				self.broadcast(msg)
 			}
 		}
-	case BlockEndorseMessage:
-		pMsg := msg.(*blockEndorseMsg)
+	case *blockEndorseMsg:
 		if pMsg.EndorsedProposer != self.Index && bftStatus.GetBlockProposal(pMsg.EndorsedProposer) == nil {
 			self.fetchProposal(msgBlkNum, pMsg.EndorsedProposer)
 		}
@@ -825,8 +823,7 @@ func (self *Server) processMsgEvent(msg ConsensusMsg) {
 		}
 		log.Infof("server %d received endorse from %d, for proposer %d, block %d, empty: %t",
 			self.Index, pMsg.Endorser, pMsg.EndorsedProposer, msgBlkNum, pMsg.EndorseForEmpty)
-	case BlockCommitMessage:
-		pMsg := msg.(*blockCommitMsg)
+	case *blockCommitMsg:
 		if err := bftStatus.AddBlockCommitMsg(pMsg); err != nil {
 			log.Errorf("failed to add commit msg (%d): %s", msgBlkNum, err)
 			return
@@ -1160,14 +1157,14 @@ func (self *Server) endorseBlock(vbftCtx *VbftContext, proposal *blockProposalMs
 	}
 
 	bft.setProposalEndorsed(endorseMsg)
-	self.processMsgEvent(endorseMsg)
 	// if node is endorser of current round
-	if forEmpty || self.GetVbftContext().IsEndorser(self.Index) {
+	if forEmpty || vbftCtx.IsEndorser(self.Index) {
 		log.Infof("endorser %d, endorsed block %d, from server %d",
 			self.Index, blkNum, proposal.Block.getProposer())
 		// broadcast my endorsement
 		self.broadcast(endorseMsg)
 	}
+	self.processMsgEvent(endorseMsg)
 
 	if !forEmpty {
 		self.timer.StartEventTimer(EventEndorseBlockTimeout, blkNum)
@@ -1206,13 +1203,13 @@ func (self *Server) commitBlock(vbftCtx *VbftContext, proposal *blockProposalMsg
 	}
 
 	bft.SelfCommitMsg = commitMsg
-	self.processMsgEvent(commitMsg)
 	// if node is committer of current round
-	if forEmpty || self.GetVbftContext().IsCommitter(self.Index) {
-		log.Infof("committer %d, set block %d committed, from server %d",
+	if forEmpty || vbftCtx.IsCommitter(self.Index) {
+		log.Infof("committer %d, commit block %d for proposer %d",
 			self.Index, blkNum, proposal.Block.getProposer())
 		self.broadcast(commitMsg)
 	}
+	self.processMsgEvent(commitMsg)
 
 	self.timer.StartEventTimer(EventCommitBlockTimeout, blkNum)
 	return nil
