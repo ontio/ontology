@@ -185,7 +185,7 @@ func (self *StateMgr) onPeerUpdate(peerState *PeerState) {
 	self.peers[peerIdx] = peerState
 
 	vbftCtx := self.server.GetVbftContext()
-	log.Debugf("server %d peer update, current blk %d, state %d, received peer state: %v",
+	log.Debugf("server %d peer update, current blk %d, state %s, received peer state: %v",
 		self.server.Index, vbftCtx.BlockNum, self.getState(), peerState)
 
 	switch self.getState() {

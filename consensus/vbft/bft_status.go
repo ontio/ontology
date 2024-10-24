@@ -79,7 +79,7 @@ func (self *BftStatus) String() string {
 	return string(v)
 }
 
-func NewCandidateInfo() *BftStatus {
+func NewBftStatus() *BftStatus {
 	return &BftStatus{
 		EndorseSigs: make(map[uint32][]*EndorseSigInfo),
 	}

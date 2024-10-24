@@ -75,12 +75,13 @@ type Server struct {
 	lock    sync.RWMutex
 	vbftCtx *VbftContext
 
-	msgPool    *MsgPool // consensus msg pool
-	chainStore *ChainStore
-	peerPool   *PeerPool // consensus peers
-	syncer     *Syncer
-	stateMgr   *StateMgr
-	timer      *EventTimer
+	msgPool        *MsgPool // consensus msg pool
+	chainStore     *ChainStore
+	peerPool       *PeerPool // consensus peers
+	syncer         *Syncer
+	stateMgr       *StateMgr
+	timer          *EventTimer
+	inMakeProgress bool // local value owned by bft loop routine
 
 	totalPeerWorkers uint32
 	peerWorkerChan   []chan *p2pMsgPayload
@@ -282,7 +283,7 @@ func (self *Server) LoadChainConfig(store *ChainStore, block *VbftBlock, stateRo
 			WriteSet:   nil,
 			MerkleRoot: stateRoot,
 		},
-		BftStatus:  NewCandidateInfo(),
+		BftStatus:  NewBftStatus(),
 		Proposers:  proposers,
 		Endorsers:  endorsers,
 		Committers: committers,
@@ -317,7 +318,7 @@ func (self *Server) updateVbftContext(block *types.Block, info *vconfig.VbftBloc
 	vbftCtx.Proposers, vbftCtx.Endorsers, vbftCtx.Committers = buildPeerRoles(blkNum+1, info.Proposer, info.VrfValue, vbftCtx.Config)
 
 	vbftCtx.BlockNum = blkNum + 1
-	vbftCtx.BftStatus = NewCandidateInfo()
+	vbftCtx.BftStatus = NewBftStatus()
 	vbftCtx.PrevBlockInfo = &BlockAndExecteInfo{
 		Block:      block,
 		Info:       info,
@@ -706,9 +707,19 @@ func (self *Server) verifyProposalMsg(vbftCtx *VbftContext, msg *blockProposalMs
 }
 
 func (self *Server) makeProgress(vbftCtx *VbftContext) {
+	// makeProgress can be called recursively, use this to only allow the outer one call this
+	if self.inMakeProgress {
+		return
+	}
+	self.inMakeProgress = true // makeProgress can be called recursively, use this to only allow the outer one call this
+	defer func() {
+		self.inMakeProgress = false
+	}()
+	log.Infof("bft before progress status: %s, block: %d", vbftCtx.BftStatus.String(), vbftCtx.BlockNum)
 	defer func() {
 		// when sealed, the vbft context will be updated, so get the new one
-		log.Infof("bft progress status: %s", self.GetVbftContext().BftStatus.String())
+		vbftCtx := self.GetVbftContext()
+		log.Infof("bft after progress status: %s, block: %d", vbftCtx.BftStatus.String(), vbftCtx.BlockNum)
 	}()
 	blkNum := vbftCtx.BlockNum
 	bftStatus := vbftCtx.BftStatus
@@ -784,7 +795,7 @@ func (self *Server) processMsgEvent(msg ConsensusMsg) {
 	if msgBlkNum != vbftCtx.BlockNum {
 		return
 	}
-	log.Debugf("server %d process msg, block %d, type %d", self.Index, msg.GetBlockNum(), msg.Type())
+	log.Debugf("server %d start process bft msg, block %d, type %d", self.Index, msg.GetBlockNum(), msg.Type())
 	switch msg.Type() {
 	case BlockProposalMessage:
 		pMsg := msg.(*blockProposalMsg)
@@ -913,6 +924,7 @@ func (self *Server) processTimerEvent(evt *TimerEvent) error {
 	if vbftCtx.BlockNum != evt.blockNum {
 		return nil
 	}
+	log.Infof("start process timer event: %s, block: %d", evt.evtType, evt.blockNum)
 	bftStatus := vbftCtx.BftStatus
 	switch evt.evtType {
 	case EventProposalBackoff:
@@ -1214,6 +1226,7 @@ func (self *Server) handleSyncedBlock(block *VbftBlock) {
 	if self.getState().IsActive() || self.GetCurrentBlockNo() != block.getBlockNum() {
 		return
 	}
+	log.Infof("start handle synced block: %d", block.getBlockNum())
 	// block from peer syncer, there should only one candidate block
 	flag := false
 	if len(block.Block.Header.SigData) <= 1 {
