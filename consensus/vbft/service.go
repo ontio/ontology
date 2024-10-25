@@ -260,7 +260,7 @@ func (self *Server) LoadChainConfig(store *ChainStore, block *VbftBlock, stateRo
 
 	log.Infof("current committed block no: %d", blkNum)
 	proposers, endorsers, committers := buildPeerRoles(blkNum+1, block.Info.Proposer, block.Info.VrfValue, &cfg)
-	log.Infof("server %d, blkNum: %d, state: %d, participants: %v, %v, %v", self.Index, blkNum,
+	log.Infof("server %d, blkNum: %d, state: %s, participants: %v, %v, %v", self.Index, blkNum+1,
 		self.getState(), proposers, endorsers, committers)
 
 	peermap := make(map[uint32]*KeyAndTaskId)
@@ -336,7 +336,7 @@ func (self *Server) updateVbftContext(block *types.Block, info *vconfig.VbftBloc
 	}
 	self.lock.Unlock()
 	if updated {
-		log.Infof("server %d, blkNum: %d, state: %d, participants: %v, %v, %v", self.Index, blkNum+1,
+		log.Infof("server %d, blkNum: %d, state: %s, participants: %v, %v, %v", self.Index, blkNum+1,
 			self.getState(), vbftCtx.Proposers, vbftCtx.Endorsers, vbftCtx.Committers)
 		if info.NewChainConfig != nil {
 			self.updateTimerAndPeerPool(info.NewChainConfig)
@@ -561,7 +561,7 @@ func (self *Server) onConsensusMsg(peerIdx uint32, msg ConsensusMsg) {
 
 	if self.msgPool.HasMsg(msg) {
 		// dup msg checking
-		log.Debugf("dup msg with msg type %d from %d", msg.Type(), peerIdx)
+		log.Debugf("dup msg with msg type %s from %d", msg.Type(), peerIdx)
 		return
 	}
 
@@ -795,7 +795,7 @@ func (self *Server) processMsgEvent(msg ConsensusMsg) {
 	if msgBlkNum != vbftCtx.BlockNum {
 		return
 	}
-	log.Debugf("server %d start process bft msg, block %d, type %d", self.Index, msg.GetBlockNum(), msg.Type())
+	log.Debugf("server %d start process bft msg, block %d, type %s", self.Index, msg.GetBlockNum(), msg.Type())
 	switch pMsg := msg.(type) {
 	case *blockProposalMsg:
 		log.Infof("server %d received proposal from %d, block %d, txnum %d",
@@ -809,7 +809,7 @@ func (self *Server) processMsgEvent(msg ConsensusMsg) {
 		if self.Index != pMsg.Block.getProposer() && self.isProposer(self.Index) {
 			p := bftStatus.GetBlockProposal(self.Index)
 			if p != nil {
-				self.broadcast(msg)
+				self.broadcast(p)
 			}
 		}
 	case *blockEndorseMsg:
