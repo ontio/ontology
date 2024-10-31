@@ -23,10 +23,9 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/ontio/ontology/core/signature"
-
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/core/signature"
 )
 
 type RawHeader struct {
@@ -298,9 +297,9 @@ func (bd *Header) ToArray() []byte {
 	return sink.Bytes()
 }
 
-func (bd *Header) VerifyMultiSignature(pubs map[string]bool, m int) error {
+func (bd *Header) VerifyMultiSignature(pubs map[string]bool, m uint32) error {
 	usedPubKey := make(map[string]bool)
-	if len(bd.Bookkeepers) != len(bd.SigData) || len(bd.SigData) < m {
+	if len(bd.Bookkeepers) != len(bd.SigData) || len(bd.SigData) < int(m) {
 		return fmt.Errorf("bookKeepers len:%d,SigData len:%d less than m:%d", len(bd.Bookkeepers), len(bd.SigData), m)
 	}
 	hash := bd.Hash()

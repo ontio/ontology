@@ -162,11 +162,7 @@ func (self *StateMgr) run() {
 					return
 				}
 
-				maxCommitted, ok := self.getConsensusedCommittedBlockNum()
 				self.setState(Syncing)
-				if ok {
-					self.requestBlockSync(maxCommitted)
-				}
 			case LiveTick:
 				log.Infof("server %d peer update, current blk: %d, state: %s. received peer states: %v",
 					self.server.Index, self.server.GetCurrentBlockNo(), self.getState(), self.peers)
@@ -198,9 +194,6 @@ func (self *StateMgr) onPeerUpdate(peerState *PeerState) {
 			self.setState(Syncing)
 		}
 	case Syncing:
-		if peerState.committedBlockNum > self.server.GetCurrentBlockNo()-1 {
-			self.requestSyncIfFallBehind()
-		}
 		self.trySetSyncedReady()
 	case WaitNetworkReady:
 		self.trySetSyncedReady()
@@ -232,20 +225,16 @@ func (self *StateMgr) onLiveTick(evt *StateEvent) {
 	}
 
 	log.Warnf("server %d detected consensus halt %d", self.server.Index, self.server.GetCurrentBlockNo())
-	if self.requestSyncIfFallBehind() {
+	if self.checkFallBehind() {
 		self.setState(Syncing)
 	}
 
 	self.server.reBroadcastCurrentRoundMsgs()
 }
 
-func (self *StateMgr) requestSyncIfFallBehind() (needSync bool) {
+func (self *StateMgr) checkFallBehind() (needSync bool) {
 	committedBlkNum, ok := self.getConsensusedCommittedBlockNum()
-	if ok && committedBlkNum > self.server.GetCurrentBlockNo()-1 {
-		needSync = true
-		self.requestBlockSync(committedBlkNum)
-	}
-	return
+	return ok && committedBlkNum > self.server.GetCurrentBlockNo()-1
 }
 
 func (self *StateMgr) getMinActivePeerCount() int {
@@ -292,27 +281,6 @@ func (self *StateMgr) trySetSyncedReady() {
 				blockNum: blkNum,
 			}
 		})
-	}
-}
-
-func (self *StateMgr) requestBlockSync(targetHeight uint32) {
-	if self.server.nonConsensusNode() {
-		// non-consensus node, block-syncer do the syncing
-		return
-	}
-	if targetHeight > self.lastSyncRequestHeight {
-		self.lastSyncRequestHeight = targetHeight
-		var maxCommittedPeers []uint32
-		for _, k := range self.peers {
-			if k.committedBlockNum >= targetHeight {
-				maxCommittedPeers = append(maxCommittedPeers, k.peerIdx)
-			}
-		}
-		log.Infof("server %d, start syncing to %d, with %v, %v", self.server.Index, targetHeight, maxCommittedPeers, self.peers)
-		self.server.syncer.blockSyncReqC <- &BlockSyncReq{
-			targetPeers:    maxCommittedPeers,
-			targetBlockNum: targetHeight,
-		}
 	}
 }
 

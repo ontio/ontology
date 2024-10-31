@@ -51,9 +51,11 @@ type ChainConfig struct {
 	MaxBlockChangeView   uint32        `json:"MaxBlockChangeView"`
 }
 
-//
+func (self *ChainConfig) Quorum() uint32 {
+	return self.N - (self.N-1)/3
+}
+
 // VBFT consensus payload, stored on each block header
-//
 type VbftBlockInfo struct {
 	Proposer           uint32       `json:"leader"`
 	VrfValue           []byte       `json:"vrf_value"`
@@ -88,7 +90,7 @@ func VerifyChainConfig(cfg *ChainConfig) error {
 	return nil
 }
 
-//Serialize the ChainConfig
+// Serialize the ChainConfig
 func (cc *ChainConfig) Serialize(w io.Writer) error {
 	data, err := json.Marshal(cc)
 	if err != nil {

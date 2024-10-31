@@ -145,12 +145,12 @@ func (self *Server) constructHeartbeatMsg() (*peerHeartbeatMsg, error) {
 	}
 
 	msg := &peerHeartbeatMsg{
-		CommittedBlockNumber: blkNum,
-		CommittedBlockHash:   block.Hash(),
-		CommittedBlockLeader: vbftCtx.PrevBlockInfo.Info.Proposer,
-		Endorsers:            bookkeepers,
-		EndorsersSig:         sigData,
-		ChainConfigView:      vbftCtx.Config.View,
+		CommittedBlockNumber:   blkNum,
+		CommittedBlockHash:     block.Hash(),
+		CommittedBlockProposer: vbftCtx.PrevBlockInfo.Info.Proposer,
+		Endorsers:              bookkeepers,
+		EndorsersSig:           sigData,
+		ChainConfigView:        vbftCtx.Config.View,
 	}
 
 	return msg, nil
@@ -325,12 +325,6 @@ func (self *Server) constructCommitMsg(proposal *blockProposalMsg, endorses map[
 		CommitterSig:    committerSig,
 	}
 	return msg, nil
-}
-
-func (self *Server) constructBlockFetchMsg(blkNum uint32) *blockFetchMsg {
-	return &blockFetchMsg{
-		BlockNum: blkNum,
-	}
 }
 
 func (self *Server) constructBlockFetchRespMsg(blkNum uint32, blk *VbftBlock, blkHash common.Uint256) *BlockFetchRespMsg {

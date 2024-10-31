@@ -25,6 +25,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology-crypto/vrf"
 	"github.com/ontio/ontology-eventbus/actor"
 	"github.com/ontio/ontology/account"
@@ -78,7 +79,6 @@ type Server struct {
 	msgPool        *MsgPool // consensus msg pool
 	chainStore     *ChainStore
 	peerPool       *PeerPool // consensus peers
-	syncer         *Syncer
 	stateMgr       *StateMgr
 	timer          *EventTimer
 	inMakeProgress bool // local value owned by bft loop routine
@@ -187,9 +187,7 @@ func (self *Server) CheckAndSubmitBlock(blkNum uint32, stateRoot common.Uint256)
 	}
 
 	cfg := self.GetVbftContext().Config
-	m := cfg.N - (cfg.N-1)/3
-
-	if stateRootCnt >= m {
+	if stateRootCnt >= cfg.Quorum() {
 		log.Infof("receive enough submit msg for block %d, start submit block", blkNum)
 		if err := self.SubmitBlock(blkNum); err != nil {
 			log.Errorf("SubmitBlock err:%s", err)
@@ -387,7 +385,6 @@ func (self *Server) initialize() error {
 	var msgHistoryDuration uint32 = 64
 	self.msgPool = newMsgPool(self, msgHistoryDuration)
 	self.timer = NewEventTimer(self)
-	self.syncer = newSyncer(self)
 	self.stateMgr = newStateMgr(self)
 
 	self.msgC = make(chan ConsensusMsg, CAP_MESSAGE_CHANNEL)
@@ -421,7 +418,6 @@ func (self *Server) initialize() error {
 	} else {
 		self.Index = math.MaxUint32
 	}
-	go self.syncer.run()
 	go self.stateMgr.run()
 	go self.msgSendLoop()
 	go self.vbftLoop()
@@ -455,7 +451,6 @@ func (self *Server) stop() {
 	close(self.quitC)
 	self.quitWg.Wait()
 
-	self.syncer.stop()
 	self.timer.stop()
 	self.msgPool.clean()
 	self.peerPool.clean()
@@ -570,9 +565,9 @@ func (self *Server) onConsensusMsg(peerIdx uint32, msg ConsensusMsg) {
 	case PeerHeartbeatMessage:
 		pMsg := msg.(*peerHeartbeatMsg)
 		self.processHeartbeatMsg(peerIdx, pMsg)
-		if pMsg.CommittedBlockNumber+MAX_SYNCING_CHECK_BLK_NUM < self.GetCurrentBlockNo() {
-			// delayed peer detected, response heartbeat with our chain Info
-			self.heartbeat(peerIdx)
+		vbftCtx := self.GetVbftContext()
+		if pMsg.CommittedBlockNumber == vbftCtx.BlockNum {
+			self.msgC <- msg
 		}
 	case ProposalFetchMessage:
 		pMsg := msg.(*proposalFetchMsg)
@@ -599,11 +594,6 @@ func (self *Server) onConsensusMsg(peerIdx uint32, msg ConsensusMsg) {
 			Msg:    msg,
 		}
 
-	case BlockFetchRespMessage:
-		self.syncer.syncMsgC <- &SyncMsg{
-			fromPeer: peerIdx,
-			msg:      msg.(*BlockFetchRespMsg),
-		}
 	case BlockSubmitMessage:
 		pMsg := msg.(*blockSubmitMsg)
 		msgBlkNum := pMsg.GetBlockNum()
@@ -762,7 +752,7 @@ func (self *Server) makeProgress(vbftCtx *VbftContext) {
 				log.Errorf("server %d consensused %d, committer broadcast commit msg: %s", self.Index, blkNum, err)
 			}
 		}
-		if !bftStatus.checkBlockSign(vbftCtx, proposal.Block, forEmpty, chainCfg.N-(chainCfg.N-1)/3) {
+		if !bftStatus.checkBlockSign(vbftCtx, proposal.Block, forEmpty, chainCfg.Quorum()) {
 			log.Errorf("server %d received commit checkBlockSign insufficient at blk: %d", self.Index, blkNum)
 			return
 		}
@@ -784,6 +774,34 @@ func (self *Server) processMsgEvent(msg ConsensusMsg) {
 	}
 	log.Debugf("server %d start process bft msg, block %d, type %s", self.Index, msg.GetBlockNum(), msg.Type())
 	switch pMsg := msg.(type) {
+	case *peerHeartbeatMsg:
+		log.Infof("server %d process heatbeat signature for block %d", self.Index, msgBlkNum)
+		proposal := bftStatus.GetBlockProposal(pMsg.CommittedBlockProposer)
+		if proposal != nil && proposal.Block.Block.Hash() == pMsg.CommittedBlockHash {
+			block := proposal.Block.Block
+			var pubkeys []keypair.PublicKey
+			for _, k := range pMsg.Endorsers {
+				pub, err := keypair.DeserializePublicKey(k)
+				if err != nil {
+					return
+				}
+				pubkeys = append(pubkeys, pub)
+			}
+			pubInfos := make(map[string]bool)
+			for _, p := range vbftCtx.PeerKeys {
+				pubInfos[common.PubKeyToHex(p.Key)] = true
+			}
+			block.Header.Bookkeepers = pubkeys
+			block.Header.SigData = pMsg.EndorsersSig
+			err := block.Header.VerifyMultiSignature(pubInfos, vbftCtx.Config.Quorum())
+			if err != nil {
+				return
+			}
+			if err = self.sealBlock(proposal.Block, false, false); err != nil {
+				log.Errorf("server %d failed to seal block (%d): %s", self.Index, block.Header.Height, err)
+			}
+			return
+		}
 	case *blockProposalMsg:
 		log.Infof("server %d received proposal from %d, block %d, txnum %d",
 			self.Index, pMsg.Block.getProposer(), msgBlkNum, len(pMsg.Block.Block.Transactions))
@@ -1060,7 +1078,7 @@ func (self *Server) processTimerEvent(evt *TimerEvent) error {
 				self.restartSyncing()
 				return fmt.Errorf("commit timeout, consensused proposal not available. need resync")
 			}
-			if !bftStatus.checkBlockSign(vbftCtx, proposal.Block, forEmpty, chainCfg.N-(chainCfg.N-1)/3) {
+			if !bftStatus.checkBlockSign(vbftCtx, proposal.Block, forEmpty, chainCfg.Quorum()) {
 				self.restartSyncing()
 				log.Errorf("server %d commit timeout checkBlockSign insufficient at blk: %d", self.Index, evt.blockNum)
 				return fmt.Errorf("commit timeout, consensused blockSign not enough. need resync")
@@ -1220,7 +1238,6 @@ func (self *Server) handleSyncedBlock(block *VbftBlock) {
 		log.Errorf("server %d failed to seal block (%d): %s", self.Index, block.getBlockNum(), err)
 		return
 	}
-	self.startNewRound()
 }
 
 func (self *Server) sealBlock(block *VbftBlock, empty bool, sigdata bool) error {
@@ -1239,9 +1256,15 @@ func (self *Server) sealBlock(block *VbftBlock, empty bool, sigdata bool) error 
 	prevBlkHash := sealedBlock.getPrevBlockHash()
 	log.Infof("server %d, sealed block %d, proposer %d, prevhash: %s, hash: %s", self.Index,
 		sealedBlkNum, block.getProposer(), prevBlkHash.ToHexString(), h.ToHexString())
+	submitMsg, err := self.constructBlockSubmitMsg(sealedBlkNum, result.MerkleRoot)
+	if err != nil {
+		self.broadcast(submitMsg)
+	}
 
 	self.updateVbftContext(sealedBlock.Block, sealedBlock.Info, result)
 	self.CheckAndSubmitBlock(sealedBlkNum, self.GetVbftContext().PrevBlockInfo.MerkleRoot)
+	self.startNewRound()
+	self.heartbeat(math.MaxUint32)
 	return nil
 }
 
@@ -1376,14 +1399,7 @@ func (self *Server) makeSealed(proposal *blockProposalMsg, forEmpty bool) error 
 		return nil
 	}
 	// for each round, we can only seal one block
-	if err := self.sealBlock(proposal.Block, forEmpty, true); err != nil {
-		log.Errorf("server %d failed to seal block (%d): %s",
-			self.Index, proposal.GetBlockNum(), err)
-		return nil
-	}
-
-	self.startNewRound()
-	return nil
+	return self.sealBlock(proposal.Block, forEmpty, true)
 }
 
 func (self *Server) reBroadcastCurrentRoundMsgs() {

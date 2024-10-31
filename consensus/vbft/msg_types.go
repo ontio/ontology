@@ -251,12 +251,12 @@ func (msg *blockCommitMsg) Serialize() ([]byte, error) {
 }
 
 type peerHeartbeatMsg struct {
-	CommittedBlockNumber uint32         `json:"committed_block_number"`
-	CommittedBlockHash   common.Uint256 `json:"committed_block_hash"`
-	CommittedBlockLeader uint32         `json:"committed_block_leader"`
-	Endorsers            [][]byte       `json:"endorsers"`
-	EndorsersSig         [][]byte       `json:"endorsers_sig"`
-	ChainConfigView      uint32         `json:"chain_config_view"`
+	CommittedBlockNumber   uint32         `json:"committed_block_number"`
+	CommittedBlockHash     common.Uint256 `json:"committed_block_hash"`
+	CommittedBlockProposer uint32         `json:"committed_block_leader"`
+	Endorsers              [][]byte       `json:"endorsers"`
+	EndorsersSig           [][]byte       `json:"endorsers_sig"`
+	ChainConfigView        uint32         `json:"chain_config_view"`
 }
 
 func (msg *peerHeartbeatMsg) Type() MsgType {

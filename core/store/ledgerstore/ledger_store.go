@@ -246,7 +246,7 @@ func (this *LedgerStoreImp) loadCurrentBlock() error {
 	return nil
 }
 
-//load vbft chainConfig from block header
+// load vbft chainConfig from block header
 func (this *LedgerStoreImp) LoadCfgFromBlock(blockHeight uint32) (*vconfig.ChainConfig, uint32, error) {
 	var cfg *vconfig.ChainConfig
 	header, err := this.GetHeaderByHeight(blockHeight)
@@ -471,7 +471,7 @@ func (this *LedgerStoreImp) verifyHeader(header *types.Header) error {
 		for _, p := range cfg.Peers {
 			pubInfos[p.ID] = true
 		}
-		err = header.VerifyMultiSignature(pubInfos, int(cfg.N-(cfg.N-1)/3))
+		err = header.VerifyMultiSignature(pubInfos, cfg.Quorum())
 		if err != nil {
 			log.Errorf("VerifyMultiSignature:%s,Bookkeepers:%d,pubkey:%d,height:%d", err, len(header.Bookkeepers), len(cfg.Peers), header.Height)
 			return err
