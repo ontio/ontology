@@ -234,32 +234,19 @@ func (self *Server) NewConsensusPayload(payload *p2pmsg.ConsensusPayload) {
 
 func (self *Server) LoadChainConfig(store *ChainStore, block *VbftBlock, stateRoot common.Uint256) error {
 	blkNum := store.ChainedBlockNum
-	var cfg vconfig.ChainConfig
-	configBlk := blkNum
-	if block.getNewChainConfig() != nil {
-		cfg = *block.getNewChainConfig()
-	} else {
-		lastConfigNum := block.getLastConfigBlockNum()
-		cfgBlock, _ := store.GetBlock(lastConfigNum)
-		if cfgBlock == nil {
-			return fmt.Errorf("failed to get cfg block height:%d", lastConfigNum)
-		}
-		if cfgBlock.getNewChainConfig() == nil {
-			panic("failed to get chain config from config block")
-		}
-		cfg = *cfgBlock.getNewChainConfig()
-		configBlk = lastConfigNum
+	cfg, configBlk, err := ledger.DefLedger.LoadCfgFromBlock(blkNum)
+	if err != nil {
+		panic(err)
 	}
-
 	if cfg.View == 0 || cfg.MaxBlockChangeView == 0 {
 		panic("invalid view or maxblockchangeview ")
 	}
 
 	// update timer params
-	self.updateTimerParams(&cfg)
+	self.updateTimerParams(cfg)
 
 	log.Infof("current committed block no: %d", blkNum)
-	proposers, endorsers, committers := buildPeerRoles(blkNum+1, block.Info.Proposer, block.Info.VrfValue, &cfg)
+	proposers, endorsers, committers := buildPeerRoles(blkNum+1, block.Info.Proposer, block.Info.VrfValue, cfg)
 	log.Infof("server %d, blkNum: %d, state: %s, participants: %v, %v, %v", self.Index, blkNum+1,
 		self.getState(), proposers, endorsers, committers)
 
@@ -274,7 +261,7 @@ func (self *Server) LoadChainConfig(store *ChainStore, block *VbftBlock, stateRo
 	}
 	self.vbftCtx = &VbftContext{
 		BlockNum:  blkNum + 1,
-		Config:    &cfg,
+		Config:    cfg,
 		ConfigNum: configBlk,
 		PeerKeys:  peermap,
 		PrevBlockInfo: &BlockAndExecteInfo{

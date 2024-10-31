@@ -23,6 +23,7 @@ import (
 	types2 "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
+	vconfig "github.com/ontio/ontology/consensus/vbft/config"
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/states"
 	"github.com/ontio/ontology/core/store/leveldbstore"
@@ -91,6 +92,7 @@ type LedgerStore interface {
 	GetEthCode(hash common2.Hash) ([]byte, error)
 	GetEthState(address common2.Address, key common2.Hash) ([]byte, error)
 	GetEthAccount(address common2.Address) (*storage.EthAccount, error)
+	LoadCfgFromBlock(blockHeight uint32) (*vconfig.ChainConfig, uint32, error)
 	//cross chain states root
 	GetCrossStatesRoot(height uint32) (common.Uint256, error)
 	GetCrossStates(height uint32) ([]common.Uint256, error)

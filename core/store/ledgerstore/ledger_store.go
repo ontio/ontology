@@ -22,7 +22,6 @@ package ledgerstore
 import (
 	"bytes"
 	"crypto/sha256"
-	"encoding/json"
 	"fmt"
 	"hash"
 	"math"
@@ -95,7 +94,6 @@ type LedgerStoreImp struct {
 	currBlockHash        common.Uint256                   //Current block hash
 	headerCache          map[common.Uint256]*types.Header //BlockHash => Header
 	headerIndexCache     *HeaderIndexCache                //Header index cache, Mapping header height => block hash
-	vbftPeerInfoMap      map[uint32]map[string]uint32     //key:block height,value:peerInfo
 	lock                 sync.RWMutex
 	stateHashCheckHeight uint32
 
@@ -108,7 +106,6 @@ type LedgerStoreImp struct {
 func NewLedgerStore(dataDir string, stateHashHeight uint32) (*LedgerStoreImp, error) {
 	ledgerStore := &LedgerStoreImp{
 		headerCache:          make(map[common.Uint256]*types.Header, 0),
-		vbftPeerInfoMap:      make(map[uint32]map[string]uint32),
 		savingBlockSemaphore: make(chan bool, 1),
 		stateHashCheckHeight: stateHashHeight,
 	}
@@ -200,48 +197,7 @@ func (this *LedgerStoreImp) InitLedgerStoreWithGenesisBlock(genesisBlock *types.
 			return fmt.Errorf("init error %s", err)
 		}
 	}
-	//load vbft peerInfo
-	consensusType := strings.ToLower(config.DefConfig.Genesis.ConsensusType)
-	if consensusType == "vbft" {
-		header, err := this.GetHeaderByHash(this.currBlockHash)
-		if err != nil {
-			return err
-		}
-		blkInfo, err := vconfig.VbftBlock(header)
-		if err != nil {
-			return err
-		}
-		var cfg *vconfig.ChainConfig
-		var chainConfigHeight uint32
-		if blkInfo.NewChainConfig != nil {
-			cfg = blkInfo.NewChainConfig
-			chainConfigHeight = header.Height
-		} else {
-			cfgHeader, err := this.GetHeaderByHeight(blkInfo.LastConfigBlockNum)
-			if err != nil {
-				return err
-			}
-			Info, err := vconfig.VbftBlock(cfgHeader)
-			if err != nil {
-				return err
-			}
-			if Info.NewChainConfig == nil {
-				return fmt.Errorf("getNewChainConfig error block num:%d", blkInfo.LastConfigBlockNum)
-			}
-			cfg = Info.NewChainConfig
-			chainConfigHeight = cfgHeader.Height
-		}
-		this.lock.Lock()
-		vbftPeerInfo := make(map[string]uint32)
-		this.vbftPeerInfoMap = make(map[uint32]map[string]uint32)
-		for _, p := range cfg.Peers {
-			vbftPeerInfo[p.ID] = p.Index
-		}
-		this.vbftPeerInfoMap[chainConfigHeight] = vbftPeerInfo
-		this.lock.Unlock()
-		val, _ := json.Marshal(vbftPeerInfo)
-		log.Infof("loading vbftPeerInfo at height: %v : %s", header.Height, string(val))
-	}
+
 	// check and fix imcompatible states
 	err = this.stateStore.CheckStorage()
 	return err
@@ -288,6 +244,39 @@ func (this *LedgerStoreImp) loadCurrentBlock() error {
 	this.currBlockHash = currentBlockHash
 	this.currBlockHeight = currentBlockHeight
 	return nil
+}
+
+//load vbft chainConfig from block header
+func (this *LedgerStoreImp) LoadCfgFromBlock(blockHeight uint32) (*vconfig.ChainConfig, uint32, error) {
+	var cfg *vconfig.ChainConfig
+	header, err := this.GetHeaderByHeight(blockHeight)
+	if err != nil {
+		return nil, 0, err
+	}
+	vbftBlockInfo, err := vconfig.VbftBlock(header)
+	if err != nil {
+		return nil, 0, err
+	}
+	configBlk := blockHeight
+	if vbftBlockInfo.NewChainConfig != nil {
+		cfg = vbftBlockInfo.NewChainConfig
+	} else {
+		lastConfigNum := vbftBlockInfo.LastConfigBlockNum
+		cfgBlockHeader, _ := this.GetHeaderByHeight(lastConfigNum)
+		if cfgBlockHeader == nil {
+			return nil, 0, fmt.Errorf("failed to get cfgBlockHeader height:%d", lastConfigNum)
+		}
+		vbftBlkInfo, err := vconfig.VbftBlock(cfgBlockHeader)
+		if err != nil {
+			return nil, 0, err
+		}
+		if vbftBlkInfo.NewChainConfig == nil {
+			return nil, 0, fmt.Errorf("failed to get chain config from config block:%d", lastConfigNum)
+		}
+		cfg = vbftBlkInfo.NewChainConfig
+		configBlk = lastConfigNum
+	}
+	return cfg, configBlk, nil
 }
 
 func (this *LedgerStoreImp) loadHeaderIndexList() error {
@@ -474,81 +463,18 @@ func (this *LedgerStoreImp) verifyHeader(header *types.Header) error {
 	}
 	consensusType := strings.ToLower(config.DefConfig.Genesis.ConsensusType)
 	if consensusType == "vbft" {
-		blkInfo, err := vconfig.VbftBlock(header)
+		cfg, _, err := this.LoadCfgFromBlock(prevHeader.Height)
 		if err != nil {
 			return err
 		}
-		var chainConfigHeight uint32
-		if blkInfo.NewChainConfig != nil {
-			prevBlockInfo, err := vconfig.VbftBlock(prevHeader)
-			if err != nil {
-				return err
-			}
-			if prevBlockInfo.NewChainConfig != nil {
-				chainConfigHeight = prevHeader.Height
-			} else {
-				chainConfigHeight = prevBlockInfo.LastConfigBlockNum
-			}
-		} else {
-			chainConfigHeight = blkInfo.LastConfigBlockNum
+		pubInfos := make(map[string]bool)
+		for _, p := range cfg.Peers {
+			pubInfos[p.ID] = true
 		}
-		chainConfigHeader, err := this.GetHeaderByHeight(chainConfigHeight)
-		if err != nil && err != scom.ErrNotFound {
-			return fmt.Errorf("get chain config header error %s,height:%d", err, chainConfigHeight)
-		}
-		if chainConfigHeader == nil {
-			return fmt.Errorf("cannot find chain config header by height:%d", chainConfigHeight)
-		}
-		chanConfigBlkInfo, err := vconfig.VbftBlock(chainConfigHeader)
+		err = header.VerifyMultiSignature(pubInfos, int(cfg.N-(cfg.N-1)/3))
 		if err != nil {
+			log.Errorf("VerifyMultiSignature:%s,Bookkeepers:%d,pubkey:%d,height:%d", err, len(header.Bookkeepers), len(cfg.Peers), header.Height)
 			return err
-		}
-		if chanConfigBlkInfo.NewChainConfig == nil {
-			return fmt.Errorf("cannot find newchainconfig header by height:%d", chainConfigHeight)
-		}
-		c := chanConfigBlkInfo.NewChainConfig.C
-		this.lock.RLock()
-		vbftPeerInfo, ok := this.vbftPeerInfoMap[chainConfigHeight]
-		if !ok {
-			this.lock.RUnlock()
-			return fmt.Errorf("chainconfig height:%d not found", chainConfigHeight)
-		}
-		this.lock.RUnlock()
-		m := len(vbftPeerInfo) - (len(vbftPeerInfo)*6)/7
-		if len(header.Bookkeepers) < m {
-			return fmt.Errorf("header Bookkeepers %d more than 6/7 len vbftPeerInfo%d", len(header.Bookkeepers), len(vbftPeerInfo))
-		}
-		usedPubKey := make(map[string]bool)
-		for _, bookkeeper := range header.Bookkeepers {
-			pubkey := vconfig.PubkeyID(bookkeeper)
-			_, present := vbftPeerInfo[pubkey]
-			if !present {
-				val, _ := json.Marshal(vbftPeerInfo)
-				log.Errorf("verify header error: invalid pubkey :%v, height:%d, current vbftPeerInfo :%s",
-					pubkey, header.Height, string(val))
-				return fmt.Errorf("verify header error: invalid pubkey : %v", pubkey)
-			}
-			usedPubKey[pubkey] = true
-		}
-		if uint32(len(usedPubKey)) < c+1 {
-			log.Errorf("verify header error:  height:%d,pubkey len:%d,c:%d",
-				header.Height, len(usedPubKey), c)
-			return fmt.Errorf("verify header error height:%d", header.Height)
-		}
-		hash := header.Hash()
-		err = signature.VerifyMultiSignature(hash[:], header.Bookkeepers, m, header.SigData)
-		if err != nil {
-			log.Errorf("VerifyMultiSignature:%s,Bookkeepers:%d,pubkey:%d,heigh:%d", err, len(header.Bookkeepers), len(vbftPeerInfo), header.Height)
-			return err
-		}
-		if blkInfo.NewChainConfig != nil {
-			peerInfo := make(map[string]uint32)
-			for _, p := range blkInfo.NewChainConfig.Peers {
-				peerInfo[p.ID] = p.Index
-			}
-			this.lock.Lock()
-			this.vbftPeerInfoMap[header.Height] = peerInfo
-			this.lock.Unlock()
 		}
 	} else {
 		address, err := types.AddressFromBookkeepers(header.Bookkeepers)
@@ -981,7 +907,6 @@ func (this *LedgerStoreImp) submitBlock(block *types.Block, crossChainMsg *types
 		return fmt.Errorf("wrong block root at height:%d, expected:%s, got:%s",
 			block.Header.Height, blockRoot.ToHexString(), block.Header.BlockRoot.ToHexString())
 	}
-
 	this.blockStore.NewBatch()
 	this.stateStore.NewBatch()
 	this.eventStore.NewBatch()

@@ -20,7 +20,10 @@ package types
 
 import (
 	"crypto/sha256"
+	"fmt"
 	"io"
+
+	"github.com/ontio/ontology/core/signature"
 
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
@@ -150,7 +153,7 @@ func (bd *Header) Serialization(sink *common.ZeroCopySink) {
 	}
 }
 
-//Serialize the blockheader data without program
+// Serialize the blockheader data without program
 func (bd *Header) serializationUnsigned(sink *common.ZeroCopySink) {
 	sink.WriteUint32(bd.Version)
 	sink.WriteBytes(bd.PrevBlockHash[:])
@@ -293,4 +296,29 @@ func (bd *Header) ToArray() []byte {
 	sink := common.NewZeroCopySink(nil)
 	bd.Serialization(sink)
 	return sink.Bytes()
+}
+
+func (bd *Header) VerifyMultiSignature(pubs map[string]bool, m int) error {
+	usedPubKey := make(map[string]bool)
+	if len(bd.Bookkeepers) != len(bd.SigData) || len(bd.SigData) < m {
+		return fmt.Errorf("bookKeepers len:%d,SigData len:%d less than m:%d", len(bd.Bookkeepers), len(bd.SigData), m)
+	}
+	hash := bd.Hash()
+	for index, bookkeeper := range bd.Bookkeepers {
+		pubkey := common.PubKeyToHex(bookkeeper)
+		_, present := pubs[pubkey]
+		if !present {
+			return fmt.Errorf("bookKeeper pub:%s not exist in node consensus peers", pubkey)
+		}
+		if _, present := usedPubKey[pubkey]; !present {
+			usedPubKey[pubkey] = true
+		} else {
+			return fmt.Errorf("has duplicate pubkey:%s", pubkey)
+		}
+		err := signature.Verify(bookkeeper, hash[:], bd.SigData[index])
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
