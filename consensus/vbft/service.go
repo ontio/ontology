@@ -741,7 +741,6 @@ func (self *Server) makeProgress(vbftCtx *VbftContext) {
 		proposal := bftStatus.GetBlockProposal(proposer)
 		if proposal == nil {
 			log.Infof("server %d commit %d done, waiting proposal", self.Index, blkNum)
-			self.fetchProposal(blkNum, proposer)
 			self.timer.StartEventTimer(EventCommitBlockTimeout, blkNum)
 			return
 		}
@@ -800,8 +799,8 @@ func (self *Server) processMsgEvent(msg ConsensusMsg) {
 			if err = self.sealBlock(proposal.Block, false, false); err != nil {
 				log.Errorf("server %d failed to seal block (%d): %s", self.Index, block.Header.Height, err)
 			}
-			return
 		}
+		return
 	case *blockProposalMsg:
 		log.Infof("server %d received proposal from %d, block %d, txnum %d",
 			self.Index, pMsg.Block.getProposer(), msgBlkNum, len(pMsg.Block.Block.Transactions))
@@ -818,10 +817,6 @@ func (self *Server) processMsgEvent(msg ConsensusMsg) {
 			}
 		}
 	case *blockEndorseMsg:
-		if pMsg.EndorsedProposer != self.Index && bftStatus.GetBlockProposal(pMsg.EndorsedProposer) == nil {
-			self.fetchProposal(msgBlkNum, pMsg.EndorsedProposer)
-		}
-
 		if err := bftStatus.AddBlockEndorseMsg(pMsg); err != nil {
 			log.Errorf("failed to add endorse msg (%d): %s", msgBlkNum, err)
 			return
