@@ -960,28 +960,15 @@ func (self *Server) onConsensusMsg(peerIdx uint32, msg ConsensusMsg, msgHash com
 			return
 		}
 		var pmsg *blockProposalMsg
-		if self.Index == pMsg.ProposerID || pMsg.BlockNum == self.GetCurrentBlockNo() {
-			pMsgs := self.msgPool.GetProposalMsgs(pMsg.BlockNum)
-			for _, msg := range pMsgs {
-				p := msg.(*blockProposalMsg)
-				if p != nil && p.Block.getProposer() == pMsg.ProposerID {
-					log.Infof("server %d rebroadcast proposal to %d, blk %d",
-						self.Index, peerIdx, p.Block.getBlockNum())
-					pmsg = p
-				}
+		pMsgs := self.msgPool.GetProposalMsgs(pMsg.BlockNum)
+		for _, msg := range pMsgs {
+			p := msg.(*blockProposalMsg)
+			if p != nil && p.Block.getProposer() == pMsg.ProposerID {
+				log.Infof("server %d rebroadcast proposal to %d, blk %d",
+					self.Index, peerIdx, p.Block.getBlockNum())
+				pmsg = p
 			}
 		}
-		if self.Index == pMsg.ProposerID {
-			if pmsg == nil {
-				blk, _ := self.blockPool.getSealedBlock(pMsg.BlockNum)
-				if blk != nil {
-					pmsg = &blockProposalMsg{
-						Block: blk,
-					}
-				}
-			}
-		}
-
 		if pmsg != nil {
 			log.Infof("server %d, handle proposal fetch %d from %d",
 				self.Index, pMsg.BlockNum, peerIdx)
