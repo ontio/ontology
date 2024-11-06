@@ -362,9 +362,10 @@ func (self *PeerSyncer) run() {
 	}()
 
 	var err error
-	blkProposers := make(map[uint32]uint32)
+	//blkProposers := make(map[uint32]uint32)
 	for self.nextReqBlkNum <= self.targetBlkNum {
 		blkNum := self.nextReqBlkNum
+		/*
 		if _, present := blkProposers[blkNum]; !present {
 			blkInfos, err := self.requestBlockInfo(blkNum)
 			if err != nil {
@@ -381,7 +382,7 @@ func (self *PeerSyncer) run() {
 				blkNum, self.peerIdx)
 			return
 		}
-
+		*/
 		var proposalBlock *Block
 		proposalBlock, _ = self.server.blockPool.getSealedBlock(blkNum)
 		if proposalBlock == nil {
@@ -394,7 +395,7 @@ func (self *PeerSyncer) run() {
 			log.Errorf("failed to commit block %d from peer syncer %d to syncer: %s",
 				blkNum, self.peerIdx, err)
 		}
-		delete(blkProposers, blkNum)
+		//delete(blkProposers, blkNum)
 	}
 	errQuit = false
 }
