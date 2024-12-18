@@ -132,13 +132,13 @@ func (self *StateStore) init(currBlockHeight uint32) error {
 	return nil
 }
 
-//GetStateMerkleTree return merkle tree size an tree node
+//GetStateMerkleTree return merkle tree size a tree node
 func (self *StateStore) GetStateMerkleTree() (uint32, []common.Uint256, error) {
 	key := self.genStateMerkleTreeKey()
 	return self.getMerkleTree(key)
 }
 
-//GetBlockMerkleTree return merkle tree size an tree node
+//GetBlockMerkleTree return merkle tree size a tree node
 func (self *StateStore) GetBlockMerkleTree() (uint32, []common.Uint256, error) {
 	key := self.genBlockMerkleTreeKey()
 	return self.getMerkleTree(key)

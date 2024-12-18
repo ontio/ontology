@@ -27,7 +27,7 @@ type ZeroCopySink struct {
 	buf []byte
 }
 
-// tryGrowByReslice is a inlineable version of grow for the fast-case where the
+// tryGrowByReslice is an inlineable version of grow for the fast-case where the
 // internal buffer only needs to be resliced.
 // It returns the index where bytes should be written and whether it succeeded.
 func (self *ZeroCopySink) tryGrowByReslice(n int) (int, bool) {
