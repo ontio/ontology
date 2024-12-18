@@ -36,7 +36,7 @@ import (
 type Client interface {
 	//NewAccount create a new account.
 	NewAccount(label string, typeCode keypair.KeyType, curveCode byte, sigScheme s.SignatureScheme, passwd []byte) (*Account, error)
-	//ImportAccount import a already exist account to wallet
+	//ImportAccount import an already exist account to wallet
 	ImportAccount(accMeta *AccountMetadata) error
 	//GetAccountByAddress return account object by address
 	GetAccountByAddress(address string, passwd []byte) (*Account, error)
