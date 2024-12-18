@@ -196,7 +196,7 @@ func (rt *RouteTable) nextBucket() {
 	newBucket := bucket.Split(len(rt.Buckets)-1, rt.local)
 	rt.Buckets = append(rt.Buckets, newBucket)
 
-	// The newly formed bucket still contains too many peers. We probably just unfolded a empty bucket.
+	// The newly formed bucket still contains too many peers. We probably just unfolded an empty bucket.
 	if newBucket.Len() >= rt.bucketsize {
 		// Keep unfolding the table until the last bucket is not overflowing.
 		rt.nextBucket()
