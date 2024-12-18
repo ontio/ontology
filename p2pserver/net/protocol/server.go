@@ -16,7 +16,7 @@
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-// Package p2p provides an network interface
+// Package p2p provides a network interface
 package p2p
 
 import (
