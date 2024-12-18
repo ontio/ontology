@@ -244,7 +244,7 @@ func ParseNativeParamAddress(builder *neovm.ParamsBuilder, param string) error {
 	//Maybe param is a contract address
 	addr, err = common.AddressFromHexString(param)
 	if err != nil {
-		//Maybe param is a account address
+		//Maybe param is an account address
 		addr, err = common.AddressFromBase58(param)
 		if err != nil {
 			return fmt.Errorf("invalid address")
