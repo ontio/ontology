@@ -1253,6 +1253,8 @@ func (self *Server) sealBlock(block *VbftBlock, empty bool, sigdata bool) error 
 		sealedBlkNum, block.getProposer(), prevBlkHash.ToHexString(), h.ToHexString())
 	submitMsg, err := self.constructBlockSubmitMsg(sealedBlkNum, result.MerkleRoot)
 	if err != nil {
+		log.Errorf("constructBlockSubmitMsg blockNum:%d,err:%s", sealedBlkNum, err)
+	} else {
 		self.broadcast(submitMsg)
 	}
 
