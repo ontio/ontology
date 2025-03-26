@@ -21,8 +21,8 @@ package utils
 import (
 	"encoding/hex"
 	"fmt"
+	"math/big"
 	"reflect"
-	"strconv"
 	"strings"
 
 	"github.com/ontio/ontology/common"
@@ -48,12 +48,12 @@ var (
 	PARAM_SPLIT_INC      = string([]byte{1})
 )
 
-//ParseParams return interface{} array of encode params item.
-//A param item compose of type and value, type can be: bytearray, string, int, bool
-//Param type and param value split with ":", such as int:10
-//Param array can be express with "[]", such [int:10,string:foo], param array can be nested, such as [int:10,[int:12,bool:true]]
-//A raw params example: string:foo,[int:0,[bool:true,string:bar],bool:false]
-//Note that if string contain some special char like :,[,] and so one, please '/' char to escape. For example: string:did/:ed1e25c9dccae0c694ee892231407afa20b76008
+// ParseParams return interface{} array of encode params item.
+// A param item compose of type and value, type can be: bytearray, string, int, bool
+// Param type and param value split with ":", such as int:10
+// Param array can be express with "[]", such [int:10,string:foo], param array can be nested, such as [int:10,[int:12,bool:true]]
+// A raw params example: string:foo,[int:0,[bool:true,string:bar],bool:false]
+// Note that if string contain some special char like :,[,] and so one, please '/' char to escape. For example: string:did/:ed1e25c9dccae0c694ee892231407afa20b76008
 func ParseParams(rawParamStr string) ([]interface{}, error) {
 	rawParams, _, err := parseRawParamsString(rawParamStr)
 	if err != nil {
@@ -184,9 +184,10 @@ func parseRawParamValue(pType string, pValue string) (interface{}, error) {
 		if pValue == "" {
 			return nil, fmt.Errorf("invalid integer")
 		}
-		value, err := strconv.ParseInt(pValue, 10, 64)
-		if err != nil {
-			return nil, fmt.Errorf("parse integer param:%s error:%s", pValue, err)
+		// value, err := strconv.ParseInt(pValue, 10, 64)
+		value, f := big.NewInt(0).SetString(pValue, 10)
+		if !f {
+			return nil, fmt.Errorf("parse integer param:%s error:%s", pValue, "not a valid number")
 		}
 		return value, nil
 	case PARAM_TYPE_BOOLEAN:
@@ -206,10 +207,10 @@ func parseRawParamValue(pType string, pValue string) (interface{}, error) {
 	}
 }
 
-//ParseReturnValue return the value of rawReturnTypeStr type.
-//Return type can be: bytearray, string, int, bool.
-//Types can be split with "," each other, such as int,string,bool
-//Type array can be express with "[]", such [int,string], param array can be nested, such as [int,[int,bool]]
+// ParseReturnValue return the value of rawReturnTypeStr type.
+// Return type can be: bytearray, string, int, bool.
+// Types can be split with "," each other, such as int,string,bool
+// Type array can be express with "[]", such [int,string], param array can be nested, such as [int,[int,bool]]
 func ParseReturnValue(rawValue interface{}, rawReturnTypeStr string, vmtype payload.VmType) ([]interface{}, error) {
 	returnTypes, _, err := parseRawParamsString(rawReturnTypeStr)
 	if err != nil {
@@ -320,36 +321,37 @@ func parseReturnNeoValueArray(rawValues []interface{}, returnTypes []interface{}
 	return values, nil
 }
 
-//NeoVMInvokeParam use to express the param to invoke neovm contract.
-//Type can be of array, bytearray, string, int and bool
-//If type is one of bytearray, string, int and bool, value must be a string
-//If Type is array, value must be []*NeoVMInvokeParam
-//Example:
-//[]interface{}{
-//	&NeoVMInvokeParam{
-//		Type:  "string",
-//		Value: "foo",
-//	},
-//	&NeoVMInvokeParam{
-//		Type: "array",
-//		Value: []interface{}{
-//			&NeoVMInvokeParam{
-//				Type:  "int",
-//				Value: "0",
-//			},
-//			&NeoVMInvokeParam{
-//				Type:  "bool",
-//				Value: "true",
+// NeoVMInvokeParam use to express the param to invoke neovm contract.
+// Type can be of array, bytearray, string, int and bool
+// If type is one of bytearray, string, int and bool, value must be a string
+// If Type is array, value must be []*NeoVMInvokeParam
+// Example:
+//
+//	[]interface{}{
+//		&NeoVMInvokeParam{
+//			Type:  "string",
+//			Value: "foo",
+//		},
+//		&NeoVMInvokeParam{
+//			Type: "array",
+//			Value: []interface{}{
+//				&NeoVMInvokeParam{
+//					Type:  "int",
+//					Value: "0",
+//				},
+//				&NeoVMInvokeParam{
+//					Type:  "bool",
+//					Value: "true",
+//				},
 //			},
 //		},
-//	},
-//}
+//	}
 type NeoVMInvokeParam struct {
 	Type  string
 	Value interface{} //string or []*NeoVMInvokeParam
 }
 
-//ParseNeoVMInvokeParams parse params to []interface, rawParams is array of NeoVMInvokeParam
+// ParseNeoVMInvokeParams parse params to []interface, rawParams is array of NeoVMInvokeParam
 func ParseNeoVMInvokeParams(rawParams []interface{}) ([]interface{}, error) {
 	if len(rawParams) == 0 {
 		return nil, nil
