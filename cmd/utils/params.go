@@ -184,7 +184,6 @@ func parseRawParamValue(pType string, pValue string) (interface{}, error) {
 		if pValue == "" {
 			return nil, fmt.Errorf("invalid integer")
 		}
-		// value, err := strconv.ParseInt(pValue, 10, 64)
 		value, f := big.NewInt(0).SetString(pValue, 10)
 		if !f {
 			return nil, fmt.Errorf("parse integer param:%s error:%s", pValue, "not a valid number")
