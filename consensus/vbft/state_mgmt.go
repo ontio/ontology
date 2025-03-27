@@ -35,11 +35,10 @@ const (
 type ServerState uint32
 
 const (
-	Initialized      ServerState = iota
-	Syncing                      // syncing block from neighbours
-	WaitNetworkReady             // sync reached, and keep synced, try connecting with more peers
-	SyncReady                    // start processing consensus msg, but not broadcasting proposal/endorse/commit
-	Active                       // start bft
+	Initialized ServerState = iota
+	Syncing                 // syncing block or connected peers not enough
+	SyncReady               // start processing consensus msg, but not broadcasting proposal/endorse/commit
+	Active                  // start bft
 )
 
 func (state ServerState) IsReady() bool {
@@ -56,8 +55,6 @@ func (state ServerState) String() string {
 		return "Initialized"
 	case Syncing:
 		return "Syncing"
-	case WaitNetworkReady:
-		return "WaitNetworkReady"
 	case SyncReady:
 		return "SyncReady"
 	case Active:
@@ -195,8 +192,6 @@ func (self *StateMgr) onPeerUpdate(peerState *PeerState) {
 		}
 	case Syncing:
 		self.trySetSyncedReady()
-	case WaitNetworkReady:
-		self.trySetSyncedReady()
 	case SyncReady:
 	case Active:
 	}
@@ -209,7 +204,7 @@ func (self *StateMgr) onPeerDisconnected(peerIdx uint32) {
 	delete(self.peers, peerIdx)
 	if self.getState().IsActive() {
 		if len(self.peers) < self.getMinActivePeerCount() {
-			self.setState(WaitNetworkReady)
+			self.setState(Syncing)
 		}
 	}
 }

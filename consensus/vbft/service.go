@@ -178,10 +178,10 @@ func (self *Server) handleBlockPersistCompleted(block *types.Block, exec *store.
 
 func (self *Server) CheckAndSubmitBlock(blkNum uint32, stateRoot common.Uint256) {
 	cMsgs := self.msgPool.GetBlockSubmitMsgs(blkNum)
-	var stateRootCnt uint32
+	var stateRootCnt uint32 = 1 // include self
 	for _, msg := range cMsgs {
 		c := msg.(*blockSubmitMsg)
-		if c.BlockStateRoot == stateRoot {
+		if c.BlockStateRoot == stateRoot && c.Submitter != self.Index {
 			stateRootCnt++
 		}
 	}

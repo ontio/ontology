@@ -50,18 +50,6 @@ func (self *ConsensusRound) addMsg(msg ConsensusMsg) {
 	self.msgHashs[msgHash] = msg
 }
 
-func (self *ConsensusRound) dropMsg(msg ConsensusMsg) {
-	msgs := self.msgs[msg.Type()]
-	for i, m := range msgs {
-		if m == msg {
-			self.msgs[msg.Type()] = append(msgs[:i], msgs[i+1:]...)
-			break
-		}
-	}
-
-	delete(self.msgHashs, HashMsg(msg))
-}
-
 type MsgPool struct {
 	lock       sync.RWMutex
 	server     *Server
@@ -99,15 +87,6 @@ func (pool *MsgPool) AddMsg(msg ConsensusMsg) error {
 
 	pool.rounds[blkNum].addMsg(msg)
 	return nil
-}
-
-func (pool *MsgPool) DropMsg(msg ConsensusMsg) {
-	pool.lock.Lock()
-	defer pool.lock.Unlock()
-
-	if roundMsgs, present := pool.rounds[msg.GetBlockNum()]; present {
-		roundMsgs.dropMsg(msg)
-	}
 }
 
 func (pool *MsgPool) HasMsg(msg ConsensusMsg) bool {
@@ -167,9 +146,10 @@ func (pool *MsgPool) DropBftMsgs(block uint32) (result []ConsensusMsg) {
 	if !ok {
 		return nil
 	}
-	result = append(result, roundMsgs.msgs[BlockProposalMessage]...)
-	result = append(result, roundMsgs.msgs[BlockEndorseMessage]...)
-	result = append(result, roundMsgs.msgs[BlockCommitMessage]...)
+	for _, msgType := range []MsgType{BlockProposalMessage, BlockEndorseMessage, BlockCommitMessage} {
+		result = append(result, roundMsgs.msgs[msgType]...)
+		roundMsgs.msgs[msgType] = nil
+	}
 	roundMsgs.msgHashs = make(map[common.Uint256]ConsensusMsg)
 	for _, msg := range roundMsgs.msgs[BlockSubmitMessage] {
 		roundMsgs.msgHashs[HashMsg(msg)] = msg
