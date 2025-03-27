@@ -388,7 +388,6 @@ func (self *Server) initialize() error {
 	self.stateMgr = newStateMgr(self)
 
 	self.msgC = make(chan ConsensusMsg, CAP_MESSAGE_CHANNEL)
-	self.blockSynced = make(chan *VbftBlock, CAP_ACTION_CHANNEL)
 	self.msgSendC = make(chan *SendMsgEvent, CAP_MSG_SEND_CHANNEL)
 	self.peerWorkerChan = make([]chan *p2pMsgPayload, self.totalPeerWorkers)
 	for i := uint32(0); i < self.totalPeerWorkers; i += 1 {
@@ -519,7 +518,7 @@ func (self *Server) processBftMsgFromPeer(vbftCtx *VbftContext, msg ConsensusMsg
 	switch msg.Type() {
 	case BlockProposalMessage:
 		pMsg := msg.(*blockProposalMsg)
-		err := self.verifyProposalMsg(vbftCtx, pMsg)
+		err := self.verifyProposalMsg(vbftCtx, pMsg, true)
 		if err != nil {
 			log.Errorf("verify proposal error: %v", err)
 			return
@@ -617,7 +616,7 @@ func (self *Server) onConsensusMsg(peerIdx uint32, msg ConsensusMsg) {
 	}
 }
 
-func (self *Server) verifyProposalMsg(vbftCtx *VbftContext, msg *blockProposalMsg) error {
+func (self *Server) verifyProposalMsg(vbftCtx *VbftContext, msg *blockProposalMsg, verifyTx bool) error {
 	blkNum := vbftCtx.BlockNum
 	blockTime := msg.Block.Block.Header.Timestamp
 	if blockTime <= vbftCtx.PrevBlockInfo.Block.Header.Timestamp || blockTime > uint32(time.Now().Add(time.Minute*10).Unix()) {
@@ -653,7 +652,7 @@ func (self *Server) verifyProposalMsg(vbftCtx *VbftContext, msg *blockProposalMs
 		return fmt.Errorf("generated proposal block hash mismatch, blk: %d", blkNum)
 	}
 
-	if len(txs) > 0 {
+	if verifyTx && len(txs) > 0 {
 		height := blkNum - 1
 		start, end := self.incrValidator.BlockRange()
 		validHeight := height
@@ -776,6 +775,13 @@ func (self *Server) processMsgEvent(msg ConsensusMsg) {
 	case *peerHeartbeatMsg:
 		log.Infof("server %d process heatbeat signature for block %d", self.Index, msgBlkNum)
 		proposal := bftStatus.GetBlockProposal(pMsg.CommittedBlockProposer)
+		if proposal == nil {
+			// if node is syncing, proposal will not be in bft status
+			prop := self.msgPool.GetProposalMsg(msgBlkNum, pMsg.CommittedBlockProposer)
+			if prop != nil && self.verifyProposalMsg(vbftCtx, prop, false) == nil {
+				proposal = prop
+			}
+		}
 		if proposal != nil && proposal.Block.Block.Hash() == pMsg.CommittedBlockHash {
 			block := proposal.Block.Block
 			var pubkeys []keypair.PublicKey
@@ -901,8 +907,6 @@ func (self *Server) vbftLoop() {
 
 	for {
 		select {
-		case block := <-self.blockSynced:
-			self.handleSyncedBlock(block)
 		case msg := <-self.msgC:
 			self.processMsgEvent(msg)
 		case evt := <-self.timer.C:
@@ -1213,26 +1217,6 @@ func (self *Server) commitBlock(vbftCtx *VbftContext, proposal *blockProposalMsg
 
 	self.timer.StartEventTimer(EventCommitBlockTimeout, blkNum)
 	return nil
-}
-
-func (self *Server) fastForwardBlock(block *VbftBlock) {
-	self.blockSynced <- block
-}
-
-func (self *Server) handleSyncedBlock(block *VbftBlock) {
-	if self.getState().IsActive() || self.GetCurrentBlockNo() != block.getBlockNum() {
-		return
-	}
-	log.Infof("start handle synced block: %d", block.getBlockNum())
-	// block from peer syncer, there should only one candidate block
-	flag := false
-	if len(block.Block.Header.SigData) <= 1 {
-		flag = true
-	}
-	if err := self.sealBlock(block, false, flag); err != nil {
-		log.Errorf("server %d failed to seal block (%d): %s", self.Index, block.getBlockNum(), err)
-		return
-	}
 }
 
 func (self *Server) sealBlock(block *VbftBlock, empty bool, sigdata bool) error {
