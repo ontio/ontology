@@ -13,7 +13,7 @@ do
 	[[ -d $dir ]] && {
 		cd $dir
 		echo $dir
-		RUSTFLAGS="-C link-arg=-zstack-size=32768" cargo build --release --target=wasm32-unknown-unknown
+		RUSTFLAGS="-C target-cpu=mvp -C link-arg=-zstack-size=32768" cargo build -Zbuild-std=panic_abort,core,alloc --release --target wasm32-unknown-unknown
 		cd ..
 	}
 done
