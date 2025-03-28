@@ -13,6 +13,7 @@ source $HOME/.cargo/env
 
 rustup default $RUST_VERSION
 rustup target add wasm32-unknown-unknown
+rustup component add rust-src
 which ontio-wasm-build || cargo install --git=https://github.com/ontio/ontio-wasm-build
 
 # build rust wasm contracts
