@@ -3,7 +3,7 @@
 
 [![GoDoc](https://godoc.org/github.com/ontio/ontology?status.svg)](https://godoc.org/github.com/ontio/ontology)
 [![Go Report Card](https://goreportcard.com/badge/github.com/ontio/ontology)](https://goreportcard.com/report/github.com/ontio/ontology)
-[![Discord](https://img.shields.io/discord/102860784329052160.svg)](https://discord.gg/gDkuCAq)
+[![Discord](https://img.shields.io/discord/102860784329052160.svg)](https://discord.com/invite/4SrrJy2zHe)
 
 English | [中文](README_CN.md)
 
