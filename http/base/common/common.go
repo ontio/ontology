@@ -55,6 +55,16 @@ type BalanceOfRsp struct {
 	Ong    string `json:"ong"`
 	Height string `json:"height"`
 }
+type BalancesOfRsp struct {
+	NativeTokens []NativeTokenBalance `json:"native_tokens"`
+	Height       string               `json:"height"`
+}
+type NativeTokenBalance struct {
+	Addr string `json:"addr"`
+	Ont  string `json:"ont"`
+	Ong  string `json:"ong"`
+}
+
 
 type Oep4BalanceOfRsp struct {
 	Oep4   []Oep4Balance `json:"oep4"`
@@ -346,6 +356,32 @@ func GetBalanceV2(address common.Address) (*BalanceOfRsp, error) {
 		Ong:    balances[1].String(),
 		Height: fmt.Sprintf("%d", height),
 	}, nil
+}
+
+func GetBalancesV2(addrs []string) (*BalancesOfRsp, error) {
+	resp := &BalancesOfRsp{
+		NativeTokens: make([]NativeTokenBalance, len(addrs)),
+	}
+	tokens := []common.Address{utils.OntContractAddress, utils.OngContractAddress}
+	var height uint32
+	for i, addr := range addrs {
+		address, err := common.AddressFromBase58(addr)
+		if err != nil {
+			return nil, fmt.Errorf("invalid address %s: %w", addr, err)
+		}
+		balances, h, err := GetNativeTokenBalance(0, tokens, address, true)
+		if err != nil {
+			return nil, fmt.Errorf("get balance for %s error: %w", addr, err)
+		}
+		resp.NativeTokens[i] = NativeTokenBalance{
+			Addr: addr,
+			Ont:  balances[0].String(),
+			Ong:  balances[1].String(),
+		}
+		height = h
+	}
+	resp.Height = fmt.Sprintf("%d", height)
+	return resp, nil
 }
 
 func GetOep4Balance(contractAddress common.Address, addrs []common.Address) (*Oep4BalanceOfRsp, error) {
