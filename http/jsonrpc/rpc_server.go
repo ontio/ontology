@@ -55,6 +55,7 @@ func NewRPCHandler() *rpc.ServeMux {
 	mux.HandleFunc("getbalance", GetBalance)
 	mux.HandleFunc("getbalancev2", GetBalanceV2)
 	mux.HandleFunc("getoep4balance", GetOep4Balance)
+	mux.HandleFunc("getbalancesv2", GetBalancesV2)
 	mux.HandleFunc("getallowance", GetAllowance)
 	mux.HandleFunc("getallowancev2", GetAllowanceV2)
 	mux.HandleFunc("getmerkleproof", GetMerkleProof)
