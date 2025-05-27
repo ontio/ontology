@@ -489,6 +489,25 @@ func GetOep4Balance(params []interface{}) map[string]interface{} {
 	return rpc.ResponseSuccess(rsp)
 }
 
+func GetBalancesV2(params []interface{}) map[string]interface{} {
+	if len(params) < 1 {
+		return rpc.ResponsePack(berr.INVALID_PARAMS, "")
+	}
+	var addrs []string
+	for _, p := range params {
+		addrStr, ok := p.(string)
+		if !ok {
+			return rpc.ResponsePack(berr.INVALID_PARAMS, "invalid address type")
+		}
+		addrs = append(addrs, addrStr)
+	}
+	rsp, err := bcomn.GetBalancesV2(addrs)
+	if err != nil {
+		return rpc.ResponsePack(berr.INVALID_PARAMS, "")
+	}
+	return rpc.ResponseSuccess(rsp)
+}
+
 func parseAddressParam(params []interface{}) ([]common.Address, error) {
 	res := make([]common.Address, len(params))
 	var err error
