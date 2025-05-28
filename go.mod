@@ -9,7 +9,7 @@ require (
 	github.com/gammazero/workerpool v1.1.2
 	github.com/gorilla/websocket v1.4.1
 	github.com/gosuri/uiprogress v0.0.1
-	github.com/graph-gophers/graphql-go v1.2.1-0.20210916100229-446a2dd13dd5
+	github.com/graph-gophers/graphql-go v1.3.0
 	github.com/hashicorp/golang-lru v0.5.4
 	github.com/holiman/uint256 v1.1.1
 	github.com/howeyc/gopass v0.0.0-20210920133722-c8aef6fb66ef
