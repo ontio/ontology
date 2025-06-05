@@ -23,6 +23,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ontio/ontology/core/store"
+	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/vm/evm"
 )
 
@@ -41,10 +42,10 @@ func NewEVMBlockContext(height, timestamp uint32, chain store.LedgerStore) evm.B
 }
 
 // NewEVMTxContext creates a new transaction context for a single transaction.
-func NewEVMTxContext(msg Message) evm.TxContext {
+func NewEVMTxContext(msg *types.EvmMessage) evm.TxContext {
 	return evm.TxContext{
-		Origin:   msg.From(),
-		GasPrice: new(big.Int).Set(msg.GasPrice()),
+		Origin:   msg.From,
+		GasPrice: new(big.Int).Set(msg.GasPrice),
 	}
 }
 

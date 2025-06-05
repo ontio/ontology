@@ -548,11 +548,21 @@ func generateRecipient(notify *event.ExecuteNotify) (interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
+	LogsBloom := func(logs []*types.Log) types.Bloom {
+		var bin types.Bloom
+		for _, log := range logs {
+			bin.Add(log.Address.Bytes())
+			for _, b := range log.Topics {
+				bin.Add(b[:])
+			}
+		}
+		return bin
+	}
 	receipt := map[string]interface{}{
 		// Consensus fields: These fields are defined by the Yellow Paper
 		"status":            hexutil.Uint(notify.State),
 		"cumulativeGasUsed": hexutil.Uint64(notify.GasConsumed),
-		"logsBloom":         types.BytesToBloom(types.LogsBloom(logs)),
+		"logsBloom":         LogsBloom(logs),
 		"logs":              logs,
 
 		// Implementation fields: These fields are added by geth when processing a transaction.

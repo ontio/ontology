@@ -72,7 +72,10 @@ func RawEthBlockFromOntology(block *types.Block, bloom types2.Bloom) *types2.Blo
 		MixDigest:   common.Hash{},
 		Nonce:       types2.BlockNonce{},
 	}
-	return types2.NewBlock(h, ethTxs, nil, nil, new(trie.Trie))
+	body := &types2.Body{
+		Transactions: ethTxs,
+	}
+	return types2.NewBlock(h, body, nil, trie.NewStackTrie(nil))
 }
 
 func EthTransactionsFromOntology(txs []*types.Transaction, blockHash common.Hash, blockNumber uint64) ([]common.Hash, *big.Int, []*types3.Transaction) {

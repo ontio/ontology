@@ -19,7 +19,6 @@
 package event
 
 import (
-	common2 "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core"
 	types3 "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ontio/ontology/common"
@@ -66,9 +65,7 @@ func PushChainEvent(rawNotify []*ExecuteNotify, blk *types.Block, bloom types3.B
 		message.TOPIC_CHAIN_EVENT,
 		&message.ChainEventMsg{
 			ChainEvent: &core.ChainEvent{
-				Block: utils2.RawEthBlockFromOntology(blk, bloom),
-				Hash:  common2.Hash(blk.Hash()),
-				Logs:  extractEthLog(rawNotify, blk),
+				Header: utils2.RawEthBlockFromOntology(blk, bloom).Header(),
 			},
 		})
 }

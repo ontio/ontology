@@ -21,9 +21,9 @@ package debug
 import (
 	"fmt"
 
-	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/ontio/ontology/core/ledger"
+	types3 "github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/http/ethrpc/eth"
 	types2 "github.com/ontio/ontology/http/ethrpc/types"
 	"github.com/ontio/ontology/vm/evm"
@@ -80,7 +80,7 @@ func (api *DebugAPI) TraceCall(args types2.CallArgs, blockNrOrHash rpc.BlockNumb
 // traceTx configures a new tracer according to the provided configuration, and
 // executes the given message in the provided environment. The return value will
 // be tracer dependent.
-func (api *DebugAPI) traceTx(message types.Message, config *TraceConfig) (interface{}, error) {
+func (api *DebugAPI) traceTx(message *types3.EvmMessage, config *TraceConfig) (interface{}, error) {
 	// Assemble the structured logger or the JavaScript tracer
 	var (
 		tracer evm.Tracer

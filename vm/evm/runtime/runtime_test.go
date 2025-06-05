@@ -28,8 +28,8 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/consensus"
 	"github.com/ethereum/go-ethereum/core"
-	"github.com/ethereum/go-ethereum/core/asm"
 	"github.com/ethereum/go-ethereum/core/types"
+	params2 "github.com/ethereum/go-ethereum/params"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/store/leveldbstore"
 	"github.com/ontio/ontology/core/store/overlaydb"
@@ -254,6 +254,10 @@ func (d *dummyChain) GetHeader(h common.Hash, n uint64) *types.Header {
 	//parentHash := common.Hash{byte(n - 1)}
 	//fmt.Printf("GetHeader(%x, %d) => header with parent %x\n", h, n, parentHash)
 	return fakeHeader(n, parentHash)
+}
+
+func (d *dummyChain) Config() *params2.ChainConfig {
+	return nil
 }
 
 // TestBlockhash tests the blockhash operation. It's a bit special, since it internally
@@ -487,7 +491,7 @@ func DisabledTestEipExampleCases(t *testing.T) {
 	}
 	prettyPrint := func(comment string, code []byte) {
 		instrs := make([]string, 0)
-		it := asm.NewInstructionIterator(code)
+		it := NewInstructionIterator(code)
 		for it.Next() {
 			if it.Arg() != nil && 0 < len(it.Arg()) {
 				instrs = append(instrs, fmt.Sprintf("%v 0x%x", it.Op(), it.Arg()))
@@ -748,7 +752,7 @@ func TestEip2929Cases(t *testing.T) {
 	prettyPrint := func(comment string, code []byte) {
 
 		instrs := make([]string, 0)
-		it := asm.NewInstructionIterator(code)
+		it := NewInstructionIterator(code)
 		for it.Next() {
 			if it.Arg() != nil && 0 < len(it.Arg()) {
 				instrs = append(instrs, fmt.Sprintf("%v 0x%x", it.Op(), it.Arg()))

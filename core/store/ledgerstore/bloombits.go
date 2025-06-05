@@ -23,9 +23,9 @@ import (
 	"io"
 
 	"github.com/ethereum/go-ethereum/common/bitutil"
-	"github.com/ethereum/go-ethereum/core/bloombits"
 	"github.com/ethereum/go-ethereum/core/types"
 	common2 "github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/core/bloombits"
 	scom "github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/core/store/leveldbstore"
 )

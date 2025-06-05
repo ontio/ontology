@@ -569,11 +569,11 @@ func BenchmarkOpSHA3(bench *testing.B) {
 	env.interpreter = evmInterpreter
 	mem.Resize(32)
 	pc := uint64(0)
-	start := uint256.NewInt()
+	start := uint256.NewInt(0)
 
 	bench.ResetTimer()
 	for i := 0; i < bench.N; i++ {
-		stack.pushN(*uint256.NewInt().SetUint64(32), *start)
+		stack.pushN(*uint256.NewInt(0).SetUint64(32), *start)
 		opSha3(&pc, evmInterpreter, &callCtx{mem, stack, rstack, nil})
 	}
 }

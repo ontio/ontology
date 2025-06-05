@@ -154,9 +154,6 @@ func (api *PublicFilterAPI) NewPendingTransactions(ctx context.Context) (*rpc.Su
 			case <-rpcSub.Err():
 				pendingTxSub.Unsubscribe()
 				return
-			case <-notifier.Closed():
-				pendingTxSub.Unsubscribe()
-				return
 			}
 		}
 	}()
@@ -219,9 +216,6 @@ func (api *PublicFilterAPI) NewHeads(ctx context.Context) (*rpc.Subscription, er
 			case <-rpcSub.Err():
 				headersSub.Unsubscribe()
 				return
-			case <-notifier.Closed():
-				headersSub.Unsubscribe()
-				return
 			}
 		}
 	}()
@@ -247,7 +241,6 @@ func (api *PublicFilterAPI) Logs(ctx context.Context, crit filters.FilterCriteri
 	}
 
 	go func() {
-
 		for {
 			select {
 			case logs := <-matchedLogs:
@@ -255,9 +248,6 @@ func (api *PublicFilterAPI) Logs(ctx context.Context, crit filters.FilterCriteri
 					notifier.Notify(rpcSub.ID, &log)
 				}
 			case <-rpcSub.Err(): // client send an unsubscribe request
-				logsSub.Unsubscribe()
-				return
-			case <-notifier.Closed(): // connection dropped
 				logsSub.Unsubscribe()
 				return
 			}
@@ -435,7 +425,7 @@ func (api *PublicFilterAPI) GetFilterChanges(id rpc.ID) (interface{}, error) {
 		hashes := f.hashes
 		f.hashes = nil
 		return returnHashes(hashes), nil
-	case filters.LogsSubscription, filters.MinedAndPendingLogsSubscription:
+	case filters.LogsSubscription:
 		logs := make([]*ethtypes.Log, len(f.logs))
 		copy(logs, f.logs)
 		f.logs = []*ethtypes.Log{}
