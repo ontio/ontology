@@ -32,22 +32,9 @@ import (
 	"github.com/ontio/ontology/vm/evm/params"
 )
 
-func applyTransaction(msg types.Message, statedb *storage.StateDB, blockHeight uint32, tx *types.Transaction, usedGas *uint64, evm *evm.EVM, feeReceiver common.Address) (*types2.ExecutionResult, *otypes.Receipt, error) {
+func applyTransaction(msg *otypes.EvmMessage, statedb *storage.StateDB, blockHeight uint32, tx *types.Transaction, usedGas *uint64, evm *evm.EVM, feeReceiver common.Address) (*types2.ExecutionResult, *otypes.Receipt, error) {
 	// Create a new context to be used in the EVM environment
 	txContext := NewEVMTxContext(msg)
-	// Add addresses to access list if applicable
-	/* todo
-	if config.IsYoloV2(header.Number) {
-		statedb.AddAddressToAccessList(msg.From())
-		if dst := msg.To(); dst != nil {
-			statedb.AddAddressToAccessList(*dst)
-			// If it's a create-tx, the destination will be added inside evm.create
-		}
-		for _, addr := range evm.ActivePrecompiles() {
-			statedb.AddAddressToAccessList(addr)
-		}
-	}
-	*/
 
 	// Update the evm with the new transaction context.
 	evm.Reset(txContext, statedb)
@@ -70,7 +57,7 @@ func applyTransaction(msg types.Message, statedb *storage.StateDB, blockHeight u
 	receipt.GasUsed = result.UsedGas
 	receipt.GasPrice = tx.GasPrice().Uint64() // safe since tx's gasprice is checked in deserialization
 	// if the transaction created a contract, store the creation address in the receipt.
-	if msg.To() == nil {
+	if msg.To == nil {
 		receipt.ContractAddress = crypto.CreateAddress(evm.TxContext.Origin, tx.Nonce())
 	}
 	// Set the receipt logs and create a bloom for filtering
@@ -87,13 +74,12 @@ func applyTransaction(msg types.Message, statedb *storage.StateDB, blockHeight u
 // indicating the block was invalid.
 func ApplyTransaction(config *params.ChainConfig, bc store.LedgerStore, statedb *storage.StateDB, blockHeight, timestamp uint32, tx *types.Transaction, usedGas *uint64, feeReceiver common.Address, cfg evm.Config, checkNonce bool) (*types2.ExecutionResult, *otypes.Receipt, error) {
 	signer := types.NewEIP155Signer(config.ChainID)
-	msg, err := tx.AsMessage(signer)
+	msg, err := otypes.TransactionToMessage(tx, signer, big.NewInt(0))
 	if err != nil {
 		return nil, nil, err
 	}
 
-	msg = types.NewMessage(msg.From(), msg.To(), msg.Nonce(), msg.Value(), msg.Gas(), msg.GasPrice(), msg.Data(), checkNonce)
-
+	msg.SkipNonceChecks = !checkNonce
 	// Create a new context to be used in the EVM environment
 	blockContext := NewEVMBlockContext(blockHeight, timestamp, bc)
 	vmenv := evm.NewEVM(blockContext, evm.TxContext{}, statedb, config, cfg)

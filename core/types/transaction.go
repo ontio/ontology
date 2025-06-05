@@ -39,8 +39,8 @@ import (
 
 const MAX_TX_SIZE = 1024 * 1024 // The max size of a transaction to prevent DOS attacks
 
-//this flag is used for check EIP155 transaction chainID
-//will be set to 'true' on ontology startup ,for sdk dependency will always be 'false'
+// this flag is used for check EIP155 transaction chainID
+// will be set to 'true' on ontology startup ,for sdk dependency will always be 'false'
 var CheckChainID = false
 
 type Transaction struct {
@@ -83,6 +83,10 @@ func TransactionFromEIP155(eiptx *types.Transaction) (*Transaction, error) {
 		if eiptx.ChainId().Cmp(big.NewInt(int64(config.DefConfig.P2PNode.EVMChainId))) != 0 {
 			return nil, fmt.Errorf("invalid chain id, want: %d, got: %d", config.DefConfig.P2PNode.EVMChainId, eiptx.ChainId())
 		}
+	}
+
+	if eiptx.Type() != types.LegacyTxType {
+		return nil, errors.New("unsupported evm transaction type")
 	}
 
 	signer := types.NewEIP155Signer(eiptx.ChainId())
