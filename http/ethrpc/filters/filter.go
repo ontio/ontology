@@ -24,10 +24,10 @@ import (
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/bloombits"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/eth/filters"
 	common2 "github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/core/bloombits"
 	common4 "github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/core/store/ledgerstore"
 	"github.com/ontio/ontology/core/types"

@@ -138,7 +138,7 @@ func GetEthStorage(addr common2.Address, key common2.Hash) ([]byte, error) {
 	return ledger.DefLedger.GetEthState(addr, key)
 }
 
-func PreExecuteEip155Tx(msg types2.Message) (*types3.ExecutionResult, error) {
+func PreExecuteEip155Tx(msg *types.EvmMessage) (*types3.ExecutionResult, error) {
 	res, err := ledger.DefLedger.PreExecuteEip155Tx(msg)
 	return res, err
 }

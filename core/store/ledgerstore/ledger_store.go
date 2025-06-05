@@ -725,8 +725,17 @@ func (this *LedgerStoreImp) executeBlock(block *types.Block) (result store.Execu
 			allLogs = append(allLogs, receipt.Logs...)
 		}
 	}
-	bloomBytes := types3.LogsBloom(parseOntLogsToEth(allLogs))
-	result.Bloom = types3.BytesToBloom(bloomBytes)
+	LogsBloom := func(logs []*types.StorageLog) types3.Bloom {
+		var bin types3.Bloom
+		for _, log := range logs {
+			bin.Add(log.Address.Bytes())
+			for _, b := range log.Topics {
+				bin.Add(b[:])
+			}
+		}
+		return bin
+	}
+	result.Bloom = LogsBloom(allLogs)
 
 	result.Hash = overlay.ChangeHash()
 	result.WriteSet = overlay.GetWriteSet()
@@ -1361,15 +1370,15 @@ func (this *LedgerStoreImp) PreExecuteContract(tx *types.Transaction) (*store.Pr
 	return this.PreExecuteContractWithParam(tx, param)
 }
 
-func (this *LedgerStoreImp) TraceEip155Tx(msg types3.Message, tracer evm2.Tracer, stateOveride func(statedb *storage.StateDB) error) (*types5.ExecutionResult, error) {
+func (this *LedgerStoreImp) TraceEip155Tx(msg *types.EvmMessage, tracer evm2.Tracer, stateOveride func(statedb *storage.StateDB) error) (*types5.ExecutionResult, error) {
 	return this.executeEip155Tx(msg, evm2.Config{Tracer: tracer}, stateOveride)
 }
 
-func (this *LedgerStoreImp) PreExecuteEip155Tx(msg types3.Message) (*types5.ExecutionResult, error) {
+func (this *LedgerStoreImp) PreExecuteEip155Tx(msg *types.EvmMessage) (*types5.ExecutionResult, error) {
 	return this.executeEip155Tx(msg, evm2.Config{}, nil)
 }
 
-func (this *LedgerStoreImp) executeEip155Tx(msg types3.Message, conf evm2.Config, stateOveride func(statedb *storage.StateDB) error) (*types5.ExecutionResult, error) {
+func (this *LedgerStoreImp) executeEip155Tx(msg *types.EvmMessage, conf evm2.Config, stateOveride func(statedb *storage.StateDB) error) (*types5.ExecutionResult, error) {
 	height := this.GetCurrentBlockHeight()
 	// use previous block time to make it predictable for easy test
 	blockTime := uint32(time.Now().Unix())
