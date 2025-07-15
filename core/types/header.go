@@ -22,6 +22,7 @@ import (
 	"crypto/sha256"
 	"fmt"
 	"io"
+	"slices"
 
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
@@ -297,8 +298,8 @@ func (bd *Header) ToArray() []byte {
 	return sink.Bytes()
 }
 
-func (bd *Header) VerifyMultiSignature(pubs map[string]bool, m uint32) error {
-	usedPubKey := make(map[string]bool)
+func (bd *Header) VerifyMultiSignature(pubs map[string]bool, allowDupl bool, m uint32) error {
+	usedPubKey := make(map[string][]string)
 	if len(bd.Bookkeepers) != len(bd.SigData) || len(bd.SigData) < int(m) {
 		return fmt.Errorf("bookKeepers len:%d,SigData len:%d less than m:%d", len(bd.Bookkeepers), len(bd.SigData), m)
 	}
@@ -310,7 +311,9 @@ func (bd *Header) VerifyMultiSignature(pubs map[string]bool, m uint32) error {
 			return fmt.Errorf("bookKeeper pub:%s not exist in node consensus peers", pubkey)
 		}
 		if _, present := usedPubKey[pubkey]; !present {
-			usedPubKey[pubkey] = true
+			usedPubKey[pubkey] = append(usedPubKey[pubkey], string(bd.SigData[index]))
+		} else if allowDupl && !slices.Contains(usedPubKey[pubkey], string(bd.SigData[index])) {
+			usedPubKey[pubkey] = append(usedPubKey[pubkey], string(bd.SigData[index]))
 		} else {
 			return fmt.Errorf("has duplicate pubkey:%s", pubkey)
 		}

@@ -281,6 +281,15 @@ func GetUint64WrappingHeight() uint32 {
 	}
 }
 
+func GetCheckHeaderSigQuorumHeight() uint32 {
+	switch DefConfig.P2PNode.NetworkId {
+	case NETWORK_ID_MAIN_NET:
+		return constants.CHECK_HEADER_SIG_QUORUM_MAINNET
+	default:
+		return 0
+	}
+}
+
 // the end of unbound timestamp offset from genesis block's timestamp
 func GetGovUnboundDeadline() (uint32, uint64) {
 	count := uint64(0)

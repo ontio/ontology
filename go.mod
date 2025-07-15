@@ -1,6 +1,6 @@
 module github.com/ontio/ontology
 
-go 1.17
+go 1.22
 
 require (
 	github.com/JohnCGriffin/overflow v0.0.0-20170615021017-4d914c927216

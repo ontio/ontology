@@ -798,7 +798,7 @@ func (self *Server) processMsgEvent(msg ConsensusMsg) {
 			}
 			block.Header.Bookkeepers = pubkeys
 			block.Header.SigData = pMsg.EndorsersSig
-			err := block.Header.VerifyMultiSignature(pubInfos, vbftCtx.Config.Quorum())
+			err := block.Header.VerifyMultiSignature(pubInfos, false, vbftCtx.Config.Quorum())
 			if err != nil {
 				return
 			}

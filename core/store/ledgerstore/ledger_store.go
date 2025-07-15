@@ -471,9 +471,15 @@ func (this *LedgerStoreImp) verifyHeader(header *types.Header) error {
 		for _, p := range cfg.Peers {
 			pubInfos[p.ID] = true
 		}
-		err = header.VerifyMultiSignature(pubInfos, cfg.Quorum())
+		m := cfg.C + 1
+		allowDupl := true
+		if config.GetCheckHeaderSigQuorumHeight() <= header.Height {
+			m = cfg.Quorum()
+			allowDupl = false
+		}
+		err = header.VerifyMultiSignature(pubInfos, allowDupl, m)
 		if err != nil {
-			log.Errorf("VerifyMultiSignature:%s,Bookkeepers:%d,pubkey:%d,height:%d", err, len(header.Bookkeepers), len(cfg.Peers), header.Height)
+			log.Errorf("VerifyMultiSignature:%s,signatures:%d, quorum:%d, pubkeys:%d, height:%d", err, len(header.Bookkeepers), m, len(cfg.Peers), header.Height)
 			return err
 		}
 	} else {
