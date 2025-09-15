@@ -86,7 +86,7 @@ type LedgerStore interface {
 	PreExecuteContract(tx *types.Transaction) (*PreExecResult, error)
 	PreExecuteContractBatch(txes []*types.Transaction, atomic bool) ([]*PreExecResult, uint32, error)
 	PreExecuteEip155Tx(msg types2.Message) (*types3.ExecutionResult, error)
-	TraceEip155Tx(msg types2.Message, tracer evm.Tracer) (*types3.ExecutionResult, error)
+	TraceEip155Tx(msg types2.Message, tracer evm.Tracer, stateOveride func(*storage.StateDB) error) (*types3.ExecutionResult, error)
 	GetEventNotifyByTx(tx common.Uint256) (*event.ExecuteNotify, error)
 	GetEventNotifyByBlock(height uint32) ([]*event.ExecuteNotify, error)
 	GetEthCode(hash common2.Hash) ([]byte, error)

@@ -22,7 +22,6 @@ import (
 	"os"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
@@ -339,25 +338,27 @@ type stepCounter struct {
 func (s *stepCounter) CaptureStart(env *evm.EVM, from common.Address, to common.Address, create bool, input []byte, gas uint64, value *big.Int) {
 }
 
-func (s *stepCounter) CaptureState(env *evm.EVM, pc uint64, op evm.OpCode, gas, cost uint64,
-	memory *evm.Memory, stack *evm.Stack, rStack *evm.ReturnStack, rData []byte,
-	contract *evm.Contract, depth int, err error) {
+func (s *stepCounter) CaptureState(pc uint64, op evm.OpCode, gas, cost uint64,
+	scope *evm.ScopeContext, rData []byte, depth int, err error) {
 	s.steps++
 	// Enable this for more output
 	//s.inner.CaptureState(env, pc, op, gas, cost, memory, stack, rStack, contract, depth, err)
 }
 
-func (s *stepCounter) CaptureFault(env *evm.EVM, pc uint64, op evm.OpCode, gas, cost uint64,
-	memory *evm.Memory, stack *evm.Stack, rStack *evm.ReturnStack, contract *evm.Contract, depth int, err error) {
+func (s *stepCounter) CaptureFault(pc uint64, op evm.OpCode, gas, cost uint64,
+	scope *evm.ScopeContext, depth int, err error) {
 }
 
-func (s *stepCounter) CaptureEnd(output []byte, gasUsed uint64, t time.Duration, err error) {
+func (s *stepCounter) CaptureEnd(output []byte, gasUsed uint64, err error) {
 }
 
 func (s *stepCounter) CaptureEnter(typ evm.OpCode, from common.Address, to common.Address, input []byte, gas uint64, value *big.Int) {
 }
 
 func (s *stepCounter) CaptureExit(output []byte, gasUsed uint64, err error) {}
+
+func (*stepCounter) CaptureTxStart(gasLimit uint64) {}
+func (s *stepCounter) CaptureTxEnd(restGas uint64)  {}
 
 func TestJumpSub1024Limit(t *testing.T) {
 	db := storage.NewCacheDB(overlaydb.NewOverlayDB(leveldbstore.NewMemLevelDBStore()))
@@ -385,8 +386,7 @@ func TestJumpSub1024Limit(t *testing.T) {
 		EVMConfig: evm.Config{
 			ExtraEips: []int{2315},
 			Debug:     true,
-			//Tracer:    evm.NewJSONLogger(nil, os.Stdout),
-			Tracer: &tracer,
+			Tracer:    &tracer,
 		}})
 	exp := "return stack limit reached"
 	if err.Error() != exp {
@@ -438,7 +438,6 @@ func DisabledTestReturnCases(t *testing.T) {
 	cfg := &Config{
 		EVMConfig: evm.Config{
 			Debug:     true,
-			Tracer:    evm.NewMarkdownLogger(nil, os.Stdout),
 			ExtraEips: []int{2315},
 		},
 	}
@@ -481,7 +480,7 @@ func DisabledTestEipExampleCases(t *testing.T) {
 	cfg := &Config{
 		EVMConfig: evm.Config{
 			Debug:     true,
-			Tracer:    evm.NewMarkdownLogger(nil, os.Stdout),
+			Tracer:    nil,
 			ExtraEips: []int{2315},
 		},
 	}
@@ -765,7 +764,6 @@ func TestEip2929Cases(t *testing.T) {
 		Execute(code, nil, &Config{
 			EVMConfig: evm.Config{
 				Debug:     true,
-				Tracer:    evm.NewMarkdownLogger(nil, os.Stdout),
 				ExtraEips: []int{2929},
 			},
 		})

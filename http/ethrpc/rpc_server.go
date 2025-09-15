@@ -28,13 +28,17 @@ import (
 	"github.com/ontio/ontology/core/store/ledgerstore"
 	"github.com/ontio/ontology/http/base/actor"
 	backend2 "github.com/ontio/ontology/http/ethrpc/backend"
-	"github.com/ontio/ontology/http/ethrpc/debug"
 	"github.com/ontio/ontology/http/ethrpc/eth"
 	filters2 "github.com/ontio/ontology/http/ethrpc/filters"
 	"github.com/ontio/ontology/http/ethrpc/net"
+	"github.com/ontio/ontology/http/ethrpc/tracers"
 	"github.com/ontio/ontology/http/ethrpc/utils"
 	"github.com/ontio/ontology/http/ethrpc/web3"
 	tp "github.com/ontio/ontology/txnpool/proc"
+
+	// Force-load native and js packages, to trigger registration
+	_ "github.com/ontio/ontology/http/ethrpc/tracers/js"
+	_ "github.com/ontio/ontology/http/ethrpc/tracers/native"
 )
 
 var (
@@ -69,7 +73,7 @@ func StartEthServer(txpool *tp.TXPoolServer) error {
 	if err := server.RegisterName("web3", web3.NewAPI()); err != nil {
 		return err
 	}
-	if err := server.RegisterName("debug", debug.NewDebugAPI()); err != nil {
+	if err := server.RegisterName("debug", tracers.NewAPI()); err != nil {
 		return err
 	}
 

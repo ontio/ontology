@@ -39,6 +39,14 @@ type Config struct {
 	ExtraEips []int // Additional EIPS that are to be enabled
 }
 
+// ScopeContext contains the things that are per-call, such as stack and memory,
+// but not transients like pc and gas
+type ScopeContext struct {
+	Memory   *Memory
+	Stack    *Stack
+	Contract *Contract
+}
+
 // Interpreter is used to run Ethereum based contracts and will utilise the
 // passed environment to query external sources for state information.
 // The Interpreter will run the byte code VM based on the passed
@@ -56,6 +64,14 @@ type callCtx struct {
 	stack    *Stack
 	rstack   *ReturnStack
 	contract *Contract
+}
+
+func (self *callCtx) ScopeContext() *ScopeContext {
+	return &ScopeContext{
+		Memory:   self.memory,
+		Stack:    self.stack,
+		Contract: self.contract,
+	}
 }
 
 // keccakState wraps sha3.state. In addition to the usual hash methods, it also supports
@@ -181,9 +197,9 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 		defer func() {
 			if err != nil {
 				if !logged {
-					in.cfg.Tracer.CaptureState(in.evm, pcCopy, op, gasCopy, cost, mem, stack, returns, in.returnData, contract, in.evm.depth, err)
+					in.cfg.Tracer.CaptureState(pcCopy, op, gasCopy, cost, callContext.ScopeContext(), in.returnData, in.evm.depth, err)
 				} else {
-					in.cfg.Tracer.CaptureFault(in.evm, pcCopy, op, gasCopy, cost, mem, stack, returns, contract, in.evm.depth, err)
+					in.cfg.Tracer.CaptureFault(pcCopy, op, gasCopy, cost, callContext.ScopeContext(), in.evm.depth, err)
 				}
 			}
 		}()
@@ -265,7 +281,7 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 		}
 
 		if in.cfg.Debug {
-			in.cfg.Tracer.CaptureState(in.evm, pc, op, gasCopy, cost, mem, stack, returns, in.returnData, contract, in.evm.depth, err)
+			in.cfg.Tracer.CaptureState(pc, op, gasCopy, cost, callContext.ScopeContext(), in.returnData, in.evm.depth, err)
 			logged = true
 		}
 

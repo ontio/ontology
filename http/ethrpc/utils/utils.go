@@ -81,7 +81,7 @@ func EthTransactionsFromOntology(txs []*types.Transaction, blockHash common.Hash
 	gasUsed := big.NewInt(0)
 	for idx, tx := range txs {
 		hash := tx.Hash()
-		rpcTx, err := OntTxToEthTx(*tx, blockHash, blockNumber, uint64(idx))
+		rpcTx, err := OntTxToEthTx(tx, blockHash, blockNumber, uint64(idx))
 		if err != nil {
 			continue
 		}
@@ -108,7 +108,7 @@ func RawEthTransactionsFromOntology(txs []*types.Transaction, blockHash common.H
 	return gasUsed, transactions
 }
 
-func OntTxToEthTx(tx types.Transaction, blockHash common.Hash, blockNumber, index uint64) (*types3.Transaction, error) {
+func OntTxToEthTx(tx *types.Transaction, blockHash common.Hash, blockNumber, index uint64) (*types3.Transaction, error) {
 	eip155Tx, err := tx.GetEIP155Tx()
 	if err != nil {
 		return nil, err

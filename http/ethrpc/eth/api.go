@@ -468,7 +468,7 @@ func (api *EthereumAPI) GetTransactionByHash(hash common.Hash) (*types2.Transact
 			break
 		}
 	}
-	return utils2.OntTxToEthTx(*tx, common.Hash(blockHash), uint64(header.Height), uint64(idx))
+	return utils2.OntTxToEthTx(tx, common.Hash(blockHash), uint64(header.Height), uint64(idx))
 }
 
 func (api *EthereumAPI) GetTransactionByBlockHashAndIndex(hash common.Hash, idx hexutil.Uint) (*types2.Transaction, error) {
@@ -490,7 +490,7 @@ func (api *EthereumAPI) GetTransactionByBlockHashAndIndex(hash common.Hash, idx 
 		return nil, nil
 	}
 	tx := txs[idx]
-	return utils2.OntTxToEthTx(*tx, common.Hash(blockHash), uint64(header.Height), uint64(idx))
+	return utils2.OntTxToEthTx(tx, common.Hash(blockHash), uint64(header.Height), uint64(idx))
 }
 
 func (api *EthereumAPI) GetTransactionByBlockNumberAndIndex(blockNum types2.BlockNumber, idx hexutil.Uint) (*types2.Transaction, error) {
@@ -516,7 +516,7 @@ func (api *EthereumAPI) GetTransactionByBlockNumberAndIndex(blockNum types2.Bloc
 		return nil, nil
 	}
 	tx := txs[idx]
-	return utils2.OntTxToEthTx(*tx, common.Hash(blockHash), uint64(header.Height), uint64(idx))
+	return utils2.OntTxToEthTx(tx, common.Hash(blockHash), uint64(header.Height), uint64(idx))
 }
 
 func (api *EthereumAPI) GetTransactionReceipt(hash common.Hash) (interface{}, error) {

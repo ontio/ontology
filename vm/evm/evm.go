@@ -127,7 +127,7 @@ type EVM struct {
 	chainRules params.Rules
 	// virtual machine configuration options used to initialise the
 	// evm.
-	vmConfig Config
+	VmConfig Config
 	// global (to this context) ethereum virtual machine
 	// used throughout the execution of the tx.
 	interpreter Interpreter
@@ -147,7 +147,7 @@ func NewEVM(blockCtx BlockContext, txCtx TxContext, statedb StateDB, chainConfig
 		Context:     blockCtx,
 		TxContext:   txCtx,
 		StateDB:     statedb,
-		vmConfig:    vmConfig,
+		VmConfig:    vmConfig,
 		chainConfig: chainConfig,
 		chainRules:  chainConfig.Rules(blockCtx.BlockNumber),
 	}
@@ -185,7 +185,7 @@ func (evm *EVM) Interpreter() Interpreter {
 // the necessary steps to create accounts and reverses the state in case of an
 // execution error or failed value transfer.
 func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, gas uint64, value *big.Int) (ret []byte, leftOverGas uint64, err error) {
-	if evm.vmConfig.NoRecursion && evm.depth > 0 {
+	if evm.VmConfig.NoRecursion && evm.depth > 0 {
 		return nil, gas, nil
 	}
 	// Fail if we're trying to execute above the call depth limit
@@ -202,13 +202,13 @@ func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, gas 
 	if !evm.StateDB.Exist(addr) {
 		if !isPrecompile && evm.chainRules.IsEIP158 && value.Sign() == 0 {
 			// Calling a non-existing account, don't do anything, but ping the tracer
-			if evm.vmConfig.Debug {
+			if evm.VmConfig.Debug {
 				if evm.depth == 0 {
-					evm.vmConfig.Tracer.CaptureStart(evm, caller.Address(), addr, false, input, gas, value)
-					evm.vmConfig.Tracer.CaptureEnd(ret, 0, 0, nil)
+					evm.VmConfig.Tracer.CaptureStart(evm, caller.Address(), addr, false, input, gas, value)
+					evm.VmConfig.Tracer.CaptureEnd(ret, 0, nil)
 				} else {
-					evm.vmConfig.Tracer.CaptureEnter(CALL, caller.Address(), addr, input, gas, value)
-					evm.vmConfig.Tracer.CaptureExit(ret, 0, nil)
+					evm.VmConfig.Tracer.CaptureEnter(CALL, caller.Address(), addr, input, gas, value)
+					evm.VmConfig.Tracer.CaptureExit(ret, 0, nil)
 				}
 			}
 			return nil, gas, nil
@@ -218,17 +218,17 @@ func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, gas 
 	evm.Context.Transfer(evm.StateDB, caller.Address(), addr, value)
 
 	// Capture the tracer start/end events in debug mode
-	if evm.vmConfig.Debug {
+	if evm.VmConfig.Debug {
 		if evm.depth == 0 {
-			evm.vmConfig.Tracer.CaptureStart(evm, caller.Address(), addr, false, input, gas, value)
+			evm.VmConfig.Tracer.CaptureStart(evm, caller.Address(), addr, false, input, gas, value)
 			defer func(startGas uint64, startTime time.Time) { // Lazy evaluation of the parameters
-				evm.vmConfig.Tracer.CaptureEnd(ret, startGas-gas, time.Since(startTime), err)
+				evm.VmConfig.Tracer.CaptureEnd(ret, startGas-gas, err)
 			}(gas, time.Now())
 		} else {
 			// Handle tracer events for entering and exiting a call frame
-			evm.vmConfig.Tracer.CaptureEnter(CALL, caller.Address(), addr, input, gas, value)
+			evm.VmConfig.Tracer.CaptureEnter(CALL, caller.Address(), addr, input, gas, value)
 			defer func(startGas uint64) {
-				evm.vmConfig.Tracer.CaptureExit(ret, startGas-gas, err)
+				evm.VmConfig.Tracer.CaptureExit(ret, startGas-gas, err)
 			}(gas)
 		}
 	}
@@ -273,7 +273,7 @@ func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, gas 
 // CallCode differs from Call in the sense that it executes the given address'
 // code with the caller as context.
 func (evm *EVM) CallCode(caller ContractRef, addr common.Address, input []byte, gas uint64, value *big.Int) (ret []byte, leftOverGas uint64, err error) {
-	if evm.vmConfig.NoRecursion && evm.depth > 0 {
+	if evm.VmConfig.NoRecursion && evm.depth > 0 {
 		return nil, gas, nil
 	}
 	// Fail if we're trying to execute above the call depth limit
@@ -290,10 +290,10 @@ func (evm *EVM) CallCode(caller ContractRef, addr common.Address, input []byte, 
 	var snapshot = evm.StateDB.Snapshot()
 
 	// Invoke tracer hooks that signal entering/exiting a call frame
-	if evm.vmConfig.Debug {
-		evm.vmConfig.Tracer.CaptureEnter(CALLCODE, caller.Address(), addr, input, gas, value)
+	if evm.VmConfig.Debug {
+		evm.VmConfig.Tracer.CaptureEnter(CALLCODE, caller.Address(), addr, input, gas, value)
 		defer func(startGas uint64) {
-			evm.vmConfig.Tracer.CaptureExit(ret, startGas-gas, err)
+			evm.VmConfig.Tracer.CaptureExit(ret, startGas-gas, err)
 		}(gas)
 	}
 
@@ -326,7 +326,7 @@ func (evm *EVM) CallCode(caller ContractRef, addr common.Address, input []byte, 
 // DelegateCall differs from CallCode in the sense that it executes the given address'
 // code with the caller as context and the caller is set to the caller of the caller.
 func (evm *EVM) DelegateCall(caller ContractRef, addr common.Address, input []byte, gas uint64) (ret []byte, leftOverGas uint64, err error) {
-	if evm.vmConfig.NoRecursion && evm.depth > 0 {
+	if evm.VmConfig.NoRecursion && evm.depth > 0 {
 		return nil, gas, nil
 	}
 	// Fail if we're trying to execute above the call depth limit
@@ -336,10 +336,10 @@ func (evm *EVM) DelegateCall(caller ContractRef, addr common.Address, input []by
 	var snapshot = evm.StateDB.Snapshot()
 
 	// Invoke tracer hooks that signal entering/exiting a call frame
-	if evm.vmConfig.Debug {
-		evm.vmConfig.Tracer.CaptureEnter(DELEGATECALL, caller.Address(), addr, input, gas, nil)
+	if evm.VmConfig.Debug {
+		evm.VmConfig.Tracer.CaptureEnter(DELEGATECALL, caller.Address(), addr, input, gas, nil)
 		defer func(startGas uint64) {
-			evm.vmConfig.Tracer.CaptureExit(ret, startGas-gas, err)
+			evm.VmConfig.Tracer.CaptureExit(ret, startGas-gas, err)
 		}(gas)
 	}
 
@@ -370,7 +370,7 @@ func (evm *EVM) DelegateCall(caller ContractRef, addr common.Address, input []by
 // Opcodes that attempt to perform such modifications will result in exceptions
 // instead of performing the modifications.
 func (evm *EVM) StaticCall(caller ContractRef, addr common.Address, input []byte, gas uint64) (ret []byte, leftOverGas uint64, err error) {
-	if evm.vmConfig.NoRecursion && evm.depth > 0 {
+	if evm.VmConfig.NoRecursion && evm.depth > 0 {
 		return nil, gas, nil
 	}
 	// Fail if we're trying to execute above the call depth limit
@@ -391,10 +391,10 @@ func (evm *EVM) StaticCall(caller ContractRef, addr common.Address, input []byte
 	evm.StateDB.AddBalance(addr, big0)
 
 	// Invoke tracer hooks that signal entering/exiting a call frame
-	if evm.vmConfig.Debug {
-		evm.vmConfig.Tracer.CaptureEnter(STATICCALL, caller.Address(), addr, input, gas, nil)
+	if evm.VmConfig.Debug {
+		evm.VmConfig.Tracer.CaptureEnter(STATICCALL, caller.Address(), addr, input, gas, nil)
 		defer func(startGas uint64) {
-			evm.vmConfig.Tracer.CaptureExit(ret, startGas-gas, err)
+			evm.VmConfig.Tracer.CaptureExit(ret, startGas-gas, err)
 		}(gas)
 	}
 
@@ -468,18 +468,17 @@ func (evm *EVM) create(caller ContractRef, codeAndHash *codeAndHash, gas uint64,
 	contract := NewContract(caller, AccountRef(address), value, gas)
 	contract.SetCodeOptionalHash(&address, codeAndHash)
 
-	if evm.vmConfig.NoRecursion && evm.depth > 0 {
+	if evm.VmConfig.NoRecursion && evm.depth > 0 {
 		return nil, address, gas, nil
 	}
 
-	if evm.vmConfig.Debug {
+	if evm.VmConfig.Debug {
 		if evm.depth == 0 {
-			evm.vmConfig.Tracer.CaptureStart(evm, caller.Address(), address, true, codeAndHash.code, gas, value)
+			evm.VmConfig.Tracer.CaptureStart(evm, caller.Address(), address, true, codeAndHash.code, gas, value)
 		} else {
-			evm.vmConfig.Tracer.CaptureEnter(typ, caller.Address(), address, codeAndHash.code, gas, value)
+			evm.VmConfig.Tracer.CaptureEnter(typ, caller.Address(), address, codeAndHash.code, gas, value)
 		}
 	}
-	start := time.Now()
 
 	ret, err := evm.interpreter.Run(contract, nil, false)
 
@@ -513,11 +512,11 @@ func (evm *EVM) create(caller ContractRef, codeAndHash *codeAndHash, gas uint64,
 	if maxCodeSizeExceeded && err == nil {
 		err = errors.ErrMaxCodeSizeExceeded
 	}
-	if evm.vmConfig.Debug {
+	if evm.VmConfig.Debug {
 		if evm.depth == 0 {
-			evm.vmConfig.Tracer.CaptureEnd(ret, gas-contract.Gas, time.Since(start), err)
+			evm.VmConfig.Tracer.CaptureEnd(ret, gas-contract.Gas, err)
 		} else {
-			evm.vmConfig.Tracer.CaptureExit(ret, gas-contract.Gas, err)
+			evm.VmConfig.Tracer.CaptureExit(ret, gas-contract.Gas, err)
 		}
 	}
 	return ret, address, contract.Gas, err

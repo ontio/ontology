@@ -393,6 +393,14 @@ func (self *StateDB) AddBalance(addr common.Address, val *big.Int) {
 	}
 }
 
+func (self *StateDB) SetBalance(addr common.Address, val *big.Int) {
+	err := self.OngBalanceHandle.SetBalance(self.cacheDB, comm.Address(addr), val)
+	if err != nil {
+		self.cacheDB.SetDbErr(err)
+		return
+	}
+}
+
 func (self *StateDB) GetBalance(addr common.Address) *big.Int {
 	balance, err := self.OngBalanceHandle.GetBalance(self.cacheDB, comm.Address(addr))
 	if err != nil {
