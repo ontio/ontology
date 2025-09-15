@@ -1448,15 +1448,15 @@ func (this *LedgerStoreImp) PreExecuteContract(tx *types.Transaction) (*sstate.P
 	return this.PreExecuteContractWithParam(tx, param)
 }
 
-func (this *LedgerStoreImp) TraceEip155Tx(msg types3.Message, tracer evm2.Tracer) (*types5.ExecutionResult, error) {
-	return this.executeEip155Tx(msg, evm2.Config{Debug: true, Tracer: tracer})
+func (this *LedgerStoreImp) TraceEip155Tx(msg types3.Message, tracer evm2.Tracer, stateOveride func(statedb *storage.StateDB) error) (*types5.ExecutionResult, error) {
+	return this.executeEip155Tx(msg, evm2.Config{Debug: true, Tracer: tracer}, stateOveride)
 }
 
 func (this *LedgerStoreImp) PreExecuteEip155Tx(msg types3.Message) (*types5.ExecutionResult, error) {
-	return this.executeEip155Tx(msg, evm2.Config{})
+	return this.executeEip155Tx(msg, evm2.Config{}, nil)
 }
 
-func (this *LedgerStoreImp) executeEip155Tx(msg types3.Message, conf evm2.Config) (*types5.ExecutionResult, error) {
+func (this *LedgerStoreImp) executeEip155Tx(msg types3.Message, conf evm2.Config, stateOveride func(statedb *storage.StateDB) error) (*types5.ExecutionResult, error) {
 	height := this.GetCurrentBlockHeight()
 	// use previous block time to make it predictable for easy test
 	blockTime := uint32(time.Now().Unix())
@@ -1475,6 +1475,11 @@ func (this *LedgerStoreImp) executeEip155Tx(msg types3.Message, conf evm2.Config
 	blockContext := evm.NewEVMBlockContext(height, blockTime, this)
 	cache := this.GetCacheDB()
 	statedb := storage.NewStateDB(cache, common2.Hash{}, common2.Hash(ctx.BlockHash), ong.OngBalanceHandle{})
+	if stateOveride != nil {
+		if err := stateOveride(statedb); err != nil {
+			return nil, err
+		}
+	}
 	vmenv := evm2.NewEVM(blockContext, txContext, statedb, config, conf)
 	res, err := evm.ApplyMessage(vmenv, msg, common2.Address(utils.GovernanceContractAddress))
 	return res, err
@@ -1541,5 +1546,4 @@ func (this *LedgerStoreImp) maxAllowedPruneHeight(currHeader *types.Header) uint
 func (this *LedgerStoreImp) GetCacheDB() *storage.CacheDB {
 	overlay := this.stateStore.NewOverlayDB()
 	return storage.NewCacheDB(overlay)
-
 }
