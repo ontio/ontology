@@ -31,7 +31,6 @@ import (
 	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/laizy/bigint"
 	oComm "github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/constants"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/states"
@@ -53,7 +52,7 @@ import (
 const (
 	eth65           = 65
 	ProtocolVersion = eth65
-	RPCGasCap       = config.DEFAULT_ETH_TX_MAX_GAS_LIMIT
+	RPCGasCap       = 25000000
 )
 
 type TxPoolService interface {
