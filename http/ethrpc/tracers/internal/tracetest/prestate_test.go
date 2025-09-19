@@ -87,6 +87,7 @@ func NewTestStateDB(alloc core.GenesisAlloc) *storage.StateDB {
 			db.SetState(addr, key, value)
 		}
 	}
+	db.Commit()
 	return db
 }
 

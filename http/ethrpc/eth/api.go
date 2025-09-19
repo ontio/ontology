@@ -298,15 +298,26 @@ func (api *EthereumAPI) Call(args types2.CallArgs, blockNumber types2.BlockNumbe
 }
 
 func newRevertError(result *types3.ExecutionResult) *revertError {
+	err := errors2.ErrExecutionReverted
 	reason, errUnpack := abi.UnpackRevert(result.Revert())
-	err := errors.New("execution reverted")
 	if errUnpack == nil {
-		err = fmt.Errorf("execution reverted: %v", reason)
+		err = fmt.Errorf("%w: %v", errors2.ErrExecutionReverted, reason)
 	}
 	return &revertError{
 		error:  err,
 		reason: hexutil.Encode(result.Revert()),
 	}
+}
+
+// ErrorCode returns the JSON error code for a revert.
+// See: https://github.com/ethereum/wiki/wiki/JSON-RPC-Error-Codes-Improvement-Proposal
+func (e *revertError) ErrorCode() int {
+	return 3
+}
+
+// ErrorData returns the hex encoded revert reason.
+func (e *revertError) ErrorData() interface{} {
+	return e.reason
 }
 
 type revertError struct {
