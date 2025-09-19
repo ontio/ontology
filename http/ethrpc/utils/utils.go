@@ -146,11 +146,11 @@ func FormatBlock(block types.Block, gasLimit uint64, gasUsed *big.Int, transacti
 		"receiptsRoot":     types2.EmptyRootHash,
 	}
 	if !reflect.ValueOf(transactions).IsNil() {
-		switch transactions.(type) {
+		switch val := transactions.(type) {
 		case []common.Hash:
-			ret["transactions"] = transactions.([]common.Hash)
+			ret["transactions"] = val
 		case []*types3.Transaction:
-			ret["transactions"] = transactions.([]*types3.Transaction)
+			ret["transactions"] = val
 		}
 	} else {
 		ret["transactions"] = []common.Hash{}
