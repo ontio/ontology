@@ -82,6 +82,9 @@ var senderLimitor = func() map[common.Address]bool {
 		"AYn9spXyNG8hy2hSNJktLR5LesQY97vXN7",
 		"ATZRhpQymY2CZXonv7h3KqptQWAbc9PhXe",
 		"AUi6qQQe1R2ka5mG2RdY1EMWty3BnJWtL7",
+		"AXdrVzbRNB3hzwDxJ96RTS1ffQUioXnzQH",
+		"AcYxppXNsU29emhKxLFPbca3Y9Dw3PMc3g",
+		"AQriGebaDug1NmK96msmxiYtKTvgNJmMQg",
 	}
 
 	limitMap := make(map[common.Address]bool)
