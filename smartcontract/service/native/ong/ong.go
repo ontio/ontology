@@ -65,6 +65,10 @@ func RegisterOngContract(native *native.NativeService) {
 		native.Register(ont.DECIMALS_V2_NAME, OngDecimalsV2)
 		native.Register(ont.TOTAL_SUPPLY_V2_NAME, OngTotalSupplyV2)
 	}
+
+	if native.Height >= config.GetBurnONGHeight() {
+		native.Register("burnOng", OngBurn20Percent)
+	}
 }
 
 func OngInit(native *native.NativeService) ([]byte, error) {
@@ -216,11 +220,58 @@ func OngSymbol(native *native.NativeService) ([]byte, error) {
 }
 
 func OngTotalSupply(native *native.NativeService) ([]byte, error) {
-	return common.BigIntToNeoBytes(big.NewInt(constants.ONG_TOTAL_SUPPLY)), nil
+	amount, err := getTotalSupply(native)
+	if err != nil {
+		return utils.BYTE_FALSE, err
+	}
+	return common.BigIntToNeoBytes(amount.ToInteger().BigInt()), nil
 }
 
 func OngTotalSupplyV2(native *native.NativeService) ([]byte, error) {
-	return common.BigIntToNeoBytes(constants.ONG_TOTAL_SUPPLY_V2.BigInt()), nil
+	amount, err := getTotalSupply(native)
+	if err != nil {
+		return utils.BYTE_FALSE, err
+	}
+	return common.BigIntToNeoBytes(amount.ToBigInt()), nil
+}
+
+func getTotalSupply(native *native.NativeService) (states.NativeTokenBalance, error) {
+	contract := native.ContextRef.CurrentContext().ContractAddress
+	amount, err := utils.GetNativeTokenBalance(native.CacheDB, ont.GenTotalSupplyKey(contract))
+	if err != nil {
+		return states.NativeTokenBalance{}, err
+	}
+	return amount, nil
+}
+
+func OngBurn20Percent(native *native.NativeService) ([]byte, error) {
+	contract := native.ContextRef.CurrentContext().ContractAddress
+	totalSupply, err := getTotalSupply(native)
+	if err != nil {
+		return utils.BYTE_FALSE, err
+	}
+	if totalSupply.ToBigInt().Cmp(constants.ONG_TOTAL_SUPPLY_V2.BigInt()) != 0 {
+		return utils.BYTE_FALSE, errors.NewErr("already burned")
+	}
+
+	item := utils.GenUInt64StorageItem(constants.ONG_TOTAL_SUPPLY_NEW)
+	native.CacheDB.Put(ont.GenTotalSupplyKey(contract), item.ToArray())
+
+	amount, err := utils.GetNativeTokenBalance(native.CacheDB, ont.GenBalanceKey(contract, utils.OntContractAddress))
+	if err != nil {
+		return utils.BYTE_FALSE, err
+	}
+
+	burnAmount := constants.ONG_TOTAL_SUPPLY - constants.ONG_TOTAL_SUPPLY_NEW
+	amount, err = amount.Sub(states.NativeTokenBalanceFromInteger(uint64(burnAmount)))
+	if err != nil {
+		return utils.BYTE_FALSE, err
+	}
+	native.CacheDB.Put(ont.GenBalanceKey(contract, utils.OntContractAddress), amount.MustToStorageItemBytes())
+	state := &ont.TransferState{From: utils.OntContractAddress, Value: uint64(burnAmount)}
+	ont.AddTransferNotifications(native, contract, state.ToV2())
+
+	return utils.BYTE_TRUE, nil
 }
 
 func OngBalanceOf(native *native.NativeService) ([]byte, error) {

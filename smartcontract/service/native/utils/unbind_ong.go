@@ -69,14 +69,12 @@ func CalcGovernanceUnbindOng(startOffset, endOffset uint32) uint64 {
 	if startOffset >= endOffset {
 		return 0
 	}
-	deadline, _ := config.GetGovUnboundDeadline()
-	var gap uint64 = 0
+	deadline := config.GetGovUnboundDeadline()
 	if startOffset < deadline {
 		ustart := startOffset / TIME_INTERVAL
 		istart := startOffset % TIME_INTERVAL
 		if endOffset > deadline {
 			endOffset = deadline
-			_, gap = config.GetGovUnboundDeadline()
 		}
 		uend := endOffset / TIME_INTERVAL
 		iend := endOffset % TIME_INTERVAL
@@ -86,7 +84,6 @@ func CalcGovernanceUnbindOng(startOffset, endOffset uint32) uint64 {
 			istart = 0
 		}
 		amount += uint64(iend-istart) * NEW_GENERATION_AMOUNT[ustart]
-		amount += gap
 	}
 
 	return uint64(amount) * constants.ONT_TOTAL_SUPPLY

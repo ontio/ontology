@@ -58,14 +58,14 @@ func TestCumulative(t *testing.T) {
 
 // test 1 balance will not get ONT_TOTAL_SUPPLY eventually
 func TestTotalONG(t *testing.T) {
-	total := CalcUnbindOng(constants.ONT_TOTAL_SUPPLY, 0, TIME_INTERVAL*18) + CalcGovernanceUnbindOng(0, TIME_INTERVAL*18)
-	assert.Equal(t, total, uint64(constants.ONG_TOTAL_SUPPLY))
+	total := CalcUnbindOng(constants.ONT_TOTAL_SUPPLY, 0, TIME_INTERVAL*19) + CalcGovernanceUnbindOng(0, TIME_INTERVAL*19)
+	assert.Equal(t, total, uint64(constants.ONG_TOTAL_SUPPLY_NEW))
 
 	total = CalcUnbindOng(constants.ONT_TOTAL_SUPPLY, 0, TIME_INTERVAL*108) + CalcGovernanceUnbindOng(0, TIME_INTERVAL*108)
-	assert.Equal(t, total, uint64(constants.ONG_TOTAL_SUPPLY))
+	assert.Equal(t, total, uint64(constants.ONG_TOTAL_SUPPLY_NEW))
 
 	total = CalcUnbindOng(constants.ONT_TOTAL_SUPPLY, 0, ^uint32(0)) + CalcGovernanceUnbindOng(0, ^uint32(0))
-	assert.Equal(t, total, uint64(constants.ONG_TOTAL_SUPPLY))
+	assert.Equal(t, total, uint64(constants.ONG_TOTAL_SUPPLY_NEW))
 }
 
 func TestCalcGovernanceUnbindOng(t *testing.T) {

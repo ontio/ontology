@@ -261,6 +261,17 @@ func GetUserFeeSplitHeight() uint32 {
 	}
 }
 
+func GetBurnONGHeight() uint32 {
+	switch DefConfig.P2PNode.NetworkId {
+	case NETWORK_ID_MAIN_NET:
+		return constants.BLOCKHEIGHT_BURN_ONG_MAINNET
+	case NETWORK_ID_POLARIS_NET:
+		return 0
+	default:
+		return 0
+	}
+}
+
 func GetAddDecimalsHeight() uint32 {
 	switch DefConfig.P2PNode.NetworkId {
 	case NETWORK_ID_MAIN_NET:
@@ -291,7 +302,7 @@ func GetCheckHeaderSigQuorumHeight() uint32 {
 }
 
 // the end of unbound timestamp offset from genesis block's timestamp
-func GetGovUnboundDeadline() (uint32, uint64) {
+func GetGovUnboundDeadline() uint32 {
 	count := uint64(0)
 	index := int(GetOntHolderUnboundDeadline() / constants.UNBOUND_TIME_INTERVAL)
 	for i := 0; i < index; i++ {
@@ -307,13 +318,12 @@ func GetGovUnboundDeadline() (uint32, uint64) {
 
 	numInterval := len(constants.NEW_UNBOUND_GENERATION_AMOUNT)
 
-	if constants.NEW_UNBOUND_GENERATION_AMOUNT[numInterval-1] != 3 ||
-		!(count-3*uint64(constants.UNBOUND_TIME_INTERVAL) < constants.ONT_TOTAL_SUPPLY && constants.ONT_TOTAL_SUPPLY <= count) {
-		panic("incompatible constants setting")
+	if constants.NEW_UNBOUND_GENERATION_AMOUNT[numInterval-1] != 1 ||
+		!(count-uint64(constants.UNBOUND_TIME_INTERVAL) < constants.ONG_TOTAL_AMOUNT_NEW && constants.ONG_TOTAL_AMOUNT_NEW <= count) {
+		panic(fmt.Errorf("incompatible constants setting: %d", count))
 	}
 
-	return constants.UNBOUND_TIME_INTERVAL*uint32(numInterval) - uint32(count-uint64(constants.ONT_TOTAL_SUPPLY))/3 - 1,
-		uint64(3 - (count-uint64(constants.ONT_TOTAL_SUPPLY))%3)
+	return constants.UNBOUND_TIME_INTERVAL*uint32(numInterval) - uint32(count-uint64(constants.ONG_TOTAL_AMOUNT_NEW))
 }
 
 func GetNetworkName(id uint32) string {
