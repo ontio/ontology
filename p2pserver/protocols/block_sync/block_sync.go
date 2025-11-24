@@ -51,7 +51,7 @@ const (
 	SYNC_MAX_HEIGHT_OFFSET       = 5               //Offset of the max height and current height
 )
 
-//NodeWeight record some params of node, using for sort
+// NodeWeight record some params of node, using for sort
 type NodeWeight struct {
 	id           p2pComm.PeerId //NodeID
 	timeoutCnt   int64          //Node response timeout count
@@ -62,7 +62,7 @@ type NodeWeight struct {
 	reqTime []int64   //Record request time, using for calc the avg req time interval, unit millisecond
 }
 
-//NewNodeWeight new a nodeweight
+// NewNodeWeight new a nodeweight
 func NewNodeWeight(id p2pComm.PeerId) *NodeWeight {
 	s := make([]float32, 0, SYNC_NODE_RECORD_SPEED_CNT)
 	for i := 0; i < SYNC_NODE_RECORD_SPEED_CNT; i++ {
@@ -82,22 +82,22 @@ func NewNodeWeight(id p2pComm.PeerId) *NodeWeight {
 	}
 }
 
-//AddTimeoutCnt incre timeout count
+// AddTimeoutCnt incre timeout count
 func (this *NodeWeight) AddTimeoutCnt() {
 	atomic.AddInt64(&this.timeoutCnt, 1)
 }
 
-//AddErrorRespCnt incre receive error header/block count
+// AddErrorRespCnt incre receive error header/block count
 func (this *NodeWeight) AddErrorRespCnt() {
 	atomic.AddInt64(&this.errorRespCnt, 1)
 }
 
-//GetErrorRespCnt get the error response count
+// GetErrorRespCnt get the error response count
 func (this *NodeWeight) GetErrorRespCnt() int64 {
 	return atomic.LoadInt64(&this.errorRespCnt)
 }
 
-//AppendNewReqTime append new request time
+// AppendNewReqTime append new request time
 func (this *NodeWeight) AppendNewReqtime() {
 	this.lock.Lock()
 	defer this.lock.Unlock()
@@ -105,7 +105,7 @@ func (this *NodeWeight) AppendNewReqtime() {
 	this.reqTime[SYNC_NODE_RECORD_TIME_CNT-1] = time.Now().UnixNano() / int64(time.Millisecond)
 }
 
-//addNewSpeed apend the new speed to tail, remove the oldest one
+// addNewSpeed apend the new speed to tail, remove the oldest one
 func (this *NodeWeight) AppendNewSpeed(s float32) {
 	this.lock.Lock()
 	defer this.lock.Unlock()
@@ -113,7 +113,7 @@ func (this *NodeWeight) AppendNewSpeed(s float32) {
 	this.speed[SYNC_NODE_RECORD_SPEED_CNT-1] = s
 }
 
-//Weight calculate node's weight for sort. Highest weight node will be accessed first for next request.
+// Weight calculate node's weight for sort. Highest weight node will be accessed first for next request.
 func (this *NodeWeight) Weight() float32 {
 	this.lock.Lock()
 	defer this.lock.Unlock()
@@ -134,7 +134,7 @@ func (this *NodeWeight) Weight() float32 {
 	return w
 }
 
-//NodeWeights implement sorting
+// NodeWeights implement sorting
 type NodeWeights []*NodeWeight
 
 func (nws NodeWeights) Len() int {
@@ -154,7 +154,7 @@ func (nws NodeWeights) Less(i, j int) bool {
 	return ni.Weight() < nj.Weight() && ei >= ej && ti >= tj
 }
 
-//SyncFlightInfo record the info of fight object(header or block)
+// SyncFlightInfo record the info of fight object(header or block)
 type SyncFlightInfo struct {
 	Height      uint32                 //BlockHeight of HeaderHeight
 	nodeId      p2pComm.PeerId         //The current node to send msg
@@ -164,7 +164,7 @@ type SyncFlightInfo struct {
 	lock        sync.RWMutex
 }
 
-//NewSyncFlightInfo return a new SyncFlightInfo instance
+// NewSyncFlightInfo return a new SyncFlightInfo instance
 func NewSyncFlightInfo(height uint32, nodeId p2pComm.PeerId) *SyncFlightInfo {
 	return &SyncFlightInfo{
 		Height:      height,
@@ -174,21 +174,21 @@ func NewSyncFlightInfo(height uint32, nodeId p2pComm.PeerId) *SyncFlightInfo {
 	}
 }
 
-//GetNodeId return current node id for sending msg
+// GetNodeId return current node id for sending msg
 func (this *SyncFlightInfo) GetNodeId() p2pComm.PeerId {
 	this.lock.RLock()
 	defer this.lock.RUnlock()
 	return this.nodeId
 }
 
-//SetNodeId set a new node id
+// SetNodeId set a new node id
 func (this *SyncFlightInfo) SetNodeId(nodeId p2pComm.PeerId) {
 	this.lock.Lock()
 	defer this.lock.Unlock()
 	this.nodeId = nodeId
 }
 
-//MarkFailedNode mark node failed, after request timeout
+// MarkFailedNode mark node failed, after request timeout
 func (this *SyncFlightInfo) MarkFailedNode() {
 	this.lock.Lock()
 	defer this.lock.Unlock()
@@ -196,7 +196,7 @@ func (this *SyncFlightInfo) MarkFailedNode() {
 	this.totalFailed++
 }
 
-//GetFailedTimes return failed times of a node
+// GetFailedTimes return failed times of a node
 func (this *SyncFlightInfo) GetFailedTimes(nodeId p2pComm.PeerId) int {
 	this.lock.RLock()
 	defer this.lock.RUnlock()
@@ -207,28 +207,28 @@ func (this *SyncFlightInfo) GetFailedTimes(nodeId p2pComm.PeerId) int {
 	return times
 }
 
-//GetTotalFailedTimes return the total failed times of request
+// GetTotalFailedTimes return the total failed times of request
 func (this *SyncFlightInfo) GetTotalFailedTimes() int {
 	this.lock.RLock()
 	defer this.lock.RUnlock()
 	return this.totalFailed
 }
 
-//ResetStartTime
+// ResetStartTime
 func (this *SyncFlightInfo) ResetStartTime() {
 	this.lock.Lock()
 	defer this.lock.Unlock()
 	this.startTime = time.Now().UnixNano()
 }
 
-//GetStartTime return the start time of request
+// GetStartTime return the start time of request
 func (this *SyncFlightInfo) GetStartTime() int64 {
 	this.lock.RLock()
 	defer this.lock.RUnlock()
 	return this.startTime
 }
 
-//BlockInfo is used for saving block information in cache
+// BlockInfo is used for saving block information in cache
 type BlockInfo struct {
 	nodeID        p2pComm.PeerId
 	block         *types.Block
@@ -236,7 +236,7 @@ type BlockInfo struct {
 	merkleRoot    common.Uint256
 }
 
-//BlockSyncMgr is the manager class to deal with block sync
+// BlockSyncMgr is the manager class to deal with block sync
 type BlockSyncMgr struct {
 	flightBlocks   map[common.Uint256][]*SyncFlightInfo //Map BlockHash => []SyncFlightInfo, using for manager all of those block flights
 	flightHeaders  map[uint32]*SyncFlightInfo           //Map HeaderHeight => SyncFlightInfo, using for manager all of those header flights
@@ -251,7 +251,7 @@ type BlockSyncMgr struct {
 	nodeWeights    map[p2pComm.PeerId]*NodeWeight       //Map NodeID => NodeStatus, using for getNextNode
 }
 
-//NewBlockSyncMgr return a BlockSyncMgr instance
+// NewBlockSyncMgr return a BlockSyncMgr instance
 func NewBlockSyncMgr(server p2p.P2P, ld *ledger.Ledger) *BlockSyncMgr {
 	return &BlockSyncMgr{
 		flightBlocks:  make(map[common.Uint256][]*SyncFlightInfo),
@@ -339,7 +339,7 @@ func (this *BlockSyncMgr) getNonEmptyBlockCount() int {
 	return this.blocksCache.getNonEmptyBlockCount()
 }
 
-//Start to sync
+// Start to sync
 func (this *BlockSyncMgr) Start() {
 	go this.sync()
 	ticker := time.NewTicker(time.Second)
@@ -550,11 +550,17 @@ func (this *BlockSyncMgr) syncBlock() {
 	}
 }
 
-//OnHeaderReceive receive header from net
+// OnHeaderReceive receive header from net
 func (this *BlockSyncMgr) OnHeaderReceive(fromID p2pComm.PeerId, headers []*types.Header) {
 	if len(headers) == 0 {
 		return
 	}
+
+	// fix legacy header sigs, remove at next version
+	for _, header := range headers {
+		header.RemoveDuplSigs()
+	}
+
 	log.Infof("Header receive height:%d - %d", headers[0].Height, headers[len(headers)-1].Height)
 	height := headers[0].Height
 	curHeaderHeight := this.ledger.GetCurrentHeaderHeight()
@@ -615,6 +621,10 @@ func (this *BlockSyncMgr) OnHeaderReceive(fromID p2pComm.PeerId, headers []*type
 // OnBlockReceive receive block from net
 func (this *BlockSyncMgr) OnBlockReceive(fromID p2pComm.PeerId, blockSize uint32, block *types.Block, ccMsg *types.CrossChainMsg,
 	merkleRoot common.Uint256) {
+
+	// TODO: fix legacy header sigs, remove at next version
+	block.Header.RemoveDuplSigs()
+
 	height := block.Header.Height
 	blockHash := block.Hash()
 	log.Tracef("[block-sync] OnBlockReceive Height:%d", height)
@@ -641,7 +651,7 @@ func (this *BlockSyncMgr) OnBlockReceive(fromID p2pComm.PeerId, blockSize uint32
 	this.syncBlock()
 }
 
-//OnAddPeer to node list when a new node added
+// OnAddPeer to node list when a new node added
 func (this *BlockSyncMgr) OnAddNode(nodeId p2pComm.PeerId) {
 	log.Debugf("[block-sync] OnAddNode:%s", nodeId.ToHexString())
 	this.lock.Lock()
@@ -650,12 +660,12 @@ func (this *BlockSyncMgr) OnAddNode(nodeId p2pComm.PeerId) {
 	this.nodeWeights[nodeId] = w
 }
 
-//OnDelNode remove from node list. When the node disconnect
+// OnDelNode remove from node list. When the node disconnect
 func (this *BlockSyncMgr) OnDelNode(nodeId p2pComm.PeerId) {
 	this.delNode(nodeId)
 }
 
-//delNode remove from node list
+// delNode remove from node list
 func (this *BlockSyncMgr) delNode(nodeId p2pComm.PeerId) {
 	this.lock.Lock()
 	defer this.lock.Unlock()
@@ -933,19 +943,19 @@ func (this *BlockSyncMgr) getNodeWithMinFailedTimes(flightInfo *SyncFlightInfo, 
 	}
 }
 
-//Stop to sync
+// Stop to sync
 func (this *BlockSyncMgr) Stop() {
 	close(this.exitCh)
 }
 
-//getNodeWeight get nodeweight by id
+// getNodeWeight get nodeweight by id
 func (this *BlockSyncMgr) getNodeWeight(nodeId p2pComm.PeerId) *NodeWeight {
 	this.lock.RLock()
 	defer this.lock.RUnlock()
 	return this.nodeWeights[nodeId]
 }
 
-//getAllNodeWeights get all nodeweight and return a slice
+// getAllNodeWeights get all nodeweight and return a slice
 func (this *BlockSyncMgr) getAllNodeWeights() NodeWeights {
 	this.lock.RLock()
 	defer this.lock.RUnlock()
@@ -956,7 +966,7 @@ func (this *BlockSyncMgr) getAllNodeWeights() NodeWeights {
 	return weights
 }
 
-//addTimeoutCnt incre a node's timeout count
+// addTimeoutCnt incre a node's timeout count
 func (this *BlockSyncMgr) addTimeoutCnt(nodeId p2pComm.PeerId) {
 	n := this.getNodeWeight(nodeId)
 	if n != nil {
@@ -964,7 +974,7 @@ func (this *BlockSyncMgr) addTimeoutCnt(nodeId p2pComm.PeerId) {
 	}
 }
 
-//addErrorRespCnt incre a node's error resp count
+// addErrorRespCnt incre a node's error resp count
 func (this *BlockSyncMgr) addErrorRespCnt(nodeId p2pComm.PeerId) {
 	n := this.getNodeWeight(nodeId)
 	if n != nil {
@@ -972,7 +982,7 @@ func (this *BlockSyncMgr) addErrorRespCnt(nodeId p2pComm.PeerId) {
 	}
 }
 
-//appendReqTime append a node's request time
+// appendReqTime append a node's request time
 func (this *BlockSyncMgr) appendReqTime(nodeId p2pComm.PeerId) {
 	n := this.getNodeWeight(nodeId)
 	if n != nil {
@@ -980,7 +990,7 @@ func (this *BlockSyncMgr) appendReqTime(nodeId p2pComm.PeerId) {
 	}
 }
 
-//addNewSpeed apend the new speed to tail, remove the oldest one
+// addNewSpeed apend the new speed to tail, remove the oldest one
 func (this *BlockSyncMgr) addNewSpeed(nodeId p2pComm.PeerId, speed float32) {
 	n := this.getNodeWeight(nodeId)
 	if n != nil {
@@ -988,7 +998,7 @@ func (this *BlockSyncMgr) addNewSpeed(nodeId p2pComm.PeerId, speed float32) {
 	}
 }
 
-//pingOutsyncNodes send ping msg to lower height nodes for syncing
+// pingOutsyncNodes send ping msg to lower height nodes for syncing
 func (this *BlockSyncMgr) pingOutsyncNodes(curHeight uint32) {
 	peers := make([]*peer.Peer, 0)
 	this.lock.RLock()
@@ -1012,7 +1022,7 @@ func (this *BlockSyncMgr) pingOutsyncNodes(curHeight uint32) {
 	}
 }
 
-//Using polling for load balance
+// Using polling for load balance
 func getNextNodeId(nextNodeIndex int, nodeList []p2pComm.PeerId) (int, p2pComm.PeerId) {
 	num := len(nodeList)
 	if num == 0 {

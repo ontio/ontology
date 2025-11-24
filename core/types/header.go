@@ -26,6 +26,7 @@ import (
 
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/signature"
 )
 
@@ -296,6 +297,31 @@ func (bd *Header) ToArray() []byte {
 	sink := common.NewZeroCopySink(nil)
 	bd.Serialization(sink)
 	return sink.Bytes()
+}
+
+func (bd *Header) RemoveDuplSigs() {
+	if len(bd.Bookkeepers) != len(bd.SigData) {
+		log.Error("remove dupl sigs err, bookkeppers:%d, sigs:%d", len(bd.Bookkeepers), len(bd.SigData))
+		return
+	}
+
+	usedPubKeySig := make(map[string]bool)
+	var bookkeepers = make([]keypair.PublicKey, 0, len(bd.Bookkeepers))
+	var sigData = make([][]byte, 0, len(bd.SigData))
+	for index, sig := range bd.SigData {
+		pubkey := common.PubKeyToHex(bd.Bookkeepers[index])
+		key := pubkey + string(sig)
+		if usedPubKeySig[key] == false {
+			usedPubKeySig[key] = true
+			bookkeepers = append(bookkeepers, bd.Bookkeepers[index])
+			sigData = append(sigData, sig)
+		}
+	}
+	if len(bookkeepers) != len(bd.Bookkeepers) {
+		bd.Bookkeepers = bookkeepers
+		bd.SigData = sigData
+		bd.hash = nil
+	}
 }
 
 func (bd *Header) VerifyMultiSignature(pubs map[string]bool, allowDupl bool, m uint32) error {
