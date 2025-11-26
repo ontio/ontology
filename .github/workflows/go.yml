@@ -5,18 +5,66 @@ on:
   push:
     tags:
       - 'v*'
+env:
+  #PATH: "/usr/local/go/bin:${PATH}"
+  GO_VERSION: 1.22.5
+  GOLANG_ARCHIVE: go1.22.5.linux-amd64.tar.gz
+  ONTOLOGY_BINARY: ontology-linux-amd64
 
 jobs:
 
   build:
     runs-on: ubuntu-latest
+    # Specify the Docker container image
+    container:
+      image: ubuntu:18.04
     steps:
-    - uses: actions/checkout@v2
 
-    - name: Set up Go
-      uses: actions/setup-go@v2
-      with:
-        go-version: 1.22.5
+    - name: Manually Checkout Repository
+      env:
+        GIT_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        apt-get update
+        apt-get install -y git wget curl ca-certificates gnupg make build-essential zip unzip
+        curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | gpg --dearmor -o /usr/share/keyrings/githubcli-archive-keyring.gpg
+        echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | tee /etc/apt/sources.list.d/github-cli.list > /dev/null
+        apt-get update
+        apt-get install -y gh
+        gh --version
+        # <U+1F4A5> CRITICAL FIX STEP <U+1F4A5>
+        #
+        # $GITHUB_WORKSPACE is the path where the repository is checked out
+        git config --global --add safe.directory "$GITHUB_WORKSPACE"
+        mkdir -p $GITHUB_WORKSPACE # Ensure the directory exists
+        cd $GITHUB_WORKSPACE
+        # Use the built-in GITHUB_TOKEN for cloning
+        REPO_URL="https://${{ github.actor }}:${{ env.GIT_TOKEN }}@github.com/${{ github.repository }}"
+        git clone "$REPO_URL" .
+        git checkout $GITHUB_SHA
+
+        wget https://golang.org/dl/${GOLANG_ARCHIVE} -O /tmp/${GOLANG_ARCHIVE}
+        tar -C /usr/local -xzf /tmp/${GOLANG_ARCHIVE}
+        rm /tmp/${GOLANG_ARCHIVE}
+
+    - name: Verify Go Path and Set GITHUB_PATH
+      run: |
+        # Check if the executable exists at the expected path
+        if [ -f "/usr/local/go/bin/go" ]; then
+          # If it exists, add the correct path
+          echo "/usr/local/go/bin" >> $GITHUB_PATH
+          echo "Successfully added /usr/local/go/bin to PATH"
+        else
+          # Exit with an error if Go is not found
+          echo "::error::Go executable not found at /usr/local/go/bin/go"
+          exit 1
+        fi
+    - name: Test Go Command
+      run: |
+        go version
+        go mod tidy
+        # change to make
+        #go build -o ontology
+        #make
 
     - name: command
       run: bash ./.gha.script.bash
@@ -24,30 +72,46 @@ jobs:
     - name: command
       run: bash ./.gha.deploy.bash
 
-    - name: Create Release
-      id: create_release
-      uses: actions/create-release@latest
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # This token is provided by Actions, you do not need to create your own token
-      with:
-        tag_name: ${{ github.ref }}
-        release_name: Release ${{ github.ref }}
-        body: |
-          Change Log
-          - tracking destroyed contract
-          - add wasm debug info
-        draft: false
-        prerelease: false
+    - name: Build Artifact and Generate Checksum
+      # Assuming you have Go set up here. Replace with your actual build commands.
+      run: |
 
-    - name: Release with attachment
-      uses: softprops/action-gh-release@v1
-      if: startsWith(github.ref, 'refs/tags/')
-      with:
-        files: |
-          ontology-linux-amd64
-          tool-linux.zip
+        # 3. Calculate the SHA256 checksum and save it to a separate file
+        CHECKSUM_FILE="SHA256SUMS.txt"
+        sha256sum ${ONTOLOGY_BINARY} > $CHECKSUM_FILE
+
+        echo "Created binary: ${ONTOLOGY_BINARY}"
+        echo "Created checksum file: $CHECKSUM_FILE"
+    - name: Create Release using gh CLI and Attach Assets
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        TAG_NAME: ${{ github.ref_name }}
+        ARCHIVE_NAME: "ontology-linux-amd64"
+        CHECKSUM_FILE: "SHA256SUMS.txt"
+      run: |
+        # Read the checksum content for the release body
+        CHECKSUM_CONTENT=$(cat $CHECKSUM_FILE)
+
+        # Define the body of the release to include the checksum
+        RELEASE_BODY=$(cat <<EOF
+        ## Automated Release ${{ env.TAG_NAME }}
+
+        This release includes the compiled Linux AMD64 binary.
+
+        ### Checksum (SHA256)
+        \`\`\`
+        $CHECKSUM_CONTENT
+        \`\`\`
+        EOF
+        )
+
+        # Create the release and attach BOTH the binary and the checksum file
+        gh release create ${{ env.TAG_NAME }} \
+          --title "Release ${{ env.TAG_NAME }}" \
+          --notes "$RELEASE_BODY" \
+          --repo ${{ github.repository }} \
+          "$ARCHIVE_NAME" \
+          "$CHECKSUM_FILE"
 
   build-macos:
     # after build ok, we patch macos version binary
