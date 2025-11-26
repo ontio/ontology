@@ -19,6 +19,7 @@ package native
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"math/big"
 	"sync/atomic"
 
@@ -284,6 +285,11 @@ func (t *prestateTracer) lookupAccount(addr common.Address) {
 		Code:    t.env.StateDB.GetCode(addr),
 		Storage: make(map[common.Hash]common.Hash),
 	}
+}
+
+func (t *prestateTracer) PrintAccount(addr common.Address, msg string) {
+	val, _ := json.MarshalIndent(t.pre[addr], "", "  ")
+	fmt.Println("lookupAccount", msg, addr, string(val))
 }
 
 // lookupStorage fetches the requested storage slot and adds

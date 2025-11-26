@@ -274,11 +274,11 @@ func TestGovernanceUnbound(t *testing.T) {
 		setOntBalance(native.CacheDB, testAddr, constants.ONT_TOTAL_SUPPLY)
 		setOngBalance(native.CacheDB, utils.OntContractAddress, constants.ONG_TOTAL_SUPPLY)
 
-		native.Time = constants.GENESIS_BLOCK_TIMESTAMP + 18*constants.UNBOUND_TIME_INTERVAL
+		native.Time = constants.GENESIS_BLOCK_TIMESTAMP + 20*constants.UNBOUND_TIME_INTERVAL
 
 		assert.Nil(t, ontTransfer(native, testAddr, testAddr, 1))
 		assert.Nil(t, unboundGovernanceOng(native))
-		assert.EqualValues(t, ongBalanceOf(native, gov)+ongBalanceOf(native, testAddr), constants.ONG_TOTAL_SUPPLY)
+		assert.EqualValues(t, ongBalanceOf(native, gov)+ongBalanceOf(native, testAddr), constants.ONG_TOTAL_SUPPLY_NEW)
 
 		return nil, nil
 	})
@@ -289,11 +289,11 @@ func TestGovernanceUnbound(t *testing.T) {
 		setOntBalance(native.CacheDB, testAddr, constants.ONT_TOTAL_SUPPLY)
 		setOngBalance(native.CacheDB, utils.OntContractAddress, constants.ONG_TOTAL_SUPPLY)
 
-		native.Time = constants.GENESIS_BLOCK_TIMESTAMP + 18*constants.UNBOUND_TIME_INTERVAL
+		native.Time = constants.GENESIS_BLOCK_TIMESTAMP + 20*constants.UNBOUND_TIME_INTERVAL
 
 		assert.Nil(t, unboundGovernanceOng(native))
 		assert.Nil(t, ontTransfer(native, testAddr, testAddr, 1))
-		assert.EqualValues(t, ongBalanceOf(native, gov)+ongBalanceOf(native, testAddr), constants.ONG_TOTAL_SUPPLY)
+		assert.EqualValues(t, ongBalanceOf(native, gov)+ongBalanceOf(native, testAddr), constants.ONG_TOTAL_SUPPLY_NEW)
 
 		return nil, nil
 	})
@@ -311,11 +311,11 @@ func TestGovernanceUnbound(t *testing.T) {
 		native.Time = config.GetOntHolderUnboundDeadline() - 100
 		assert.Nil(t, ontTransfer(native, testAddr, testAddr, 1))
 
-		native.Time = constants.GENESIS_BLOCK_TIMESTAMP + 18*constants.UNBOUND_TIME_INTERVAL
+		native.Time = constants.GENESIS_BLOCK_TIMESTAMP + 20*constants.UNBOUND_TIME_INTERVAL
 
 		assert.Nil(t, unboundGovernanceOng(native))
 		assert.Nil(t, ontTransfer(native, testAddr, testAddr, 1))
-		assert.EqualValues(t, ongBalanceOf(native, gov)+ongBalanceOf(native, testAddr), constants.ONG_TOTAL_SUPPLY)
+		assert.EqualValues(t, ongBalanceOf(native, gov)+ongBalanceOf(native, testAddr), constants.ONG_TOTAL_SUPPLY_NEW)
 
 		return nil, nil
 	})
@@ -373,6 +373,8 @@ func TestTotalAllowanceV2(t *testing.T) {
 	})
 }
 
+const ONG_TOTAL_SUPPLY_V2_STR = "800000000000000000000000000"
+
 func TestGovernanceUnboundV2(t *testing.T) {
 	InvokeNativeContract(t, utils.OntContractAddress, func(native *native.NativeService) ([]byte, error) {
 		testAddr, _ := common.AddressParseFromBytes([]byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF})
@@ -398,11 +400,11 @@ func TestGovernanceUnboundV2(t *testing.T) {
 		setOntBalance(native.CacheDB, testAddr, constants.ONT_TOTAL_SUPPLY)
 		setOngBalance(native.CacheDB, utils.OntContractAddress, constants.ONG_TOTAL_SUPPLY)
 
-		native.Time = constants.GENESIS_BLOCK_TIMESTAMP + 18*constants.UNBOUND_TIME_INTERVAL
+		native.Time = constants.GENESIS_BLOCK_TIMESTAMP + 20*constants.UNBOUND_TIME_INTERVAL
 
 		assert.Nil(t, ontTransferV2(native, testAddr, testAddr, 1))
 		assert.Nil(t, unboundGovernanceOng(native))
-		assert.EqualValues(t, ongBalanceOfV2(native, gov).Add(ongBalanceOfV2(native, testAddr)).String(), constants.ONG_TOTAL_SUPPLY_V2.String())
+		assert.EqualValues(t, ongBalanceOfV2(native, gov).Add(ongBalanceOfV2(native, testAddr)).String(), ONG_TOTAL_SUPPLY_V2_STR)
 
 		return nil, nil
 	})
@@ -413,11 +415,11 @@ func TestGovernanceUnboundV2(t *testing.T) {
 		setOntBalance(native.CacheDB, testAddr, constants.ONT_TOTAL_SUPPLY)
 		setOngBalance(native.CacheDB, utils.OntContractAddress, constants.ONG_TOTAL_SUPPLY)
 
-		native.Time = constants.GENESIS_BLOCK_TIMESTAMP + 18*constants.UNBOUND_TIME_INTERVAL
+		native.Time = constants.GENESIS_BLOCK_TIMESTAMP + 20*constants.UNBOUND_TIME_INTERVAL
 
 		assert.Nil(t, unboundGovernanceOng(native))
 		assert.Nil(t, ontTransferV2(native, testAddr, testAddr, 1))
-		assert.EqualValues(t, ongBalanceOfV2(native, gov).Add(ongBalanceOfV2(native, testAddr)).String(), constants.ONG_TOTAL_SUPPLY_V2.String())
+		assert.EqualValues(t, ongBalanceOfV2(native, gov).Add(ongBalanceOfV2(native, testAddr)).String(), ONG_TOTAL_SUPPLY_V2_STR)
 
 		return nil, nil
 	})
@@ -435,11 +437,11 @@ func TestGovernanceUnboundV2(t *testing.T) {
 		native.Time = config.GetOntHolderUnboundDeadline() - 100
 		assert.Nil(t, ontTransferV2(native, testAddr, testAddr, 1))
 
-		native.Time = constants.GENESIS_BLOCK_TIMESTAMP + 18*constants.UNBOUND_TIME_INTERVAL
+		native.Time = constants.GENESIS_BLOCK_TIMESTAMP + 20*constants.UNBOUND_TIME_INTERVAL
 
 		assert.Nil(t, unboundGovernanceOng(native))
 		assert.Nil(t, ontTransferV2(native, testAddr, testAddr, 1))
-		assert.EqualValues(t, ongBalanceOfV2(native, gov).Add(ongBalanceOfV2(native, testAddr)).String(), constants.ONG_TOTAL_SUPPLY_V2.String())
+		assert.EqualValues(t, ongBalanceOfV2(native, gov).Add(ongBalanceOfV2(native, testAddr)).String(), ONG_TOTAL_SUPPLY_V2_STR)
 
 		return nil, nil
 	})

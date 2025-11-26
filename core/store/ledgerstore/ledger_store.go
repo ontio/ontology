@@ -1362,7 +1362,7 @@ func (this *LedgerStoreImp) PreExecuteContract(tx *types.Transaction) (*store.Pr
 }
 
 func (this *LedgerStoreImp) TraceEip155Tx(msg types3.Message, tracer evm2.Tracer, stateOveride func(statedb *storage.StateDB) error) (*types5.ExecutionResult, error) {
-	return this.executeEip155Tx(msg, evm2.Config{Debug: true, Tracer: tracer}, stateOveride)
+	return this.executeEip155Tx(msg, evm2.Config{Tracer: tracer}, stateOveride)
 }
 
 func (this *LedgerStoreImp) PreExecuteEip155Tx(msg types3.Message) (*types5.ExecutionResult, error) {

@@ -29,7 +29,6 @@ import (
 
 // Config are the configuration options for the Interpreter
 type Config struct {
-	Debug                   bool   // Enables debugging
 	Tracer                  Tracer // Opcode logger
 	NoRecursion             bool   // Disables call, callcode, delegate call and create
 	EnablePreimageRecording bool   // Enables recording of SHA3/keccak preimages
@@ -193,7 +192,7 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 	}()
 	contract.Input = input
 
-	if in.cfg.Debug {
+	if in.cfg.Tracer != nil {
 		defer func() {
 			if err != nil {
 				if !logged {
@@ -214,7 +213,7 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 		if steps%1000 == 0 && atomic.LoadInt32(&in.evm.abort) != 0 {
 			break
 		}
-		if in.cfg.Debug {
+		if in.cfg.Tracer != nil {
 			// Capture pre-execution values for tracing.
 			logged, pcCopy, gasCopy = false, pc, contract.Gas
 		}
@@ -280,7 +279,7 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 			mem.Resize(memorySize)
 		}
 
-		if in.cfg.Debug {
+		if in.cfg.Tracer != nil {
 			in.cfg.Tracer.CaptureState(pc, op, gasCopy, cost, callContext.ScopeContext(), in.returnData, in.evm.depth, err)
 			logged = true
 		}

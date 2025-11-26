@@ -202,7 +202,7 @@ func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, gas 
 	if !evm.StateDB.Exist(addr) {
 		if !isPrecompile && evm.chainRules.IsEIP158 && value.Sign() == 0 {
 			// Calling a non-existing account, don't do anything, but ping the tracer
-			if evm.VmConfig.Debug {
+			if evm.VmConfig.Tracer != nil {
 				if evm.depth == 0 {
 					evm.VmConfig.Tracer.CaptureStart(evm, caller.Address(), addr, false, input, gas, value)
 					evm.VmConfig.Tracer.CaptureEnd(ret, 0, nil)
@@ -218,7 +218,7 @@ func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, gas 
 	evm.Context.Transfer(evm.StateDB, caller.Address(), addr, value)
 
 	// Capture the tracer start/end events in debug mode
-	if evm.VmConfig.Debug {
+	if evm.VmConfig.Tracer != nil {
 		if evm.depth == 0 {
 			evm.VmConfig.Tracer.CaptureStart(evm, caller.Address(), addr, false, input, gas, value)
 			defer func(startGas uint64, startTime time.Time) { // Lazy evaluation of the parameters
@@ -290,7 +290,7 @@ func (evm *EVM) CallCode(caller ContractRef, addr common.Address, input []byte, 
 	var snapshot = evm.StateDB.Snapshot()
 
 	// Invoke tracer hooks that signal entering/exiting a call frame
-	if evm.VmConfig.Debug {
+	if evm.VmConfig.Tracer != nil {
 		evm.VmConfig.Tracer.CaptureEnter(CALLCODE, caller.Address(), addr, input, gas, value)
 		defer func(startGas uint64) {
 			evm.VmConfig.Tracer.CaptureExit(ret, startGas-gas, err)
@@ -336,8 +336,8 @@ func (evm *EVM) DelegateCall(caller ContractRef, addr common.Address, input []by
 	var snapshot = evm.StateDB.Snapshot()
 
 	// Invoke tracer hooks that signal entering/exiting a call frame
-	if evm.VmConfig.Debug {
-		evm.VmConfig.Tracer.CaptureEnter(DELEGATECALL, caller.Address(), addr, input, gas, nil)
+	if evm.VmConfig.Tracer != nil {
+		evm.VmConfig.Tracer.CaptureEnter(DELEGATECALL, caller.Address(), addr, input, gas, big.NewInt(0))
 		defer func(startGas uint64) {
 			evm.VmConfig.Tracer.CaptureExit(ret, startGas-gas, err)
 		}(gas)
@@ -391,7 +391,7 @@ func (evm *EVM) StaticCall(caller ContractRef, addr common.Address, input []byte
 	evm.StateDB.AddBalance(addr, big0)
 
 	// Invoke tracer hooks that signal entering/exiting a call frame
-	if evm.VmConfig.Debug {
+	if evm.VmConfig.Tracer != nil {
 		evm.VmConfig.Tracer.CaptureEnter(STATICCALL, caller.Address(), addr, input, gas, nil)
 		defer func(startGas uint64) {
 			evm.VmConfig.Tracer.CaptureExit(ret, startGas-gas, err)
@@ -472,7 +472,7 @@ func (evm *EVM) create(caller ContractRef, codeAndHash *codeAndHash, gas uint64,
 		return nil, address, gas, nil
 	}
 
-	if evm.VmConfig.Debug {
+	if evm.VmConfig.Tracer != nil {
 		if evm.depth == 0 {
 			evm.VmConfig.Tracer.CaptureStart(evm, caller.Address(), address, true, codeAndHash.code, gas, value)
 		} else {
@@ -512,7 +512,7 @@ func (evm *EVM) create(caller ContractRef, codeAndHash *codeAndHash, gas uint64,
 	if maxCodeSizeExceeded && err == nil {
 		err = errors.ErrMaxCodeSizeExceeded
 	}
-	if evm.VmConfig.Debug {
+	if evm.VmConfig.Tracer != nil {
 		if evm.depth == 0 {
 			evm.VmConfig.Tracer.CaptureEnd(ret, gas-contract.Gas, err)
 		} else {
