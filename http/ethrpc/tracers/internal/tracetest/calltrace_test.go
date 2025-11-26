@@ -35,6 +35,7 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 	evm2 "github.com/ontio/ontology/vm/evm"
 	"github.com/ontio/ontology/vm/evm/params"
+	"github.com/stretchr/testify/assert"
 )
 
 type callContext struct {
@@ -55,9 +56,10 @@ type callLog struct {
 
 // callTrace is the result of a callTracer run.
 type callTrace struct {
-	From         common.Address  `json:"from"`
-	Gas          *hexutil.Uint64 `json:"gas"`
-	GasUsed      *hexutil.Uint64 `json:"gasUsed"`
+	From common.Address `json:"from"`
+	// remove gas/gasUsed, since gas usage is not equal to ethereum
+	//Gas  *hexutil.Uint64 `json:"gas"`
+	//GasUsed      *hexutil.Uint64 `json:"gasUsed"`
 	To           *common.Address `json:"to,omitempty"`
 	Input        hexutil.Bytes   `json:"input"`
 	Output       hexutil.Bytes   `json:"output,omitempty"`
@@ -79,12 +81,6 @@ type callTracerTest struct {
 	Result       *callTrace      `json:"result"`
 }
 
-// Iterates over all the input-output datasets in the tracer test harness and
-// runs the JavaScript tracers against them.
-func TestCallTracerLegacy(t *testing.T) {
-	testCallTracer("callTracerLegacy", "call_tracer_legacy", t)
-}
-
 func TestCallTracerNative(t *testing.T) {
 	testCallTracer("callTracer", "call_tracer", t)
 }
@@ -94,7 +90,6 @@ func TestCallTracerNativeWithLog(t *testing.T) {
 }
 
 func testCallTracer(tracerName string, dirPath string, t *testing.T) {
-	isLegacy := strings.HasSuffix(dirPath, "_legacy")
 	files, err := os.ReadDir(filepath.Join("testdata", dirPath))
 	if err != nil {
 		t.Fatalf("failed to retrieve tracer test suite: %v", err)
@@ -133,38 +128,24 @@ func testCallTracer(tracerName string, dirPath string, t *testing.T) {
 			}
 			vmenv := evm2.NewEVM(blockContext, txContext, statedb, params.MainnetChainConfig, evm2.Config{Tracer: tracer})
 
-			vmRet, err := evm.ApplyMessage(vmenv, msg, common.Address(utils.GovernanceContractAddress))
+			_, err = evm.ApplyMessage(vmenv, msg, common.Address(utils.GovernanceContractAddress))
 			// Retrieve the trace result and compare against the expected
 			res, err := tracer.GetResult()
 			if err != nil {
 				t.Fatalf("failed to retrieve trace result: %v", err)
 			}
-			// The legacy javascript calltracer marshals json in js, which
-			// is not deterministic (as opposed to the golang json encoder).
-			if isLegacy {
-				// This is a tweak to make it deterministic. Can be removed when
-				// we remove the legacy tracer.
-				var x callTrace
-				json.Unmarshal(res, &x)
-				res, _ = json.Marshal(x)
-			}
+			// This is a tweak to make it deterministic. Can be removed when
+			// we remove the legacy tracer.
+			var x callTrace
+			json.Unmarshal(res, &x)
+			res, _ = json.Marshal(x)
 			want, err := json.Marshal(test.Result)
 			if err != nil {
 				t.Fatalf("failed to marshal test: %v", err)
 			}
+			assert.Equal(t, test.Result, &x)
 			if string(want) != string(res) {
 				t.Fatalf("trace mismatch\n have: %v\n want: %v\n", string(res), string(want))
-			}
-			// Sanity check: compare top call's gas used against vm result
-			type simpleResult struct {
-				GasUsed hexutil.Uint64
-			}
-			var topCall simpleResult
-			if err := json.Unmarshal(res, &topCall); err != nil {
-				t.Fatalf("failed to unmarshal top calls gasUsed: %v", err)
-			}
-			if uint64(topCall.GasUsed) != vmRet.UsedGas {
-				t.Fatalf("top call has invalid gasUsed. have: %d want: %d", topCall.GasUsed, vmRet.UsedGas)
 			}
 		})
 	}

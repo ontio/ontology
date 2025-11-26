@@ -385,7 +385,6 @@ func TestJumpSub1024Limit(t *testing.T) {
 		ChainConfig: params.AllEthashProtocolChanges,
 		EVMConfig: evm.Config{
 			ExtraEips: []int{2315},
-			Debug:     true,
 			Tracer:    &tracer,
 		}})
 	exp := "return stack limit reached"
@@ -420,7 +419,6 @@ func TestReturnSubShallow(t *testing.T) {
 		ChainConfig: params.AllEthashProtocolChanges,
 		EVMConfig: evm.Config{
 			ExtraEips: []int{2315},
-			Debug:     true,
 			Tracer:    &tracer,
 		}})
 
@@ -437,7 +435,6 @@ func TestReturnSubShallow(t *testing.T) {
 func DisabledTestReturnCases(t *testing.T) {
 	cfg := &Config{
 		EVMConfig: evm.Config{
-			Debug:     true,
 			ExtraEips: []int{2315},
 		},
 	}
@@ -479,7 +476,6 @@ func DisabledTestReturnCases(t *testing.T) {
 func DisabledTestEipExampleCases(t *testing.T) {
 	cfg := &Config{
 		EVMConfig: evm.Config{
-			Debug:     true,
 			Tracer:    nil,
 			ExtraEips: []int{2315},
 		},
@@ -763,7 +759,6 @@ func TestEip2929Cases(t *testing.T) {
 			code, ops)
 		Execute(code, nil, &Config{
 			EVMConfig: evm.Config{
-				Debug:     true,
 				ExtraEips: []int{2929},
 			},
 		})

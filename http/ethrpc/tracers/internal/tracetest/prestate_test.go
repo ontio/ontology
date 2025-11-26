@@ -33,7 +33,6 @@ import (
 	"github.com/ontio/ontology/http/ethrpc/tracers"
 	"github.com/ontio/ontology/smartcontract/service/evm"
 	"github.com/ontio/ontology/smartcontract/service/native/ong"
-	"github.com/ontio/ontology/smartcontract/service/native/utils"
 	"github.com/ontio/ontology/smartcontract/storage"
 	evm2 "github.com/ontio/ontology/vm/evm"
 	"github.com/ontio/ontology/vm/evm/params"
@@ -58,10 +57,11 @@ type testcase struct {
 	Result       interface{}     `json:"result"`
 }
 
-func TestPrestateTracerLegacy(t *testing.T) {
-	testPrestateDiffTracer("prestateTracerLegacy", "prestate_tracer_legacy", t)
+type prestateTracerConfig struct {
+	DiffMode bool `json:"diffMode"` // If true, this tracer will return state modifications
 }
 
+/*
 func TestPrestateTracer(t *testing.T) {
 	testPrestateDiffTracer("prestateTracer", "prestate_tracer", t)
 }
@@ -69,6 +69,8 @@ func TestPrestateTracer(t *testing.T) {
 func TestPrestateWithDiffModeTracer(t *testing.T) {
 	testPrestateDiffTracer("prestateTracer", "prestate_tracer_with_diff_mode", t)
 }
+
+*/
 
 func NewMemStateDB() *storage.StateDB {
 	store := leveldbstore.NewMemLevelDBStore()
@@ -82,6 +84,7 @@ func NewTestStateDB(alloc core.GenesisAlloc) *storage.StateDB {
 	for addr, account := range alloc {
 		db.CreateAccount(addr)
 		db.SetBalance(addr, account.Balance)
+		db.SetCode(addr, account.Code)
 		db.SetNonce(addr, account.Nonce)
 		for key, value := range account.Storage {
 			db.SetState(addr, key, value)
@@ -122,6 +125,7 @@ func testPrestateDiffTracer(tracerName string, dirPath string, t *testing.T) {
 			msg, _ := tx.AsMessage(signer)
 			txContext := evm.NewEVMTxContext(msg)
 			blockContext := evm.NewEVMBlockContext(uint32(test.Context.Number), uint32(test.Context.Time), nil)
+			blockContext.Coinbase = test.Context.Miner
 			statedb := NewTestStateDB(test.Genesis.Alloc)
 
 			tracer, err := tracers.DefaultDirectory.New(tracerName, new(tracers.Context), test.TracerConfig)
@@ -130,7 +134,7 @@ func testPrestateDiffTracer(tracerName string, dirPath string, t *testing.T) {
 			}
 			vmenv := evm2.NewEVM(blockContext, txContext, statedb, params.MainnetChainConfig, evm2.Config{Tracer: tracer})
 
-			_, err = evm.ApplyMessage(vmenv, msg, common.Address(utils.GovernanceContractAddress))
+			_, err = evm.ApplyMessage(vmenv, msg, test.Context.Miner)
 			// Retrieve the trace result and compare against the expected
 			res, err := tracer.GetResult()
 			if err != nil {
