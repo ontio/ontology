@@ -283,6 +283,17 @@ func GetAddDecimalsHeight() uint32 {
 	}
 }
 
+func GetEvmPragueHeight() uint32 {
+	switch DefConfig.P2PNode.NetworkId {
+	case NETWORK_ID_MAIN_NET:
+		return constants.EVM_PRAGUE_MAINNET
+	case NETWORK_ID_POLARIS_NET:
+		return constants.EVM_PRAGUE_POLARIS
+	default:
+		return 0
+	}
+}
+
 func GetUint64WrappingHeight() uint32 {
 	switch DefConfig.P2PNode.NetworkId {
 	case NETWORK_ID_MAIN_NET:

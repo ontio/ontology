@@ -17,8 +17,6 @@
 
 package params
 
-import "math/big"
-
 const (
 	GasLimitBoundDivisor uint64 = 1024    // The bound divisor of the gas limit, used in update calculations.
 	MinGasLimit          uint64 = 5000    // Minimum the gas limit may ever be.
@@ -61,20 +59,22 @@ const (
 	JumpdestGas   uint64 = 1     // Once per JUMPDEST operation.
 	EpochDuration uint64 = 30000 // Duration between proof-of-work epochs.
 
-	CreateDataGas            uint64 = 200   //
-	CallCreateDepth          uint64 = 1024  // Maximum depth of call/create stack.
-	ExpGas                   uint64 = 10    // Once per EXP instruction
-	LogGas                   uint64 = 375   // Per LOG* operation.
-	CopyGas                  uint64 = 3     //
-	StackLimit               uint64 = 1024  // Maximum size of VM stack allowed.
-	TierStepGas              uint64 = 0     // Once per operation, for a selection of them.
-	LogTopicGas              uint64 = 375   // Multiplied by the * of the LOG*, per LOG transaction. e.g. LOG0 incurs 0 * c_txLogTopicGas, LOG4 incurs 4 * c_txLogTopicGas.
-	CreateGas                uint64 = 32000 // Once per CREATE operation & contract-creation transaction.
-	Create2Gas               uint64 = 32000 // Once per CREATE2 operation
-	SelfdestructRefundGas    uint64 = 24000 // Refunded following a selfdestruct operation.
-	MemoryGas                uint64 = 3     // Times the address of the (highest referenced byte in memory + 1). NOTE: referencing happens on read, write and in instructions such as RETURN and CALL.
-	TxDataNonZeroGasFrontier uint64 = 68    // Per byte of data attached to a transaction that is not equal to zero. NOTE: Not payable on data of calls between transactions.
-	TxDataNonZeroGasEIP2028  uint64 = 16    // Per byte of non zero data attached to a transaction after EIP 2028 (part in Istanbul)
+	CreateDataGas             uint64 = 200   //
+	CallCreateDepth           uint64 = 1024  // Maximum depth of call/create stack.
+	ExpGas                    uint64 = 10    // Once per EXP instruction
+	LogGas                    uint64 = 375   // Per LOG* operation.
+	CopyGas                   uint64 = 3     //
+	StackLimit                uint64 = 1024  // Maximum size of VM stack allowed.
+	TierStepGas               uint64 = 0     // Once per operation, for a selection of them.
+	LogTopicGas               uint64 = 375   // Multiplied by the * of the LOG*, per LOG transaction. e.g. LOG0 incurs 0 * c_txLogTopicGas, LOG4 incurs 4 * c_txLogTopicGas.
+	CreateGas                 uint64 = 32000 // Once per CREATE operation & contract-creation transaction.
+	Create2Gas                uint64 = 32000 // Once per CREATE2 operation
+	SelfdestructRefundGas     uint64 = 24000 // Refunded following a selfdestruct operation.
+	MemoryGas                 uint64 = 3     // Times the address of the (highest referenced byte in memory + 1). NOTE: referencing happens on read, write and in instructions such as RETURN and CALL.
+	TxDataNonZeroGasFrontier  uint64 = 68    // Per byte of data attached to a transaction that is not equal to zero. NOTE: Not payable on data of calls between transactions.
+	TxDataNonZeroGasEIP2028   uint64 = 16    // Per byte of non zero data attached to a transaction after EIP 2028 (part in Istanbul)
+	TxAccessListAddressGas    uint64 = 2400  // Per address specified in EIP 2930 access list
+	TxAccessListStorageKeyGas uint64 = 1900  // Per storage key specified in EIP 2930 access list
 
 	// These have been changed during the course of the chain
 	CallGasFrontier              uint64 = 40  // Once per CALL operation & message call transaction.
@@ -104,45 +104,8 @@ const (
 	// CreateBySelfdestructGas is used when the refunded account is one that does
 	// not exist. This logic is similar to call.
 	// Introduced in Tangerine Whistle (Eip 150)
-	CreateBySelfdestructGas uint64 = 25000
+	CreateBySelfdestructGas    uint64 = 25000
+	WarmStorageReadCostEIP2929        = uint64(100) // WARM_STORAGE_READ_COST
 
 	MaxCodeSize = 24576 // Maximum bytecode to permit for a contract
-
-	// Precompiled contract gas prices
-
-	EcrecoverGas        uint64 = 3000 // Elliptic curve sender recovery gas price
-	Sha256BaseGas       uint64 = 60   // Base price for a SHA256 operation
-	Sha256PerWordGas    uint64 = 12   // Per-word price for a SHA256 operation
-	Ripemd160BaseGas    uint64 = 600  // Base price for a RIPEMD160 operation
-	Ripemd160PerWordGas uint64 = 120  // Per-word price for a RIPEMD160 operation
-	IdentityBaseGas     uint64 = 15   // Base price for a data copy operation
-	IdentityPerWordGas  uint64 = 3    // Per-work price for a data copy operation
-
-	Bn256AddGasByzantium             uint64 = 500    // Byzantium gas needed for an elliptic curve addition
-	Bn256AddGasIstanbul              uint64 = 150    // Gas needed for an elliptic curve addition
-	Bn256ScalarMulGasByzantium       uint64 = 40000  // Byzantium gas needed for an elliptic curve scalar multiplication
-	Bn256ScalarMulGasIstanbul        uint64 = 6000   // Gas needed for an elliptic curve scalar multiplication
-	Bn256PairingBaseGasByzantium     uint64 = 100000 // Byzantium base price for an elliptic curve pairing check
-	Bn256PairingBaseGasIstanbul      uint64 = 45000  // Base price for an elliptic curve pairing check
-	Bn256PairingPerPointGasByzantium uint64 = 80000  // Byzantium per-point price for an elliptic curve pairing check
-	Bn256PairingPerPointGasIstanbul  uint64 = 34000  // Per-point price for an elliptic curve pairing check
-
-	Bls12381G1AddGas          uint64 = 600    // Price for BLS12-381 elliptic curve G1 point addition
-	Bls12381G1MulGas          uint64 = 12000  // Price for BLS12-381 elliptic curve G1 point scalar multiplication
-	Bls12381G2AddGas          uint64 = 4500   // Price for BLS12-381 elliptic curve G2 point addition
-	Bls12381G2MulGas          uint64 = 55000  // Price for BLS12-381 elliptic curve G2 point scalar multiplication
-	Bls12381PairingBaseGas    uint64 = 115000 // Base gas price for BLS12-381 elliptic curve pairing check
-	Bls12381PairingPerPairGas uint64 = 23000  // Per-point pair gas price for BLS12-381 elliptic curve pairing check
-	Bls12381MapG1Gas          uint64 = 5500   // Gas price for BLS12-381 mapping field element to G1 operation
-	Bls12381MapG2Gas          uint64 = 110000 // Gas price for BLS12-381 mapping field element to G2 operation
-)
-
-// Gas discount table for BLS12-381 G1 and G2 multi exponentiation operations
-var Bls12381MultiExpDiscountTable = [128]uint64{1200, 888, 764, 641, 594, 547, 500, 453, 438, 423, 408, 394, 379, 364, 349, 334, 330, 326, 322, 318, 314, 310, 306, 302, 298, 294, 289, 285, 281, 277, 273, 269, 268, 266, 265, 263, 262, 260, 259, 257, 256, 254, 253, 251, 250, 248, 247, 245, 244, 242, 241, 239, 238, 236, 235, 233, 232, 231, 229, 228, 226, 225, 223, 222, 221, 220, 219, 219, 218, 217, 216, 216, 215, 214, 213, 213, 212, 211, 211, 210, 209, 208, 208, 207, 206, 205, 205, 204, 203, 202, 202, 201, 200, 199, 199, 198, 197, 196, 196, 195, 194, 193, 193, 192, 191, 191, 190, 189, 188, 188, 187, 186, 185, 185, 184, 183, 182, 182, 181, 180, 179, 179, 178, 177, 176, 176, 175, 174}
-
-var (
-	DifficultyBoundDivisor = big.NewInt(2048)   // The bound divisor of the difficulty, used in the update calculations.
-	GenesisDifficulty      = big.NewInt(131072) // Difficulty of the Genesis block.
-	MinimumDifficulty      = big.NewInt(131072) // The minimum that the difficulty may ever be.
-	DurationLimit          = big.NewInt(13)     // The decision boundary on the blocktime duration used to determine whether difficulty should go up or not.
 )

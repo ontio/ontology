@@ -77,7 +77,10 @@ func TestEIP2200(t *testing.T) {
 			CanTransfer: func(evm.StateDB, common.Address, *big.Int) bool { return true },
 			Transfer:    func(evm.StateDB, common.Address, common.Address, *big.Int) {},
 		}
-		vmenv := evm.NewEVM(vmctx, evm.TxContext{}, statedb, params.AllEthashProtocolChanges, evm.Config{ExtraEips: []int{2200}})
+		var (
+			AllEthashProtocolChanges = &params.ChainConfig{big.NewInt(1337), big.NewInt(0), nil, big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0)}
+		)
+		vmenv := evm.NewEVM(vmctx, evm.TxContext{}, statedb, AllEthashProtocolChanges, evm.Config{ExtraEips: []int{2200}})
 
 		_, gas, err := vmenv.Call(evm.AccountRef(common.Address{}), address, nil, tt.gaspool, new(big.Int))
 		if err != tt.failure {

@@ -73,7 +73,7 @@ func applyTransaction(msg *otypes.EvmMessage, statedb *storage.StateDB, blockHei
 // for the transaction, gas used and an error if the transaction failed,
 // indicating the block was invalid.
 func ApplyTransaction(config *params.ChainConfig, bc store.LedgerStore, statedb *storage.StateDB, blockHeight, timestamp uint32, tx *types.Transaction, usedGas *uint64, feeReceiver common.Address, cfg evm.Config, checkNonce bool) (*types2.ExecutionResult, *otypes.Receipt, error) {
-	signer := types.NewEIP155Signer(config.ChainID)
+	signer := otypes.NewEvmSigner(config.ChainID)
 	msg, err := otypes.TransactionToMessage(tx, signer, big.NewInt(0))
 	if err != nil {
 		return nil, nil, err

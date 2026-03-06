@@ -40,6 +40,7 @@ type OngBalanceHandle interface {
 
 type StateDB struct {
 	cacheDB          *CacheDB
+	transientStorage transientStorage
 	Suicided         map[common.Address]bool
 	logs             []*types.StorageLog
 	thash, bhash     common.Hash
@@ -52,6 +53,7 @@ type StateDB struct {
 func NewStateDB(cacheDB *CacheDB, thash, bhash common.Hash, balanceHandle OngBalanceHandle) *StateDB {
 	return &StateDB{
 		cacheDB:          cacheDB,
+		transientStorage: newTransientStorage(),
 		Suicided:         make(map[common.Address]bool),
 		logs:             nil,
 		thash:            thash,
@@ -105,10 +107,11 @@ func (self *StateDB) CommitToCacheDB() error {
 }
 
 type snapshot struct {
-	changes  *overlaydb.MemDB
-	suicided map[common.Address]bool
-	logsSize int
-	refund   uint64
+	changes   *overlaydb.MemDB
+	transient transientStorage
+	suicided  map[common.Address]bool
+	logsSize  int
+	refund    uint64
 }
 
 func (self *StateDB) AddRefund(gas uint64) {
@@ -344,10 +347,11 @@ func (self *StateDB) Snapshot() int {
 	}
 
 	sn := &snapshot{
-		changes:  changes,
-		suicided: suicided,
-		logsSize: len(self.logs),
-		refund:   self.refund,
+		changes:   changes,
+		transient: self.transientStorage.Copy(),
+		suicided:  suicided,
+		logsSize:  len(self.logs),
+		refund:    self.refund,
 	}
 
 	self.snapshots = append(self.snapshots, sn)
@@ -372,6 +376,7 @@ func (self *StateDB) RevertToSnapshot(idx int) {
 
 	self.snapshots = self.snapshots[:idx]
 	self.cacheDB.memdb = sn.changes
+	self.transientStorage = sn.transient
 	self.Suicided = sn.suicided
 	self.refund = sn.refund
 	self.logs = self.logs[:sn.logsSize]
@@ -409,4 +414,13 @@ func (self *StateDB) GetBalance(addr common.Address) *big.Int {
 	}
 
 	return balance
+}
+
+// GetTransientState gets transient storage for a given account.
+func (s *StateDB) GetTransientState(addr common.Address, key common.Hash) common.Hash {
+	return s.transientStorage.Get(addr, key)
+}
+
+func (s *StateDB) SetTransientState(addr common.Address, key, value common.Hash) {
+	s.transientStorage.Set(addr, key, value)
 }
