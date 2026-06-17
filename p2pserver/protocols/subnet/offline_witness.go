@@ -86,37 +86,29 @@ func (self *SubNet) ProposeOffline(nodes []string) error {
 }
 
 func (self *SubNet) sendOfflineWitness(net p2p.P2P) {
-	var msgs []struct {
-		status WitnessStatus
-		rawMsg []byte
-	}
+	var msgs [][]byte
 	var peerIds []common.PeerId
 	now := uint32(time.Now().Unix())
-	self.lock.RLock()
+	self.lock.Lock()
 	for hash, m := range self.offlineWitness {
 		if m.Msg.Timestamp+ExpireOfflineMsgTime < now {
 			delete(self.offlineWitness, hash)
 		}
 		if m.Status != UnchangedStatus {
 			rawMsg := common2.SerializeToBytes(m.Msg)
-			msgs = append(msgs, struct {
-				status WitnessStatus
-				rawMsg []byte
-			}{status: UnchangedStatus, rawMsg: rawMsg})
+			msgs = append(msgs, rawMsg)
+			m.Status = UnchangedStatus
 		}
 	}
 	for _, p := range self.connected {
 		peerIds = append(peerIds, p.Id)
 	}
-	self.lock.RUnlock()
+	self.lock.Unlock()
 
 	for _, msg := range msgs {
-		switch msg.status {
-		case NewStatus, UpdatedStatus:
-			for _, peerId := range peerIds {
-				if p := net.GetPeer(peerId); p != nil {
-					_ = p.SendRaw(msg.rawMsg)
-				}
+		for _, peerId := range peerIds {
+			if p := net.GetPeer(peerId); p != nil {
+				_ = p.SendRaw(msg)
 			}
 		}
 	}

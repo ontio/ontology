@@ -45,10 +45,10 @@ import (
 	common2 "github.com/ontio/ontology/txnpool/common"
 )
 
-//respCache cache for some response data
+// respCache cache for some response data
 var respCache, _ = lru.NewARC(msgCommon.MAX_RESP_CACHE_SIZE)
 
-//Store txHash, using for rejecting duplicate tx
+// Store txHash, using for rejecting duplicate tx
 // thread safe
 var txCache, _ = lru.NewARC(msgCommon.MAX_TX_CACHE_SIZE)
 
@@ -310,7 +310,7 @@ func DataReqHandle(ctx *p2p.Context, dataReq *msgTypes.DataReq) {
 
 	case common.TRANSACTION:
 		txn, _, err := ledger.DefLedger.GetTransaction(hash)
-		if err != nil {
+		if err != nil || txn == nil {
 			log.Debug("[p2p]Can't get transaction by hash: ",
 				hash, " ,send not found message")
 			msg := msgpack.NewNotFound(hash)
@@ -394,7 +394,7 @@ func InvHandle(ctx *p2p.Context, inv *msgTypes.Inv) {
 
 }
 
-//get blk hdrs from starthash to stophash
+// get blk hdrs from starthash to stophash
 func GetHeadersFromHash(startHash common.Uint256, stopHash common.Uint256) ([]*types.RawHeader, error) {
 	var count uint32 = 0
 	var headers []*types.RawHeader
@@ -474,7 +474,7 @@ func GetHeadersFromHash(startHash common.Uint256, stopHash common.Uint256) ([]*t
 	return headers, nil
 }
 
-//getRespCacheValue get response data from cache
+// getRespCacheValue get response data from cache
 func getRespCacheValue(key string) interface{} {
 	data, ok := respCache.Get(key)
 	if ok {
@@ -483,7 +483,7 @@ func getRespCacheValue(key string) interface{} {
 	return nil
 }
 
-//saveRespCache save response msg to cache
+// saveRespCache save response msg to cache
 func saveRespCache(key string, value interface{}) {
 	respCache.Add(key, value)
 }

@@ -29,7 +29,7 @@ type Addr struct {
 	NodeAddrs []comm.PeerAddr
 }
 
-//Serialize message payload
+// Serialize message payload
 func (this Addr) Serialization(sink *common.ZeroCopySink) {
 	num := uint64(len(this.NodeAddrs))
 	sink.WriteUint64(num)
@@ -54,7 +54,7 @@ func (this *Addr) Deserialization(source *common.ZeroCopySource) error {
 		return io.ErrUnexpectedEOF
 	}
 
-	for i := 0; i < int(count); i++ {
+	for i := uint64(0); i < count; i++ {
 		var addr comm.PeerAddr
 		addr.Time, eof = source.NextInt64()
 		if eof {

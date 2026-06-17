@@ -116,8 +116,8 @@ func GetHeaderByHash(native *native.NativeService, chainID uint64, hash common.U
 	return header, nil
 }
 
-//verify header of any height
-//find key height and get consensus peer first, then check the sign
+// verify header of any height
+// find key height and get consensus peer first, then check the sign
 func VerifyHeader(native *native.NativeService, header *ccom.Header) error {
 	height := header.Height
 	//search consensus peer
@@ -130,16 +130,22 @@ func VerifyHeader(native *native.NativeService, header *ccom.Header) error {
 	if err != nil {
 		return fmt.Errorf("verifyHeader, get ConsensusPeer error:%v", err)
 	}
-	if len(header.Bookkeepers)*3 < len(consensusPeer.PeerMap)*2 {
-		return fmt.Errorf("verifyHeader, header Bookkeepers num %d must more than 2/3 consensus node num %d", len(header.Bookkeepers), len(consensusPeer.PeerMap))
-	}
+	seen := make(map[string]struct{})
 	for _, bookkeeper := range header.Bookkeepers {
 		pubkey := vconfig.PubkeyID(bookkeeper)
-		_, present := consensusPeer.PeerMap[pubkey]
-		if !present {
+		if _, ok := consensusPeer.PeerMap[pubkey]; !ok {
 			return fmt.Errorf("verifyHeader, invalid pubkey error:%v", pubkey)
 		}
+		if _, dup := seen[pubkey]; dup {
+			return fmt.Errorf("verifyHeader, duplicate bookkeeper:%v", pubkey)
+		}
+		seen[pubkey] = struct{}{}
 	}
+	if len(seen)*3 < len(consensusPeer.PeerMap)*2 {
+		return fmt.Errorf("verifyHeader, unique bookkeepers num %d must more than 2/3 consensus node num %d",
+			len(seen), len(consensusPeer.PeerMap))
+	}
+
 	hash := header.Hash()
 	err = signature.VerifyMultiSignature(hash[:], header.Bookkeepers, len(header.Bookkeepers), header.SigData)
 	if err != nil {
