@@ -148,10 +148,10 @@ func (msg *blockProposalMsg) UnmarshalJSON(data []byte) error {
 	}
 
 	msg.Block = blk
-	if blk.Block != nil {
+	if blk.Block != nil && len(blk.Block.Header.SigData) > 0 {
 		msg.BlockProposerSig = blk.Block.Header.SigData[0]
 	}
-	if blk.EmptyBlock != nil {
+	if blk.EmptyBlock != nil && len(blk.EmptyBlock.Header.SigData[0]) > 0 {
 		msg.EmptyBlockProposerSig = blk.EmptyBlock.Header.SigData[0]
 	}
 	return nil
