@@ -97,6 +97,7 @@ func (self *SubNet) sendOfflineWitness(net p2p.P2P) {
 		if m.Status != UnchangedStatus {
 			rawMsg := common2.SerializeToBytes(m.Msg)
 			msgs = append(msgs, rawMsg)
+			m.Status = UnchangedStatus
 		}
 	}
 	for _, p := range self.connected {
