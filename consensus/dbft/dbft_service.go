@@ -23,6 +23,7 @@ import (
 	"reflect"
 	"time"
 
+	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology-eventbus/actor"
 	"github.com/ontio/ontology/account"
 	"github.com/ontio/ontology/common"
@@ -335,6 +336,11 @@ func (ds *DbftService) NewConsensusPayload(payload *p2pmsg.ConsensusPayload) {
 
 	if int(payload.BookkeeperIndex) >= len(ds.context.Bookkeepers) {
 		log.Debug("bookkeeper index out of range")
+		return
+	}
+
+	if !keypair.ComparePublicKey(payload.Owner, ds.context.Bookkeepers[payload.BookkeeperIndex]) {
+		log.Debug("wrong bookkeeper")
 		return
 	}
 
