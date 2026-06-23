@@ -99,19 +99,6 @@ type StateTransition struct {
 	GasReceiver common.Address
 }
 
-type Message interface {
-	From() common.Address
-	To() *common.Address
-
-	GasPrice() *big.Int
-	Gas() uint64
-	Value() *big.Int
-
-	Nonce() uint64
-	CheckNonce() bool
-	Data() []byte
-}
-
 // IntrinsicGas computes the 'intrinsic gas' for a message with the given data.
 func IntrinsicGas(data []byte, contractCreation, isHomestead bool, isEIP2028 bool) uint64 {
 	// Set the starting gas for the raw transaction
@@ -292,6 +279,7 @@ func (st *StateTransition) TransitionDb() (*types.ExecutionResult, error) {
 		} else {
 			// Increment the nonce for the next transaction
 			st.state.SetNonce(msg.From, st.state.GetNonce(sender.Address())+1)
+
 			ret, st.gas, vmerr = st.evm.Call(sender, st.to(), st.data, st.gas, st.value)
 		}
 	} else {

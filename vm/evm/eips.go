@@ -20,7 +20,9 @@ package evm
 import (
 	"fmt"
 
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/holiman/uint256"
+	"github.com/ontio/ontology/vm/evm/errors"
 	"github.com/ontio/ontology/vm/evm/params"
 )
 
@@ -28,7 +30,6 @@ var activators = map[int]func(*JumpTable){
 	2200: enable2200,
 	1884: enable1884,
 	1344: enable1344,
-	2315: enable2315,
 }
 
 // EnableEIP enables the given EIP on the config.
@@ -94,30 +95,109 @@ func enable2200(jt *JumpTable) {
 	jt[SSTORE].dynamicGas = gasSStoreEIP2200
 }
 
-// enable2315 applies EIP-2315 (Simple Subroutines)
-// - Adds opcodes that jump to and return from subroutines
-func enable2315(jt *JumpTable) {
+// enable1153 applies EIP-1153 "Transient Storage"
+// - Adds TLOAD that reads from transient storage
+// - Adds TSTORE that writes to transient storage
+func enable1153(jt *JumpTable) {
+	jt[TLOAD] = &operation{
+		execute:     opTload,
+		constantGas: params.WarmStorageReadCostEIP2929,
+		minStack:    minStack(1, 1),
+		maxStack:    maxStack(1, 1),
+	}
+
+	jt[TSTORE] = &operation{
+		execute:     opTstore,
+		constantGas: params.WarmStorageReadCostEIP2929,
+		minStack:    minStack(2, 0),
+		maxStack:    maxStack(2, 0),
+	}
+}
+
+// opTload implements TLOAD opcode
+func opTload(pc *uint64, interpreter *EVMInterpreter, scope *callCtx) ([]byte, error) {
+	loc := scope.stack.peek()
+	hash := common.Hash(loc.Bytes32())
+	val := interpreter.evm.StateDB.GetTransientState(scope.contract.Address(), hash)
+	loc.SetBytes(val.Bytes())
+	return nil, nil
+}
+
+// opTstore implements TSTORE opcode
+func opTstore(pc *uint64, interpreter *EVMInterpreter, scope *callCtx) ([]byte, error) {
+	if interpreter.readOnly {
+		return nil, errors.ErrWriteProtection
+	}
+	loc := scope.stack.pop()
+	val := scope.stack.pop()
+	interpreter.evm.StateDB.SetTransientState(scope.contract.Address(), loc.Bytes32(), val.Bytes32())
+	return nil, nil
+}
+
+// enable3855 applies EIP-3855 (PUSH0 opcode)
+func enable3855(jt *JumpTable) {
 	// New opcode
-	jt[BEGINSUB] = &operation{
-		execute:     opBeginSub,
+	jt[PUSH0] = &operation{
+		execute:     opPush0,
 		constantGas: GasQuickStep,
-		minStack:    minStack(0, 0),
-		maxStack:    maxStack(0, 0),
+		minStack:    minStack(0, 1),
+		maxStack:    maxStack(0, 1),
 	}
+}
+
+// opPush0 implements the PUSH0 opcode
+func opPush0(pc *uint64, interpreter *EVMInterpreter, scope *callCtx) ([]byte, error) {
+	scope.stack.push(new(uint256.Int))
+	return nil, nil
+}
+
+// opBlobHash implements the BLOBHASH opcode
+func opBlobHash(pc *uint64, interpreter *EVMInterpreter, scope *callCtx) ([]byte, error) {
+	index := scope.stack.peek()
+	index.Clear()
+	return nil, nil
+}
+
+// opBlobBaseFee implements BLOBBASEFEE opcode
+func opBlobBaseFee(pc *uint64, interpreter *EVMInterpreter, scope *callCtx) ([]byte, error) {
+	scope.stack.push(uint256.NewInt(0))
+	return nil, nil
+}
+
+// enable4844 applies EIP-4844 (BLOBHASH opcode)
+func enable4844(jt *JumpTable) {
+	jt[BLOBHASH] = &operation{
+		execute:     opBlobHash,
+		constantGas: GasFastestStep,
+		minStack:    minStack(1, 1),
+		maxStack:    maxStack(1, 1),
+	}
+}
+
+// enable7516 applies EIP-7516 (BLOBBASEFEE opcode)
+func enable7516(jt *JumpTable) {
+	jt[BLOBBASEFEE] = &operation{
+		execute:     opBlobBaseFee,
+		constantGas: GasQuickStep,
+		minStack:    minStack(0, 1),
+		maxStack:    maxStack(0, 1),
+	}
+}
+
+// enable3198 applies EIP-3198 (BASEFEE Opcode)
+// - Adds an opcode that returns the current block's base fee.
+func enable3198(jt *JumpTable) {
 	// New opcode
-	jt[JUMPSUB] = &operation{
-		execute:     opJumpSub,
-		constantGas: GasSlowStep,
-		minStack:    minStack(1, 0),
-		maxStack:    maxStack(1, 0),
-		jumps:       true,
+	jt[BASEFEE] = &operation{
+		execute:     opBaseFee,
+		constantGas: GasQuickStep,
+		minStack:    minStack(0, 1),
+		maxStack:    maxStack(0, 1),
 	}
-	// New opcode
-	jt[RETURNSUB] = &operation{
-		execute:     opReturnSub,
-		constantGas: GasFastStep,
-		minStack:    minStack(0, 0),
-		maxStack:    maxStack(0, 0),
-		jumps:       true,
-	}
+}
+
+// opBaseFee implements BASEFEE opcode
+func opBaseFee(pc *uint64, interpreter *EVMInterpreter, scope *callCtx) ([]byte, error) {
+	scope.stack.push(uint256.NewInt(0))
+	return nil, nil
 }

@@ -553,7 +553,7 @@ func generateRecipient(notify *event.ExecuteNotify) (interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
-	signer := types.NewEIP155Signer(big.NewInt(int64(utils2.GetChainId())))
+	signer := otypes.NewEvmSigner(big.NewInt(int64(utils2.GetChainId())))
 	from, err := signer.Sender(eip155Tx)
 	if err != nil {
 		return nil, err

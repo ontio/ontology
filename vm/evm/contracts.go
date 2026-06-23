@@ -43,12 +43,12 @@ var PrecompiledContractsByzantium = vm.PrecompiledContractsByzantium
 // contracts used in the Istanbul release.
 var PrecompiledContractsIstanbul = vm.PrecompiledContractsIstanbul
 
-// PrecompiledContractsYoloV2 contains the default set of pre-compiled Ethereum
-// contracts used in the Yolo v2 test release.
-var PrecompiledContractsYoloV2 = vm.PrecompiledContracts{}
+// PrecompiledContractsPrague contains the set of pre-compiled Ethereum
+// contracts used in the Prague release.
+var PrecompiledContractsPrague = vm.PrecompiledContractsPrague
 
 var (
-	PrecompiledAddressesYoloV2    []common.Address
+	PrecompiledAddressesPrague    []common.Address
 	PrecompiledAddressesIstanbul  []common.Address
 	PrecompiledAddressesByzantium []common.Address
 	PrecompiledAddressesHomestead []common.Address
@@ -64,8 +64,8 @@ func init() {
 	for k := range PrecompiledContractsIstanbul {
 		PrecompiledAddressesIstanbul = append(PrecompiledAddressesIstanbul, k)
 	}
-	for k := range PrecompiledContractsYoloV2 {
-		PrecompiledAddressesYoloV2 = append(PrecompiledAddressesYoloV2, k)
+	for k := range PrecompiledContractsPrague {
+		PrecompiledAddressesPrague = append(PrecompiledAddressesPrague, k)
 	}
 }
 

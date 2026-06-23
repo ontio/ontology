@@ -43,6 +43,7 @@ const MAX_TX_SIZE = 1024 * 1024 // The max size of a transaction to prevent DOS 
 // this flag is used for check EIP155 transaction chainID
 // will be set to 'true' on ontology startup ,for sdk dependency will always be 'false'
 var CheckChainID = false
+var PragueEnabled = false //  code can be cleaned once enabled onchain
 
 type Transaction struct {
 	Version  byte
@@ -80,6 +81,13 @@ func TransactionFromRawBytes(raw []byte) (*Transaction, error) {
 	return tx, nil
 }
 
+func NewEvmSigner(chainId *big.Int) types.Signer {
+	if PragueEnabled {
+		return types.NewPragueSigner(chainId)
+	}
+	return types.NewEIP155Signer(chainId)
+}
+
 func TransactionFromEIP155(eiptx *types.Transaction) (*Transaction, error) {
 	if CheckChainID {
 		if eiptx.ChainId().Cmp(big.NewInt(int64(config.DefConfig.P2PNode.EVMChainId))) != 0 {
@@ -91,7 +99,7 @@ func TransactionFromEIP155(eiptx *types.Transaction) (*Transaction, error) {
 		return nil, errors.New("unsupported evm transaction type")
 	}
 
-	signer := types.NewEIP155Signer(eiptx.ChainId())
+	signer := NewEvmSigner(eiptx.ChainId())
 	from, err := signer.Sender(eiptx)
 	if err != nil {
 		return nil, fmt.Errorf("error EIP155 get sender:%s", err.Error())
@@ -513,7 +521,7 @@ func (tx *Transaction) SigHashForChain(id uint32) common.Uint256 {
 		if err != nil {
 			panic(err)
 		}
-		signer := types.NewEIP155Signer(big.NewInt(int64(id)))
+		signer := NewEvmSigner(big.NewInt(int64(id)))
 		return common.Uint256(signer.Hash(eiptx))
 	}
 

@@ -21,35 +21,35 @@ import (
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/types"
+	gethTypes "github.com/ethereum/go-ethereum/core/types"
 )
 
 type EvmMessage struct {
-	From                  common.Address
-	To                    *common.Address
-	Nonce                 uint64
-	Value                 *big.Int
-	GasLimit              uint64
-	GasPrice              *big.Int
-	GasFeeCap             *big.Int
-	GasTipCap             *big.Int
-	Data                  []byte
-	SetCodeAuthorizations []types.SetCodeAuthorization
-	SkipNonceChecks       bool
+	From            common.Address
+	To              *common.Address
+	Nonce           uint64
+	Value           *big.Int
+	GasLimit        uint64
+	GasPrice        *big.Int
+	GasFeeCap       *big.Int
+	GasTipCap       *big.Int
+	Data            []byte
+	AccessList      gethTypes.AccessList
+	SkipNonceChecks bool
 }
 
-func TransactionToMessage(tx *types.Transaction, s types.Signer, baseFee *big.Int) (*EvmMessage, error) {
+func TransactionToMessage(tx *gethTypes.Transaction, s gethTypes.Signer, baseFee *big.Int) (*EvmMessage, error) {
 	msg := &EvmMessage{
-		Nonce:                 tx.Nonce(),
-		GasLimit:              tx.Gas(),
-		GasPrice:              new(big.Int).Set(tx.GasPrice()),
-		GasFeeCap:             new(big.Int).Set(tx.GasFeeCap()),
-		GasTipCap:             new(big.Int).Set(tx.GasTipCap()),
-		To:                    tx.To(),
-		Value:                 tx.Value(),
-		Data:                  tx.Data(),
-		SetCodeAuthorizations: tx.SetCodeAuthorizations(),
-		SkipNonceChecks:       false,
+		Nonce:           tx.Nonce(),
+		GasLimit:        tx.Gas(),
+		GasPrice:        new(big.Int).Set(tx.GasPrice()),
+		GasFeeCap:       new(big.Int).Set(tx.GasFeeCap()),
+		GasTipCap:       new(big.Int).Set(tx.GasTipCap()),
+		To:              tx.To(),
+		Value:           tx.Value(),
+		Data:            tx.Data(),
+		AccessList:      tx.AccessList(),
+		SkipNonceChecks: false,
 	}
 	// If baseFee provided, set gasPrice to effectiveGasPrice.
 	if baseFee != nil {
@@ -59,6 +59,6 @@ func TransactionToMessage(tx *types.Transaction, s types.Signer, baseFee *big.In
 		}
 	}
 	var err error
-	msg.From, err = types.Sender(s, tx)
+	msg.From, err = gethTypes.Sender(s, tx)
 	return msg, err
 }

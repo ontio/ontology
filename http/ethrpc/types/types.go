@@ -15,6 +15,7 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
+
 package types
 
 import (
@@ -73,17 +74,16 @@ func (args CallArgs) AsMessage(maxGasLimit uint64) *types2.EvmMessage {
 	}
 
 	return &types2.EvmMessage{
-		From:                  addr,
-		To:                    args.To,
-		Nonce:                 0,
-		Value:                 value,
-		GasLimit:              gas,
-		GasPrice:              gasPrice,
-		GasFeeCap:             gasPrice,
-		GasTipCap:             gasPrice,
-		Data:                  data,
-		SetCodeAuthorizations: nil,
-		SkipNonceChecks:       true,
+		From:            addr,
+		To:              args.To,
+		Nonce:           0,
+		Value:           value,
+		GasLimit:        gas,
+		GasPrice:        gasPrice,
+		GasFeeCap:       gasPrice,
+		GasTipCap:       gasPrice,
+		Data:            data,
+		SkipNonceChecks: true,
 	}
 }
 

@@ -26,11 +26,7 @@ type OpCode byte
 
 // IsPush specifies if an opcode is a PUSH opcode.
 func (op OpCode) IsPush() bool {
-	switch op {
-	case PUSH1, PUSH2, PUSH3, PUSH4, PUSH5, PUSH6, PUSH7, PUSH8, PUSH9, PUSH10, PUSH11, PUSH12, PUSH13, PUSH14, PUSH15, PUSH16, PUSH17, PUSH18, PUSH19, PUSH20, PUSH21, PUSH22, PUSH23, PUSH24, PUSH25, PUSH26, PUSH27, PUSH28, PUSH29, PUSH30, PUSH31, PUSH32:
-		return true
-	}
-	return false
+	return PUSH0 <= op && op <= PUSH32
 }
 
 // IsStaticJump specifies if an opcode is JUMP.
@@ -104,25 +100,29 @@ const (
 	GASLIMIT
 	CHAINID     OpCode = 0x46
 	SELFBALANCE OpCode = 0x47
+	BASEFEE     OpCode = 0x48
+	BLOBHASH    OpCode = 0x49
+	BLOBBASEFEE OpCode = 0x4a
 )
 
 // 0x50 range - 'storage' and execution.
 const (
-	POP       OpCode = 0x50
-	MLOAD     OpCode = 0x51
-	MSTORE    OpCode = 0x52
-	MSTORE8   OpCode = 0x53
-	SLOAD     OpCode = 0x54
-	SSTORE    OpCode = 0x55
-	JUMP      OpCode = 0x56
-	JUMPI     OpCode = 0x57
-	PC        OpCode = 0x58
-	MSIZE     OpCode = 0x59
-	GAS       OpCode = 0x5a
-	JUMPDEST  OpCode = 0x5b
-	BEGINSUB  OpCode = 0x5c
-	RETURNSUB OpCode = 0x5d
-	JUMPSUB   OpCode = 0x5e
+	POP      OpCode = 0x50
+	MLOAD    OpCode = 0x51
+	MSTORE   OpCode = 0x52
+	MSTORE8  OpCode = 0x53
+	SLOAD    OpCode = 0x54
+	SSTORE   OpCode = 0x55
+	JUMP     OpCode = 0x56
+	JUMPI    OpCode = 0x57
+	PC       OpCode = 0x58
+	MSIZE    OpCode = 0x59
+	GAS      OpCode = 0x5a
+	JUMPDEST OpCode = 0x5b
+	TLOAD    OpCode = 0x5c
+	TSTORE   OpCode = 0x5d
+	MCOPY    OpCode = 0x5e
+	PUSH0    OpCode = 0x5f
 )
 
 // 0x60 range.
@@ -284,6 +284,9 @@ var opCodeToString = map[OpCode]string{
 	GASLIMIT:    "GASLIMIT",
 	CHAINID:     "CHAINID",
 	SELFBALANCE: "SELFBALANCE",
+	BASEFEE:     "BASEFEE",
+	BLOBHASH:    "BLOBHASH",
+	BLOBBASEFEE: "BLOBBASEFEE",
 
 	// 0x50 range - 'storage' and execution.
 	POP: "POP",
@@ -301,9 +304,10 @@ var opCodeToString = map[OpCode]string{
 	GAS:      "GAS",
 	JUMPDEST: "JUMPDEST",
 
-	BEGINSUB:  "BEGINSUB",
-	JUMPSUB:   "JUMPSUB",
-	RETURNSUB: "RETURNSUB",
+	TLOAD:  "TLOAD",
+	TSTORE: "TSTORE",
+	MCOPY:  "MCOPY",
+	PUSH0:  "PUSH0",
 
 	// 0x60 range - push.
 	PUSH1:  "PUSH1",
@@ -440,6 +444,9 @@ var stringToOp = map[string]OpCode{
 	"CALLDATASIZE":   CALLDATASIZE,
 	"CALLDATACOPY":   CALLDATACOPY,
 	"CHAINID":        CHAINID,
+	"BASEFEE":        BASEFEE,
+	"BLOBHASH":       BLOBHASH,
+	"BLOBBASEFEE":    BLOBBASEFEE,
 	"DELEGATECALL":   DELEGATECALL,
 	"STATICCALL":     STATICCALL,
 	"CODESIZE":       CODESIZE,
@@ -469,9 +476,10 @@ var stringToOp = map[string]OpCode{
 	"MSIZE":          MSIZE,
 	"GAS":            GAS,
 	"JUMPDEST":       JUMPDEST,
-	"BEGINSUB":       BEGINSUB,
-	"RETURNSUB":      RETURNSUB,
-	"JUMPSUB":        JUMPSUB,
+	"TLOAD":          TLOAD,
+	"TSTORE":         TSTORE,
+	"MCOPY":          MCOPY,
+	"PUSH0":          PUSH0,
 	"PUSH1":          PUSH1,
 	"PUSH2":          PUSH2,
 	"PUSH3":          PUSH3,
