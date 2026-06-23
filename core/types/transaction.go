@@ -87,6 +87,10 @@ func TransactionFromEIP155(eiptx *types.Transaction) (*Transaction, error) {
 		}
 	}
 
+	if eiptx.Type() != types.LegacyTxType {
+		return nil, errors.New("unsupported evm transaction type")
+	}
+
 	signer := types.NewEIP155Signer(eiptx.ChainId())
 	from, err := signer.Sender(eiptx)
 	if err != nil {

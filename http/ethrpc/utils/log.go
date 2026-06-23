@@ -18,27 +18,48 @@
 package utils
 
 import (
-	"github.com/ethereum/go-ethereum/log"
+	"context"
+	"fmt"
+	"log/slog"
+	"strings"
+
 	olog "github.com/ontio/ontology/common/log"
 )
 
-func OntLogHandler() log.Handler {
-	h := log.FuncHandler(func(r *log.Record) error {
-		switch r.Lvl {
-		case log.LvlCrit:
-			olog.Fatal(r.Msg)
-		case log.LvlError:
-			olog.Error(r.Msg)
-		case log.LvlWarn:
-			olog.Warn(r.Msg)
-		case log.LvlInfo:
-			olog.Info(r.Msg)
-		case log.LvlDebug:
-			olog.Debug(r.Msg)
-		case log.LvlTrace:
-			olog.Trace(r.Msg)
-		}
-		return nil
+func NewOntLogHandler() slog.Handler {
+	return &OntLogHander{}
+}
+
+type OntLogHander struct{}
+
+func (self *OntLogHander) Enabled(ctx context.Context, level slog.Level) bool {
+	return true
+}
+
+func (self *OntLogHander) Handle(ctx context.Context, record slog.Record) error {
+	var kvs []string
+	record.Attrs(func(attr slog.Attr) bool {
+		kvs = append(kvs, fmt.Sprintf("%s=%s", attr.Key, attr.Value.String()))
+		return true
 	})
-	return h
+	switch record.Level {
+	case slog.LevelDebug:
+		olog.Debug(record.Message, strings.Join(kvs, ", "))
+	case slog.LevelInfo:
+		olog.Info(record.Message, strings.Join(kvs, ", "))
+	case slog.LevelWarn:
+		olog.Warn(record.Message, strings.Join(kvs, ", "))
+	case slog.LevelError:
+		olog.Error(record.Message, strings.Join(kvs, ", "))
+	}
+
+	return nil
+}
+
+func (self *OntLogHander) WithAttrs(attrs []slog.Attr) slog.Handler {
+	return self
+}
+
+func (self *OntLogHander) WithGroup(name string) slog.Handler {
+	return self
 }

@@ -30,6 +30,7 @@ import (
 	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/rlp"
+	otypes "github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/http/ethrpc/tracers"
 	"github.com/ontio/ontology/smartcontract/service/evm"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
@@ -116,8 +117,12 @@ func testCallTracer(tracerName string, dirPath string, t *testing.T) {
 				t.Fatalf("failed to parse testcase input: %v", err)
 			}
 
-			signer := types.MakeSigner(test.Genesis.Config, new(big.Int).SetUint64(uint64(test.Context.Number)))
-			msg, _ := tx.AsMessage(signer)
+			signer := types.MakeSigner(test.Genesis.Config, new(big.Int).SetUint64(uint64(test.Context.Number)),
+				uint64(test.Context.Time))
+			msg, err := otypes.TransactionToMessage(tx, signer, big.NewInt(0))
+			if err != nil {
+				t.Fatalf("failed to convert transaction to message: %v", err)
+			}
 			txContext := evm.NewEVMTxContext(msg)
 			blockContext := evm.NewEVMBlockContext(uint32(test.Context.Number), uint32(test.Context.Time), nil)
 			statedb := NewTestStateDB(test.Genesis.Alloc)

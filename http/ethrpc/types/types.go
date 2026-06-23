@@ -22,8 +22,8 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
-	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ontio/ontology/common/log"
+	types2 "github.com/ontio/ontology/core/types"
 )
 
 const (
@@ -43,7 +43,7 @@ type CallArgs struct {
 	Data     *hexutil.Bytes  `json:"data"`
 }
 
-func (args CallArgs) AsMessage(maxGasLimit uint64) types.Message {
+func (args CallArgs) AsMessage(maxGasLimit uint64) *types2.EvmMessage {
 	// Set sender address or use zero address if none specified.
 	var addr common.Address
 	if args.From != nil {
@@ -72,8 +72,19 @@ func (args CallArgs) AsMessage(maxGasLimit uint64) types.Message {
 		data = *args.Data
 	}
 
-	msg := types.NewMessage(addr, args.To, 0, value, gas, gasPrice, data, false)
-	return msg
+	return &types2.EvmMessage{
+		From:                  addr,
+		To:                    args.To,
+		Nonce:                 0,
+		Value:                 value,
+		GasLimit:              gas,
+		GasPrice:              gasPrice,
+		GasFeeCap:             gasPrice,
+		GasTipCap:             gasPrice,
+		Data:                  data,
+		SetCodeAuthorizations: nil,
+		SkipNonceChecks:       true,
+	}
 }
 
 type Account struct {

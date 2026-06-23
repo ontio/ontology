@@ -38,7 +38,7 @@ func Create2Contract(cfg *Config, jsonABI, hexCode string, salt uint64, params .
 	}
 	deploy := append(contractBin, p...)
 
-	_, ctAddr, leftGas, err := Create2(deploy, cfg, uint256.NewInt().SetUint64(salt))
+	_, ctAddr, leftGas, err := Create2(deploy, cfg, uint256.NewInt(0).SetUint64(salt))
 	Ensure(err)
 
 	log.Infof("deploy code at: %s, used gas: %d", ctAddr.String(), cfg.GasLimit-leftGas)

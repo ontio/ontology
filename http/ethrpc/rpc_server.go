@@ -52,7 +52,7 @@ var (
 )
 
 func StartEthServer(txpool *tp.TXPoolServer) error {
-	log.Root().SetHandler(utils.OntLogHandler())
+	log.SetDefault(log.NewLogger(utils.NewOntLogHandler()))
 	server := rpc.NewServer()
 	if err := server.RegisterName("eth", eth.NewEthereumAPI(txpool)); err != nil {
 		return err
@@ -78,7 +78,7 @@ func StartEthServer(txpool *tp.TXPoolServer) error {
 	}
 
 	// add cors wrapper
-	wrappedCORSHandler := node.NewHTTPHandlerStack(server, cors, vhosts)
+	wrappedCORSHandler := node.NewHTTPHandlerStack(server, cors, vhosts, nil)
 
 	err = http.ListenAndServe(":"+strconv.Itoa(int(cfg.DefConfig.Rpc.EthJsonPort)), wrappedCORSHandler)
 	if err != nil {

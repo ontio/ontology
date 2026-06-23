@@ -23,6 +23,7 @@ import (
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/holiman/uint256"
 	common2 "github.com/ontio/ontology/common"
@@ -61,7 +62,7 @@ func (evm *EVM) ActivePrecompiles() []common.Address {
 }
 
 func (evm *EVM) precompile(addr common.Address) (PrecompiledContract, bool) {
-	var precompiles map[common.Address]PrecompiledContract
+	var precompiles vm.PrecompiledContracts
 	switch {
 	case evm.chainRules.IsYoloV2:
 		precompiles = PrecompiledContractsYoloV2
@@ -364,6 +365,8 @@ func (evm *EVM) DelegateCall(caller ContractRef, addr common.Address, input []by
 	}
 	return ret, gas, err
 }
+
+var big0 = big.NewInt(0)
 
 // StaticCall executes the contract associated with the addr with the given input
 // as parameters while disallowing any modifications to the state during the call.

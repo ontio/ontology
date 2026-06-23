@@ -18,7 +18,6 @@
 package ledgerstore
 
 import (
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core"
 	types2 "github.com/ethereum/go-ethereum/core/types"
 	common2 "github.com/ontio/ontology/common"
@@ -56,9 +55,7 @@ func PushChainEvent(rawNotify []*event.ExecuteNotify, blk *types.Block, bloom ty
 	}
 	events.DefActorPublisher.Publish(message.TOPIC_CHAIN_EVENT, &message.ChainEventMsg{
 		ChainEvent: &core.ChainEvent{
-			Block: utils.RawEthBlockFromOntology(blk, bloom),
-			Hash:  common.Hash(blk.Hash()),
-			Logs:  extractEthLog(rawNotify, blk),
+			Header: utils.RawEthBlockFromOntology(blk, bloom).Header(),
 		},
 	})
 }

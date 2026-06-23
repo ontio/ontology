@@ -25,6 +25,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ontio/ontology/common/constants"
+	types2 "github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract/service/evm/types"
 	"github.com/ontio/ontology/vm/evm"
 	"github.com/ontio/ontology/vm/evm/params"
@@ -86,7 +87,7 @@ The state transitioning model does all the necessary work to work out a valid ne
 6) Derive new state root
 */
 type StateTransition struct {
-	msg        Message
+	msg        *types2.EvmMessage
 	gas        uint64
 	gasPrice   *big.Int
 	initialGas uint64
@@ -98,7 +99,6 @@ type StateTransition struct {
 	GasReceiver common.Address
 }
 
-// Message represents a message sent to a contract.
 type Message interface {
 	From() common.Address
 	To() *common.Address
@@ -152,13 +152,13 @@ func IntrinsicGas(data []byte, contractCreation, isHomestead bool, isEIP2028 boo
 }
 
 // NewStateTransition initialises and returns a new state transition object.
-func NewStateTransition(evm *evm.EVM, msg Message, feeReceiver common.Address) *StateTransition {
+func NewStateTransition(evm *evm.EVM, msg *types2.EvmMessage, feeReceiver common.Address) *StateTransition {
 	return &StateTransition{
 		evm:         evm,
 		msg:         msg,
-		gasPrice:    msg.GasPrice(),
-		value:       msg.Value(),
-		data:        msg.Data(),
+		gasPrice:    msg.GasPrice,
+		value:       msg.Value,
+		data:        msg.Data,
 		state:       evm.StateDB,
 		GasReceiver: feeReceiver,
 	}
@@ -171,22 +171,22 @@ func NewStateTransition(evm *evm.EVM, msg Message, feeReceiver common.Address) *
 // the gas used (which includes gas refunds) and an error if it failed. An error always
 // indicates a core error meaning that the message would always fail for that particular
 // state and would never be accepted within a block.
-func ApplyMessage(evm *evm.EVM, msg Message, feeReceiver common.Address) (*types.ExecutionResult, error) {
+func ApplyMessage(evm *evm.EVM, msg *types2.EvmMessage, feeReceiver common.Address) (*types.ExecutionResult, error) {
 	return NewStateTransition(evm, msg, feeReceiver).TransitionDb()
 }
 
 // to returns the recipient of the message.
 func (st *StateTransition) to() common.Address {
-	if st.msg == nil || st.msg.To() == nil /* contract creation */ {
+	if st.msg == nil || st.msg.To == nil /* contract creation */ {
 		return common.Address{}
 	}
-	return *st.msg.To()
+	return *st.msg.To
 }
 
 func (st *StateTransition) buyGas() (adjustedGas bool) {
-	gas := st.msg.Gas()
+	gas := st.msg.GasLimit
 	mgval := new(big.Int).Mul(new(big.Int).SetUint64(gas), st.gasPrice)
-	if have, want := st.state.GetBalance(st.msg.From()), mgval; have.Cmp(want) < 0 {
+	if have, want := st.state.GetBalance(st.msg.From), mgval; have.Cmp(want) < 0 {
 		mgval = have
 		gas = big.NewInt(0).Div(have, st.gasPrice).Uint64()
 		if st.evm.ChainConfig().ChainID.Uint64() != constants.EIP155_CHAINID_MAINNET || st.evm.Context.BlockNumber.Uint64() >= 15380000 {
@@ -197,20 +197,20 @@ func (st *StateTransition) buyGas() (adjustedGas bool) {
 
 	st.gas += gas
 	st.initialGas = gas
-	st.state.SubBalance(st.msg.From(), mgval)
+	st.state.SubBalance(st.msg.From, mgval)
 	return
 }
 
 func (st *StateTransition) preCheck() (bool, error) {
 	// Make sure this transaction's nonce is correct.
-	if st.msg.CheckNonce() {
-		stNonce := st.state.GetNonce(st.msg.From())
-		if msgNonce := st.msg.Nonce(); stNonce < msgNonce {
+	if !st.msg.SkipNonceChecks {
+		stNonce := st.state.GetNonce(st.msg.From)
+		if msgNonce := st.msg.Nonce; stNonce < msgNonce {
 			return false, fmt.Errorf("%w: address %v, tx: %d state: %d", ErrNonceTooHigh,
-				st.msg.From().Hex(), msgNonce, stNonce)
+				st.msg.From.Hex(), msgNonce, stNonce)
 		} else if stNonce > msgNonce {
 			return false, fmt.Errorf("%w: address %v, tx: %d state: %d", ErrNonceTooLow,
-				st.msg.From().Hex(), msgNonce, stNonce)
+				st.msg.From.Hex(), msgNonce, stNonce)
 		}
 	}
 	adjustedGas := st.buyGas()
@@ -225,8 +225,8 @@ func (st *StateTransition) handleGasFee(adjustedGas bool) {
 	if !adjustedGas || st.evm.Context.BlockNumber.Uint64() != RefundHeight {
 		return
 	}
-	st.state.AddBalance(st.msg.From(), RefundValue)
-	evm.MakeOngTransferLog(st.state, common.Address{}, st.msg.From(), RefundValue)
+	st.state.AddBalance(st.msg.From, RefundValue)
+	evm.MakeOngTransferLog(st.state, common.Address{}, st.msg.From, RefundValue)
 }
 
 // TransitionDb will transition the state by applying the current message and
@@ -267,10 +267,10 @@ func (st *StateTransition) TransitionDb() (*types.ExecutionResult, error) {
 	}
 
 	msg := st.msg
-	sender := evm.AccountRef(msg.From())
+	sender := evm.AccountRef(msg.From)
 	homestead := st.evm.ChainConfig().IsHomestead(st.evm.Context.BlockNumber)
 	istanbul := st.evm.ChainConfig().IsIstanbul(st.evm.Context.BlockNumber)
-	contractCreation := msg.To() == nil
+	contractCreation := msg.To == nil
 
 	var (
 		ret   []byte
@@ -282,8 +282,8 @@ func (st *StateTransition) TransitionDb() (*types.ExecutionResult, error) {
 		vmerr = fmt.Errorf("%w: have %d, want %d", ErrIntrinsicGas, st.gas, gas)
 		gas = st.gas
 		// Check clause 6
-	} else if msg.Value().Sign() > 0 && !st.evm.Context.CanTransfer(st.state, msg.From(), msg.Value()) {
-		vmerr = fmt.Errorf("%w: address %v", ErrInsufficientFundsForTransfer, msg.From().Hex())
+	} else if msg.Value.Sign() > 0 && !st.evm.Context.CanTransfer(st.state, msg.From, msg.Value) {
+		vmerr = fmt.Errorf("%w: address %v", ErrInsufficientFundsForTransfer, msg.From.Hex())
 	}
 	st.gas -= gas
 	if vmerr == nil {
@@ -291,11 +291,11 @@ func (st *StateTransition) TransitionDb() (*types.ExecutionResult, error) {
 			ret, _, st.gas, vmerr = st.evm.Create(sender, st.data, st.gas, st.value)
 		} else {
 			// Increment the nonce for the next transaction
-			st.state.SetNonce(msg.From(), st.state.GetNonce(sender.Address())+1)
+			st.state.SetNonce(msg.From, st.state.GetNonce(sender.Address())+1)
 			ret, st.gas, vmerr = st.evm.Call(sender, st.to(), st.data, st.gas, st.value)
 		}
 	} else {
-		st.state.SetNonce(msg.From(), st.state.GetNonce(sender.Address())+1)
+		st.state.SetNonce(msg.From, st.state.GetNonce(sender.Address())+1)
 	}
 	st.refundGas(adjustedGas)
 	gAmount := new(big.Int).Mul(new(big.Int).SetUint64(st.gasUsed()), st.gasPrice)
@@ -318,7 +318,7 @@ func (st *StateTransition) refundGas(adjustedGas bool) {
 
 	// Return ETH for remaining gas, exchanged at the original rate.
 	remaining := new(big.Int).Mul(new(big.Int).SetUint64(st.gas), st.gasPrice)
-	st.state.AddBalance(st.msg.From(), remaining)
+	st.state.AddBalance(st.msg.From, remaining)
 	st.handleGasFee(adjustedGas)
 }
 
