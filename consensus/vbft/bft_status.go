@@ -90,7 +90,7 @@ func (candidate *BftStatus) AddBlockProposal(msg *blockProposalMsg) error {
 	proposer := msg.Block.getProposer()
 	for _, p := range candidate.Proposals {
 		if p.Block.getProposer() == proposer {
-			if bytes.Equal(p.BlockProposerSig, msg.BlockProposerSig) {
+			if p.Block.Block.Hash() == msg.Block.Block.Hash() {
 				return nil
 			}
 			return errDupProposal
@@ -104,7 +104,7 @@ func (candidate *BftStatus) AddBlockProposal(msg *blockProposalMsg) error {
 	eSig := &EndorseSigInfo{
 		BlockHash:        msg.Block.Block.Hash(),
 		EndorsedProposer: proposer,
-		Signature:        msg.BlockProposerSig,
+		Signature:        msg.Block.Block.Header.SigData[0],
 		ForEmpty:         false,
 	}
 	candidate.addBlockEndorsementLocked(proposer, eSig, false)
@@ -423,9 +423,8 @@ func (pool *Server) SetBlockSealed(vbftCtx *VbftContext, block *VbftBlock, forEm
 		}
 	}
 	sealedBlock := &VbftBlock{
-		Info:               block.Info,
-		PrevExecMerkleRoot: block.PrevExecMerkleRoot,
-		Block:              block.Block,
+		Info:  block.Info,
+		Block: block.Block,
 	}
 	if forEmpty {
 		sealedBlock.Block = block.EmptyBlock

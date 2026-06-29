@@ -231,6 +231,15 @@ func (self *Server) sendToPeer(peerIdx uint32, msg ConsensusMsg) error {
 	if !present {
 		return fmt.Errorf("send peer failed: failed to get peer %d", peerIdx)
 	}
+	sendV2 := true
+	if pMsg, ok := msg.(*blockProposalMsg); ok {
+		if pMsg.Block.Block.Header.ConsensusData != uint64(pMsg.Block.Block.Header.Height) {
+			sendV2 = false // this proposal is created from old node
+		}
+	}
+	if sendV2 {
+		go self.p2p.SendTo(p2pid, msgpack.NewConsensus(self.packAndSignP2PMsgV2(msg)))
+	}
 	go self.p2p.SendTo(p2pid, msgpack.NewConsensus(self.packAndSignP2PMsg(msg)))
 	return nil
 }
@@ -242,8 +251,23 @@ func (self *Server) broadcast(msg ConsensusMsg) {
 	}
 }
 
+func (self *Server) packAndSignP2PMsgV2(msg ConsensusMsg) *p2pmsg.ConsensusPayload {
+	data := SerializeVbftMsgV2(msg)
+	payload := &p2pmsg.ConsensusPayload{
+		Data:            data,
+		BookkeeperIndex: uint16(self.Index), // TODO: define as uint32, currently uint16 is enough
+		Owner:           self.account.PublicKey,
+	}
+
+	sink := common.NewZeroCopySink(nil)
+	payload.SerializationUnsigned(sink)
+	payload.Signature, _ = signature.Sign(self.account, sink.Bytes())
+
+	return payload
+}
+
 func (self *Server) packAndSignP2PMsg(msg ConsensusMsg) *p2pmsg.ConsensusPayload {
-	data := MustSerializeVbftMsg(msg)
+	data := SerializeVbftMsg(msg)
 	payload := &p2pmsg.ConsensusPayload{
 		Data:            data,
 		BookkeeperIndex: uint16(self.Index), // TODO: define as uint32, currently uint16 is enough
@@ -258,5 +282,6 @@ func (self *Server) packAndSignP2PMsg(msg ConsensusMsg) *p2pmsg.ConsensusPayload
 }
 
 func (self *Server) broadcastToAll(msg ConsensusMsg) {
+	go self.p2p.Broadcast(msgpack.NewConsensus(self.packAndSignP2PMsgV2(msg)))
 	go self.p2p.Broadcast(msgpack.NewConsensus(self.packAndSignP2PMsg(msg)))
 }

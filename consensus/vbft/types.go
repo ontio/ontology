@@ -29,10 +29,9 @@ import (
 )
 
 type VbftBlock struct {
-	Block              *types.Block
-	EmptyBlock         *types.Block
-	Info               *vconfig.VbftBlockInfo
-	PrevExecMerkleRoot common.Uint256
+	Block      *types.Block
+	EmptyBlock *types.Block
+	Info       *vconfig.VbftBlockInfo
 }
 
 func (blk *VbftBlock) getProposer() uint32 {
@@ -45,18 +44,6 @@ func (blk *VbftBlock) getBlockNum() uint32 {
 
 func (blk *VbftBlock) getPrevBlockHash() common.Uint256 {
 	return blk.Block.Header.PrevBlockHash
-}
-
-func (blk *VbftBlock) getLastConfigBlockNum() uint32 {
-	return blk.Info.LastConfigBlockNum
-}
-
-func (blk *VbftBlock) getNewChainConfig() *vconfig.ChainConfig {
-	return blk.Info.NewChainConfig
-}
-
-func (blk *VbftBlock) getPrevExecMerkleRoot() common.Uint256 {
-	return blk.PrevExecMerkleRoot
 }
 
 // getVrfValue() is a helper function for participant selection.
@@ -76,9 +63,39 @@ func (blk *VbftBlock) Serialize() []byte {
 	if blk.EmptyBlock != nil {
 		payload.WriteVarBytes(common.SerializeToBytes(blk.EmptyBlock))
 	}
-	payload.WriteHash(blk.PrevExecMerkleRoot)
+	payload.WriteHash(common.Uint256{})
 	payload.WriteBool(false)
 	return payload.Bytes()
+}
+
+func (blk *VbftBlock) Serialization(sink *common.ZeroCopySink) {
+	blk.Block.Serialization(sink)
+	blk.EmptyBlock.Serialization(sink)
+}
+
+func (blk *VbftBlock) Deserialization(source *common.ZeroCopySource) error {
+	block := &types.Block{}
+	err := block.Deserialization(source)
+	if err != nil {
+		return err
+	}
+	emptyBlock := &types.Block{}
+	err = emptyBlock.Deserialization(source)
+	if err != nil {
+		return err
+	}
+
+	blk.Block = block
+	blk.EmptyBlock = emptyBlock
+
+	info := &vconfig.VbftBlockInfo{}
+	if err := json.Unmarshal(block.Header.ConsensusPayload, info); err != nil {
+		return fmt.Errorf("unmarshal vbft info: %s", err)
+	}
+
+	blk.Info = info
+
+	return nil
 }
 
 func (blk *VbftBlock) Deserialize(data []byte) error {
@@ -122,8 +139,7 @@ func (blk *VbftBlock) Deserialize(data []byte) error {
 		emptyBlock = block2
 	}
 
-	var merkleRoot common.Uint256
-	merkleRoot, eof = source.NextHash()
+	_, eof = source.NextHash()
 	if eof {
 		return fmt.Errorf("block deserialize merkleRoot: %s", io.ErrUnexpectedEOF)
 	}
@@ -136,11 +152,10 @@ func (blk *VbftBlock) Deserialize(data []byte) error {
 	blk.Block = block
 	blk.EmptyBlock = emptyBlock
 	blk.Info = info
-	blk.PrevExecMerkleRoot = merkleRoot
 	return nil
 }
 
-func initVbftBlock(block *types.Block, prevExecMerkleRoot common.Uint256) (*VbftBlock, error) {
+func initVbftBlock(block *types.Block) (*VbftBlock, error) {
 	if block == nil {
 		return nil, fmt.Errorf("nil block in initVbftBlock")
 	}
@@ -151,8 +166,7 @@ func initVbftBlock(block *types.Block, prevExecMerkleRoot common.Uint256) (*Vbft
 	}
 
 	return &VbftBlock{
-		Block:              block,
-		Info:               blkInfo,
-		PrevExecMerkleRoot: prevExecMerkleRoot,
+		Block: block,
+		Info:  blkInfo,
 	}, nil
 }

@@ -209,6 +209,55 @@ func (self *ZeroCopySource) ReadVarBytes() (data []byte, err error) {
 	return data, nil
 }
 
+func (self *ZeroCopySource) ReadByte() (data byte, err error) {
+	d, eof := self.NextByte()
+	if eof {
+		err = io.ErrUnexpectedEOF
+		return
+	}
+	return d, nil
+}
+
+func (self *ZeroCopySource) ReadBytes(n uint64) (data []byte, err error) {
+	d, eof := self.NextBytes(n)
+	if eof {
+		err = io.ErrUnexpectedEOF
+		return
+	}
+
+	return d, nil
+}
+
+func (self *ZeroCopySource) ReadBool() (data bool, err error) {
+	d, irr, eof := self.NextBool()
+	if eof {
+		err = io.ErrUnexpectedEOF
+		return
+	} else if irr {
+		err = ErrIrregularData
+		return
+	}
+	return d, nil
+}
+
+func (self *ZeroCopySource) ReadAddress() (Address, error) {
+	data, eof := self.NextAddress()
+	if eof {
+		return Address{}, io.ErrUnexpectedEOF
+	}
+
+	return data, nil
+}
+
+func (self *ZeroCopySource) ReadHash() (Uint256, error) {
+	data, eof := self.NextHash()
+	if eof {
+		return Uint256{}, io.ErrUnexpectedEOF
+	}
+
+	return data, nil
+}
+
 func (self *ZeroCopySource) ReadVarUint() (uint64, error) {
 	length, _, irregular, eof := self.NextVarUint()
 	if irregular {
@@ -317,3 +366,7 @@ func getVarUintSize(value uint64) uint64 {
 
 // NewReader returns a new ZeroCopySource reading from b.
 func NewZeroCopySource(b []byte) *ZeroCopySource { return &ZeroCopySource{b, 0} }
+
+func (self *ZeroCopySource) Reader() *ZeroCopyReader {
+	return &ZeroCopyReader{Source: self}
+}

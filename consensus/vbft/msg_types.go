@@ -19,15 +19,16 @@
 package vbft
 
 import (
-	"bytes"
+	"crypto/sha256"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"sort"
 
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology-crypto/signature"
 	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/common/serialization"
+	"github.com/ontio/ontology/core/types"
 )
 
 type MsgType uint8
@@ -39,10 +40,8 @@ const (
 
 	PeerHeartbeatMessage MsgType = 4
 
-	ProposalFetchMessage  MsgType = 7
-	BlockFetchMessage     MsgType = 8
-	BlockFetchRespMessage MsgType = 9
-	BlockSubmitMessage    MsgType = 10
+	ProposalFetchMessage MsgType = 7
+	BlockSubmitMessage   MsgType = 10
 )
 
 func (self MsgType) String() string {
@@ -57,10 +56,6 @@ func (self MsgType) String() string {
 		return "Heartbeat"
 	case ProposalFetchMessage:
 		return "ProposalFetch"
-	case BlockFetchMessage:
-		return "BlockFetch"
-	case BlockFetchRespMessage:
-		return "BlockFetchResp"
 	case BlockSubmitMessage:
 		return "Submit"
 	default:
@@ -72,6 +67,8 @@ type ConsensusMsg interface {
 	Type() MsgType
 	GetBlockNum() uint32
 	Serialize() ([]byte, error)
+	Serialization(sink *common.ZeroCopySink)
+	Deserialization(source *common.ZeroCopySource) error
 }
 
 type KeyProvider interface {
@@ -83,14 +80,129 @@ type BftConsensusMsg interface {
 	Verify(pubs KeyProvider) error
 }
 
+type blockProposalMsgV2 struct {
+	Proposer       uint32               `json:"leader"`
+	VrfValue       []byte               `json:"vrf_value"`
+	VrfProof       []byte               `json:"vrf_proof"`
+	BlockHeight    uint32               `json:"block_height"`
+	BlockTime      uint32               `json:"block_time"`
+	Transactions   []*types.Transaction `json:"transactions"`
+	BlockHash      common.Uint256       `json:"block_hash"`
+	EmptyBlockHash common.Uint256       `json:"empty_block_hash"`
+	Sig            []byte               `json:"sig"`
+	EmptySig       []byte               `json:"empty_sig"`
+}
+
+func (msg *blockProposalMsgV2) Type() MsgType {
+	return BlockProposalMessage
+}
+
+func (msg *blockProposalMsgV2) Verify(pubs KeyProvider) error {
+	proposer := msg.Proposer
+	pub := pubs.GetPeerPubKey(proposer)
+	if pub == nil {
+		return fmt.Errorf("unknown consensus node, index: %d", proposer)
+	}
+	sig, err := signature.Deserialize(msg.Sig)
+	if err != nil {
+		return fmt.Errorf("deserialize block sig: %s", err)
+	}
+	if !signature.Verify(pub, msg.BlockHash[:], sig) {
+		return fmt.Errorf("failed to verify block sig")
+	}
+
+	sig, err = signature.Deserialize(msg.EmptySig)
+	if err != nil {
+		return fmt.Errorf("deserialize empty block sig: %s", err)
+	}
+	if !signature.Verify(pub, msg.EmptyBlockHash[:], sig) {
+		return fmt.Errorf("failed to verify empty block sig")
+	}
+
+	return nil
+}
+
+func (msg *blockProposalMsgV2) GetBlockNum() uint32 {
+	return msg.BlockHeight
+}
+
+func (msg *blockProposalMsgV2) Serialize() ([]byte, error) {
+	panic("using serialization")
+}
+
+func (msg *blockProposalMsgV2) Serialization(sink *common.ZeroCopySink) {
+	sink.WriteUint32(msg.Proposer)
+	sink.WriteVarBytes(msg.VrfValue)
+	sink.WriteVarBytes(msg.VrfProof)
+	sink.WriteUint32(msg.BlockHeight)
+	sink.WriteUint32(msg.BlockTime)
+	sink.WriteVarUint(uint64(len(msg.Transactions)))
+	for _, tx := range msg.Transactions {
+		tx.Serialization(sink)
+	}
+	sink.WriteHash(msg.BlockHash)
+	sink.WriteHash(msg.EmptyBlockHash)
+	sink.WriteVarBytes(msg.Sig)
+	sink.WriteVarBytes(msg.EmptySig)
+}
+
+func (msg *blockProposalMsgV2) Hash() common.Uint256 {
+	sink := common.NewZeroCopySink(nil)
+	sink.WriteUint32(msg.Proposer)
+	sink.WriteHash(msg.BlockHash)
+	sink.WriteHash(msg.EmptyBlockHash)
+	return sha256.Sum256(sink.Bytes())
+}
+
+func (msg *blockProposalMsgV2) Deserialization(source *common.ZeroCopySource) error {
+	reader := source.Reader()
+	msg.Proposer = reader.ReadUint32()
+	msg.VrfValue = reader.ReadVarBytes()
+	msg.VrfProof = reader.ReadVarBytes()
+	msg.BlockHeight = reader.ReadUint32()
+	msg.BlockTime = reader.ReadUint32()
+	txnLen := reader.ReadVarUint()
+	if reader.Error() != nil {
+		return reader.Error()
+	}
+	msg.Transactions = make([]*types.Transaction, 0)
+	for i := uint64(0); i < txnLen; i++ {
+		tx := &types.Transaction{}
+		err := tx.Deserialization(source)
+		if err != nil {
+			return err
+		}
+		msg.Transactions = append(msg.Transactions, tx)
+	}
+	msg.BlockHash = reader.ReadHash()
+	msg.EmptyBlockHash = reader.ReadHash()
+	msg.Sig = reader.ReadVarBytes()
+	msg.EmptySig = reader.ReadVarBytes()
+
+	return reader.Error()
+}
+
 type blockProposalMsg struct {
-	Block                 *VbftBlock `json:"block"`
-	BlockProposerSig      []byte
-	EmptyBlockProposerSig []byte
+	Block *VbftBlock `json:"block"`
 }
 
 func (msg *blockProposalMsg) Type() MsgType {
 	return BlockProposalMessage
+}
+
+func (msg *blockProposalMsg) ToV2() *blockProposalMsgV2 {
+	return &blockProposalMsgV2{
+		Proposer:       msg.Block.getProposer(),
+		VrfValue:       msg.Block.Info.VrfValue,
+		VrfProof:       msg.Block.Info.VrfProof,
+		BlockHeight:    msg.Block.getBlockNum(),
+		BlockTime:      msg.Block.Block.Header.Timestamp,
+		Transactions:   msg.Block.Block.Transactions,
+		BlockHash:      msg.Block.Block.Hash(),
+		EmptyBlockHash: msg.Block.EmptyBlock.Hash(),
+		Sig:            msg.Block.Block.Header.SigData[0],
+		EmptySig:       msg.Block.EmptyBlock.Header.SigData[0],
+	}
 }
 
 func (msg *blockProposalMsg) Verify(pubs KeyProvider) error {
@@ -148,17 +260,19 @@ func (msg *blockProposalMsg) UnmarshalJSON(data []byte) error {
 	}
 
 	msg.Block = blk
-	if blk.Block != nil && len(blk.Block.Header.SigData) > 0 {
-		msg.BlockProposerSig = blk.Block.Header.SigData[0]
-	}
-	if blk.EmptyBlock != nil && len(blk.EmptyBlock.Header.SigData) > 0 {
-		msg.EmptyBlockProposerSig = blk.EmptyBlock.Header.SigData[0]
-	}
 	return nil
 }
 
 func (msg *blockProposalMsg) MarshalJSON() ([]byte, error) {
 	return msg.Block.Serialize(), nil
+}
+
+func (msg *blockProposalMsg) Serialization(sink *common.ZeroCopySink) {
+	msg.ToV2().Serialization(sink)
+}
+
+func (msg *blockProposalMsg) Deserialization(source *common.ZeroCopySource) error {
+	panic("wrong execution path")
 }
 
 type blockEndorseMsg struct {
@@ -196,6 +310,27 @@ func (msg *blockEndorseMsg) GetBlockNum() uint32 {
 
 func (msg *blockEndorseMsg) Serialize() ([]byte, error) {
 	return json.Marshal(msg)
+}
+
+func (msg *blockEndorseMsg) Serialization(sink *common.ZeroCopySink) {
+	sink.WriteUint32(msg.Endorser)
+	sink.WriteUint32(msg.EndorsedProposer)
+	sink.WriteUint32(msg.BlockNum)
+	sink.WriteHash(msg.EndorsedBlockHash)
+	sink.WriteBool(msg.EndorseForEmpty)
+	sink.WriteVarBytes(msg.EndorserSig)
+}
+
+func (msg *blockEndorseMsg) Deserialization(source *common.ZeroCopySource) error {
+	reader := source.Reader()
+	msg.Endorser = reader.ReadUint32()
+	msg.EndorsedProposer = reader.ReadUint32()
+	msg.BlockNum = reader.ReadUint32()
+	msg.EndorsedBlockHash = reader.ReadHash()
+	msg.EndorseForEmpty = reader.ReadBool()
+	msg.EndorserSig = reader.ReadVarBytes()
+
+	return reader.Error()
 }
 
 type blockCommitMsg struct {
@@ -250,6 +385,51 @@ func (msg *blockCommitMsg) Serialize() ([]byte, error) {
 	return json.Marshal(msg)
 }
 
+func (msg *blockCommitMsg) Serialization(sink *common.ZeroCopySink) {
+	sink.WriteUint32(msg.Committer)
+	sink.WriteUint32(msg.BlockProposer)
+	sink.WriteUint32(msg.BlockNum)
+	sink.WriteHash(msg.CommitBlockHash)
+	sink.WriteBool(msg.CommitForEmpty)
+	sink.WriteVarUint(uint64(len(msg.EndorsersSig)))
+	keys := make([]uint32, 0, len(msg.EndorsersSig))
+	for k := range msg.EndorsersSig {
+		keys = append(keys, k)
+	}
+	sort.Slice(keys, func(i, j int) bool { return keys[i] < keys[j] })
+	for _, k := range keys {
+		sink.WriteUint32(k)
+		sink.WriteVarBytes(msg.EndorsersSig[k])
+	}
+	sink.WriteVarBytes(msg.CommitterSig)
+}
+
+func (msg *blockCommitMsg) Deserialization(source *common.ZeroCopySource) error {
+	reader := source.Reader()
+	msg.Committer = reader.ReadUint32()
+	msg.BlockProposer = reader.ReadUint32()
+	msg.BlockNum = reader.ReadUint32()
+	msg.CommitBlockHash = reader.ReadHash()
+	msg.CommitForEmpty = reader.ReadBool()
+	length := reader.ReadVarUint()
+	if reader.Error() != nil {
+		return reader.Error()
+	}
+
+	msg.EndorsersSig = make(map[uint32][]byte)
+	for i := uint64(0); i < length; i++ {
+		peerIdx := reader.ReadUint32()
+		sig := reader.ReadVarBytes()
+		if reader.Error() != nil {
+			return reader.Error()
+		}
+		msg.EndorsersSig[peerIdx] = sig
+	}
+	msg.CommitterSig = reader.ReadVarBytes()
+
+	return reader.Error()
+}
+
 type peerHeartbeatMsg struct {
 	CommittedBlockNumber   uint32         `json:"committed_block_number"`
 	CommittedBlockHash     common.Uint256 `json:"committed_block_hash"`
@@ -271,63 +451,50 @@ func (msg *peerHeartbeatMsg) Serialize() ([]byte, error) {
 	return json.Marshal(msg)
 }
 
-// block fetch msg is to fetch block which could have not been committed or endorsed
-type blockFetchMsg struct {
-	BlockNum uint32 `json:"block_num"`
-}
-
-func (msg *blockFetchMsg) Type() MsgType {
-	return BlockFetchMessage
-}
-
-func (msg *blockFetchMsg) GetBlockNum() uint32 {
-	return 0
-}
-
-func (msg *blockFetchMsg) Serialize() ([]byte, error) {
-	return json.Marshal(msg)
-}
-
-type BlockFetchRespMsg struct {
-	BlockNumber uint32         `json:"block_number"`
-	BlockHash   common.Uint256 `json:"block_hash"`
-	BlockData   *VbftBlock     `json:"block_data"`
-}
-
-func (msg *BlockFetchRespMsg) Type() MsgType {
-	return BlockFetchRespMessage
-}
-
-func (msg *BlockFetchRespMsg) GetBlockNum() uint32 {
-	return 0
-}
-
-func (msg *BlockFetchRespMsg) Serialize() ([]byte, error) {
-	buffer := bytes.NewBuffer([]byte{})
-	serialization.WriteUint32(buffer, msg.BlockNumber)
-	msg.BlockHash.Serialize(buffer)
-	blockbuff := msg.BlockData.Serialize()
-	buffer.Write(blockbuff)
-	return buffer.Bytes(), nil
-}
-
-func (msg *BlockFetchRespMsg) Deserialize(data []byte) error {
-	buffer := bytes.NewBuffer(data)
-	blocknum, err := serialization.ReadUint32(buffer)
-	if err != nil {
-		return err
+func (msg *peerHeartbeatMsg) Serialization(sink *common.ZeroCopySink) {
+	sink.WriteUint32(msg.CommittedBlockNumber)
+	sink.WriteHash(msg.CommittedBlockHash)
+	sink.WriteUint32(msg.CommittedBlockProposer)
+	sink.WriteVarUint(uint64(len(msg.Endorsers)))
+	for _, endorser := range msg.Endorsers {
+		sink.WriteVarBytes(endorser)
 	}
-	msg.BlockNumber = blocknum
-	err = msg.BlockHash.Deserialize(buffer)
-	if err != nil {
-		return err
+	sink.WriteVarUint(uint64(len(msg.EndorsersSig)))
+	for _, sig := range msg.EndorsersSig {
+		sink.WriteVarBytes(sig)
 	}
-	blk := &VbftBlock{}
-	if err := blk.Deserialize(buffer.Bytes()); err != nil {
-		return fmt.Errorf("unmarshal block type: %s", err)
+	sink.WriteUint32(msg.ChainConfigView)
+}
+
+func (msg *peerHeartbeatMsg) Deserialization(source *common.ZeroCopySource) error {
+	reader := source.Reader()
+	msg.CommittedBlockNumber = reader.ReadUint32()
+	msg.CommittedBlockHash = reader.ReadHash()
+	msg.CommittedBlockProposer = reader.ReadUint32()
+	endorserLen := reader.ReadVarUint()
+	if reader.Error() != nil {
+		return reader.Error()
 	}
-	msg.BlockData = blk
-	return nil
+
+	for i := uint64(0); i < endorserLen; i++ {
+		msg.Endorsers = append(msg.Endorsers, reader.ReadVarBytes())
+		if reader.Error() != nil {
+			return reader.Error()
+		}
+	}
+	sigLen := reader.ReadVarUint()
+	if reader.Error() != nil {
+		return reader.Error()
+	}
+	for i := uint64(0); i < sigLen; i++ {
+		msg.EndorsersSig = append(msg.EndorsersSig, reader.ReadVarBytes())
+		if reader.Error() != nil {
+			return reader.Error()
+		}
+	}
+	msg.ChainConfigView = reader.ReadUint32()
+
+	return reader.Error()
 }
 
 // proposal fetch msg is to fetch proposal when peer failed to get proposal locally
@@ -346,6 +513,18 @@ func (msg *proposalFetchMsg) GetBlockNum() uint32 {
 
 func (msg *proposalFetchMsg) Serialize() ([]byte, error) {
 	return json.Marshal(msg)
+}
+
+func (msg *proposalFetchMsg) Serialization(sink *common.ZeroCopySink) {
+	sink.WriteUint32(msg.ProposerID)
+	sink.WriteUint32(msg.BlockNum)
+}
+
+func (msg *proposalFetchMsg) Deserialization(source *common.ZeroCopySource) error {
+	reader := source.Reader()
+	msg.ProposerID = reader.ReadUint32()
+	msg.BlockNum = reader.ReadUint32()
+	return reader.Error()
 }
 
 type blockSubmitMsg struct {
@@ -382,4 +561,29 @@ func (msg *blockSubmitMsg) GetBlockNum() uint32 {
 
 func (msg *blockSubmitMsg) Serialize() ([]byte, error) {
 	return json.Marshal(msg)
+}
+
+func (msg *blockSubmitMsg) Serialization(sink *common.ZeroCopySink) {
+	sink.WriteUint32(msg.Submitter)
+	sink.WriteHash(msg.BlockStateRoot)
+	sink.WriteUint32(msg.BlockNum)
+	sink.WriteVarBytes(msg.SubmitMsgSig)
+}
+
+func (msg *blockSubmitMsg) Hash() common.Uint256 {
+	sink := common.NewZeroCopySink(nil)
+	sink.WriteUint32(msg.Submitter)
+	sink.WriteHash(msg.BlockStateRoot)
+	sink.WriteUint32(msg.BlockNum)
+	return sha256.Sum256(sink.Bytes())
+}
+
+func (msg *blockSubmitMsg) Deserialization(source *common.ZeroCopySource) error {
+	reader := source.Reader()
+	msg.Submitter = reader.ReadUint32()
+	msg.BlockStateRoot = reader.ReadHash()
+	msg.BlockNum = reader.ReadUint32()
+	msg.SubmitMsgSig = reader.ReadVarBytes()
+
+	return reader.Error()
 }

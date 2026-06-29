@@ -181,7 +181,7 @@ func (self *MsgHandler) HandlePeerMessage(ctx *p2p.Context, msg msgTypes.Message
 	case *msgTypes.OfflineWitnessMsg:
 		self.subnet.OnOfflineWitnessMsg(ctx, m)
 	case *msgTypes.NotFound:
-		log.Debug("[p2p]receive notFound message, hash is ", m.Hash)
+		log.Debug("[p2p]receive notFound message, hash is ", m.Hash.ToHexString())
 	default:
 		msgType := msg.CmdType()
 		if msgType == msgCommon.VERACK_TYPE || msgType == msgCommon.VERSION_TYPE {
@@ -266,7 +266,7 @@ func DataReqHandle(ctx *p2p.Context, dataReq *msgTypes.DataReq) {
 			var merkleRoot common.Uint256
 			block, err := ledger.DefLedger.GetBlockByHash(hash)
 			if err != nil || block == nil || block.Header == nil {
-				log.Debug("[p2p]can't get block by hash: ", hash, " ,send not found message")
+				log.Debug("[p2p]can't get block by hash: ", hash.ToHexString(), " ,send not found message. error:", err)
 				msg := msgpack.NewNotFound(hash)
 				err := remotePeer.Send(msg)
 				if err != nil {
@@ -277,8 +277,8 @@ func DataReqHandle(ctx *p2p.Context, dataReq *msgTypes.DataReq) {
 			}
 			ccMsg, err := ledger.DefLedger.GetCrossChainMsg(block.Header.Height - 1)
 			if err != nil {
-				log.Debugf("[p2p]failed to get cross chain message at height %v, err %v",
-					block.Header.Height-1, err)
+				log.Debugf("[p2p]failed to get cross chain message at height %v, hash:%s, err: %v",
+					block.Header.Height-1, hash.ToHexString(), err)
 				msg := msgpack.NewNotFound(hash)
 				err := remotePeer.Send(msg)
 				if err != nil {
@@ -289,8 +289,8 @@ func DataReqHandle(ctx *p2p.Context, dataReq *msgTypes.DataReq) {
 			}
 			merkleRoot, err = ledger.DefLedger.GetStateMerkleRoot(block.Header.Height)
 			if err != nil {
-				log.Debugf("[p2p]failed to get state merkel root at height %v, err %v",
-					block.Header.Height, err)
+				log.Debugf("[p2p]failed to get state merkel root at height %v, hash:%s, err %v",
+					block.Header.Height, hash.ToHexString(), err)
 				msg := msgpack.NewNotFound(hash)
 				err := remotePeer.Send(msg)
 				if err != nil {

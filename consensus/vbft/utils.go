@@ -27,27 +27,16 @@ import (
 
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology-crypto/vrf"
-	"github.com/ontio/ontology/account"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
 	vconfig "github.com/ontio/ontology/consensus/vbft/config"
 	"github.com/ontio/ontology/core/ledger"
-	"github.com/ontio/ontology/core/signature"
 	"github.com/ontio/ontology/core/states"
 	scommon "github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/core/store/overlaydb"
 	gov "github.com/ontio/ontology/smartcontract/service/native/governance"
 	nutils "github.com/ontio/ontology/smartcontract/service/native/utils"
 )
-
-func SignMsg(account *account.Account, msg ConsensusMsg) ([]byte, error) {
-	data, err := msg.Serialize()
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal msg when signing: %s", err)
-	}
-
-	return signature.Sign(account, data)
-}
 
 func hashData(data []byte) common.Uint256 {
 	t := sha256.Sum256(data)
@@ -56,11 +45,7 @@ func hashData(data []byte) common.Uint256 {
 }
 
 func HashMsg(msg ConsensusMsg) common.Uint256 {
-	data, err := SerializeVbftMsg(msg)
-	if err != nil {
-		panic(err)
-	}
-
+	data := common.SerializeToBytes(msg)
 	return hashData(data)
 }
 
@@ -111,7 +96,9 @@ func verifyVrf(pk keypair.PublicKey, blkNum uint32, prevVrf, newVrf, proof []byt
 		return fmt.Errorf("verifyVrf failed to marshal vrfData: %s", err)
 	}
 
-	result, err := vrf.Verify(pk, data, newVrf, proof)
+	// NOTE: must clone here, vrf.Verify will append proof following bytes.
+	// since we share buffer from p2p msg when decoding, will invalidate transaction in proposal msg.
+	result, err := vrf.Verify(pk, data, CopyBytes(newVrf), CopyBytes(proof))
 	if err != nil {
 		return fmt.Errorf("verifyVrf failed: %s", err)
 	}
@@ -119,6 +106,16 @@ func verifyVrf(pk keypair.PublicKey, blkNum uint32, prevVrf, newVrf, proof []byt
 		return fmt.Errorf("verifyVrf failed")
 	}
 	return nil
+}
+
+func CopyBytes(b []byte) (copiedBytes []byte) {
+	if b == nil {
+		return nil
+	}
+	copiedBytes = make([]byte, len(b))
+	copy(copiedBytes, b)
+
+	return
 }
 
 func GetVbftConfigInfo(memdb *overlaydb.MemDB) (*config.VBFTConfig, error) {

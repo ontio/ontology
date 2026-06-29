@@ -133,7 +133,7 @@ func (self *Discovery) FindNodeHandle(ctx *p2p.Context, freq *types.FindNodeReq)
 
 	var fresp types.FindNodeResp
 	// check the target is my self
-	log.Debugf("[dht] find node for peerid: %d", freq.TargetID)
+	log.Debugf("[dht] find node for peerid: %s", freq.TargetID.ToHexString())
 
 	if freq.TargetID == self.id {
 		fresp.Success = true

@@ -141,7 +141,7 @@ type Header struct {
 }
 
 func (bd *Header) Serialization(sink *common.ZeroCopySink) {
-	bd.serializationUnsigned(sink)
+	bd.SerializeUnsigned(sink)
 	sink.WriteVarUint(uint64(len(bd.Bookkeepers)))
 
 	for _, pubkey := range bd.Bookkeepers {
@@ -155,7 +155,7 @@ func (bd *Header) Serialization(sink *common.ZeroCopySink) {
 }
 
 // Serialize the blockheader data without program
-func (bd *Header) serializationUnsigned(sink *common.ZeroCopySink) {
+func (bd *Header) SerializeUnsigned(sink *common.ZeroCopySink) {
 	sink.WriteUint32(bd.Version)
 	sink.WriteBytes(bd.PrevBlockHash[:])
 	sink.WriteBytes(bd.TransactionsRoot[:])
@@ -285,12 +285,18 @@ func (bd *Header) Hash() common.Uint256 {
 		return *bd.hash
 	}
 	sink := common.NewZeroCopySink(nil)
-	bd.serializationUnsigned(sink)
+	bd.SerializeUnsigned(sink)
 	temp := sha256.Sum256(sink.Bytes())
 	hash := common.Uint256(sha256.Sum256(temp[:]))
 
 	bd.hash = &hash
 	return hash
+}
+
+func (bd *Header) ToArrayUnsigned() []byte {
+	sink := common.NewZeroCopySink(nil)
+	bd.SerializeUnsigned(sink)
+	return sink.Bytes()
 }
 
 func (bd *Header) ToArray() []byte {

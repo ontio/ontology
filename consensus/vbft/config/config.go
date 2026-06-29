@@ -29,10 +29,6 @@ import (
 	"github.com/ontio/ontology/common"
 )
 
-var (
-	Version uint32 = 1
-)
-
 type PeerConfig struct {
 	Index uint32 `json:"index"`
 	ID    string `json:"id"`
@@ -81,13 +77,6 @@ func (v VRFValue) Bytes() []byte {
 
 func (v VRFValue) IsNil() bool {
 	return bytes.Compare(v.Bytes(), NilVRF.Bytes()) == 0
-}
-
-func VerifyChainConfig(cfg *ChainConfig) error {
-
-	// TODO
-
-	return nil
 }
 
 // Serialize the ChainConfig

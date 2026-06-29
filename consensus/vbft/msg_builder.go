@@ -19,6 +19,7 @@
 package vbft
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"time"
@@ -39,7 +40,37 @@ type ConsensusMsgPayload struct {
 	Payload []byte  `json:"payload"`
 }
 
-func DeserializeVbftMsg(msg *p2pmsg.ConsensusPayload) (ConsensusMsg, error) {
+func DeserializeVbftMsg(msg *p2pmsg.ConsensusPayload) (consMsg ConsensusMsg, err error) {
+	if bytes.HasPrefix(msg.Data, []byte(`{"type":`)) {
+		return DeserializeVbftMsgJson(msg)
+	}
+	source := common.NewZeroCopySource(msg.Data)
+	msgType, err := source.ReadByte()
+	if err != nil {
+		return nil, err
+	}
+	switch MsgType(msgType) {
+	case BlockProposalMessage:
+		consMsg = &blockProposalMsgV2{}
+	case BlockEndorseMessage:
+		consMsg = &blockEndorseMsg{}
+	case BlockCommitMessage:
+		consMsg = &blockCommitMsg{}
+	case PeerHeartbeatMessage:
+		consMsg = &peerHeartbeatMsg{}
+	case ProposalFetchMessage:
+		consMsg = &proposalFetchMsg{}
+	case BlockSubmitMessage:
+		consMsg = &blockSubmitMsg{}
+	default:
+		return nil, fmt.Errorf("unknown msg type: %d", msgType)
+	}
+	err = consMsg.Deserialization(source)
+
+	return
+}
+
+func DeserializeVbftMsgJson(msg *p2pmsg.ConsensusPayload) (ConsensusMsg, error) {
 	msgPayload := msg.Data
 	m := &ConsensusMsgPayload{}
 	if err := json.Unmarshal(msgPayload, m); err != nil {
@@ -74,18 +105,6 @@ func DeserializeVbftMsg(msg *p2pmsg.ConsensusPayload) (ConsensusMsg, error) {
 			return nil, fmt.Errorf("failed to unmarshal msg (type: %d): %s", m.Type, err)
 		}
 		return t, nil
-	case BlockFetchMessage:
-		t := &blockFetchMsg{}
-		if err := json.Unmarshal(m.Payload, t); err != nil {
-			return nil, fmt.Errorf("failed to unmarshal msg (type: %d): %s", m.Type, err)
-		}
-		return t, nil
-	case BlockFetchRespMessage:
-		t := &BlockFetchRespMsg{}
-		if err := t.Deserialize(m.Payload); err != nil {
-			return nil, fmt.Errorf("failed to Deserialize msg (type: %d): %s", m.Type, err)
-		}
-		return t, nil
 	case ProposalFetchMessage:
 		t := &proposalFetchMsg{}
 		if err := json.Unmarshal(m.Payload, t); err != nil {
@@ -104,27 +123,28 @@ func DeserializeVbftMsg(msg *p2pmsg.ConsensusPayload) (ConsensusMsg, error) {
 	return nil, fmt.Errorf("unknown msg type: %d", m.Type)
 }
 
-func MustSerializeVbftMsg(msg ConsensusMsg) []byte {
-	data, err := SerializeVbftMsg(msg)
+func SerializeVbftMsgV2(msg ConsensusMsg) []byte {
+	sink := common.NewZeroCopySink(nil)
+	sink.WriteByte(byte(msg.Type()))
+	msg.Serialization(sink)
+	return sink.Bytes()
+}
+
+func SerializeVbftMsg(msg ConsensusMsg) []byte {
+	payload, err := msg.Serialize()
 	if err != nil {
 		panic(err)
 	}
 
-	return data
-}
-
-// TODO: serialize should never fail.
-func SerializeVbftMsg(msg ConsensusMsg) ([]byte, error) {
-	payload, err := msg.Serialize()
-	if err != nil {
-		return nil, err
-	}
-
-	return json.Marshal(&ConsensusMsgPayload{
+	data, err := json.Marshal(&ConsensusMsgPayload{
 		Type:    msg.Type(),
 		Len:     uint32(len(payload)),
 		Payload: payload,
 	})
+	if err != nil {
+		panic(err)
+	}
+	return data
 }
 
 func (self *Server) constructHeartbeatMsg() (*peerHeartbeatMsg, error) {
@@ -204,8 +224,8 @@ func (self *Server) constructProposalMsg(vbftCtx *VbftContext, userTxs []*types.
 		return nil, fmt.Errorf("failed to get vrf and proof: %s", err)
 	}
 
-	nonce := common.GetNonce()
-	proposal := BuildProposalMsg(vbftCtx, userTxs, chainconfig, nonce, nonce, blockTime, self.Index, vrfValue, vrfProof)
+	nonce := uint64(blkNum)
+	proposal := BuildProposalMsg(vbftCtx, userTxs, chainconfig, nonce, blockTime, self.Index, vrfValue, vrfProof)
 	err = self.SignBlock(proposal.Block.EmptyBlock)
 	if err != nil {
 		return nil, fmt.Errorf("failed to construct empty block: %s", err)
@@ -217,7 +237,7 @@ func (self *Server) constructProposalMsg(vbftCtx *VbftContext, userTxs []*types.
 	return proposal, nil
 }
 
-func BuildProposalMsg(vbftCtx *VbftContext, userTxs []*types.Transaction, chainconfig *vconfig.ChainConfig, nonce, emptyNonce uint64, blockTime, proposer uint32, vrfValue, vrfProof []byte) *blockProposalMsg {
+func BuildProposalMsg(vbftCtx *VbftContext, userTxs []*types.Transaction, chainconfig *vconfig.ChainConfig, nonce uint64, blockTime, proposer uint32, vrfValue, vrfProof []byte) *blockProposalMsg {
 	prevBlk := vbftCtx.PrevBlockInfo.Block
 	blkNum := vbftCtx.BlockNum
 
@@ -241,16 +261,17 @@ func BuildProposalMsg(vbftCtx *VbftContext, userTxs []*types.Transaction, chainc
 		sysTxs = append(sysTxs, CreateGovernaceTransaction(blkNum))
 	}
 
-	emptyBlk := constructBlock(blkNum, prevBlk, sysTxs, consensusPayload, blockTime, emptyNonce)
+	emptyBlk := constructBlock(blkNum, prevBlk, sysTxs, consensusPayload, blockTime, nonce)
 	blk := constructBlock(blkNum, prevBlk, append(sysTxs, userTxs...), consensusPayload, blockTime, nonce)
 	msg := &blockProposalMsg{
 		Block: &VbftBlock{
-			Block:              blk,
-			EmptyBlock:         emptyBlk,
-			Info:               vbftBlkInfo,
-			PrevExecMerkleRoot: vbftCtx.PrevBlockInfo.MerkleRoot,
+			Block:      blk,
+			EmptyBlock: emptyBlk,
+			Info:       vbftBlkInfo,
 		},
 	}
+	log.Infof("build proposal block hash:%s, raw:%x, empty hash: %s, raw:%x", blk.Hash().ToHexString(),
+		blk.Header.ToArrayUnsigned(), emptyBlk.Hash().ToHexString(), emptyBlk.Header.ToArrayUnsigned())
 	return msg
 }
 
@@ -327,14 +348,6 @@ func (self *Server) constructCommitMsg(proposal *blockProposalMsg, endorses map[
 	return msg, nil
 }
 
-func (self *Server) constructBlockFetchRespMsg(blkNum uint32, blk *VbftBlock, blkHash common.Uint256) *BlockFetchRespMsg {
-	return &BlockFetchRespMsg{
-		BlockNumber: blkNum,
-		BlockHash:   blkHash,
-		BlockData:   blk,
-	}
-}
-
 func (self *Server) constructProposalFetchMsg(blkNum uint32, proposer uint32) *proposalFetchMsg {
 	return &proposalFetchMsg{
 		ProposerID: proposer,
@@ -348,6 +361,7 @@ func (self *Server) constructBlockSubmitMsg(blkNum uint32, stateRoot common.Uint
 		return nil, fmt.Errorf("submit failed to sign stateroot hash:%x, err: %s", stateRoot, err)
 	}
 	msg := &blockSubmitMsg{
+		Submitter:      self.Index,
 		BlockStateRoot: stateRoot,
 		BlockNum:       blkNum,
 		SubmitMsgSig:   submitSig,

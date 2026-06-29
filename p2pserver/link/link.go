@@ -33,7 +33,7 @@ import (
 	"github.com/ontio/ontology/p2pserver/message/types"
 )
 
-//Link used to establish
+// Link used to establish
 type Link struct {
 	id   common.PeerId
 	addr string // The address of the node
@@ -58,31 +58,31 @@ func NewLink(id common.PeerId, c net.Conn, msgChan chan *types.MsgPayload) *Link
 	return link
 }
 
-//get address
+// get address
 func (this *Link) GetAddr() string {
 	return this.addr
 }
 
-//get connection
+// get connection
 func (this *Link) GetConn() net.Conn {
 	this.lock.RLock()
 	defer this.lock.RUnlock()
 	return this.conn
 }
 
-//set connection
+// set connection
 func (this *Link) SetConn(conn net.Conn) {
 	this.lock.Lock()
 	defer this.lock.Unlock()
 	this.conn = conn
 }
 
-//record latest message time
+// record latest message time
 func (this *Link) UpdateRXTime(t time.Time) {
 	atomic.StoreInt64(&this.time, t.UnixNano())
 }
 
-//GetRXTime return the latest message time
+// GetRXTime return the latest message time
 func (this *Link) GetRXTime() int64 {
 	return atomic.LoadInt64(&this.time)
 }
@@ -103,7 +103,7 @@ func (this *Link) Rx() {
 		}
 
 		if unknown, ok := msg.(*types.UnknownMessage); ok {
-			log.Infof("skip handle unknown msg type:%s from:%d", unknown.CmdType(), this.id)
+			log.Infof("skip handle unknown msg type:%s from:%s", unknown.CmdType(), this.id.ToHexString())
 			continue
 		}
 
@@ -111,7 +111,7 @@ func (this *Link) Rx() {
 		this.UpdateRXTime(t)
 
 		if !this.needSendMsg(msg) {
-			log.Debugf("skip handle msgType:%s from:%d", msg.CmdType(), this.id)
+			log.Debugf("skip handle msgType:%s from:%s", msg.CmdType(), this.id.ToHexString())
 			continue
 		}
 
@@ -128,7 +128,7 @@ func (this *Link) Rx() {
 	this.CloseConn()
 }
 
-//close connection
+// close connection
 func (this *Link) CloseConn() {
 	this.lock.Lock()
 	conn := this.conn
@@ -169,7 +169,7 @@ func (this *Link) SendRaw(rawPacket []byte) error {
 	return nil
 }
 
-//needSendMsg check whether the msg is needed to push to channel
+// needSendMsg check whether the msg is needed to push to channel
 func (this *Link) needSendMsg(msg types.Message) bool {
 	if msg.CmdType() != common.GET_DATA_TYPE {
 		return true
@@ -186,7 +186,7 @@ func (this *Link) needSendMsg(msg types.Message) bool {
 	return true
 }
 
-//addReqRecord add request record by removing outdated request records
+// addReqRecord add request record by removing outdated request records
 func (this *Link) addReqRecord(msg types.Message) {
 	if msg.CmdType() != common.GET_DATA_TYPE {
 		return

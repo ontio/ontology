@@ -101,11 +101,17 @@ func (pool *MsgPool) GetBlockSubmitMsgs(blocknum uint32) []ConsensusMsg {
 	return pool.getRoundMsg(blocknum, BlockSubmitMessage)
 }
 
-func (pool *MsgPool) GetProposalMsg(blocknum, proposer uint32) *blockProposalMsg {
+func (pool *MsgPool) GetProposalMsg(blocknum, proposer uint32) ConsensusMsg {
 	for _, msg := range pool.getRoundMsg(blocknum, BlockProposalMessage) {
-		p := msg.(*blockProposalMsg)
-		if p.Block.getProposer() == proposer {
-			return p
+		switch pMsg := msg.(type) {
+		case *blockProposalMsg:
+			if pMsg.Block.getProposer() == proposer {
+				return pMsg
+			}
+		case *blockProposalMsgV2:
+			if pMsg.Proposer == proposer {
+				return pMsg
+			}
 		}
 	}
 	return nil
