@@ -19,9 +19,7 @@
 package vbft
 
 import (
-	"encoding/json"
 	"fmt"
-	"io"
 
 	"github.com/ontio/ontology/common"
 	vconfig "github.com/ontio/ontology/consensus/vbft/config"
@@ -44,115 +42,6 @@ func (blk *VbftBlock) getBlockNum() uint32 {
 
 func (blk *VbftBlock) getPrevBlockHash() common.Uint256 {
 	return blk.Block.Header.PrevBlockHash
-}
-
-// getVrfValue() is a helper function for participant selection.
-func (blk *VbftBlock) getVrfValue() []byte {
-	return blk.Info.VrfValue
-}
-
-func (blk *VbftBlock) getVrfProof() []byte {
-	return blk.Info.VrfProof
-}
-
-func (blk *VbftBlock) Serialize() []byte {
-	payload := common.NewZeroCopySink(nil)
-	payload.WriteVarBytes(common.SerializeToBytes(blk.Block))
-
-	payload.WriteBool(blk.EmptyBlock != nil)
-	if blk.EmptyBlock != nil {
-		payload.WriteVarBytes(common.SerializeToBytes(blk.EmptyBlock))
-	}
-	payload.WriteHash(common.Uint256{})
-	payload.WriteBool(false)
-	return payload.Bytes()
-}
-
-func (blk *VbftBlock) Serialization(sink *common.ZeroCopySink) {
-	blk.Block.Serialization(sink)
-	blk.EmptyBlock.Serialization(sink)
-}
-
-func (blk *VbftBlock) Deserialization(source *common.ZeroCopySource) error {
-	block := &types.Block{}
-	err := block.Deserialization(source)
-	if err != nil {
-		return err
-	}
-	emptyBlock := &types.Block{}
-	err = emptyBlock.Deserialization(source)
-	if err != nil {
-		return err
-	}
-
-	blk.Block = block
-	blk.EmptyBlock = emptyBlock
-
-	info := &vconfig.VbftBlockInfo{}
-	if err := json.Unmarshal(block.Header.ConsensusPayload, info); err != nil {
-		return fmt.Errorf("unmarshal vbft info: %s", err)
-	}
-
-	blk.Info = info
-
-	return nil
-}
-
-func (blk *VbftBlock) Deserialize(data []byte) error {
-	source := common.NewZeroCopySource(data)
-	//buf := bytes.NewBuffer(data)
-	buf1, _, irregular, eof := source.NextVarBytes()
-	if irregular {
-		return common.ErrIrregularData
-	}
-	if eof {
-		return io.ErrUnexpectedEOF
-	}
-
-	block, err := types.BlockFromRawBytes(buf1)
-	if err != nil {
-		return fmt.Errorf("deserialize block: %s", err)
-	}
-
-	info := &vconfig.VbftBlockInfo{}
-	if err := json.Unmarshal(block.Header.ConsensusPayload, info); err != nil {
-		return fmt.Errorf("unmarshal vbft info: %s", err)
-	}
-
-	var emptyBlock *types.Block
-	hasEmptyBlock, irr, eof := source.NextBool()
-	if irr {
-		return fmt.Errorf("read empty-block-bool: %s", common.ErrIrregularData)
-	}
-	if eof {
-		return fmt.Errorf("read empty-block-bool: %s", io.ErrUnexpectedEOF)
-	}
-	if hasEmptyBlock {
-		buf2, _, irregular, eof := source.NextVarBytes()
-		if irregular || eof {
-			return fmt.Errorf("read empty block failed: %v, %v", irregular, eof)
-		}
-		block2, err := types.BlockFromRawBytes(buf2)
-		if err != nil {
-			return fmt.Errorf("deserialize empty blk failed: %s", err)
-		}
-		emptyBlock = block2
-	}
-
-	_, eof = source.NextHash()
-	if eof {
-		return fmt.Errorf("block deserialize merkleRoot: %s", io.ErrUnexpectedEOF)
-	}
-
-	// ignore eof for backward compatibility
-	_, irr, _ = source.NextBool()
-	if irr {
-		return fmt.Errorf("read empty-crosschainmsg-bool.")
-	}
-	blk.Block = block
-	blk.EmptyBlock = emptyBlock
-	blk.Info = info
-	return nil
 }
 
 func initVbftBlock(block *types.Block) (*VbftBlock, error) {

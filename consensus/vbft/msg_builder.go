@@ -19,7 +19,6 @@
 package vbft
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"time"
@@ -41,9 +40,6 @@ type ConsensusMsgPayload struct {
 }
 
 func DeserializeVbftMsg(msg *p2pmsg.ConsensusPayload) (consMsg ConsensusMsg, err error) {
-	if bytes.HasPrefix(msg.Data, []byte(`{"type":`)) {
-		return DeserializeVbftMsgJson(msg)
-	}
 	source := common.NewZeroCopySource(msg.Data)
 	msgType, err := source.ReadByte()
 	if err != nil {
@@ -51,7 +47,7 @@ func DeserializeVbftMsg(msg *p2pmsg.ConsensusPayload) (consMsg ConsensusMsg, err
 	}
 	switch MsgType(msgType) {
 	case BlockProposalMessage:
-		consMsg = &blockProposalMsgV2{}
+		consMsg = &blockProposalMsg{}
 	case BlockEndorseMessage:
 		consMsg = &blockEndorseMsg{}
 	case BlockCommitMessage:
@@ -70,81 +66,11 @@ func DeserializeVbftMsg(msg *p2pmsg.ConsensusPayload) (consMsg ConsensusMsg, err
 	return
 }
 
-func DeserializeVbftMsgJson(msg *p2pmsg.ConsensusPayload) (ConsensusMsg, error) {
-	msgPayload := msg.Data
-	m := &ConsensusMsgPayload{}
-	if err := json.Unmarshal(msgPayload, m); err != nil {
-		return nil, fmt.Errorf("unmarshal consensus msg payload: %s", err)
-	}
-	if m.Len < uint32(len(m.Payload)) {
-		return nil, fmt.Errorf("invalid payload length: %d", m.Len)
-	}
-
-	switch m.Type {
-	case BlockProposalMessage:
-		t := &blockProposalMsg{}
-		if err := t.UnmarshalJSON(m.Payload); err != nil {
-			return nil, fmt.Errorf("failed to unmarshal msg (type: %d): %s", m.Type, err)
-		}
-		return t, nil
-	case BlockEndorseMessage:
-		t := &blockEndorseMsg{}
-		if err := json.Unmarshal(m.Payload, t); err != nil {
-			return nil, fmt.Errorf("failed to unmarshal msg (type: %d): %s", m.Type, err)
-		}
-		return t, nil
-	case BlockCommitMessage:
-		t := &blockCommitMsg{}
-		if err := json.Unmarshal(m.Payload, t); err != nil {
-			return nil, fmt.Errorf("failed to unmarshal msg (type: %d): %s", m.Type, err)
-		}
-		return t, nil
-	case PeerHeartbeatMessage:
-		t := &peerHeartbeatMsg{}
-		if err := json.Unmarshal(m.Payload, t); err != nil {
-			return nil, fmt.Errorf("failed to unmarshal msg (type: %d): %s", m.Type, err)
-		}
-		return t, nil
-	case ProposalFetchMessage:
-		t := &proposalFetchMsg{}
-		if err := json.Unmarshal(m.Payload, t); err != nil {
-			return nil, fmt.Errorf("failed to unmarshal msg (type: %d): %s", m.Type, err)
-		}
-		return t, nil
-	case BlockSubmitMessage:
-		t := &blockSubmitMsg{}
-		if err := json.Unmarshal(m.Payload, t); err != nil {
-			return nil, fmt.Errorf("failed to unmarshal msg (type: %d): %s", m.Type, err)
-		}
-		t.Submitter = uint32(msg.BookkeeperIndex)
-		return t, nil
-	}
-
-	return nil, fmt.Errorf("unknown msg type: %d", m.Type)
-}
-
-func SerializeVbftMsgV2(msg ConsensusMsg) []byte {
+func SerializeVbftMsg(msg ConsensusMsg) []byte {
 	sink := common.NewZeroCopySink(nil)
 	sink.WriteByte(byte(msg.Type()))
 	msg.Serialization(sink)
 	return sink.Bytes()
-}
-
-func SerializeVbftMsg(msg ConsensusMsg) []byte {
-	payload, err := msg.Serialize()
-	if err != nil {
-		panic(err)
-	}
-
-	data, err := json.Marshal(&ConsensusMsgPayload{
-		Type:    msg.Type(),
-		Len:     uint32(len(payload)),
-		Payload: payload,
-	})
-	if err != nil {
-		panic(err)
-	}
-	return data
 }
 
 func (self *Server) constructHeartbeatMsg() (*peerHeartbeatMsg, error) {
@@ -211,7 +137,7 @@ func (self *Server) SignBlock(blk *types.Block) error {
 	return nil
 }
 
-func (self *Server) constructProposalMsg(vbftCtx *VbftContext, userTxs []*types.Transaction, chainconfig *vconfig.ChainConfig) (*blockProposalMsg, error) {
+func (self *Server) constructProposalMsg(vbftCtx *VbftContext, userTxs []*types.Transaction, chainconfig *vconfig.ChainConfig) (*BlockProposal, error) {
 	prevBlk := vbftCtx.PrevBlockInfo.Block
 	blkNum := vbftCtx.BlockNum
 	blockTime := uint32(time.Now().Unix())
@@ -237,7 +163,7 @@ func (self *Server) constructProposalMsg(vbftCtx *VbftContext, userTxs []*types.
 	return proposal, nil
 }
 
-func BuildProposalMsg(vbftCtx *VbftContext, userTxs []*types.Transaction, chainconfig *vconfig.ChainConfig, nonce uint64, blockTime, proposer uint32, vrfValue, vrfProof []byte) *blockProposalMsg {
+func BuildProposalMsg(vbftCtx *VbftContext, userTxs []*types.Transaction, chainconfig *vconfig.ChainConfig, nonce uint64, blockTime, proposer uint32, vrfValue, vrfProof []byte) *BlockProposal {
 	prevBlk := vbftCtx.PrevBlockInfo.Block
 	blkNum := vbftCtx.BlockNum
 
@@ -263,7 +189,7 @@ func BuildProposalMsg(vbftCtx *VbftContext, userTxs []*types.Transaction, chainc
 
 	emptyBlk := constructBlock(blkNum, prevBlk, sysTxs, consensusPayload, blockTime, nonce)
 	blk := constructBlock(blkNum, prevBlk, append(sysTxs, userTxs...), consensusPayload, blockTime, nonce)
-	msg := &blockProposalMsg{
+	msg := &BlockProposal{
 		Block: &VbftBlock{
 			Block:      blk,
 			EmptyBlock: emptyBlk,
@@ -275,7 +201,7 @@ func BuildProposalMsg(vbftCtx *VbftContext, userTxs []*types.Transaction, chainc
 	return msg
 }
 
-func (self *Server) constructEndorseMsg(proposal *blockProposalMsg, forEmpty bool) (*blockEndorseMsg, error) {
+func (self *Server) constructEndorseMsg(proposal *BlockProposal, forEmpty bool) (*blockEndorseMsg, error) {
 
 	// TODO, support faultyMsg reporting
 
@@ -285,11 +211,6 @@ func (self *Server) constructEndorseMsg(proposal *blockProposalMsg, forEmpty boo
 	if !forEmpty {
 		blkHash = proposal.Block.Block.Hash()
 	} else {
-		if proposal.Block.EmptyBlock == nil {
-			return nil, fmt.Errorf("blk %d proposal from %d has no empty proposal",
-				proposal.GetBlockNum(), proposal.Block.getProposer())
-		}
-
 		blkHash = proposal.Block.EmptyBlock.Hash()
 	}
 	endorserSig, err = signature.Sign(self.account, blkHash[:])
@@ -308,7 +229,7 @@ func (self *Server) constructEndorseMsg(proposal *blockProposalMsg, forEmpty boo
 	return msg, nil
 }
 
-func (self *Server) constructCommitMsg(proposal *blockProposalMsg, endorses map[uint32]*EndorseSigInfo, forEmpty bool) (*blockCommitMsg, error) {
+func (self *Server) constructCommitMsg(proposal *BlockProposal, endorses map[uint32]*EndorseSigInfo, forEmpty bool) (*blockCommitMsg, error) {
 
 	// TODO, support faultyMsg reporting
 
@@ -319,11 +240,6 @@ func (self *Server) constructCommitMsg(proposal *blockProposalMsg, endorses map[
 	if !forEmpty {
 		blkHash = proposal.Block.Block.Hash()
 	} else {
-		if proposal.Block.EmptyBlock == nil {
-			return nil, fmt.Errorf("blk %d proposal from %d has no empty proposal",
-				proposal.GetBlockNum(), proposal.Block.getProposer())
-		}
-
 		blkHash = proposal.Block.EmptyBlock.Hash()
 	}
 	committerSig, err = signature.Sign(self.account, blkHash[:])

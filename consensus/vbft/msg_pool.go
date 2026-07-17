@@ -19,27 +19,24 @@
 package vbft
 
 import (
-	"errors"
 	"sync"
 
 	"github.com/ontio/ontology/common"
 )
 
-var errDropFarFutureMsg = errors.New("msg pool dropped msg for far future")
-
 type ConsensusRound struct {
-	msgs     map[MsgType][]ConsensusMsg
-	msgHashs map[common.Uint256]ConsensusMsg // for msg-dup checking
+	msgs     map[MsgType][]BftConsensusMsg
+	msgHashs map[common.Uint256]BftConsensusMsg // for msg-dup checking
 }
 
 func newConsensusRound() *ConsensusRound {
 	return &ConsensusRound{
-		msgs:     make(map[MsgType][]ConsensusMsg),
-		msgHashs: make(map[common.Uint256]ConsensusMsg),
+		msgs:     make(map[MsgType][]BftConsensusMsg),
+		msgHashs: make(map[common.Uint256]BftConsensusMsg),
 	}
 }
 
-func (self *ConsensusRound) addMsg(msg ConsensusMsg) {
+func (self *ConsensusRound) addMsg(msg BftConsensusMsg) {
 	msgHash := HashMsg(msg)
 	if _, present := self.msgHashs[msgHash]; present {
 		return
@@ -72,13 +69,14 @@ func (pool *MsgPool) clean() {
 	pool.rounds = make(map[uint32]*ConsensusRound)
 }
 
-func (pool *MsgPool) AddMsg(msg ConsensusMsg) error {
+func (pool *MsgPool) AddMsg(msg BftConsensusMsg) {
 	pool.lock.Lock()
 	defer pool.lock.Unlock()
 
 	blkNum := msg.GetBlockNum()
-	if blkNum > pool.server.GetCurrentBlockNo()+pool.historyLen {
-		return errDropFarFutureMsg
+	currNum := pool.server.GetCurrentBlockNo()
+	if blkNum > currNum+pool.historyLen || blkNum < currNum {
+		return
 	}
 
 	if _, present := pool.rounds[blkNum]; !present {
@@ -86,10 +84,9 @@ func (pool *MsgPool) AddMsg(msg ConsensusMsg) error {
 	}
 
 	pool.rounds[blkNum].addMsg(msg)
-	return nil
 }
 
-func (pool *MsgPool) HasMsg(msg ConsensusMsg) bool {
+func (pool *MsgPool) HasMsg(msg BftConsensusMsg) bool {
 	pool.lock.RLock()
 	defer pool.lock.RUnlock()
 
@@ -97,27 +94,21 @@ func (pool *MsgPool) HasMsg(msg ConsensusMsg) bool {
 	return present && roundMsgs.msgHashs[HashMsg(msg)] != nil
 }
 
-func (pool *MsgPool) GetBlockSubmitMsgs(blocknum uint32) []ConsensusMsg {
+func (pool *MsgPool) GetBlockSubmitMsgs(blocknum uint32) []BftConsensusMsg {
 	return pool.getRoundMsg(blocknum, BlockSubmitMessage)
 }
 
-func (pool *MsgPool) GetProposalMsg(blocknum, proposer uint32) ConsensusMsg {
+func (pool *MsgPool) GetProposalMsg(blocknum, proposer uint32) *blockProposalMsg {
 	for _, msg := range pool.getRoundMsg(blocknum, BlockProposalMessage) {
-		switch pMsg := msg.(type) {
-		case *blockProposalMsg:
-			if pMsg.Block.getProposer() == proposer {
-				return pMsg
-			}
-		case *blockProposalMsgV2:
-			if pMsg.Proposer == proposer {
-				return pMsg
-			}
+		pMsg := msg.(*blockProposalMsg)
+		if pMsg.Proposer == proposer {
+			return pMsg
 		}
 	}
 	return nil
 }
 
-func (pool *MsgPool) getRoundMsg(blocknum uint32, msgType MsgType) (result []ConsensusMsg) {
+func (pool *MsgPool) getRoundMsg(blocknum uint32, msgType MsgType) (result []BftConsensusMsg) {
 	pool.lock.RLock()
 	defer pool.lock.RUnlock()
 
@@ -144,7 +135,7 @@ func (pool *MsgPool) OnBlockSealed(blockNum uint32) {
 	}
 }
 
-func (pool *MsgPool) DropBftMsgs(block uint32) (result []ConsensusMsg) {
+func (pool *MsgPool) DropBftMsgs(block uint32) (result []BftConsensusMsg) {
 	pool.lock.Lock()
 	defer pool.lock.Unlock()
 
@@ -156,7 +147,7 @@ func (pool *MsgPool) DropBftMsgs(block uint32) (result []ConsensusMsg) {
 		result = append(result, roundMsgs.msgs[msgType]...)
 		roundMsgs.msgs[msgType] = nil
 	}
-	roundMsgs.msgHashs = make(map[common.Uint256]ConsensusMsg)
+	roundMsgs.msgHashs = make(map[common.Uint256]BftConsensusMsg)
 	for _, msg := range roundMsgs.msgs[BlockSubmitMessage] {
 		roundMsgs.msgHashs[HashMsg(msg)] = msg
 	}

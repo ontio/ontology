@@ -47,7 +47,7 @@ type BftStatus struct {
 	EndorseEmptyMsg *blockEndorseMsg
 	SelfCommitMsg   *blockCommitMsg
 
-	Proposals   []*blockProposalMsg
+	Proposals   []*BlockProposal
 	CommitMsgs  []*blockCommitMsg
 	EndorseSigs map[uint32][]*EndorseSigInfo // indexed by endorser index
 }
@@ -85,7 +85,7 @@ func NewBftStatus() *BftStatus {
 	}
 }
 
-func (candidate *BftStatus) AddBlockProposal(msg *blockProposalMsg) error {
+func (candidate *BftStatus) AddBlockProposal(msg *BlockProposal) error {
 	// check dup-proposal from same proposer
 	proposer := msg.Block.getProposer()
 	for _, p := range candidate.Proposals {
@@ -111,7 +111,7 @@ func (candidate *BftStatus) AddBlockProposal(msg *blockProposalMsg) error {
 	return nil
 }
 
-func (self *BftStatus) GetBlockProposal(proposer uint32) *blockProposalMsg {
+func (self *BftStatus) GetBlockProposal(proposer uint32) *BlockProposal {
 	for _, p := range self.Proposals {
 		if p.Block.getProposer() == proposer {
 			return p
@@ -351,7 +351,7 @@ func (candidate *BftStatus) CommitDone(vbftCtx *VbftContext) (uint32, bool, bool
 	return math.MaxUint32, false, false
 }
 
-func (c *BftStatus) AddSignaturesToBlock(vbftCtx *VbftContext, block *VbftBlock, forEmpty bool) error {
+func (c *BftStatus) AddSignaturesToBlock(vbftCtx *VbftContext, block *VbftBlock, forEmpty bool) {
 	bookkeepers := make([]keypair.PublicKey, 0)
 	sigData := make([][]byte, 0)
 
@@ -361,9 +361,6 @@ func (c *BftStatus) AddSignaturesToBlock(vbftCtx *VbftContext, block *VbftBlock,
 	blockToAdd := block.Block
 	if forEmpty {
 		blockToAdd = block.EmptyBlock
-		if block.EmptyBlock == nil {
-			return fmt.Errorf("block has no empty candidate")
-		}
 	}
 	bookkeepers = append(bookkeepers, proposerPk)
 	sigData = append(sigData, blockToAdd.Header.SigData[0])
@@ -384,8 +381,6 @@ func (c *BftStatus) AddSignaturesToBlock(vbftCtx *VbftContext, block *VbftBlock,
 
 	blockToAdd.Header.Bookkeepers = bookkeepers
 	blockToAdd.Header.SigData = sigData
-
-	return nil
 }
 
 func (c *BftStatus) checkBlockSign(vbftCtx *VbftContext, block *VbftBlock, forEmpty bool, requiredSigs uint32) bool {
@@ -396,9 +391,6 @@ func (c *BftStatus) checkBlockSign(vbftCtx *VbftContext, block *VbftBlock, forEm
 		sigData = append(sigData, block.Block.Header.SigData[0])
 		blkHash = block.Block.Hash()
 	} else {
-		if block.EmptyBlock == nil {
-			return false
-		}
 		sigData = append(sigData, block.EmptyBlock.Header.SigData[0])
 		blkHash = block.EmptyBlock.Hash()
 	}
@@ -418,9 +410,7 @@ func (c *BftStatus) checkBlockSign(vbftCtx *VbftContext, block *VbftBlock, forEm
 
 func (pool *Server) SetBlockSealed(vbftCtx *VbftContext, block *VbftBlock, forEmpty bool, sigdata bool) (*VbftBlock, *store.ExecuteResult, error) {
 	if sigdata {
-		if err := vbftCtx.BftStatus.AddSignaturesToBlock(vbftCtx, block, forEmpty); err != nil {
-			return nil, nil, fmt.Errorf("failed to add sig to block: %s", err)
-		}
+		vbftCtx.BftStatus.AddSignaturesToBlock(vbftCtx, block, forEmpty)
 	}
 	sealedBlock := &VbftBlock{
 		Info:  block.Info,

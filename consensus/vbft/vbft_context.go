@@ -73,9 +73,9 @@ func (self *VbftContext) GetProposerRank(peerIdx uint32) int {
 	return len(self.Proposers)
 }
 
-func (self *VbftContext) GetHighestRankProposal(proposals []*blockProposalMsg) *blockProposalMsg {
+func (self *VbftContext) GetHighestRankProposal(proposals []*BlockProposal) *BlockProposal {
 	proposerRank := 10000
-	var proposal *blockProposalMsg
+	var proposal *BlockProposal
 	for _, p := range proposals {
 		if r := self.GetProposerRank(p.Block.getProposer()); r < proposerRank {
 			proposerRank = r

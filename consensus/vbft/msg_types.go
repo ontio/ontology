@@ -20,8 +20,6 @@ package vbft
 
 import (
 	"crypto/sha256"
-	"encoding/json"
-	"errors"
 	"fmt"
 	"sort"
 
@@ -66,9 +64,14 @@ func (self MsgType) String() string {
 type ConsensusMsg interface {
 	Type() MsgType
 	GetBlockNum() uint32
-	Serialize() ([]byte, error)
 	Serialization(sink *common.ZeroCopySink)
 	Deserialization(source *common.ZeroCopySource) error
+}
+
+type ConsensusEvent interface {
+	Type() MsgType
+	GetBlockNum() uint32
+	implConsensusEvent()
 }
 
 type KeyProvider interface {
@@ -80,7 +83,7 @@ type BftConsensusMsg interface {
 	Verify(pubs KeyProvider) error
 }
 
-type blockProposalMsgV2 struct {
+type blockProposalMsg struct {
 	Proposer       uint32               `json:"leader"`
 	VrfValue       []byte               `json:"vrf_value"`
 	VrfProof       []byte               `json:"vrf_proof"`
@@ -93,11 +96,11 @@ type blockProposalMsgV2 struct {
 	EmptySig       []byte               `json:"empty_sig"`
 }
 
-func (msg *blockProposalMsgV2) Type() MsgType {
+func (msg *blockProposalMsg) Type() MsgType {
 	return BlockProposalMessage
 }
 
-func (msg *blockProposalMsgV2) Verify(pubs KeyProvider) error {
+func (msg *blockProposalMsg) Verify(pubs KeyProvider) error {
 	proposer := msg.Proposer
 	pub := pubs.GetPeerPubKey(proposer)
 	if pub == nil {
@@ -122,15 +125,11 @@ func (msg *blockProposalMsgV2) Verify(pubs KeyProvider) error {
 	return nil
 }
 
-func (msg *blockProposalMsgV2) GetBlockNum() uint32 {
+func (msg *blockProposalMsg) GetBlockNum() uint32 {
 	return msg.BlockHeight
 }
 
-func (msg *blockProposalMsgV2) Serialize() ([]byte, error) {
-	panic("using serialization")
-}
-
-func (msg *blockProposalMsgV2) Serialization(sink *common.ZeroCopySink) {
+func (msg *blockProposalMsg) Serialization(sink *common.ZeroCopySink) {
 	sink.WriteUint32(msg.Proposer)
 	sink.WriteVarBytes(msg.VrfValue)
 	sink.WriteVarBytes(msg.VrfProof)
@@ -146,7 +145,7 @@ func (msg *blockProposalMsgV2) Serialization(sink *common.ZeroCopySink) {
 	sink.WriteVarBytes(msg.EmptySig)
 }
 
-func (msg *blockProposalMsgV2) Hash() common.Uint256 {
+func (msg *blockProposalMsg) Hash() common.Uint256 {
 	sink := common.NewZeroCopySink(nil)
 	sink.WriteUint32(msg.Proposer)
 	sink.WriteHash(msg.BlockHash)
@@ -154,7 +153,7 @@ func (msg *blockProposalMsgV2) Hash() common.Uint256 {
 	return sha256.Sum256(sink.Bytes())
 }
 
-func (msg *blockProposalMsgV2) Deserialization(source *common.ZeroCopySource) error {
+func (msg *blockProposalMsg) Deserialization(source *common.ZeroCopySource) error {
 	reader := source.Reader()
 	msg.Proposer = reader.ReadUint32()
 	msg.VrfValue = reader.ReadVarBytes()
@@ -182,16 +181,17 @@ func (msg *blockProposalMsgV2) Deserialization(source *common.ZeroCopySource) er
 	return reader.Error()
 }
 
-type blockProposalMsg struct {
+type BlockProposal struct {
 	Block *VbftBlock `json:"block"`
 }
 
-func (msg *blockProposalMsg) Type() MsgType {
+func (msg *BlockProposal) implConsensusEvent() {}
+func (msg *BlockProposal) Type() MsgType {
 	return BlockProposalMessage
 }
 
-func (msg *blockProposalMsg) ToV2() *blockProposalMsgV2 {
-	return &blockProposalMsgV2{
+func (msg *BlockProposal) ToConsensusMsg() *blockProposalMsg {
+	return &blockProposalMsg{
 		Proposer:       msg.Block.getProposer(),
 		VrfValue:       msg.Block.Info.VrfValue,
 		VrfProof:       msg.Block.Info.VrfProof,
@@ -205,74 +205,8 @@ func (msg *blockProposalMsg) ToV2() *blockProposalMsgV2 {
 	}
 }
 
-func (msg *blockProposalMsg) Verify(pubs KeyProvider) error {
-	proposer := msg.Block.Info.Proposer
-	pub := pubs.GetPeerPubKey(proposer)
-	if pub == nil {
-		return fmt.Errorf("unknown consensus node, index: %d", proposer)
-	}
-	// verify block
-	if len(msg.Block.Block.Header.SigData) == 0 {
-		return errors.New("no sigdata in block")
-	}
-	sigdata := msg.Block.Block.Header.SigData[0]
-	hash := msg.Block.Block.Hash()
-
-	sig, err := signature.Deserialize(sigdata)
-	if err != nil {
-		return fmt.Errorf("deserialize block sig: %s", err)
-	}
-	if !signature.Verify(pub, hash[:], sig) {
-		return fmt.Errorf("failed to verify block sig")
-	}
-
-	// verify empty block
-	if msg.Block.EmptyBlock != nil {
-		if len(msg.Block.EmptyBlock.Header.SigData) == 0 {
-			return errors.New("no sigdata in empty block")
-		}
-		sigdata := msg.Block.EmptyBlock.Header.SigData[0]
-		hash := msg.Block.EmptyBlock.Hash()
-		sig, err := signature.Deserialize(sigdata)
-		if err != nil {
-			return fmt.Errorf("deserialize empty block sig: %s", err)
-		}
-		if !signature.Verify(pub, hash[:], sig) {
-			return fmt.Errorf("failed to verify empty block sig")
-		}
-	}
-
-	return nil
-}
-
-func (msg *blockProposalMsg) GetBlockNum() uint32 {
+func (msg *BlockProposal) GetBlockNum() uint32 {
 	return msg.Block.Block.Header.Height
-}
-
-func (msg *blockProposalMsg) Serialize() ([]byte, error) {
-	return msg.Block.Serialize(), nil
-}
-
-func (msg *blockProposalMsg) UnmarshalJSON(data []byte) error {
-	blk := &VbftBlock{}
-	if err := blk.Deserialize(data); err != nil {
-		return err
-	}
-
-	msg.Block = blk
-	return nil
-}
-
-func (msg *blockProposalMsg) MarshalJSON() ([]byte, error) {
-	return msg.Block.Serialize(), nil
-}
-
-func (msg *blockProposalMsg) Serialization(sink *common.ZeroCopySink) {
-	msg.ToV2().Serialization(sink)
-}
-
-func (msg *blockProposalMsg) Deserialization(source *common.ZeroCopySource) error {
-	panic("wrong execution path")
 }
 
 type blockEndorseMsg struct {
@@ -283,6 +217,8 @@ type blockEndorseMsg struct {
 	EndorseForEmpty   bool           `json:"endorse_for_empty"`
 	EndorserSig       []byte         `json:"endorser_sig"`
 }
+
+func (msg *blockEndorseMsg) implConsensusEvent() {}
 
 func (msg *blockEndorseMsg) Type() MsgType {
 	return BlockEndorseMessage
@@ -306,10 +242,6 @@ func (msg *blockEndorseMsg) Verify(pubs KeyProvider) error {
 
 func (msg *blockEndorseMsg) GetBlockNum() uint32 {
 	return msg.BlockNum
-}
-
-func (msg *blockEndorseMsg) Serialize() ([]byte, error) {
-	return json.Marshal(msg)
 }
 
 func (msg *blockEndorseMsg) Serialization(sink *common.ZeroCopySink) {
@@ -342,6 +274,8 @@ type blockCommitMsg struct {
 	EndorsersSig    map[uint32][]byte `json:"endorsers_sig"`
 	CommitterSig    []byte            `json:"committer_sig"`
 }
+
+func (msg *blockCommitMsg) implConsensusEvent() {}
 
 func (msg *blockCommitMsg) Type() MsgType {
 	return BlockCommitMessage
@@ -379,10 +313,6 @@ func (msg *blockCommitMsg) Verify(pubs KeyProvider) error {
 
 func (msg *blockCommitMsg) GetBlockNum() uint32 {
 	return msg.BlockNum
-}
-
-func (msg *blockCommitMsg) Serialize() ([]byte, error) {
-	return json.Marshal(msg)
 }
 
 func (msg *blockCommitMsg) Serialization(sink *common.ZeroCopySink) {
@@ -439,16 +369,13 @@ type peerHeartbeatMsg struct {
 	ChainConfigView        uint32         `json:"chain_config_view"`
 }
 
+func (msg *peerHeartbeatMsg) implConsensusEvent() {}
 func (msg *peerHeartbeatMsg) Type() MsgType {
 	return PeerHeartbeatMessage
 }
 
 func (msg *peerHeartbeatMsg) GetBlockNum() uint32 {
 	return msg.CommittedBlockNumber
-}
-
-func (msg *peerHeartbeatMsg) Serialize() ([]byte, error) {
-	return json.Marshal(msg)
 }
 
 func (msg *peerHeartbeatMsg) Serialization(sink *common.ZeroCopySink) {
@@ -511,10 +438,6 @@ func (msg *proposalFetchMsg) GetBlockNum() uint32 {
 	return 0
 }
 
-func (msg *proposalFetchMsg) Serialize() ([]byte, error) {
-	return json.Marshal(msg)
-}
-
 func (msg *proposalFetchMsg) Serialization(sink *common.ZeroCopySink) {
 	sink.WriteUint32(msg.ProposerID)
 	sink.WriteUint32(msg.BlockNum)
@@ -557,10 +480,6 @@ func (msg *blockSubmitMsg) Verify(pubs KeyProvider) error {
 
 func (msg *blockSubmitMsg) GetBlockNum() uint32 {
 	return msg.BlockNum
-}
-
-func (msg *blockSubmitMsg) Serialize() ([]byte, error) {
-	return json.Marshal(msg)
 }
 
 func (msg *blockSubmitMsg) Serialization(sink *common.ZeroCopySink) {
