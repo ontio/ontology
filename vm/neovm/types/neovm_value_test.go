@@ -404,16 +404,17 @@ func TestVmValue_CircularRefAndDepthDetection(t *testing.T) {
 	aVal := VmValueFromArrayVal(a)
 
 	b := NewArrayValue()
-	b.Append(aVal)
+	_ = b.Append(VmValueFromBool(true))
+	_ = b.Append(aVal)
 	bVal := VmValueFromArrayVal(b)
+	_ = a.Append(VmValueFromBool(true))
+	_ = a.Append(bVal)
 
-	abool, err := aVal.CircularRefAndDepthDetection()
-	assert.Nil(t, err)
-	assert.False(t, abool)
+	abool := aVal.CircularRefAndDepthDetection()
+	assert.True(t, abool)
 
-	bbool, err := bVal.CircularRefAndDepthDetection()
-	assert.Nil(t, err)
-	assert.False(t, bbool)
+	bbool := bVal.CircularRefAndDepthDetection()
+	assert.True(t, bbool)
 }
 
 func TestVmValue_CircularRefAndDepthDetection2(t *testing.T) {
@@ -445,14 +446,14 @@ func TestVmValue_CircularRefAndDepthDetection2(t *testing.T) {
 
 	err = stru.Append(arrayVal)
 	assert.Nil(t, err)
-	checkVal(t, VmValueFromStructVal(stru))
+	assertCirularRef(t, VmValueFromStructVal(stru))
 
 	map1 := NewMapValue()
 	map1Val := VmValueFromMapValue(map1)
 	checkVal(t, map1Val)
 
-	map1.Set(arrayVal, bf)
-	checkVal(t, VmValueFromMapValue(map1))
+	assert.Nil(t, map1.Set(bf, arrayVal))
+	assertCirularRef(t, VmValueFromMapValue(map1))
 
 	stru2 := NewStructValue()
 	array2 := NewArrayValue()
@@ -464,13 +465,16 @@ func TestVmValue_CircularRefAndDepthDetection2(t *testing.T) {
 	array2.Append(VmValueFromStructVal(stru2))
 
 	arrayVal = VmValueFromArrayVal(array2)
-	boo, err := arrayVal.CircularRefAndDepthDetection()
-	assert.Nil(t, err)
+	boo := arrayVal.CircularRefAndDepthDetection()
 	assert.True(t, boo)
 }
 
 func checkVal(t *testing.T, value VmValue) {
-	boo, err := value.CircularRefAndDepthDetection()
-	assert.Nil(t, err)
+	boo := value.CircularRefAndDepthDetection()
 	assert.False(t, boo)
+}
+
+func assertCirularRef(t *testing.T, value VmValue) {
+	boo := value.CircularRefAndDepthDetection()
+	assert.True(t, boo)
 }

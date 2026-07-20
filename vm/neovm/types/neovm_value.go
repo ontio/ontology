@@ -152,12 +152,9 @@ func (self *VmValue) AsBytes() ([]byte, error) {
 }
 
 func (self *VmValue) BuildParamToNative(sink *common.ZeroCopySink) error {
-	b, err := self.CircularRefAndDepthDetection()
-	if err != nil {
-		return err
-	}
+	b := self.CircularRefAndDepthDetection()
 	if b {
-		return fmt.Errorf("runtime serialize: can not serialize circular reference data")
+		return fmt.Errorf("build param to native: can not serialize circular reference data")
 	}
 	return self.buildParamToNative(sink)
 }
@@ -200,6 +197,9 @@ func (self *VmValue) buildParamToNative(sink *common.ZeroCopySink) error {
 		return errors.ERR_BAD_TYPE
 	default:
 		panic("unreachable!")
+	}
+	if sink.Size() > constants.MAX_BYTEARRAY_SIZE {
+		return fmt.Errorf("build param to native: can not serialize length over the uplimit")
 	}
 	return nil
 }
@@ -410,11 +410,7 @@ func (self *VmValue) deserialize(source *common.ZeroCopySource, depth int) error
 }
 
 func (self *VmValue) Serialize(sink *common.ZeroCopySink) error {
-	b, err := self.CircularRefAndDepthDetection()
-	if err != nil {
-		return err
-	}
-	if b {
+	if self.CircularRefAndDepthDetection() {
 		return fmt.Errorf("runtime serialize: can not serialize circular reference data")
 	}
 	switch self.valType {
@@ -452,7 +448,7 @@ func (self *VmValue) Serialize(sink *common.ZeroCopySink) error {
 		for _, key := range keys {
 			val := self.mapval.Data[key]
 			keyVal := val[0]
-			err = keyVal.Serialize(sink)
+			err := keyVal.Serialize(sink)
 			if err != nil {
 				return err
 			}
@@ -482,71 +478,68 @@ func (self *VmValue) Serialize(sink *common.ZeroCopySink) error {
 	return nil
 }
 
-func (self *VmValue) CircularRefAndDepthDetection() (bool, error) {
+func (self *VmValue) CircularRefAndDepthDetection() bool {
 	return self.circularRefAndDepthDetection(make(map[uintptr]bool), 0)
 }
 
-func (self *VmValue) circularRefAndDepthDetection(visited map[uintptr]bool, depth int) (bool, error) {
+func (self *VmValue) circularRefAndDepthDetection(visited map[uintptr]bool, depth int) bool {
 	if depth > MAX_STRUCT_DEPTH {
-		return true, nil
+		return true
 	}
 	switch self.valType {
 	case arrayType:
-		arr, err := self.AsArrayValue()
-		if err != nil {
-			return true, err
-		}
+		arr, _ := self.AsArrayValue()
 		if len(arr.Data) == 0 {
-			return false, nil
+			return false
 		}
 		p := reflect.ValueOf(arr.Data).Pointer()
 		if visited[p] {
-			return true, nil
+			return true
 		}
 		visited[p] = true
 		for _, v := range arr.Data {
-			return v.circularRefAndDepthDetection(visited, depth+1)
+			if v.circularRefAndDepthDetection(visited, depth+1) {
+				return true
+			}
 		}
 		delete(visited, p)
-		return false, nil
+		return false
 	case structType:
-		s, err := self.AsStructValue()
-		if err != nil {
-			return true, err
-		}
+		s, _ := self.AsStructValue()
 		if len(s.Data) == 0 {
-			return false, nil
+			return false
 		}
 
 		p := reflect.ValueOf(s.Data).Pointer()
 		if visited[p] {
-			return true, nil
+			return true
 		}
 		visited[p] = true
 
 		for _, v := range s.Data {
-			return v.circularRefAndDepthDetection(visited, depth+1)
+			if v.circularRefAndDepthDetection(visited, depth+1) {
+				return true
+			}
 		}
 
 		delete(visited, p)
-		return false, nil
+		return false
 	case mapType:
-		mp, err := self.AsMapValue()
-		if err != nil {
-			return true, err
-		}
+		mp, _ := self.AsMapValue()
 		p := reflect.ValueOf(mp.Data).Pointer()
 		if visited[p] {
-			return true, nil
+			return true
 		}
 		visited[p] = true
 		for _, v := range mp.Data {
-			return v[1].circularRefAndDepthDetection(visited, depth+1)
+			if v[1].circularRefAndDepthDetection(visited, depth+1) {
+				return true
+			}
 		}
 		delete(visited, p)
-		return false, nil
+		return false
 	default:
-		return false, nil
+		return false
 	}
 }
 
@@ -701,13 +694,9 @@ func (self *VmValue) GetMapKey() (string, error) {
 	return string(val), nil
 }
 
-//only for debug/testing
+// only for debug/testing
 func (self *VmValue) Stringify() (string, error) {
-	b, err := self.CircularRefAndDepthDetection()
-	if err != nil {
-		return "", fmt.Errorf("error: %v", err)
-	}
-	if b {
+	if self.CircularRefAndDepthDetection() {
 		return "", fmt.Errorf("error: can not serialize circular reference data")
 	}
 	return self.stringify(), nil
@@ -749,13 +738,9 @@ func (self *VmValue) stringify() string {
 	return ""
 }
 
-//only for debug/testing
+// only for debug/testing
 func (self *VmValue) Dump() string {
-	b, err := self.CircularRefAndDepthDetection()
-	if err != nil {
-		return fmt.Sprintf("error: %v", err)
-	}
-	if b {
+	if self.CircularRefAndDepthDetection() {
 		return "error: can not serialize circular reference data"
 	}
 	return self.dump()
@@ -805,8 +790,8 @@ func (self *VmValue) dump() string {
 	return ""
 }
 
-//encode the neovm return vmval
-//transform neovm contract result to encoded byte array
+// encode the neovm return vmval
+// transform neovm contract result to encoded byte array
 func BuildResultFromNeo(item VmValue, bf *common.ZeroCopySink) error {
 	if len(bf.Bytes()) > crossvm_codec.MAX_PARAM_LENGTH {
 		return fmt.Errorf("parameter buf is too long")
