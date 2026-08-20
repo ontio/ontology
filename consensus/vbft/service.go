@@ -762,6 +762,9 @@ func (self *Server) processMsgEvent(msg ConsensusEvent) {
 				}
 			}
 		}
+		if proposal == nil {
+			self.fetchProposal(msgBlkNum, pMsg.CommittedBlockProposer)
+		}
 		if proposal != nil && proposal.Block.Block.Hash() == pMsg.CommittedBlockHash {
 			block := proposal.Block.Block
 			var pubkeys []keypair.PublicKey
