@@ -70,7 +70,7 @@ func (this *CrossChainMsg) Deserialization(source *common.ZeroCopySource) error 
 	if irr || eof {
 		return fmt.Errorf("CrossChainMsg, deserialization read sigData lenght error")
 	}
-	sigData := make([][]byte, 0, sigLen)
+	var sigData [][]byte
 	for i := 0; i < int(sigLen); i++ {
 		v, _, irr, eof := source.NextVarBytes()
 		if irr || eof {
