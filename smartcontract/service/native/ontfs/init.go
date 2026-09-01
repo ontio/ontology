@@ -20,6 +20,7 @@ package ontfs
 
 import (
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
@@ -30,6 +31,9 @@ func InitFs() {
 }
 
 func RegisterFsContract(native *native.NativeService) {
+	if native.Height >= config.GetDisableLegacyContractsHeight() {
+		return
+	}
 	//native.Register(FS_SET_GLOBAL_PARAM, FsSetGlobalParam)
 	native.Register(FS_GET_GLOBAL_PARAM, FsGetGlobalParam)
 
@@ -68,7 +72,7 @@ func RegisterFsContract(native *native.NativeService) {
 	native.Register(FS_GET_SPACE_INFO, FsGetSpaceInfo)
 }
 
-//To enable administrators to adjust global parameters
+// To enable administrators to adjust global parameters
 func FsSetGlobalParam(native *native.NativeService) ([]byte, error) {
 	var globalParam FsGlobalParam
 	if err := CheckOntFsAvailability(native); err != nil {

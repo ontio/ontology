@@ -25,6 +25,7 @@ import (
 	"math/big"
 
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	ccom "github.com/ontio/ontology/smartcontract/service/native/cross_chain/common"
 	"github.com/ontio/ontology/smartcontract/service/native/cross_chain/header_sync"
@@ -47,13 +48,16 @@ const (
 	ONT_CHAIN_ID = 3
 )
 
-//Init governance contract address
+// Init governance contract address
 func InitCrossChain() {
 	native.Contracts[utils.CrossChainContractAddress] = RegisterCrossChainContract
 }
 
-//Register methods of governance contract
+// Register methods of governance contract
 func RegisterCrossChainContract(native *native.NativeService) {
+	if native.Height >= config.GetDisableLegacyContractsHeight() {
+		return
+	}
 	native.Register(CREATE_CROSS_CHAIN_TX, CreateCrossChainTx)
 	native.Register(PROCESS_CROSS_CHAIN_TX, ProcessCrossChainTx)
 }

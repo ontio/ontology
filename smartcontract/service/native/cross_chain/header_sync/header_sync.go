@@ -22,6 +22,7 @@ import (
 	"fmt"
 
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	ccom "github.com/ontio/ontology/smartcontract/service/native/cross_chain/common"
 	"github.com/ontio/ontology/smartcontract/service/native/global_params"
@@ -41,13 +42,16 @@ const (
 	KEY_HEIGHTS    = "keyHeights"
 )
 
-//Init governance contract address
+// Init governance contract address
 func InitHeaderSync() {
 	native.Contracts[utils.HeaderSyncContractAddress] = RegisterHeaderSyncContract
 }
 
-//Register methods of governance contract
+// Register methods of governance contract
 func RegisterHeaderSyncContract(native *native.NativeService) {
+	if native.Height >= config.GetDisableLegacyContractsHeight() {
+		return
+	}
 	native.Register(SYNC_GENESIS_HEADER, SyncGenesisHeader)
 	native.Register(SYNC_BLOCK_HEADER, SyncBlockHeader)
 }

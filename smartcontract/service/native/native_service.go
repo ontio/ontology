@@ -22,6 +22,7 @@ import (
 	"fmt"
 
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/core/store"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/errors"
@@ -84,6 +85,12 @@ func (this *NativeService) Invoke() ([]byte, error) {
 	this.CrossHashes = []common.Uint256{}
 	result, err := service(this)
 	if err != nil {
+		if this.Height >= config.GetDisableLegacyContractsHeight() {
+			this.ContextRef.PopContext()
+			this.Notifications = notifications
+			this.Input = args
+			this.CrossHashes = hashes
+		}
 		return result, errors.NewDetailErr(err, errors.ErrNoCode, "[Invoke] Native serivce function execute error!")
 	}
 	this.ContextRef.PopContext()

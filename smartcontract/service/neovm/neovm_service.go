@@ -143,6 +143,7 @@ func (this *NeoVmService) Invoke() (interface{}, error) {
 		return nil, ERR_EXECUTE_CODE
 	}
 	this.ContextRef.PushContext(&context.Context{ContractAddress: scommon.AddressFromVmCode(this.Code), Code: this.Code})
+	defer this.ContextRef.PopContext()
 	var gasTable [256]uint64
 	for {
 		//check the execution step count
@@ -237,7 +238,6 @@ func (this *NeoVmService) Invoke() (interface{}, error) {
 			}
 		}
 	}
-	this.ContextRef.PopContext()
 	this.ContextRef.PushNotifications(this.Notifications)
 	if this.Engine.EvalStack.Count() != 0 {
 		val, err := this.Engine.EvalStack.Peek(0)

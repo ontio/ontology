@@ -149,6 +149,7 @@ func (this *WasmVmService) Invoke() (interface{}, error) {
 	}
 
 	this.ContextRef.PushContext(&context.Context{ContractAddress: contract.Address, Code: wasmCode})
+	defer this.ContextRef.PopContext()
 
 	var output []byte
 	if this.JitMode {
@@ -161,7 +162,6 @@ func (this *WasmVmService) Invoke() (interface{}, error) {
 		return nil, err
 	}
 
-	this.ContextRef.PopContext()
 	return output, nil
 }
 

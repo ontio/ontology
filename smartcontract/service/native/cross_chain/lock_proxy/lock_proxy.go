@@ -41,6 +41,9 @@ func InitLockProxy() {
 }
 
 func RegisterLockProxyContract(native *native.NativeService) {
+	if native.Height >= config.GetDisableLegacyContractsHeight() {
+		return
+	}
 	native.Register(LOCK_NAME, Lock)
 	native.Register(UNLOCK_NAME, Unlock)
 	native.Register(BIND_PROXY_NAME, BindProxyHash)

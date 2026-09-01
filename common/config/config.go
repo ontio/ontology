@@ -283,6 +283,17 @@ func GetAddDecimalsHeight() uint32 {
 	}
 }
 
+func GetDisableLegacyContractsHeight() uint32 {
+	switch DefConfig.P2PNode.NetworkId {
+	case NETWORK_ID_MAIN_NET:
+		return constants.DISABLE_LEGACY_CONTRACT_MAINNET
+	case NETWORK_ID_POLARIS_NET:
+		return constants.DISABLE_LEGACY_CONTRACT_POLARIS
+	default:
+		return 0
+	}
+}
+
 func GetEvmPragueHeight() uint32 {
 	switch DefConfig.P2PNode.NetworkId {
 	case NETWORK_ID_MAIN_NET:
