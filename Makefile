@@ -30,6 +30,12 @@ tools: sigsvr abi
 
 all: ontology tools
 
+# These three targets are meant to be run on a matching native host for each
+# OS (e.g. ontology-linux on a Linux machine/container), not to cross-compile
+# from a different one. wasmvm's wasmjit integration uses cgo, and Go
+# disables cgo by default whenever GOOS/GOARCH differ from the host, which
+# silently drops that code and fails with "undefined: WasmjitValidate" /
+# "undefined: invokeJit" (see issue #1454) rather than an obvious cgo error.
 ontology-cross: ontology-windows ontology-linux ontology-darwin
 
 ontology-windows:
