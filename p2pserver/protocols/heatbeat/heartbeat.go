@@ -74,7 +74,7 @@ func (this *HeartBeat) ping() {
 	go this.net.Broadcast(ping)
 }
 
-//timeout trace whether some peer be long time no response
+// timeout trace whether some peer be long time no response
 func (this *HeartBeat) timeout() {
 	peers := this.net.GetNeighbors()
 	var periodTime uint = config.DEFAULT_GEN_BLOCK_TIME / common.UPDATE_RATE_PER_BLOCK
@@ -104,6 +104,5 @@ func (this *HeartBeat) PingHandle(ctx *p2p.Context, ping *types.Ping) {
 }
 
 func (this *HeartBeat) PongHandle(ctx *p2p.Context, pong *types.Pong) {
-	remotePeer := ctx.Network()
-	remotePeer.SetHeight(pong.Height)
+	ctx.Sender().SetHeight(pong.Height)
 }

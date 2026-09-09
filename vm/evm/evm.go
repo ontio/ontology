@@ -212,6 +212,7 @@ func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, gas 
 					evm.VmConfig.Tracer.CaptureExit(ret, 0, nil)
 				}
 			}
+			evm.StateDB.DiscardSnapshot(snapshot)
 			return nil, gas, nil
 		}
 		evm.StateDB.CreateAccount(addr)

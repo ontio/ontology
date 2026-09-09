@@ -317,8 +317,8 @@ func DataReqHandle(ctx *p2p.Context, dataReq *msgTypes.DataReq) {
 			err = remotePeer.Send(msg)
 			if err != nil {
 				log.Warn(err)
-				return
 			}
+			return
 		}
 		msg := msgpack.NewTxn(txn)
 		err = remotePeer.Send(msg)
