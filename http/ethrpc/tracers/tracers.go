@@ -22,10 +22,16 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ontio/ontology/vm/evm"
 )
+
+// DefaultTraceTimeout is the amount of time a tracer is allowed to run before
+// it is forcefully aborted. It is a fixed upper bound: RPC callers cannot
+// override it through the trace config.
+const DefaultTraceTimeout = 5 * time.Second
 
 // Context contains some contextual infos for a transaction execution that is not
 // available from within the EVM object.

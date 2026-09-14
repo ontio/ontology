@@ -21,6 +21,8 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"sync/atomic"
+	"time"
 
 	"github.com/dop251/goja"
 	"github.com/ethereum/go-ethereum/common"
@@ -32,6 +34,10 @@ import (
 )
 
 var assetTracers = make(map[string]string)
+
+// errTimeout is the error passed to the JS runtime when a tracer exceeds its
+// execution deadline.
+var errTimeout = errors.New("execution timeout")
 
 // init retrieves the JavaScript transaction tracers included in go-ethereum.
 func init() {
@@ -107,6 +113,13 @@ type jsTracer struct {
 	err               error                 // Any error that should stop tracing
 	obj               *goja.Object          // Trace object
 
+	// Timeout handling. The JS runtime is not bounded by EVM gas, so a
+	// watchdog interrupts it (and cancels the EVM) once the deadline is
+	// exceeded. envPtr mirrors env for use from the watchdog goroutine.
+	timeout      time.Duration
+	timeoutTimer *time.Timer
+	envPtr       atomic.Pointer[evm.EVM]
+
 	// Methods exposed by tracer
 	result goja.Callable
 	fault  goja.Callable
@@ -134,20 +147,44 @@ type jsTracer struct {
 // The methods `step`, `enter`, and `exit` are optional, but note that
 // `enter` and `exit` always go together.
 func newJsTracer(code string, ctx *tracers.Context, cfg json.RawMessage) (tracers.Tracer, error) {
+	return newJsTracerWithTimeout(code, ctx, cfg, tracers.DefaultTraceTimeout)
+}
+
+// newJsTracerWithTimeout is newJsTracer with an explicit watchdog deadline. The
+// RPC path always goes through newJsTracer, so a caller cannot extend the
+// execution budget; the deadline parameter only exists so that tests can use
+// short values.
+func newJsTracerWithTimeout(code string, ctx *tracers.Context, cfg json.RawMessage, timeout time.Duration) (tracers.Tracer, error) {
+	if timeout <= 0 {
+		timeout = tracers.DefaultTraceTimeout
+	}
 	vm := goja.New()
 	// By default field names are exported to JS as is, i.e. capitalized.
 	vm.SetFieldNameMapper(goja.UncapFieldNameMapper())
 	t := &jsTracer{
-		vm:  vm,
-		ctx: make(map[string]goja.Value),
+		vm:      vm,
+		ctx:     make(map[string]goja.Value),
+		timeout: timeout,
 	}
-
-	t.setTypeConverters()
-	t.setBuiltinFunctions()
 
 	if ctx == nil {
 		ctx = new(tracers.Context)
 	}
+	// Arm the watchdog before any user supplied code is evaluated so that the
+	// whole tracer lifecycle (script initialisation, the EVM execution hooks
+	// and result generation) is bounded. If construction fails we must stop
+	// the watchdog ourselves, otherwise the tracer owner will do it.
+	t.timeoutTimer = time.AfterFunc(t.timeout, t.onTimeout)
+	constructed := false
+	defer func() {
+		if !constructed {
+			t.stopTimeout()
+		}
+	}()
+
+	t.setTypeConverters()
+	t.setBuiltinFunctions()
+
 	if ctx.BlockHash != (common.Hash{}) {
 		blockHash, err := t.toBuf(vm, ctx.BlockHash.Bytes())
 		if err != nil {
@@ -216,6 +253,7 @@ func newJsTracer(code string, ctx *tracers.Context, cfg json.RawMessage) (tracer
 	t.frameValue = t.frame.setupObject()
 	t.frameResultValue = t.frameResult.setupObject()
 	t.logValue = t.log.setupObject()
+	constructed = true
 	return t, nil
 }
 
@@ -238,6 +276,7 @@ func (t *jsTracer) CaptureStart(env *evm.EVM, from common.Address, to common.Add
 		t.env.Cancel()
 	}
 	t.env = env
+	t.envPtr.Store(env)
 	db := &dbObj{db: env.StateDB, vm: t.vm, toBig: t.toBig, toBuf: t.toBuf, fromBuf: t.fromBuf}
 	t.dbValue = db.setupObject()
 	if create {
@@ -372,6 +411,8 @@ func (t *jsTracer) CaptureExit(output []byte, gasUsed uint64, err error) {
 
 // GetResult calls the Javascript 'result' function and returns its value, or any accumulated error
 func (t *jsTracer) GetResult() (json.RawMessage, error) {
+	defer t.stopTimeout()
+
 	ctx := t.vm.ToValue(t.ctx)
 	res, err := t.result(t.obj, ctx, t.dbValue)
 	if err != nil {
@@ -386,7 +427,28 @@ func (t *jsTracer) GetResult() (json.RawMessage, error) {
 
 // Stop terminates execution of the tracer at the first opportune moment.
 func (t *jsTracer) Stop(err error) {
+	t.stopTimeout()
 	t.vm.Interrupt(err)
+	if env := t.envPtr.Load(); env != nil {
+		env.Cancel()
+	}
+}
+
+// onTimeout aborts a tracer which has exceeded its deadline. It runs from the
+// timer goroutine, so it only touches state that is safe for concurrent use:
+// the goja runtime and the EVM's atomic cancellation flag.
+func (t *jsTracer) onTimeout() {
+	t.vm.Interrupt(errTimeout)
+	if env := t.envPtr.Load(); env != nil {
+		env.Cancel()
+	}
+}
+
+// stopTimeout disarms the watchdog. It is safe to call multiple times.
+func (t *jsTracer) stopTimeout() {
+	if t.timeoutTimer != nil {
+		t.timeoutTimer.Stop()
+	}
 }
 
 // onError is called anytime the running JS code is interrupted

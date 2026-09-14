@@ -21,7 +21,6 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
-	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -35,10 +34,6 @@ import (
 )
 
 const (
-	// defaultTraceTimeout is the amount of time a single transaction can execute
-	// by default before being forcefully aborted.
-	defaultTraceTimeout = 5 * time.Second
-
 	// defaultTraceReexec is the number of blocks the tracer is willing to go back
 	// and reexecute to produce missing historical state necessary to run a specific
 	// trace.
@@ -75,7 +70,10 @@ func NewAPI() *API {
 // TraceConfig holds extra parameters to trace functions.
 type TraceConfig struct {
 	*logger.Config
-	Tracer  *string
+	Tracer *string
+	// Timeout is accepted for compatibility with the go-ethereum API but is
+	// not honoured: tracer execution is always bounded by the fixed
+	// DefaultTraceTimeout so that callers cannot raise their own budget.
 	Timeout *string
 	Reexec  *uint64
 	// Config specific to given tracer. Note struct logger
@@ -216,6 +214,9 @@ func (api *API) TraceCall(args types2.CallArgs, blockNrOrHash rpc.BlockNumberOrH
 	// Default tracer is the struct logger
 	var tracer Tracer = logger.NewStructLogger(traceConfig.Config)
 	if traceConfig.Tracer != nil {
+		// The tracer (including any user supplied JavaScript) always runs
+		// under the fixed DefaultTraceTimeout deadline, so a caller cannot
+		// extend the execution budget through the request config.
 		tracer, err = DefaultDirectory.New(*traceConfig.Tracer, new(Context), traceConfig.TracerConfig)
 		if err != nil {
 			return nil, err
