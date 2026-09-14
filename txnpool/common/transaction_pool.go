@@ -198,7 +198,7 @@ func (tp *TXPool) AddTxList(txEntry *VerifiedTx) errors.ErrCode {
 	return errors.ErrNoError
 }
 
-//clean the EIP txpool and eip pending txpool under the tx nonce
+// clean the EIP txpool and eip pending txpool under the tx nonce
 func (s *TXPool) cleanCompletedEipTxPool(txs []*types.Transaction, height uint32) []*types.Transaction {
 	var cleaned []*types.Transaction
 	for _, tx := range txs {
@@ -406,7 +406,7 @@ func (tp *TXPool) GetUnverifiedTxs(txs []*types.Transaction, height uint32) *Che
 			continue
 		}
 
-		if !txEntry.IsVerfiyExpired(height) {
+		if txEntry.IsVerfiyExpired(height) {
 			// note: can not remove from tx pool since it is verified in another validator and will not be add back to pool
 			res.OldTxs = append(res.OldTxs, txEntry.Tx)
 			continue
