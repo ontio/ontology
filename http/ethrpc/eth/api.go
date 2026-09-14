@@ -283,8 +283,26 @@ func (api *EthereumAPI) SendRawTransaction(data hexutil.Bytes) (common.Hash, err
 	return common.Hash(txhash), nil
 }
 
-func (api *EthereumAPI) Call(args types2.CallArgs, blockNumber types2.BlockNumber, _ *map[common.Address]types2.Account) (hexutil.Bytes, error) {
+// checkCallParams rejects eth_call parameters this node cannot honour. Calls are
+// always executed against the current state, so only the latest and pending
+// blocks are supported and account overrides are not implemented. Rejecting
+// them is preferable to silently returning a result computed from different
+// inputs.
+func checkCallParams(blockNumber types2.BlockNumber, stateOverride *map[common.Address]types2.Account) error {
+	if !blockNumber.IsLatest() && !blockNumber.IsPending() {
+		return fmt.Errorf("eth_call only supports execution on the latest or pending block, got %v", blockNumber)
+	}
+	if stateOverride != nil && len(*stateOverride) > 0 {
+		return fmt.Errorf("eth_call state overrides are not supported")
+	}
+	return nil
+}
+
+func (api *EthereumAPI) Call(args types2.CallArgs, blockNumber types2.BlockNumber, stateOverride *map[common.Address]types2.Account) (hexutil.Bytes, error) {
 	log.Debugf("eth_call block number %v ", blockNumber)
+	if err := checkCallParams(blockNumber, stateOverride); err != nil {
+		return nil, err
+	}
 	msg := args.AsMessage(RPCGasCap)
 	res, err := bactor.PreExecuteEip155Tx(msg)
 	if err != nil {

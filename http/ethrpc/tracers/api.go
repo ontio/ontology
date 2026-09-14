@@ -188,18 +188,55 @@ func (diff *BlockOverrides) Apply(blockCtx *evm.BlockContext) {
 	*/
 }
 
+// isEmpty reports whether the overrides would have no effect on the traced
+// block context.
+func (diff *BlockOverrides) isEmpty() bool {
+	if diff == nil {
+		return true
+	}
+	return diff.Number == nil && diff.Difficulty == nil && diff.Time == nil &&
+		diff.GasLimit == nil && diff.Coinbase == nil && diff.Random == nil &&
+		diff.BaseFee == nil && diff.BlobBaseFee == nil
+}
+
+// checkTraceCallParams rejects debug_traceCall arguments this node cannot
+// honour. Tracing always runs against the current state, so only the latest and
+// pending blocks can be traced, txIndex has no meaning and block overrides are
+// never applied. Rejecting them is preferable to silently tracing different
+// inputs.
+func checkTraceCallParams(blockNrOrHash rpc.BlockNumberOrHash, config *TraceCallConfig) error {
+	if hash, ok := blockNrOrHash.Hash(); ok {
+		return fmt.Errorf("block hash %s is not supported: only the latest or pending block can be traced", hash.Hex())
+	}
+	if number, ok := blockNrOrHash.Number(); ok && number != rpc.LatestBlockNumber && number != rpc.PendingBlockNumber {
+		return fmt.Errorf("block %s is not supported: only the latest or pending block can be traced", number)
+	}
+	if config != nil {
+		if config.TxIndex != nil {
+			return errors.New("debug_traceCall txIndex is not supported: only the latest or pending block state can be traced")
+		}
+		if !config.BlockOverrides.isEmpty() {
+			return errors.New("debug_traceCall block overrides are not supported")
+		}
+	}
+	return nil
+}
+
 // TraceCall lets you trace a given eth_call. It collects the structured logs
-// created during the execution of EVM if the given transaction was added on
-// top of the provided block and returns them as a JSON object.
-// If no transaction index is specified, the trace will be conducted on the state
-// after executing the specified block. However, if a transaction index is provided,
-// the trace will be conducted on the state after executing the specified transaction
-// within the specified block.
+// created during the execution of the EVM and returns them as a JSON object.
+//
+// Only the latest and pending blocks can be traced: execution always runs
+// against the current state, so historical states are not available. Requests
+// naming any other block, a txIndex or block overrides are rejected rather than
+// silently traced with different inputs.
 func (api *API) TraceCall(args types2.CallArgs, blockNrOrHash rpc.BlockNumberOrHash, config *TraceCallConfig) (interface{}, error) {
 	/* TODO support state overrides
 	vmctx := core.NewEVMBlockContext(block.Header(), nil, nil)
 	// Apply the customization rules if required.
 	*/
+	if err := checkTraceCallParams(blockNrOrHash, config); err != nil {
+		return nil, err
+	}
 	// Execute the trace
 	msg := args.AsMessage(eth.RPCGasCap)
 
