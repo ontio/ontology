@@ -27,6 +27,7 @@ import (
 	cfg "github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/http/base/rpc"
+	"github.com/ontio/ontology/http/httpserver"
 )
 
 func NewRPCHandler() *rpc.ServeMux {
@@ -77,8 +78,9 @@ func StartRPCServer() error {
 	rpcMux := NewRPCHandler()
 	mux := http.NewServeMux()
 	mux.Handle("/", rpcMux)
-	err := http.ListenAndServe(":"+strconv.Itoa(int(cfg.DefConfig.Rpc.HttpJsonPort)), mux)
-	if err != nil {
+	server := httpserver.New(mux)
+	server.Addr = ":" + strconv.Itoa(int(cfg.DefConfig.Rpc.HttpJsonPort))
+	if err := server.ListenAndServe(); err != nil {
 		return fmt.Errorf("ListenAndServe error:%s", err)
 	}
 	return nil

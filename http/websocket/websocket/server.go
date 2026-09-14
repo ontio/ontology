@@ -35,6 +35,7 @@ import (
 	"github.com/ontio/ontology/common/log"
 	Err "github.com/ontio/ontology/http/base/error"
 	"github.com/ontio/ontology/http/base/rest"
+	"github.com/ontio/ontology/http/httpserver"
 	"github.com/ontio/ontology/http/websocket/session"
 )
 
@@ -112,7 +113,10 @@ func (self *WsServer) Start() error {
 	var done = make(chan bool)
 	go self.checkSessionsTimeout(done)
 
-	self.server = &http.Server{Handler: http.HandlerFunc(self.webSocketHandler)}
+	// The read timeouts only bound the HTTP upgrade request; net/http clears
+	// the connection deadline when the handler hijacks it, so established
+	// websocket sessions are unaffected.
+	self.server = httpserver.New(http.HandlerFunc(self.webSocketHandler))
 	err := self.server.Serve(self.listener)
 
 	done <- true

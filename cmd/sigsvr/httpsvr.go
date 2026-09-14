@@ -26,6 +26,7 @@ import (
 
 	"github.com/ontio/ontology/cmd/sigsvr/common"
 	"github.com/ontio/ontology/common/log"
+	"github.com/ontio/ontology/http/httpserver"
 )
 
 var DefCliRpcSvr = NewCliRpcServer()
@@ -48,10 +49,8 @@ func (this *CliRpcServer) Start(address string, port uint) {
 	this.address = address
 	this.port = port
 	this.httpSvtMux = http.NewServeMux()
-	this.httpSvr = &http.Server{
-		Addr:    fmt.Sprintf("%s:%d", address, port),
-		Handler: this.httpSvtMux,
-	}
+	this.httpSvr = httpserver.New(this.httpSvtMux)
+	this.httpSvr.Addr = fmt.Sprintf("%s:%d", address, port)
 	this.httpSvtMux.HandleFunc("/cli", this.Handler)
 	err := this.httpSvr.ListenAndServe()
 	if err != nil {

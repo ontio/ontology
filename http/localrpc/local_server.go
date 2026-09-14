@@ -26,6 +26,7 @@ import (
 
 	cfg "github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
+	"github.com/ontio/ontology/http/httpserver"
 	"github.com/ontio/ontology/http/jsonrpc"
 )
 
@@ -47,8 +48,9 @@ func StartLocalServer() error {
 
 	mux := http.NewServeMux()
 	mux.Handle("/", rpcMux)
-	err := http.ListenAndServe(LOCAL_HOST+":"+strconv.Itoa(int(cfg.DefConfig.Rpc.HttpLocalPort)), mux)
-	if err != nil {
+	server := httpserver.New(mux)
+	server.Addr = LOCAL_HOST + ":" + strconv.Itoa(int(cfg.DefConfig.Rpc.HttpLocalPort))
+	if err := server.ListenAndServe(); err != nil {
 		return fmt.Errorf("ListenAndServe error:%s", err)
 	}
 	return nil

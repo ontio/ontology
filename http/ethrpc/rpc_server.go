@@ -18,7 +18,6 @@
 package ethrpc
 
 import (
-	"net/http"
 	"strconv"
 
 	"github.com/ethereum/go-ethereum/log"
@@ -34,6 +33,7 @@ import (
 	"github.com/ontio/ontology/http/ethrpc/tracers"
 	"github.com/ontio/ontology/http/ethrpc/utils"
 	"github.com/ontio/ontology/http/ethrpc/web3"
+	"github.com/ontio/ontology/http/httpserver"
 	tp "github.com/ontio/ontology/txnpool/proc"
 
 	// Force-load native and js packages, to trigger registration
@@ -80,7 +80,9 @@ func StartEthServer(txpool *tp.TXPoolServer) error {
 	// add cors wrapper
 	wrappedCORSHandler := node.NewHTTPHandlerStack(server, cors, vhosts, nil)
 
-	err = http.ListenAndServe(":"+strconv.Itoa(int(cfg.DefConfig.Rpc.EthJsonPort)), wrappedCORSHandler)
+	httpServer := httpserver.New(wrappedCORSHandler)
+	httpServer.Addr = ":" + strconv.Itoa(int(cfg.DefConfig.Rpc.EthJsonPort))
+	err = httpServer.ListenAndServe()
 	if err != nil {
 		return err
 	}

@@ -36,6 +36,7 @@ import (
 	"github.com/ontio/ontology/http/base/common"
 	berr "github.com/ontio/ontology/http/base/error"
 	"github.com/ontio/ontology/http/base/rest"
+	"github.com/ontio/ontology/http/httpserver"
 	"golang.org/x/net/netutil"
 )
 
@@ -120,7 +121,7 @@ func (this *restServer) Start() error {
 			return err
 		}
 	}
-	this.server = &http.Server{Handler: this.router}
+	this.server = httpserver.New(this.router)
 	//set LimitListener number
 	if cfg.DefConfig.Restful.HttpMaxConnections > 0 {
 		this.listener = netutil.LimitListener(this.listener, int(cfg.DefConfig.Restful.HttpMaxConnections))

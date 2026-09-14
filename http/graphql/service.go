@@ -33,6 +33,7 @@ import (
 	"github.com/ontio/ontology/http/base/actor"
 	comm "github.com/ontio/ontology/http/base/common"
 	"github.com/ontio/ontology/http/graphql/schema"
+	"github.com/ontio/ontology/http/httpserver"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 	"golang.org/x/net/netutil"
 )
@@ -318,7 +319,7 @@ func StartServer(cfg *config.GraphQLConfig) {
 
 	serverMut.Handle("/query", &relay.Handler{Schema: ontSchema})
 
-	server := &http.Server{Handler: serverMut}
+	server := httpserver.New(serverMut)
 	listener, err := net.Listen("tcp", ":"+strconv.Itoa(int(cfg.GraphQLPort)))
 	if err != nil {
 		log.Error("start graphql server error: %s", err)

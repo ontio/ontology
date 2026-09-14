@@ -28,6 +28,7 @@ import (
 
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/core/ledger"
+	"github.com/ontio/ontology/http/httpserver"
 	p2p "github.com/ontio/ontology/p2pserver/net/protocol"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
@@ -124,5 +125,7 @@ func StartServer(n p2p.P2P) {
 	mux.Handle("/metrics", promhttp.Handler())
 	go updateMetric(n)
 
-	http.ListenAndServe(":"+strconv.Itoa(port), mux)
+	server := httpserver.New(mux)
+	server.Addr = ":" + strconv.Itoa(port)
+	server.ListenAndServe()
 }
