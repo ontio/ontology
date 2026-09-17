@@ -241,13 +241,15 @@ func (self *WsServer) checkSessionsTimeout(done chan bool) {
 			var closeList []*session.Session
 			self.SessionList.ForEachSession(func(v *session.Session) {
 				if v.SessionTimeoverCheck() {
-					resp := rest.ResponsePack(Err.SESSION_EXPIRED)
-					v.Send(marshalResp(resp))
 					closeList = append(closeList, v)
 				}
 			})
 			for _, s := range closeList {
-				self.SessionList.CloseSession(s)
+				// Notify outside of ForEachSession so the session list lock is
+				// not held across the (now timeout-bounded) network write.
+				resp := rest.ResponsePack(Err.SESSION_EXPIRED)
+				s.Send(marshalResp(resp))
+				self.closeSession(s)
 			}
 
 		case <-done:
@@ -272,9 +274,7 @@ func (self *WsServer) webSocketHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	defer func() {
-		self.deleteTxHashes(nsSession.GetSessionId())
-		self.deleteSubscribe(nsSession.GetSessionId())
-		self.SessionList.CloseSession(nsSession)
+		self.closeSession(nsSession)
 		if err := recover(); err != nil {
 			log.Fatal("websocket recover:", err)
 		}
@@ -384,6 +384,22 @@ func (self *WsServer) deleteSubscribe(sessionId string) {
 	delete(self.SubscribeMap, sessionId)
 }
 
+// closeSession tears down everything associated with a session in one place:
+// its pending transaction-hash mappings, its subscription entry and the
+// session itself. Both the connection handler and the timeout ticker go
+// through here, so the cleanup is identical no matter which one closes the
+// session first. It is safe to call more than once because the session id is
+// immutable for the lifetime of the session.
+func (self *WsServer) closeSession(s *session.Session) {
+	if s == nil {
+		return
+	}
+	id := s.GetSessionId()
+	self.deleteTxHashes(id)
+	self.deleteSubscribe(id)
+	self.SessionList.CloseSession(s)
+}
+
 func marshalResp(resp map[string]interface{}) []byte {
 	resp["Desc"] = Err.ErrMap[resp["Error"].(int64)]
 	data, err := json.Marshal(resp)
@@ -421,33 +437,45 @@ func (self *WsServer) PushTxResult(contractAddrs map[string]bool, txHashStr stri
 	}
 }
 func (self *WsServer) BroadcastToSubscribers(contractAddrs map[string]bool, sub int, resp map[string]interface{}) {
-	// broadcast SubscribeMap
-	self.Lock()
-	defer self.Unlock()
 	data := marshalResp(resp)
+
+	// Only take a snapshot of the matching sessions while holding the global
+	// lock, then release it before doing any network I/O. Sending under the
+	// lock let a single slow client (one that stopped reading, so its send
+	// buffer filled up) block the whole broadcast as well as every control
+	// path that needs the same lock - subscribe, cleanup and heartbeat.
+	self.RLock()
+	targets := make([]*session.Session, 0, len(self.SubscribeMap))
 	for sid, v := range self.SubscribeMap {
-		s := self.SessionList.GetSessionById(sid)
-		if s == nil {
-			continue
-		}
+		matched := false
 		if sub == WSTOPIC_JSON_BLOCK && v.SubscribeJsonBlock {
-			s.Send(data)
+			matched = true
 		} else if sub == WSTOPIC_RAW_BLOCK && v.SubscribeRawBlock {
-			s.Send(data)
+			matched = true
 		} else if sub == WSTOPIC_TXHASHS && v.SubscribeBlockTxHashs {
-			s.Send(data)
+			matched = true
 		} else if sub == WSTOPIC_EVENT && v.SubscribeEvent {
 			if len(v.ContractsFilter) == 0 {
-				s.Send(data)
-				continue
-			}
-			for _, addr := range v.ContractsFilter {
-				if contractAddrs[addr] {
-					s.Send(data)
-					break
+				matched = true
+			} else {
+				for _, addr := range v.ContractsFilter {
+					if contractAddrs[addr] {
+						matched = true
+						break
+					}
 				}
 			}
 		}
+		if matched {
+			if s := self.SessionList.GetSessionById(sid); s != nil {
+				targets = append(targets, s)
+			}
+		}
+	}
+	self.RUnlock()
+
+	for _, s := range targets {
+		s.Send(data)
 	}
 }
 

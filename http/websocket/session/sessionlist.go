@@ -22,8 +22,6 @@ package session
 import (
 	"errors"
 	"sync"
-
-	"github.com/gorilla/websocket"
 )
 
 const MAX_SESSION_COUNT = 3000
@@ -39,15 +37,15 @@ func NewSessionList() *SessionList {
 		mapOnlineList: make(map[string]*Session),
 	}
 }
-func (self *SessionList) NewSession(wsConn *websocket.Conn) (session *Session, err error) {
-	if self.GetSessionCount() > MAX_SESSION_COUNT {
-		return nil, errors.New("over MAX_SESSION_COUNT")
-	}
+func (self *SessionList) NewSession(wsConn Conn) (session *Session, err error) {
 	session = newSession(wsConn)
 
 	self.Lock()
+	defer self.Unlock()
+	if len(self.mapOnlineList) >= MAX_SESSION_COUNT {
+		return nil, errors.New("over MAX_SESSION_COUNT")
+	}
 	self.mapOnlineList[session.GetSessionId()] = session
-	self.Unlock()
 
 	return session, nil
 }

@@ -33,10 +33,18 @@ type TxHashInfo struct {
 	StartTime int64  //recv tranasction time
 }
 
+// Conn is the subset of a websocket connection that a session needs. It is an
+// interface so the bounded-write behaviour of Send can be exercised by tests.
+type Conn interface {
+	WriteMessage(messageType int, data []byte) error
+	SetWriteDeadline(t time.Time) error
+	Close() error
+}
+
 //websocket session
 type Session struct {
 	sync.Mutex
-	mConnection *websocket.Conn
+	mConnection Conn
 	nLastActive int64        //last active time
 	sessionId   string       //session id
 	TxHashArr   []TxHashInfo //transaction hashes in this session
@@ -44,8 +52,16 @@ type Session struct {
 
 const SESSION_TIMEOUT int64 = 300
 
+// SESSION_WRITE_TIMEOUT bounds a single websocket write. Without a deadline a
+// client that stops reading would block the writer forever once its send
+// buffer fills up, which in turn blocks the global broadcast path that drives
+// every other subscriber. The value is intentionally generous compared to
+// normal message sizes but small enough to keep a stalled peer from wedging
+// the push pipeline.
+const SESSION_WRITE_TIMEOUT = 10 * time.Second
+
 //create new session
-func newSession(wsConn *websocket.Conn) *Session {
+func newSession(wsConn Conn) *Session {
 	sessionid := uuid.NewUUID().String()
 	session := &Session{
 		mConnection: wsConn,
@@ -68,7 +84,11 @@ func (self *Session) Close() {
 		self.mConnection.Close()
 		self.mConnection = nil
 	}
-	self.sessionId = ""
+	// The session id is intentionally left untouched. It is the key used to
+	// clean up the subscription and transaction-hash maps, and closing a
+	// session can happen before that cleanup runs (for example when the
+	// timeout ticker closes it first). Clearing the id here would make the
+	// later cleanup delete the empty-string key and leak the real entries.
 }
 
 //update active time
@@ -89,11 +109,25 @@ func (self *Session) Send(data []byte) error {
 		return errors.New("WebSocket is null")
 	}
 
-	return self.mConnection.WriteMessage(websocket.TextMessage, data)
+	// Bound the network write so a slow or stalled client cannot block the
+	// caller indefinitely.
+	self.mConnection.SetWriteDeadline(time.Now().Add(SESSION_WRITE_TIMEOUT))
+	if err := self.mConnection.WriteMessage(websocket.TextMessage, data); err != nil {
+		// A write that failed - in particular one that exceeded the deadline -
+		// leaves the websocket connection in an undefined state. Tear it down
+		// so the session is no longer a target for later broadcasts and will
+		// be reclaimed by the session timeout cleanup.
+		self.mConnection.Close()
+		self.mConnection = nil
+		return err
+	}
+	return nil
 }
 
 //sesseion time over check
 func (self *Session) SessionTimeoverCheck() bool {
+	self.Lock()
+	defer self.Unlock()
 	nCurTime := time.Now().Unix()
 	if nCurTime-self.nLastActive > SESSION_TIMEOUT {
 		//sec
