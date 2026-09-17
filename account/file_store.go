@@ -138,20 +138,44 @@ func (this *WalletData) GetAccountByAddress(address string) (*AccountData, int) 
 	return accData, index
 }
 
+// defaultWalletFilePerm is the permission used for wallet files. A wallet holds
+// encrypted private key material, so it must only be readable by its owner.
+const defaultWalletFilePerm os.FileMode = 0600
+
+// walletFilePerm returns the permission to use when writing a wallet to path.
+// It defaults to 0600 and keeps the existing file's permission when that is
+// strictly more restrictive (for example 0400), so saving never widens access
+// to an already locked-down wallet.
+func walletFilePerm(path string) os.FileMode {
+	if info, err := os.Stat(path); err == nil {
+		if existing := info.Mode().Perm(); existing&^defaultWalletFilePerm == 0 {
+			return existing
+		}
+	}
+	return defaultWalletFilePerm
+}
+
 func (this *WalletData) Save(path string) error {
 	data, err := json.Marshal(this)
 	if err != nil {
 		return err
 	}
+	perm := walletFilePerm(path)
 	if common.FileExisted(path) {
 		filename := path + "~"
-		err := ioutil.WriteFile(filename, data, 0644)
+		err := ioutil.WriteFile(filename, data, perm)
 		if err != nil {
+			return err
+		}
+		// WriteFile ignores the permission for an existing file, so a leftover
+		// temp file (or a umask) could otherwise leave the renamed wallet with
+		// looser permissions than intended.
+		if err := os.Chmod(filename, perm); err != nil {
 			return err
 		}
 		return os.Rename(filename, path)
 	} else {
-		return ioutil.WriteFile(path, data, 0644)
+		return ioutil.WriteFile(path, data, perm)
 	}
 }
 
