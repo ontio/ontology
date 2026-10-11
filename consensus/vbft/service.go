@@ -779,13 +779,16 @@ func (self *Server) processMsgEvent(msg ConsensusEvent) {
 			for _, p := range vbftCtx.PeerKeys {
 				pubInfos[common.PubKeyToHex(p.Key)] = true
 			}
-			block.Header.Bookkeepers = pubkeys
-			block.Header.SigData = pMsg.EndorsersSig
-			err := block.Header.VerifyMultiSignature(pubInfos, false, vbftCtx.Config.Quorum())
-			if err != nil {
+			
+			verifyHeader := *block.Header
+			verifyHeader.Bookkeepers = pubkeys
+			verifyHeader.SigData = pMsg.EndorsersSig
+			if err := verifyHeader.VerifyMultiSignature(pubInfos, false, vbftCtx.Config.Quorum()); err != nil {
 				return
 			}
-			if err = self.sealBlock(proposal.Block, false, false); err != nil {
+			block.Header.Bookkeepers = pubkeys
+			block.Header.SigData = pMsg.EndorsersSig
+			if err := self.sealBlock(proposal.Block, false, false); err != nil {
 				log.Errorf("server %d failed to seal block (%d): %s", self.Index, block.Header.Height, err)
 			}
 		}
