@@ -294,6 +294,10 @@ func SendRawTransaction(cmd map[string]interface{}) map[string]interface{} {
 
 // get smartcontract event by height
 func GetSmartCodeEventTxsByHeight(cmd map[string]interface{}) map[string]interface{} {
+	if !config.DefConfig.Common.EnableEventLog {
+		return ResponsePack(berr.INVALID_METHOD)
+	}
+
 	resp := ResponsePack(berr.SUCCESS)
 
 	param, ok := cmd["Height"].(string)
