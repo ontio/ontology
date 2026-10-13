@@ -740,7 +740,7 @@ func GetCrossStatesLeafHashes(params []interface{}) map[string]interface{} {
 
 // get cross chain state proof
 func GetCrossStatesProof(params []interface{}) map[string]interface{} {
-	if len(params) < 1 {
+	if len(params) < 2 {
 		return rpc.ResponsePack(berr.INVALID_PARAMS, nil)
 	}
 	height, ok := params[0].(float64)
