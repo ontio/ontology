@@ -65,8 +65,14 @@ func checkOntoWasm(m *wasm.Module) error {
 
 	//get entry index
 	index := int64(entry.Index)
+	if m.Function == nil || index < 0 || index >= int64(len(m.Function.Types)) {
+		return errors.New("[Validate] invoke entry function index is out of range.")
+	}
 	//get function index
 	fidx := m.Function.Types[int(index)]
+	if m.Types == nil || int64(fidx) < 0 || int64(fidx) >= int64(len(m.Types.Entries)) {
+		return errors.New("[Validate] invoke function type index is out of range.")
+	}
 	//get  function type
 	ftype := m.Types.Entries[int(fidx)]
 
