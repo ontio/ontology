@@ -42,17 +42,20 @@ func storageRead(service *WasmVmService, keybytes []byte, klen uint32, vlen uint
 		return []byte{}, 0, err
 	}
 
-	length := vlen
 	itemlen := uint32(len(item))
-	if itemlen < vlen {
-		length = itemlen
-	}
-
-	if uint32(len(item)) < offset {
+	if itemlen < offset {
 		return []byte{}, 0, errors.New("offset is invalid")
 	}
 
-	return item[offset : offset+length], uint32(len(item)), nil
+	// Clamp the read to the bytes that remain after offset. Using the full
+	// item length here allowed offset+length to run past the stored item and
+	// panic the slice expression.
+	length := vlen
+	if itemlen-offset < length {
+		length = itemlen - offset
+	}
+
+	return item[offset : offset+length], itemlen, nil
 }
 
 func StorageRead(proc *exec.Process, keyPtr uint32, klen uint32, val uint32, vlen uint32, offset uint32) uint32 {

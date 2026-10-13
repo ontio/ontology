@@ -36,7 +36,10 @@ import (
 	"github.com/ontio/ontology/smartcontract/event"
 )
 
-const MAX_SEARCH_RANGE = 100000
+// MAX_SEARCH_RANGE bounds how many blocks a single eth_getLogs call may
+// cover. The previous value (100000) was far above common RPC policy and
+// let an unauthenticated caller trigger a very large log scan.
+const MAX_SEARCH_RANGE = 10000
 
 type Backend interface {
 	BloomStatus() (uint32, uint32)

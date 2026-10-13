@@ -97,6 +97,17 @@ func (mainMux *ServeMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	err := decoder.Decode(&request)
 	if err != nil {
 		log.Error("HTTP JSON RPC Handle - json.Unmarshal: ", err)
+		data, _ := json.Marshal(map[string]interface{}{
+			"jsonrpc": "2.0",
+			"error": map[string]interface{}{
+				"code":    -32700,
+				"message": "Parse error",
+			},
+			"id": request.ID,
+		})
+		w.Header().Set("content-type", "application/json;charset=utf-8")
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write(data)
 		return
 	}
 	if request.Method == "" {

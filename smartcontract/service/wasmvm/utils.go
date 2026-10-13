@@ -65,8 +65,14 @@ func checkOntoWasm(m *wasm.Module) error {
 
 	//get entry index
 	index := int64(entry.Index)
+	if m.Function == nil || index < 0 || index >= int64(len(m.Function.Types)) {
+		return errors.New("[Validate] invoke entry function index is out of range.")
+	}
 	//get function index
 	fidx := m.Function.Types[int(index)]
+	if m.Types == nil || int64(fidx) < 0 || int64(fidx) >= int64(len(m.Types.Entries)) {
+		return errors.New("[Validate] invoke function type index is out of range.")
+	}
 	//get  function type
 	ftype := m.Types.Entries[int(fidx)]
 
@@ -80,7 +86,19 @@ func checkOntoWasm(m *wasm.Module) error {
 	return nil
 }
 
-func ReadWasmModule(code []byte, verify config.VerifyMethod) (*exec.CompiledModule, error) {
+func ReadWasmModule(code []byte, verify config.VerifyMethod) (result *exec.CompiledModule, err error) {
+	// The wagon parser and validator can panic on malformed modules (for
+	// example a function section without a code section, an out-of-range
+	// import type index, or a mismatched select operand). A wasm deploy must
+	// not be able to crash the verify worker, so convert any panic into an
+	// error.
+	defer func() {
+		if r := recover(); r != nil {
+			result = nil
+			err = fmt.Errorf("read wasm module failed: %v", r)
+		}
+	}()
+
 	m, err := wasm.ReadModule(bytes.NewReader(code), func(name string) (*wasm.Module, error) {
 		switch name {
 		case "env":

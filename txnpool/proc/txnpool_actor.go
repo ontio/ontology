@@ -114,15 +114,15 @@ func (ta *TxPoolService) handleTransaction(sender tc.SenderType, txn *tx.Transac
 	}
 
 	if ta.server.getTransaction(txn.Hash()) != nil {
-		log.Debugf("handleTransaction: transaction %x already in the txn pool", txn.Hash())
+		log.Debugf("handleTransaction: transaction %s already in the txn pool", txn.Hash().ToHexString())
 
 		replyTxResult(txResultCh, txn.Hash(), errors.ErrDuplicateInput,
-			fmt.Sprintf("transaction %x is already in the tx pool", txn.Hash()))
+			fmt.Sprintf("transaction %s is already in the tx pool", txn.Hash().ToHexString()))
 		return
 	}
 
 	if ta.server.getTransactionCount() >= tc.MAX_CAPACITY {
-		log.Debugf("handleTransaction: transaction pool is full for tx %x", txn.Hash())
+		log.Debugf("handleTransaction: transaction pool is full for tx %s", txn.Hash().ToHexString())
 
 		replyTxResult(txResultCh, txn.Hash(), errors.ErrTxPoolFull, "transaction pool is full")
 		return
@@ -195,11 +195,11 @@ func (ta *TxPoolService) handleTransaction(sender tc.SenderType, txn *tx.Transac
 
 	if !ta.server.disablePreExec {
 		if ok, desc := preExecCheck(txn); !ok {
-			log.Debugf("handleTransaction: preExecCheck tx %x failed", txn.Hash())
+			log.Debugf("handleTransaction: preExecCheck tx %s failed", txn.Hash().ToHexString())
 			replyTxResult(txResultCh, txn.Hash(), errors.ErrUnknown, desc)
 			return
 		}
-		log.Debugf("handleTransaction: preExecCheck tx %x passed", txn.Hash())
+		log.Debugf("handleTransaction: preExecCheck tx %s passed", txn.Hash().ToHexString())
 	}
 	<-ta.server.slots
 	ta.server.startTxVerify(txn, sender, txResultCh)

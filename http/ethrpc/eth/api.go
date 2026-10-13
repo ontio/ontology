@@ -107,6 +107,9 @@ func (api *EthereumAPI) Syncing() (interface{}, error) {
 	log.Debug("eth_syncing")
 	curBlock := bactor.GetCurrentBlockHeight()
 	peerBlock := bactor.GetMaxPeerBlockHeight()
+	if peerBlock == 0 || uint64(curBlock) >= peerBlock {
+		return false, nil
+	}
 	return map[string]interface{}{
 		"startingBlock": hexutil.Uint64(0),
 		"currentBlock":  hexutil.Uint64(curBlock),

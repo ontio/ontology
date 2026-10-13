@@ -49,6 +49,9 @@ const (
 )
 
 func WasmjitValidate(wasmCode []byte) error {
+	if len(wasmCode) == 0 {
+		return errors.NewErr("empty wasm code")
+	}
 	codeSlice := C.wasmjit_slice_t{data: (*C.uint8_t)((unsafe.Pointer)(&wasmCode[0])), len: C.uint32_t(len(wasmCode))}
 	result := C.wasmjit_validate(codeSlice)
 	if result.kind != C.wasmjit_result_kind(wasmjit_result_success) {
@@ -197,7 +200,7 @@ func ontio_storage_read_cgo(serviceIndex C.uint64_t, keySlice C.wasmjit_slice_t,
 		return C.wasmjit_u32{v: 0, res: jitErr(err)}
 	}
 
-	if originLen != math.MaxUint32 {
+	if originLen != math.MaxUint32 && len(itemWrite) != 0 {
 		C.memcpy((unsafe.Pointer)(valSlice.data), ((unsafe.Pointer)(&itemWrite[0])), C.ulong(len(itemWrite)))
 	}
 
