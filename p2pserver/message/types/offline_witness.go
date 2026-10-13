@@ -92,6 +92,11 @@ func (self *OfflineWitnessMsg) Deserialization(source *common.ZeroCopySource) (e
 		return err
 	}
 
+	self.ProposerSig, err = source.ReadVarBytes()
+	if err != nil {
+		return err
+	}
+
 	lenVoters, err := source.ReadUint32()
 	if err != nil {
 		return err
