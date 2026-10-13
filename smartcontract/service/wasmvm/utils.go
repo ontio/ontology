@@ -86,7 +86,19 @@ func checkOntoWasm(m *wasm.Module) error {
 	return nil
 }
 
-func ReadWasmModule(code []byte, verify config.VerifyMethod) (*exec.CompiledModule, error) {
+func ReadWasmModule(code []byte, verify config.VerifyMethod) (result *exec.CompiledModule, err error) {
+	// The wagon parser and validator can panic on malformed modules (for
+	// example a function section without a code section, an out-of-range
+	// import type index, or a mismatched select operand). A wasm deploy must
+	// not be able to crash the verify worker, so convert any panic into an
+	// error.
+	defer func() {
+		if r := recover(); r != nil {
+			result = nil
+			err = fmt.Errorf("read wasm module failed: %v", r)
+		}
+	}()
+
 	m, err := wasm.ReadModule(bytes.NewReader(code), func(name string) (*wasm.Module, error) {
 		switch name {
 		case "env":
