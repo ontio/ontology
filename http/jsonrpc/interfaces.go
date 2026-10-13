@@ -20,6 +20,7 @@ package jsonrpc
 
 import (
 	"encoding/hex"
+	"fmt"
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
@@ -478,7 +479,11 @@ func GetOep4Balance(params []interface{}) map[string]interface{} {
 	if err != nil {
 		return rpc.ResponsePack(berr.INVALID_PARAMS, "")
 	}
-	addrs, err := parseAddressParam(params[1].([]interface{}))
+	addrList, ok := params[1].([]interface{})
+	if !ok {
+		return rpc.ResponsePack(berr.INVALID_PARAMS, "")
+	}
+	addrs, err := parseAddressParam(addrList)
 	if err != nil {
 		return rpc.ResponsePack(berr.INVALID_PARAMS, "")
 	}
@@ -512,7 +517,11 @@ func parseAddressParam(params []interface{}) ([]common.Address, error) {
 	res := make([]common.Address, len(params))
 	var err error
 	for i, param := range params {
-		res[i], err = common.AddressFromBase58(param.(string))
+		addr, ok := param.(string)
+		if !ok {
+			return nil, fmt.Errorf("invalid address type")
+		}
+		res[i], err = common.AddressFromBase58(addr)
 		if err != nil {
 			return nil, err
 		}
