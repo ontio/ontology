@@ -34,6 +34,11 @@ import (
 // consider a filter inactive if it has not been polled for within deadline
 var deadline = 5 * time.Minute
 
+// maxFilters bounds the number of live filters a node will track, so an
+// unauthenticated client cannot exhaust memory or goroutines by creating
+// filters without ever polling them.
+const maxFilters = 1000
+
 // filter is a helper struct that holds meta information over the filter type
 // and associated subscription in the event system.
 type filter struct {
@@ -64,6 +69,13 @@ func NewPublicFilterAPI(backend Backend) *PublicFilterAPI {
 	return api
 }
 
+// filtersFull reports whether the live filter limit has been reached.
+func (api *PublicFilterAPI) filtersFull() bool {
+	api.filtersMu.Lock()
+	defer api.filtersMu.Unlock()
+	return len(api.filters) >= maxFilters
+}
+
 // timeoutLoop runs at the interval set by 'timeout' and deletes filters
 // that have not been recently used. It is started when the API is created.
 func (api *PublicFilterAPI) timeoutLoop() {
@@ -76,7 +88,7 @@ func (api *PublicFilterAPI) timeoutLoop() {
 		for id, f := range api.filters {
 			select {
 			case <-f.deadline.C:
-				toUninstall = append(toUninstall)
+				toUninstall = append(toUninstall, f.s)
 				delete(api.filters, id)
 			default:
 				continue
@@ -101,7 +113,11 @@ func (api *PublicFilterAPI) timeoutLoop() {
 // `eth_getFilterChanges` polling method that is also used for log filters.
 //
 // https://github.com/ethereum/wiki/wiki/JSON-RPC#eth_newPendingTransactionFilter
-func (api *PublicFilterAPI) NewPendingTransactionFilter() rpc.ID {
+func (api *PublicFilterAPI) NewPendingTransactionFilter() (rpc.ID, error) {
+	if api.filtersFull() {
+		return "", fmt.Errorf("too many filters")
+	}
+
 	var (
 		pendingTxs   = make(chan []common.Hash)
 		pendingTxSub = api.events.SubscribePendingTxs(pendingTxs)
@@ -129,7 +145,7 @@ func (api *PublicFilterAPI) NewPendingTransactionFilter() rpc.ID {
 		}
 	}()
 
-	return pendingTxSub.ID
+	return pendingTxSub.ID, nil
 }
 
 // NewPendingTransactions creates a subscription that is triggered each time a transaction
@@ -165,7 +181,11 @@ func (api *PublicFilterAPI) NewPendingTransactions(ctx context.Context) (*rpc.Su
 // It is part of the filter package since polling goes with eth_getFilterChanges.
 //
 // https://github.com/ethereum/wiki/wiki/JSON-RPC#eth_newblockfilter
-func (api *PublicFilterAPI) NewBlockFilter() rpc.ID {
+func (api *PublicFilterAPI) NewBlockFilter() (rpc.ID, error) {
+	if api.filtersFull() {
+		return "", fmt.Errorf("too many filters")
+	}
+
 	var (
 		headers   = make(chan *ethtypes.Header)
 		headerSub = api.events.SubscribeNewHeads(headers)
@@ -193,7 +213,7 @@ func (api *PublicFilterAPI) NewBlockFilter() rpc.ID {
 		}
 	}()
 
-	return headerSub.ID
+	return headerSub.ID, nil
 }
 
 // NewHeads send a notification each time a new (header) block is appended to the chain.
@@ -275,6 +295,10 @@ type FilterCriteria ethereum.FilterQuery
 //
 // https://github.com/ethereum/wiki/wiki/JSON-RPC#eth_newfilter
 func (api *PublicFilterAPI) NewFilter(criteria filters.FilterCriteria) (rpc.ID, error) {
+	if api.filtersFull() {
+		return "", fmt.Errorf("too many filters")
+	}
+
 	logs := make(chan []*ethtypes.Log)
 	logsSub, err := api.events.SubscribeLogs(ethereum.FilterQuery(criteria), logs)
 	if err != nil {
