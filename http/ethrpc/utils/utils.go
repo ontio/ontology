@@ -120,7 +120,14 @@ func OntTxToEthTx(tx *types.Transaction, blockHash common.Hash, blockNumber, ind
 }
 
 func FormatBlock(block types.Block, gasLimit uint64, gasUsed *big.Int, transactions interface{}, bloom types2.Bloom) map[string]interface{} {
-	size := len(block.ToArray())
+	// Compute the serialized size from the block parts that are already in
+	// memory instead of calling block.ToArray(), which serializes the whole
+	// block into one extra buffer just to read its length. The block layout is
+	// header || uint32(txCount) || transactions.
+	size := uint64(4) + uint64(len(block.Header.ToArray()))
+	for _, tx := range block.Transactions {
+		size += uint64(len(tx.ToArray()))
+	}
 	header := block.Header
 	hash := header.Hash()
 	transactionsRoot := types2.EmptyRootHash
