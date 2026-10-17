@@ -114,11 +114,6 @@ type NotifyEventInfo struct {
 	IsEvm           bool
 }
 
-type TxAttributeInfo struct {
-	Usage types.TransactionAttributeUsage
-	Data  string
-}
-
 type AmountMap struct {
 	Key   common.Uint256
 	Value common.Fixed64
@@ -153,7 +148,7 @@ type Transactions struct {
 	Payer      string
 	TxType     types.TransactionType
 	Payload    PayloadInfo
-	Attributes []TxAttributeInfo
+	Attributes []string
 	Sigs       []Sig
 	Hash       string
 	Height     uint32
@@ -246,10 +241,12 @@ func TransArryByteToHexString(ptx *types.Transaction) *Transactions {
 	trans.Payer = ptx.Payer.ToBase58()
 	trans.Payload = TransPayloadToHex(ptx.Payload)
 
-	trans.Attributes = make([]TxAttributeInfo, 0)
+	trans.Attributes = make([]string, 0, len(ptx.ExtraSigners))
+	for _, signer := range ptx.ExtraSigners {
+		trans.Attributes = append(trans.Attributes, signer.ToBase58())
+	}
 	trans.Sigs = []Sig{}
-	for _, sigdata := range ptx.Sigs {
-		sig, _ := sigdata.GetSig()
+	for _, sig := range ptx.Sigs {
 		e := Sig{M: sig.M}
 		for i := 0; i < len(sig.PubKeys); i++ {
 			key := keypair.SerializePublicKey(sig.PubKeys[i])

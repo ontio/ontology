@@ -136,23 +136,20 @@ func NewTxPayload(pl types.Payload) *TxPayload {
 func NewTransaction(tx *types.Transaction, height uint32) *transaction {
 	ty := convTxType(tx)
 	var sigs []*Sig
-	for _, val := range tx.Sigs {
-		sig, err := val.GetSig()
-		if err == nil {
-			var sigdata []string
-			for _, data := range sig.SigData {
-				sigdata = append(sigdata, common.ToHexString(data))
-			}
-			var pubkey []PubKey
-			for _, val := range sig.PubKeys {
-				pubkey = append(pubkey, PubKey(common.PubKeyToHex(val)))
-			}
-			sigs = append(sigs, &Sig{
-				SigData: sigdata,
-				PubKeys: pubkey,
-				M:       Uint32(sig.M),
-			})
+	for _, sig := range tx.Sigs {
+		var sigdata []string
+		for _, data := range sig.SigData {
+			sigdata = append(sigdata, common.ToHexString(data))
 		}
+		var pubkey []PubKey
+		for _, val := range sig.PubKeys {
+			pubkey = append(pubkey, PubKey(common.PubKeyToHex(val)))
+		}
+		sigs = append(sigs, &Sig{
+			SigData: sigdata,
+			PubKeys: pubkey,
+			M:       Uint32(sig.M),
+		})
 	}
 	t := &transaction{
 		Version:  Uint32(tx.Version),

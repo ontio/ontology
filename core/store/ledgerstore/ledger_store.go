@@ -46,6 +46,8 @@ import (
 	"github.com/ontio/ontology/core/store/leveldbstore"
 	"github.com/ontio/ontology/core/store/overlaydb"
 	"github.com/ontio/ontology/core/types"
+	utils2 "github.com/ontio/ontology/core/utils"
+	"github.com/ontio/ontology/core/validation"
 	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/events"
 	"github.com/ontio/ontology/events/message"
@@ -96,6 +98,7 @@ type LedgerStoreImp struct {
 	headerIndexCache     *HeaderIndexCache                //Header index cache, Mapping header height => block hash
 	lock                 sync.RWMutex
 	stateHashCheckHeight uint32
+	checkpoints          *checkpointTracker
 
 	savingBlockSemaphore       chan bool
 	closing                    bool
@@ -108,6 +111,7 @@ func NewLedgerStore(dataDir string, stateHashHeight uint32) (*LedgerStoreImp, er
 		headerCache:          make(map[common.Uint256]*types.Header, 0),
 		savingBlockSemaphore: make(chan bool, 1),
 		stateHashCheckHeight: stateHashHeight,
+		checkpoints:          newCheckpointTracker(config.DefConfig.P2PNode.NetworkId),
 	}
 
 	blockStore, err := NewBlockStore(fmt.Sprintf("%s%s%s", dataDir, string(os.PathSeparator), DBDirBlock), true)
@@ -198,17 +202,14 @@ func (this *LedgerStoreImp) InitLedgerStoreWithGenesisBlock(genesisBlock *types.
 		}
 	}
 
-	this.tryEnableEvmPrague()
+	this.tryEnableFeatures()
 	// check and fix imcompatible states
 	err = this.stateStore.CheckStorage()
 	return err
 }
 
 // code can be cleaned once enabled
-func (this *LedgerStoreImp) tryEnableEvmPrague() {
-	if !types.PragueEnabled && config.GetEvmPragueHeight() <= this.currBlockHeight {
-		types.PragueEnabled = true
-	}
+func (this *LedgerStoreImp) tryEnableFeatures() {
 }
 
 func (this *LedgerStoreImp) hasAlreadyInitGenesisBlock() (bool, error) {
@@ -579,6 +580,9 @@ func (this *LedgerStoreImp) ExecuteBlock(block *types.Block) (result store.Execu
 		return
 	}
 
+	if err = this.verifyBlockTransactions(block); err != nil {
+		return
+	}
 	result, err = this.executeBlock(block)
 	return
 }
@@ -923,6 +927,9 @@ func (this *LedgerStoreImp) BloomStatus() (uint32, uint32) {
 
 // saveBlock do the job of execution samrt contract and commit block to store.
 func (this *LedgerStoreImp) submitBlock(block *types.Block, crossChainMsg *types.CrossChainMsg, result store.ExecuteResult) error {
+	if err := this.checkpoints.check(block, result); err != nil {
+		return err
+	}
 	blockHash := block.Hash()
 	blockHeight := block.Header.Height
 	blockRoot := this.GetBlockRootWithNewTxRoots(block.Header.Height, []common.Uint256{block.Header.TransactionsRoot})
@@ -972,7 +979,26 @@ func (this *LedgerStoreImp) submitBlock(block *types.Block, crossChainMsg *types
 			})
 		PushChainEvent(result.Notify, block, result.Bloom)
 	}
-	this.tryEnableEvmPrague()
+	this.tryEnableFeatures()
+	return nil
+}
+
+func (this *LedgerStoreImp) verifyBlockTransactions(block *types.Block) error {
+	blockHeight := block.Header.Height
+	if blockHeight == 0 || len(block.Transactions) == 0 {
+		return nil
+	}
+
+	extraSignersEnabled := blockHeight >= config.GetEnableExtraSignersHeight()
+	governanceHash := utils2.CreateGovernaceTransaction(blockHeight).Hash()
+	for _, tx := range block.Transactions {
+		if tx.Hash() == governanceHash {
+			continue
+		}
+		if err := validation.EnsureTransactionVerified(tx, extraSignersEnabled); err != nil {
+			return fmt.Errorf("transaction:%s verification failed with %s", tx.Hash().ToHexString(), err.Error())
+		}
+	}
 	return nil
 }
 
@@ -981,6 +1007,9 @@ func (this *LedgerStoreImp) saveBlock(block *types.Block, ccMsg *types.CrossChai
 	blockHeight := block.Header.Height
 	if blockHeight > 0 && blockHeight <= this.GetCurrentBlockHeight() {
 		return nil
+	}
+	if err := this.verifyBlockTransactions(block); err != nil {
+		return err
 	}
 	this.getSavingBlockLock()
 	defer this.releaseSavingBlockLock()

@@ -19,9 +19,8 @@
 package stateless
 
 import (
-	"github.com/ontio/ontology/core/types"
-
 	"github.com/gammazero/workerpool"
+	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/core/validation"
 	vatypes "github.com/ontio/ontology/validator/types"
 )
@@ -36,7 +35,7 @@ func NewValidatorPool(maxWorkers int) *ValidatorPool {
 
 func (self *ValidatorPool) SubmitVerifyTask(tx *types.Transaction, rspCh chan<- *vatypes.CheckResponse) {
 	task := func() {
-		errCode := validation.VerifyTransaction(tx)
+		errCode := validation.VerifyTransaction(tx, true)
 		response := &vatypes.CheckResponse{
 			ErrCode: errCode,
 			Hash:    tx.Hash(),

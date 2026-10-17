@@ -22,7 +22,7 @@ import (
 	"net"
 )
 
-//peer capability
+// peer capability
 const (
 	VERIFY_NODE  = 1 //peer involved in consensus
 	SERVICE_NODE = 2 //peer only sync with consensus peer
@@ -30,7 +30,7 @@ const (
 
 const MIN_VERSION_FOR_DHT = "1.9.1-beta"
 
-//link and concurrent const
+// link and concurrent const
 const (
 	PER_SEND_LEN        = 1024 * 256 //byte len per conn write
 	MAX_BUF_LEN         = 1024 * 256 //the maximum buffer to receive message
@@ -41,23 +41,23 @@ const (
 	MAX_TX_CACHE_SIZE   = 100000     //the maximum txHash cache size
 )
 
-//msg cmd const
+// msg cmd const
 const (
-	MSG_CMD_LEN     = 12               //msg type length in byte
-	CHECKSUM_LEN    = 4                //checksum length in byte
-	MSG_HDR_LEN     = 24               //msg hdr length in byte
-	MAX_BLK_HDR_CNT = 500              //hdr count once when sync header
-	MAX_MSG_LEN     = 30 * 1024 * 1024 //the maximum message length
+	MSG_CMD_LEN     = 12              //msg type length in byte
+	CHECKSUM_LEN    = 4               //checksum length in byte
+	MSG_HDR_LEN     = 24              //msg hdr length in byte
+	MAX_BLK_HDR_CNT = 500             //hdr count once when sync header
+	MAX_MSG_LEN     = 5 * 1024 * 1024 // the maximum message length
 	MAX_PAYLOAD_LEN = MAX_MSG_LEN - MSG_HDR_LEN
 )
 
-//msg type const
+// msg type const
 const (
 	MAX_ADDR_NODE_CNT = 64 //the maximum peer address from msg
 	MAX_INV_BLK_CNT   = 64 //the maximum blk hash cnt of inv msg
 )
 
-//info update const
+// info update const
 const (
 	PROTOCOL_VERSION      = 0     //protocol version
 	UPDATE_RATE_PER_BLOCK = 2     //info update rate in one generate block period
@@ -74,16 +74,16 @@ const (
 	RecentPeerElapseLimit = 60
 )
 
-//cap flag
+// cap flag
 const HTTP_INFO_FLAG = 0 //peer`s http info bit in cap field
 
-//recent contact const
+// recent contact const
 const (
 	RECENT_TIMEOUT   = 60
 	RECENT_FILE_NAME = "peers.recent"
 )
 
-//PeerAddr represent peer`s net information
+// PeerAddr represent peer`s net information
 type PeerAddr struct {
 	Time     int64    //latest timestamp
 	Services uint64   //service type
@@ -94,7 +94,7 @@ type PeerAddr struct {
 	ID            PeerId //Unique ID
 }
 
-//const channel msg id and type
+// const channel msg id and type
 const (
 	VERSION_TYPE       = "version"     //peer`s information
 	VERACK_TYPE        = "verack"      //ack msg after version recv
@@ -120,7 +120,7 @@ const (
 	SUBNET_OFFLINE_TYPE     = "offline"    // offline witness message
 )
 
-//ParseIPAddr return ip address
+// ParseIPAddr return ip address
 func ParseIPAddr(s string) (string, error) {
 	host, _, err := net.SplitHostPort(s)
 	return host, err

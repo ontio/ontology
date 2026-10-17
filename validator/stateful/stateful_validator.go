@@ -65,7 +65,7 @@ func (self *ValidatorPool) SubmitVerifyTask(tx *types.Transaction, rspCh chan<- 
 				response.Nonce = ethacct.Nonce
 			}
 		}
-		if IsSenderLimited(tx.GetSignatureAddresses()) {
+		if IsSenderLimited(tx) {
 			response.ErrCode = errors.ErrNoAccount
 		}
 
@@ -103,7 +103,11 @@ var senderLimitor = func() map[common.Address]bool {
 	return limitMap
 }()
 
-func IsSenderLimited(senders []common.Address) bool {
+func IsSenderLimited(tx *types.Transaction) bool {
+	senders := append(tx.ExtraSigners, tx.Payer)
+	for _, sig := range tx.Sigs {
+		senders = append(senders, sig.SignerAddress())
+	}
 	for _, v := range senders {
 		if senderLimitor[v] {
 			return true

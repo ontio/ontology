@@ -20,6 +20,7 @@
 package common
 
 import (
+	"bytes"
 	"sort"
 	"sync"
 
@@ -401,7 +402,8 @@ func (tp *TXPool) GetUnverifiedTxs(txs []*types.Transaction, height uint32) *Che
 	}
 	for _, tx := range txs {
 		txEntry := tp.validTxMap[tx.Hash()]
-		if txEntry == nil {
+		// do not allow tx hash with invalid sig
+		if txEntry == nil || !bytes.Equal(txEntry.Tx.Raw, tx.Raw) {
 			res.UnverifiedTxs = append(res.UnverifiedTxs, tx)
 			continue
 		}

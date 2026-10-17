@@ -294,6 +294,17 @@ func GetDisableLegacyContractsHeight() uint32 {
 	}
 }
 
+func GetEnableExtraSignersHeight() uint32 {
+	switch DefConfig.P2PNode.NetworkId {
+	case NETWORK_ID_MAIN_NET:
+		return constants.ENABLE_EXTRA_SIGNERS_IN_TX_MAINNET
+	case NETWORK_ID_POLARIS_NET:
+		return constants.ENABLE_EXTRA_SIGNERS_IN_TX_POLARIS
+	default:
+		return 0
+	}
+}
+
 func GetEvmPragueHeight() uint32 {
 	switch DefConfig.P2PNode.NetworkId {
 	case NETWORK_ID_MAIN_NET:

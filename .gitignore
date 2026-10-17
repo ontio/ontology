@@ -36,3 +36,4 @@ docker/payload
 config.json
 peers.recent
 /.project
+/chains

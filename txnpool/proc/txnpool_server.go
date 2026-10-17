@@ -398,7 +398,7 @@ func (s *TXPoolServer) verifyBlock(req *tc.VerifyBlockReq, sender *actor.PID) {
 	// Check whether a tx's gas price is lower than the required, if yes, just return error
 	txs := make(map[common.Uint256]*txtypes.Transaction, len(req.Txs))
 	for _, t := range req.Txs {
-		if stateful.IsSenderLimited(t.GetSignatureAddresses()) {
+		if stateful.IsSenderLimited(t) {
 			entry := &tc.VerifyTxResult{
 				Height:  req.Height,
 				Tx:      t,

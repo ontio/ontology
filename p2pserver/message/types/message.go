@@ -52,7 +52,7 @@ func (self *UnknownMessage) Deserialization(source *comm.ZeroCopySource) error {
 	return nil
 }
 
-//MsgPayload in link channel
+// MsgPayload in link channel
 type MsgPayload struct {
 	Id          common.PeerId //peer ID
 	Addr        string        //link address
@@ -154,6 +154,9 @@ func ReadMessage(reader io.Reader) (Message, uint32, error) {
 	err = msg.Deserialization(source)
 	if err != nil {
 		return nil, 0, err
+	}
+	if source.Len() != 0 {
+		return nil, 0, fmt.Errorf("message contains unread bytes")
 	}
 
 	return msg, hdr.Length, nil

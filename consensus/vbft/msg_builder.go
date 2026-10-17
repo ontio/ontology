@@ -30,6 +30,7 @@ import (
 	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/core/signature"
 	"github.com/ontio/ontology/core/types"
+	"github.com/ontio/ontology/core/utils"
 	p2pmsg "github.com/ontio/ontology/p2pserver/message/types"
 )
 
@@ -184,7 +185,7 @@ func BuildProposalMsg(vbftCtx *VbftContext, userTxs []*types.Transaction, chainc
 	}
 	var sysTxs []*types.Transaction
 	if vbftCtx.NeedUpdateChainConfigTx() {
-		sysTxs = append(sysTxs, CreateGovernaceTransaction(blkNum))
+		sysTxs = append(sysTxs, utils.CreateGovernaceTransaction(blkNum))
 	}
 
 	emptyBlk := constructBlock(blkNum, prevBlk, sysTxs, consensusPayload, blockTime, nonce)

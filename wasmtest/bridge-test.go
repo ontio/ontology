@@ -95,6 +95,7 @@ func deployContract(contract []Item, acct *account.Account, database *ledger.Led
 				continue
 			}
 			tx, err = NewDeployWasmContract(acct, cont)
+			tx.SetSignedAddresses([]common.Address{acct.Address})
 		} else if strings.HasSuffix(file, ".avm") {
 			if file == "bridge2.avm" {
 				// migrate contract

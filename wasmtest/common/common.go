@@ -125,15 +125,7 @@ func GenWasmTransaction(testCase TestCase, contract common.Address, testConext *
 		tx.Payload.(*payload.InvokeCode).Code = common.SerializeToBytes(contract)
 	}
 
-	imt, err := tx.IntoImmutable()
-	if err != nil {
-		return nil, err
-	}
-
-	imt.SignedAddr = append(imt.SignedAddr, testCase.Env.Witness...)
-	imt.SignedAddr = append(imt.SignedAddr, testConext.Admin)
-
-	return imt, nil
+	return addSignToTx(tx, testCase, testConext)
 }
 
 // when need pass testConext to neovm contract, must write contract as def Main(operation, args) api. and args need be a list.
@@ -199,15 +191,37 @@ func GenNeoVMTransaction(testCase TestCase, contract common.Address, testConext 
 		//neovms.Dumpcode(tx.Payload.(*payload.InvokeCode).Code[:], "")
 	}
 
+	return addSignToTx(tx, testCase, testConext)
+}
+
+func addSignToTx(tx *types.MutableTransaction, testCase TestCase,
+	testConext *TestContext) (*types.Transaction, error) {
+	allSigners := dedulpSigners(testConext.Admin, testCase.Env.Witness)
+	tx.Payer = allSigners[0]
+	tx.ExtraSigners = allSigners[1:]
+
 	imt, err := tx.IntoImmutable()
 	if err != nil {
 		return nil, err
 	}
 
-	imt.SignedAddr = append(imt.SignedAddr, testCase.Env.Witness...)
-	imt.SignedAddr = append(imt.SignedAddr, testConext.Admin)
-
+	imt.SignedAddr = allSigners
 	return imt, nil
+}
+
+func dedulpSigners(payer common.Address, signers []common.Address) []common.Address {
+	var result []common.Address
+	used := make(map[common.Address]bool)
+	result = append(result, payer)
+	used[payer] = true
+	for _, signer := range signers {
+		if used[signer] {
+			continue
+		}
+		used[signer] = true
+		result = append(result, signer)
+	}
+	return result
 }
 
 func buildTestConext(testConext *TestContext) []byte {

@@ -26,7 +26,6 @@ import (
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/constants"
 	"github.com/ontio/ontology/common/log"
-	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/signature"
 	"github.com/ontio/ontology/core/types"
@@ -34,9 +33,26 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/wasmvm"
 )
 
+func EnsureTransactionVerified(tx *types.Transaction, extraSignerListEnabled bool) error {
+	if err := checkExtraSignersEnabled(tx, extraSignerListEnabled); err != nil {
+		return fmt.Errorf("verify transaction failed with %s", err.Error())
+	}
+
+	verified := tx.GetVerifiedSignerAddresses()
+	if len(verified) == 0 {
+		e := VerifyTransaction(tx, extraSignerListEnabled)
+		if e != ontErrors.ErrNoError {
+			return fmt.Errorf("verify transaction failed with %s", e.Error())
+		}
+		return nil
+	}
+
+	return nil
+}
+
 // VerifyTransaction verifys received single transaction
-func VerifyTransaction(tx *types.Transaction) ontErrors.ErrCode {
-	if err := checkTransactionSignatures(tx); err != nil {
+func VerifyTransaction(tx *types.Transaction, extraSignerListEnabled bool) ontErrors.ErrCode {
+	if err := checkTransactionSignatures(tx, extraSignerListEnabled); err != nil {
 		log.Info("transaction verify error:", err)
 		return ontErrors.ErrVerifySignature
 	}
@@ -49,15 +65,13 @@ func VerifyTransaction(tx *types.Transaction) ontErrors.ErrCode {
 	return ontErrors.ErrNoError
 }
 
-func VerifyTransactionWithLedger(tx *types.Transaction, ledger *ledger.Ledger) ontErrors.ErrCode {
-	//TODO: replay check
-	return ontErrors.ErrNoError
-}
-
-func checkTransactionSignatures(tx *types.Transaction) error {
+func checkTransactionSignatures(tx *types.Transaction, extraSignerListEnabled bool) error {
 	if tx.IsEipTx() {
 		//the signature already checked on decode tx
 		return nil
+	}
+	if err := checkExtraSignersEnabled(tx, extraSignerListEnabled); err != nil {
+		return err
 	}
 
 	hash := tx.Hash()
@@ -68,12 +82,7 @@ func checkTransactionSignatures(tx *types.Transaction) error {
 	}
 
 	address := make(map[common.Address]bool, len(tx.Sigs))
-	for _, sigdata := range tx.Sigs {
-		sig, err := sigdata.GetSig()
-		if err != nil {
-			return err
-		}
-
+	for _, sig := range tx.Sigs {
 		m := int(sig.M)
 		kn := len(sig.PubKeys)
 		sn := len(sig.SigData)
@@ -87,33 +96,55 @@ func checkTransactionSignatures(tx *types.Transaction) error {
 			if err != nil {
 				return errors.New("signature verification failed")
 			}
-
-			address[types.AddressFromPubKey(sig.PubKeys[0])] = true
 		} else {
 			if err := signature.VerifyMultiSignature(hash[:], sig.PubKeys, m, sig.SigData); err != nil {
 				return err
 			}
-
-			addr, err := types.AddressFromMultiPubKeys(sig.PubKeys, m)
-			if err != nil {
-				return err
-			}
-			address[addr] = true
 		}
+		address[sig.SignerAddress()] = true
 	}
 
-	// check payer in address
-	if !address[tx.Payer] {
-		return errors.New("signature missing for payer: " + tx.Payer.ToBase58())
+	if err := checkSignerSet(tx, address, extraSignerListEnabled); err != nil {
+		return err
 	}
 
 	addrList := make([]common.Address, 0, len(address))
 	for addr := range address {
 		addrList = append(addrList, addr)
 	}
-
 	tx.SetSignedAddresses(addrList)
 
+	return nil
+}
+
+// checkExtraSignersEnabled rejects extra signers before the feature is
+// enabled. After activation, checkSignerSet validates the list against the
+// verified signer set.
+func checkExtraSignersEnabled(tx *types.Transaction, extraSignerListEnabled bool) error {
+	if !extraSignerListEnabled && len(tx.ExtraSigners) > 0 {
+		return errors.New("transaction extra signers are not enabled")
+	}
+	return nil
+}
+
+// checkSignerSet verifies that Payer is in the verified signer set and, when
+// the extra signer rule is active, that ExtraSigners is exactly the verified
+// set minus Payer. It performs no cryptographic work.
+func checkSignerSet(tx *types.Transaction, address map[common.Address]bool, extraSignersEnabled bool) error {
+	if !address[tx.Payer] {
+		return errors.New("signature missing for payer: " + tx.Payer.ToBase58())
+	}
+	if !extraSignersEnabled {
+		return nil
+	}
+	if len(address) != len(tx.ExtraSigners)+1 {
+		return errors.New("wrong number of signers in the transaction")
+	}
+	for _, addr := range tx.ExtraSigners {
+		if !address[addr] {
+			return errors.New("signature missing for address: " + addr.ToBase58())
+		}
+	}
 	return nil
 }
 

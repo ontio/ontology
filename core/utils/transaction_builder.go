@@ -30,6 +30,8 @@ import (
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/types"
+	gover "github.com/ontio/ontology/smartcontract/service/native/governance"
+	nutils "github.com/ontio/ontology/smartcontract/service/native/utils"
 	"github.com/ontio/ontology/smartcontract/states"
 	vm "github.com/ontio/ontology/vm/neovm"
 )
@@ -91,7 +93,7 @@ func BuildNativeInvokeCode(contractAddress common.Address, version byte, method 
 	return builder.ToArray(), nil
 }
 
-//BuildNeoVMInvokeCode build NeoVM Invoke code for params
+// BuildNeoVMInvokeCode build NeoVM Invoke code for params
 func BuildNeoVMInvokeCode(smartContractAddress common.Address, params []interface{}) ([]byte, error) {
 	builder := vm.NewParamsBuilder(new(bytes.Buffer))
 	err := BuildNeoVMParam(builder, params)
@@ -103,7 +105,7 @@ func BuildNeoVMInvokeCode(smartContractAddress common.Address, params []interfac
 	return args, nil
 }
 
-//buildNeoVMParamInter build neovm invoke param code
+// buildNeoVMParamInter build neovm invoke param code
 func BuildNeoVMParam(builder *vm.ParamsBuilder, smartContractParams []interface{}) error {
 	//VM load params in reverse order
 	for i := len(smartContractParams) - 1; i >= 0; i-- {
@@ -188,7 +190,7 @@ func BuildNeoVMParam(builder *vm.ParamsBuilder, smartContractParams []interface{
 	return nil
 }
 
-//build param bytes for wasm contract
+// build param bytes for wasm contract
 func BuildWasmVMInvokeCode(contractAddress common.Address, params []interface{}) ([]byte, error) {
 	contract := &states.WasmContractParam{}
 	contract.Address = contractAddress
@@ -202,7 +204,7 @@ func BuildWasmVMInvokeCode(contractAddress common.Address, params []interface{})
 	return common.SerializeToBytes(contract), nil
 }
 
-//build param bytes for wasm contract
+// build param bytes for wasm contract
 func BuildWasmContractParam(params []interface{}) ([]byte, error) {
 	bf := common.NewZeroCopySink(nil)
 	for _, param := range params {
@@ -278,4 +280,14 @@ func NewWasmSmartContractTransaction(gasPrice, gasLimit uint64, invokeCode []byt
 		Sigs:     nil,
 	}
 	return tx, nil
+}
+
+func CreateGovernaceTransaction(blkNum uint32) *types.Transaction {
+	mutable := BuildNativeTransaction(nutils.GovernanceContractAddress, gover.COMMIT_DPOS, []byte{})
+	mutable.Nonce = blkNum
+	tx, err := mutable.IntoImmutable()
+	if err != nil {
+		panic(err)
+	}
+	return tx
 }

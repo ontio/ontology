@@ -57,12 +57,7 @@ func SigRawTransaction(req *clisvrcom.CliRpcRequest, resp *clisvrcom.CliRpcRespo
 		resp.ErrorCode = clisvrcom.CLIERR_INVALID_TX
 		return
 	}
-	mutable, err := tmpTx.IntoMutable()
-	if err != nil {
-		log.Infof("Cli Qid:%s SigRawTransaction tx IntoMutable error:%s", req.Qid, err)
-		resp.ErrorCode = clisvrcom.CLIERR_INVALID_TX
-		return
-	}
+	mutable := tmpTx.IntoMutable()
 	signer, err := req.GetAccount()
 	if err != nil {
 		log.Infof("Cli Qid:%s SigRawTransaction GetAccount:%s", req.Qid, err)

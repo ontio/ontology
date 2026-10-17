@@ -66,12 +66,7 @@ func SigMutilRawTransaction(req *clisvrcom.CliRpcRequest, resp *clisvrcom.CliRpc
 		resp.ErrorCode = clisvrcom.CLIERR_INVALID_TX
 		return
 	}
-	mutTx, err := tmpTx.IntoMutable()
-	if err != nil {
-		log.Infof("Cli Qid:%s SigMutilRawTransaction IntoMutable error:%s", req.Qid, err)
-		resp.ErrorCode = clisvrcom.CLIERR_INVALID_TX
-		return
-	}
+	mutTx := tmpTx.IntoMutable()
 
 	pubKeys := make([]keypair.PublicKey, 0, len(rawReq.PubKeys))
 	for _, pkStr := range rawReq.PubKeys {

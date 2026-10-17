@@ -42,8 +42,6 @@ import (
 	"github.com/ontio/ontology/events/message"
 	p2pmsg "github.com/ontio/ontology/p2pserver/message/types"
 	p2p "github.com/ontio/ontology/p2pserver/net/protocol"
-	gover "github.com/ontio/ontology/smartcontract/service/native/governance"
-	nutils "github.com/ontio/ontology/smartcontract/service/native/utils"
 	"github.com/ontio/ontology/validator/increment"
 )
 
@@ -51,6 +49,7 @@ const (
 	CAP_MESSAGE_CHANNEL  = 4096
 	CAP_ACTION_CHANNEL   = 64
 	CAP_MSG_SEND_CHANNEL = 16
+	MAX_TX_SIZE_IN_BLOCK = 4 * 1024 * 1024
 )
 
 type BlockAndExecteInfo struct {
@@ -614,7 +613,7 @@ func (self *Server) verifyProposalMsg(vbftCtx *VbftContext, msg *blockProposalMs
 		return nil, fmt.Errorf("get new block config failed:%s", err)
 	}
 	if vbftCtx.NeedUpdateChainConfigTx() {
-		if len(txs) != 1 || CreateGovernaceTransaction(vbftCtx.BlockNum).Hash() != txs[0].Hash() {
+		if len(txs) != 1 || utils.CreateGovernaceTransaction(vbftCtx.BlockNum).Hash() != txs[0].Hash() {
 			return nil, fmt.Errorf("update chain config block must has 1 commit dpos transaction, blk: %d", blkNum)
 		}
 		txs = txs[1:]
@@ -779,7 +778,7 @@ func (self *Server) processMsgEvent(msg ConsensusEvent) {
 			for _, p := range vbftCtx.PeerKeys {
 				pubInfos[common.PubKeyToHex(p.Key)] = true
 			}
-			
+
 			verifyHeader := *block.Header
 			verifyHeader.Bookkeepers = pubkeys
 			verifyHeader.SigData = pMsg.EndorsersSig
@@ -1258,16 +1257,6 @@ func (self *Server) msgSendLoop() {
 	}
 }
 
-func CreateGovernaceTransaction(blkNum uint32) *types.Transaction {
-	mutable := utils.BuildNativeTransaction(nutils.GovernanceContractAddress, gover.COMMIT_DPOS, []byte{})
-	mutable.Nonce = blkNum
-	tx, err := mutable.IntoImmutable()
-	if err != nil {
-		panic(err)
-	}
-	return tx
-}
-
 func (self *VbftContext) NeedUpdateChainConfigTx() bool {
 	lastConfigNum := self.PrevBlockInfo.Info.LastConfigBlockNum
 	if self.PrevBlockInfo.Info.NewChainConfig != nil {
@@ -1332,7 +1321,12 @@ func (self *Server) makeProposal(blkNum uint32, forEmpty bool) error {
 	}
 	if !forEmpty {
 		nonceCtx := make(map[common.Address]uint64)
+		usedSize := 0
 		for _, e := range self.poolActor.GetTxnPool(true, validHeight) {
+			usedSize += len(e.Tx.Raw)
+			if usedSize >= MAX_TX_SIZE_IN_BLOCK {
+				break
+			}
 			if err := self.incrValidator.Verify(e.Tx, validHeight, nonceCtx); err == nil {
 				userTxs = append(userTxs, e.Tx)
 			}

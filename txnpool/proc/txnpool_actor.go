@@ -149,9 +149,16 @@ func (ta *TxPoolService) handleTransaction(sender tc.SenderType, txn *tx.Transac
 			fmt.Sprintf("Deploy tx gaslimit should >= %d", neovm.CONTRACT_CREATE_GAS))
 		return
 	}
+	curBlkHeight := ledger.DefLedger.GetCurrentBlockHeight()
+	extraSignerEnableHeight := config.GetEnableExtraSignersHeight()
+	if curBlkHeight < extraSignerEnableHeight && curBlkHeight+10 > extraSignerEnableHeight {
+		if len(txn.Sigs) > 1 {
+			replyTxResult(txResultCh, txn.Hash(), errors.ErrUnknown, "transaction with multi signers is disabled")
+			return
+		}
+	}
 
 	if txn.IsEipTx() {
-		curBlkHeight := ledger.DefLedger.GetCurrentBlockHeight()
 		if curBlkHeight < config.GetAddDecimalsHeight() {
 			replyTxResult(txResultCh, txn.Hash(), errors.ErrUnknown, "block height is not reached, evm is not support")
 			return
@@ -188,7 +195,7 @@ func (ta *TxPoolService) handleTransaction(sender tc.SenderType, txn *tx.Transac
 			return
 		}
 	}
-	if stateful.IsSenderLimited(txn.GetSignatureAddresses()) {
+	if stateful.IsSenderLimited(txn) {
 		log.Infof("transaction limited: %s, raw: %x", txn.Hash().ToHexString(), txn.Raw)
 		replyTxResult(txResultCh, txn.Hash(), errors.ErrNoAccount, "limited")
 	}

@@ -177,10 +177,7 @@ func multiSigToTx(ctx *cli.Context) error {
 		return fmt.Errorf("TransactionFromRawBytes error:%s", err)
 	}
 
-	mutTx, err := tx.IntoMutable()
-	if err != nil {
-		return fmt.Errorf("IntoMutable error:%s", err)
-	}
+	mutTx := tx.IntoMutable()
 
 	acc, err := cmdcom.GetAccount(ctx)
 	if err != nil {
@@ -247,11 +244,7 @@ func sigToTx(ctx *cli.Context) error {
 		return fmt.Errorf("TransactionFromRawBytes error:%s", err)
 	}
 
-	mutTx, err := tx.IntoMutable()
-	if err != nil {
-		return fmt.Errorf("IntoMutable error:%s", err)
-	}
-
+	mutTx := tx.IntoMutable()
 	acc, err := cmdcom.GetAccount(ctx)
 	if err != nil {
 		return fmt.Errorf("GetAccount error:%s", err)

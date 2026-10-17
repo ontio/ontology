@@ -26,16 +26,15 @@ import (
 )
 
 type MutableTransaction struct {
-	Version  byte
-	TxType   TransactionType
-	Nonce    uint32
-	GasPrice uint64
-	GasLimit uint64
-	Payer    common.Address
-	Payload  Payload
-	//Attributes []*TxAttribute
-	attributes byte //this must be 0 now, Attribute Array length use VarUint encoding, so byte is enough for extension
-	Sigs       []Sig
+	Version      byte
+	TxType       TransactionType
+	Nonce        uint32
+	GasPrice     uint64
+	GasLimit     uint64
+	Payer        common.Address
+	Payload      Payload
+	ExtraSigners []common.Address
+	Sigs         []Sig
 }
 
 // output has no reference to self
@@ -55,25 +54,6 @@ func (self *MutableTransaction) Hash() common.Uint256 {
 		return common.UINT256_EMPTY
 	}
 	return tx.Hash()
-}
-
-func (self *MutableTransaction) GetSignatureAddresses() []common.Address {
-	address := make([]common.Address, 0, len(self.Sigs))
-	for _, sig := range self.Sigs {
-		m := int(sig.M)
-		n := len(sig.PubKeys)
-
-		if n == 1 {
-			address = append(address, AddressFromPubKey(sig.PubKeys[0]))
-		} else {
-			addr, err := AddressFromMultiPubKeys(sig.PubKeys, m)
-			if err != nil {
-				return nil
-			}
-			address = append(address, addr)
-		}
-	}
-	return address
 }
 
 // Serialize the Transaction
@@ -114,7 +94,10 @@ func (tx *MutableTransaction) serializeUnsigned(sink *common.ZeroCopySink) error
 	default:
 		return errors.New("wrong transaction payload type")
 	}
-	sink.WriteVarUint(uint64(tx.attributes))
+	sink.WriteVarUint(uint64(len(tx.ExtraSigners)))
+	for _, addr := range tx.ExtraSigners {
+		sink.WriteAddress(addr)
+	}
 
 	return nil
 }

@@ -55,9 +55,6 @@ var (
 		BLOCKCHAIN_GETTRANSACTION_NAME: BlockChainGetTransaction,
 		TRANSACTION_GETATTRIBUTES_NAME: TransactionGetAttributes,
 
-		ATTRIBUTE_GETUSAGE_NAME: AttributeGetUsage,
-		ATTRIBUTE_GETDATA_NAME:  AttributeGetData,
-
 		BLOCKCHAIN_GETHEIGHT_NAME: BlockChainGetHeight,
 	}
 

@@ -43,19 +43,17 @@ const MAX_TX_SIZE = 1024 * 1024 // The max size of a transaction to prevent DOS 
 // this flag is used for check EIP155 transaction chainID
 // will be set to 'true' on ontology startup ,for sdk dependency will always be 'false'
 var CheckChainID = false
-var PragueEnabled = false //  code can be cleaned once enabled onchain
 
 type Transaction struct {
-	Version  byte
-	TxType   TransactionType
-	Nonce    uint32
-	GasPrice uint64
-	GasLimit uint64
-	Payer    common.Address
-	Payload  Payload
-	//Attributes []*TxAttribute
-	attributes byte //this must be 0 now, Attribute Array length use VarUint encoding, so byte is enough for extension
-	Sigs       []RawSig
+	Version      byte
+	TxType       TransactionType
+	Nonce        uint32
+	GasPrice     uint64
+	GasLimit     uint64
+	Payer        common.Address
+	Payload      Payload
+	ExtraSigners []common.Address
+	Sigs         []Sig
 
 	Raw []byte // raw transaction data
 
@@ -82,10 +80,7 @@ func TransactionFromRawBytes(raw []byte) (*Transaction, error) {
 }
 
 func NewEvmSigner(chainId *big.Int) types.Signer {
-	if PragueEnabled {
-		return types.NewPragueSigner(chainId)
-	}
-	return types.NewEIP155Signer(chainId)
+	return types.NewPragueSigner(chainId)
 }
 
 func TransactionFromEIP155(eiptx *types.Transaction) (*Transaction, error) {
@@ -231,8 +226,12 @@ func (tx *Transaction) Deserialization(source *common.ZeroCopySource) error {
 	}
 
 	for i := 0; i < int(length); i++ {
-		var sig RawSig
-		err := sig.Deserialization(source)
+		var sigRaw RawSig
+		err := sigRaw.Deserialization(source)
+		if err != nil {
+			return err
+		}
+		sig, err := sigRaw.GetSig()
 		if err != nil {
 			return err
 		}
@@ -273,26 +272,23 @@ func (tx *Transaction) Cost() *big.Int {
 }
 
 // note: ownership transfered to output
-func (tx *Transaction) IntoMutable() (*MutableTransaction, error) {
+func (tx *Transaction) IntoMutable() *MutableTransaction {
 	mutable := &MutableTransaction{
-		Version:  tx.Version,
-		TxType:   tx.TxType,
-		Nonce:    tx.Nonce,
-		GasPrice: tx.GasPrice,
-		GasLimit: tx.GasLimit,
-		Payer:    tx.Payer,
-		Payload:  tx.Payload,
+		Version:      tx.Version,
+		TxType:       tx.TxType,
+		Nonce:        tx.Nonce,
+		GasPrice:     tx.GasPrice,
+		GasLimit:     tx.GasLimit,
+		Payer:        tx.Payer,
+		Payload:      tx.Payload,
+		ExtraSigners: tx.ExtraSigners,
 	}
 
-	for _, raw := range tx.Sigs {
-		sig, err := raw.GetSig()
-		if err != nil {
-			return nil, err
-		}
+	for _, sig := range tx.Sigs {
 		mutable.Sigs = append(mutable.Sigs, sig)
 	}
 
-	return mutable, nil
+	return mutable
 }
 
 func (tx *Transaction) deserializeOntUnsigned(source *common.ZeroCopySource) error {
@@ -361,10 +357,28 @@ func (tx *Transaction) deserializeOntUnsigned(source *common.ZeroCopySource) err
 		return io.ErrUnexpectedEOF
 	}
 
-	if length != 0 {
-		return fmt.Errorf("transaction attribute must be 0, got %d", length)
+	// Always parse ExtraSigners so offline clients can construct and inspect
+	// transactions without knowing the ledger height. Validation enforces the
+	// activation rule.
+	maxLength := uint64(constants.TX_MAX_SIG_SIZE - 1)
+	if length > maxLength {
+		return fmt.Errorf("transaction extra signers can not exceed %d, got %d", maxLength, length)
 	}
-	tx.attributes = 0
+	extraSigners := make([]common.Address, 0, length)
+	allSigners := make(map[common.Address]bool)
+	allSigners[tx.Payer] = true
+	for i := 0; i < int(length); i++ {
+		signer, err := source.ReadAddress()
+		if err != nil {
+			return err
+		}
+		if allSigners[signer] {
+			return fmt.Errorf("duplicate signer %d", signer)
+		}
+		allSigners[signer] = true
+		extraSigners = append(extraSigners, signer)
+	}
+	tx.ExtraSigners = extraSigners
 
 	return nil
 }
@@ -410,24 +424,6 @@ type Sig struct {
 	M       uint16
 }
 
-func (self *Sig) GetRawSig() (*RawSig, error) {
-	invocationScript := program.ProgramFromParams(self.SigData)
-	var verificationScript []byte
-	if len(self.PubKeys) == 0 {
-		return nil, errors.New("no pubkeys in sig")
-	} else if len(self.PubKeys) == 1 {
-		verificationScript = program.ProgramFromPubKey(self.PubKeys[0])
-	} else {
-		script, err := program.ProgramFromMultiPubKey(self.PubKeys, int(self.M))
-		if err != nil {
-			return nil, err
-		}
-		verificationScript = script
-	}
-
-	return &RawSig{Invoke: invocationScript, Verify: verificationScript}, nil
-}
-
 func (self *RawSig) GetSig() (Sig, error) {
 	sigs, err := program.GetParamInfo(self.Invoke)
 	if err != nil {
@@ -438,7 +434,37 @@ func (self *RawSig) GetSig() (Sig, error) {
 		return Sig{}, err
 	}
 
-	return Sig{SigData: sigs, M: info.M, PubKeys: info.PubKeys}, nil
+	sig := Sig{SigData: sigs, M: info.M, PubKeys: info.PubKeys}
+	if _, err := sig.signerAddressRaw(); err != nil {
+		return Sig{}, err
+	}
+	return sig, nil
+}
+
+func (self *Sig) signerAddressRaw() (common.Address, error) {
+	m := int(self.M)
+	n := len(self.PubKeys)
+
+	if n == 1 {
+		return AddressFromPubKey(self.PubKeys[0]), nil
+	}
+
+	addr, err := AddressFromMultiPubKeys(self.PubKeys, m)
+	if err != nil {
+		return common.Address{}, err
+	}
+
+	return addr, nil
+}
+
+func (self *Sig) SignerAddress() common.Address {
+	addr, err := self.signerAddressRaw()
+	if err != nil {
+		// checked from RawSig GetSig
+		panic(err)
+	}
+
+	return addr
 }
 
 func (self *Sig) Serialization(sink *common.ZeroCopySink) error {
@@ -468,17 +494,33 @@ func (self *Transaction) SetSignedAddresses(signed []common.Address) {
 	self.SignedAddr = signed
 }
 
+// GetVerifiedSignerAddresses returns the signer set recorded by signature
+// verification. Unlike GetSignatureAddresses, it never derives addresses from
+// the transaction's signature programs, so an empty result means the
+// transaction has not been verified in this process. Callers must treat the
+// returned slice as read-only.
+func (self *Transaction) GetVerifiedSignerAddresses() []common.Address {
+	self.signedLock.Lock()
+	defer self.signedLock.Unlock()
+	return self.SignedAddr
+}
+
+// GetSignatureAddresses returns the verified signer set when available,
+// otherwise a temporary set derived from the signature programs. The derived
+// set is never recorded in SignedAddr, so it cannot be mistaken for a
+// successfully verified transaction.
 func (self *Transaction) GetSignatureAddresses() []common.Address {
 	self.signedLock.Lock()
 	defer self.signedLock.Unlock()
-	if len(self.SignedAddr) == 0 {
-		addrs := make([]common.Address, 0, len(self.Sigs))
-		for _, prog := range self.Sigs {
-			addrs = append(addrs, common.AddressFromVmCode(prog.Verify))
-		}
-		self.SignedAddr = addrs
+	if len(self.SignedAddr) != 0 {
+		return self.SignedAddr
 	}
-	return self.SignedAddr
+
+	addrs := make([]common.Address, 0, len(self.Sigs))
+	for _, sig := range self.Sigs {
+		addrs = append(addrs, sig.SignerAddress())
+	}
+	return addrs
 }
 
 type TransactionType byte
