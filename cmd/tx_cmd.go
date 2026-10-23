@@ -222,7 +222,13 @@ func transferTx(ctx *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	mutTx.Payer = payer
+	fromAddress, err := common.AddressFromBase58(fromAddr)
+	if err != nil {
+		return fmt.Errorf("invalid from address:%s", err)
+	}
+	if err := utils.SetSignerAddresses(mutTx, payer, fromAddress); err != nil {
+		return fmt.Errorf("set signer addresses error:%s", err)
+	}
 
 	tx, err := mutTx.IntoImmutable()
 	if err != nil {
@@ -297,7 +303,13 @@ func approveTx(ctx *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	mutTx.Payer = payer
+	fromAddress, err := common.AddressFromBase58(fromAddr)
+	if err != nil {
+		return fmt.Errorf("invalid from address:%s", err)
+	}
+	if err := utils.SetSignerAddresses(mutTx, payer, fromAddress); err != nil {
+		return fmt.Errorf("set signer addresses error:%s", err)
+	}
 
 	tx, err := mutTx.IntoImmutable()
 	if err != nil {
@@ -382,7 +394,13 @@ func transferFromTx(ctx *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	mutTx.Payer = payer
+	senderAddress, err := common.AddressFromBase58(sendAddr)
+	if err != nil {
+		return fmt.Errorf("invalid sender address:%s", err)
+	}
+	if err := utils.SetSignerAddresses(mutTx, payer, senderAddress); err != nil {
+		return fmt.Errorf("set signer addresses error:%s", err)
+	}
 
 	tx, err := mutTx.IntoImmutable()
 	if err != nil {
@@ -470,7 +488,13 @@ func withdrawONGTx(ctx *cli.Context) error {
 		return err
 	}
 
-	mutTx.Payer = payer
+	ownerAddress, err := common.AddressFromBase58(accAddr)
+	if err != nil {
+		return fmt.Errorf("invalid account address:%s", err)
+	}
+	if err := utils.SetSignerAddresses(mutTx, payer, ownerAddress); err != nil {
+		return fmt.Errorf("set signer addresses error:%s", err)
+	}
 	tx, err := mutTx.IntoImmutable()
 	if err != nil {
 		return fmt.Errorf("IntoImmutable error:%s", err)

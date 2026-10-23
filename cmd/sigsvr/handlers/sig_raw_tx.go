@@ -22,7 +22,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 
-	"github.com/ontio/ontology-crypto/keypair"
 	clisvrcom "github.com/ontio/ontology/cmd/sigsvr/common"
 	cliutil "github.com/ontio/ontology/cmd/utils"
 	"github.com/ontio/ontology/common"
@@ -64,26 +63,11 @@ func SigRawTransaction(req *clisvrcom.CliRpcRequest, resp *clisvrcom.CliRpcRespo
 		resp.ErrorCode = clisvrcom.CLIERR_ACCOUNT_UNLOCK
 		return
 	}
-	var emptyAddress = common.Address{}
-	if mutable.Payer == emptyAddress {
-		mutable.Payer = signer.Address
-	}
-
-	txHash := mutable.Hash()
-	sigData, err := cliutil.Sign(txHash.ToArray(), signer)
-	if err != nil {
-		log.Infof("Cli Qid:%s SigRawTransaction Sign error:%s", req.Qid, err)
+	if err := cliutil.SignTransaction(signer, mutable); err != nil {
+		log.Infof("Cli Qid:%s SigRawTransaction SignTransaction error:%s", req.Qid, err)
 		resp.ErrorCode = clisvrcom.CLIERR_INTERNAL_ERR
 		return
 	}
-	if len(mutable.Sigs) == 0 {
-		mutable.Sigs = make([]types.Sig, 0)
-	}
-	mutable.Sigs = append(mutable.Sigs, types.Sig{
-		PubKeys: []keypair.PublicKey{signer.PublicKey},
-		M:       1,
-		SigData: [][]byte{sigData},
-	})
 
 	rawTx, err := mutable.IntoImmutable()
 	if err != nil {

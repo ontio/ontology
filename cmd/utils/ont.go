@@ -332,9 +332,64 @@ func NewInvokeTransaction(gasPrice, gasLimit uint64, invokeCode []byte) *types.M
 	return tx
 }
 
+// SetSignerAddresses finalizes the complete signer set before any signature
+// is added. The first signer is used as Payer; remaining unique signers are
+// stored in ExtraSigners.
+func SetSignerAddresses(tx *types.MutableTransaction, signers ...common.Address) error {
+	if len(tx.Sigs) != 0 {
+		return fmt.Errorf("signer set must be finalized before signing")
+	}
+	if len(signers) == 0 {
+		return fmt.Errorf("payer or signers must be set")
+	}
+	tx.Payer = signers[0]
+
+	seen := make(map[common.Address]bool, len(signers))
+	seen[tx.Payer] = true
+	extra := make([]common.Address, 0, len(signers)-1)
+	for _, signer := range signers {
+		if seen[signer] {
+			continue
+		}
+		seen[signer] = true
+		extra = append(extra, signer)
+	}
+	if len(extra) > constants.TX_MAX_SIG_SIZE-1 {
+		return fmt.Errorf("too many extra signers: %d", len(extra))
+	}
+
+	tx.ExtraSigners = extra
+	return nil
+}
+
+func appendSignerAddress(tx *types.MutableTransaction, signerAddr common.Address) error {
+	if len(tx.Sigs) == 0 {
+		signers := make([]common.Address, 0, len(tx.ExtraSigners)+2)
+		if tx.Payer != common.ADDRESS_EMPTY {
+			signers = append(signers, tx.Payer)
+		}
+		signers = append(signers, tx.ExtraSigners...)
+		signers = append(signers, signerAddr)
+		return SetSignerAddresses(tx, signers...)
+	}
+	if signerAddr != tx.Payer && !containsAddress(tx.ExtraSigners, signerAddr) {
+		return fmt.Errorf("signer %s is not declared in ExtraSigners; set signer addresses before signing", signerAddr.ToBase58())
+	}
+	return nil
+}
+
+func containsAddress(addresses []common.Address, target common.Address) bool {
+	for _, addr := range addresses {
+		if addr == target {
+			return true
+		}
+	}
+	return false
+}
+
 func SignTransaction(signer *account.Account, tx *types.MutableTransaction) error {
-	if tx.Payer == common.ADDRESS_EMPTY {
-		tx.Payer = signer.Address
+	if err := appendSignerAddress(tx, signer.Address); err != nil {
+		return err
 	}
 	txHash := tx.Hash()
 	sigData, err := Sign(txHash.ToArray(), signer)
@@ -378,12 +433,12 @@ func MultiSigTransaction(mutTx *types.MutableTransaction, m uint16, pubKeys []ke
 	if !validPubKey {
 		return fmt.Errorf("invalid signer")
 	}
-	if mutTx.Payer == common.ADDRESS_EMPTY {
-		payer, err := types.AddressFromMultiPubKeys(pubKeys, int(m))
-		if err != nil {
-			return fmt.Errorf("AddressFromMultiPubKeys error:%s", err)
-		}
-		mutTx.Payer = payer
+	multiAddr, err := types.AddressFromMultiPubKeys(pubKeys, int(m))
+	if err != nil {
+		return fmt.Errorf("AddressFromMultiPubKeys error:%s", err)
+	}
+	if err := appendSignerAddress(mutTx, multiAddr); err != nil {
+		return err
 	}
 
 	if len(mutTx.Sigs) == 0 {
