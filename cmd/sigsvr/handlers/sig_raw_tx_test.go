@@ -32,6 +32,7 @@ import (
 	"github.com/ontio/ontology/cmd/utils"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
+	"github.com/ontio/ontology/core/types"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -111,4 +112,55 @@ func TestSigRawTx(t *testing.T) {
 		t.Errorf("SigRawTransaction failed. ErrorCode:%d", resp.ErrorCode)
 		return
 	}
+}
+
+func TestSigRawTxDeclaresSignerForDifferentPayer(t *testing.T) {
+	payer := account.NewAccount("")
+	signer, err := testWallet.GetDefaultAccount(pwd)
+	if err != nil {
+		t.Fatalf("GetDefaultAccount error:%s", err)
+	}
+	mutable, err := utils.TransferTx(0, 0, "ont", signer.Address.ToBase58(), payer.Address.ToBase58(), 10)
+	if err != nil {
+		t.Fatalf("TransferTx error:%s", err)
+	}
+	mutable.Payer = payer.Address
+	unsigned, err := mutable.IntoImmutable()
+	if err != nil {
+		t.Fatalf("IntoImmutable error:%s", err)
+	}
+
+	data, err := json.Marshal(&SigRawTransactionReq{
+		RawTx: hex.EncodeToString(common.SerializeToBytes(unsigned)),
+	})
+	if err != nil {
+		t.Fatalf("json.Marshal error:%s", err)
+	}
+	resp := &clisvrcom.CliRpcResponse{}
+	SigRawTransaction(&clisvrcom.CliRpcRequest{
+		Qid:     "t",
+		Method:  "sigrawtx",
+		Params:  data,
+		Account: signer.Address.ToBase58(),
+		Pwd:     string(pwd),
+	}, resp)
+	if resp.ErrorCode != clisvrcom.CLIERR_OK {
+		t.Fatalf("SigRawTransaction failed. ErrorCode:%d ErrorInfo:%s", resp.ErrorCode, resp.ErrorInfo)
+	}
+
+	result, ok := resp.Result.(*SigRawTransactionRsp)
+	if !ok {
+		t.Fatalf("unexpected response type %T", resp.Result)
+	}
+	raw, err := hex.DecodeString(result.SignedTx)
+	if err != nil {
+		t.Fatalf("hex.DecodeString error:%s", err)
+	}
+	signed, err := types.TransactionFromRawBytes(raw)
+	if err != nil {
+		t.Fatalf("TransactionFromRawBytes error:%s", err)
+	}
+	assert.Equal(t, payer.Address, signed.Payer)
+	assert.Equal(t, []common.Address{signer.Address}, signed.ExtraSigners)
+	assert.Len(t, signed.Sigs, 1)
 }
